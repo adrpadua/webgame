@@ -1,0 +1,3 @@
+# Use raid-scoped deck evolution and shared prototype reward drafts
+
+Heroes bring their own authored decks into a `Raid Run`, then gain raid-scoped upgrades through card-wide upgrades, temporary cards added to discard, and Hero-assigned `Boons`. Route nodes reveal a `Reward Category`; the prototype presents the party with three choices, takes one, and assigns it to a Hero, although the intended production model is Hero-specific rewards. We chose this over permanent progression or unsignposted random rewards because it lets each run create an intelligible build against a known boss without committing the prototype to a collection economy or hiding route decisions from the player.

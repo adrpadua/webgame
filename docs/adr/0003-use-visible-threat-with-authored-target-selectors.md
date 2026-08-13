@@ -1,0 +1,3 @@
+# Use visible Threat with authored Target Selectors for boss targeting
+
+Boss actions will normally target the valid Hero with the highest visible `Threat`; dealing damage to the boss gains equal Threat, and `Taunt` sets its user's Threat to one above the current leader. Each Boss Timeline action may instead declare an authored `Target Selector`, such as Tank, Lowest Health, Farthest, or All, and its current predicted target remains visible. We chose this over role-locked targeting or opaque enemy AI because Tank play needs a dependable way to hold the boss, while raid scripts still need precise Healer, positioning, and party-wide checks.

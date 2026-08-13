@@ -1,0 +1,3 @@
+# Use short three-encounter Raid Runs with a known Final Boss
+
+A `Raid Run` will contain two four-round `Prep Encounters`, each followed by a reward draft, and a known `Final Boss` with an eight-round baseline encounter clock. Defeat in any encounter ends the run; health carries between encounters with partial post-victory recovery, while temporary combat state resets. We chose this over a single long boss encounter or an open-ended branching run because the game is intended for mobile-length sessions while still needing enough encounters for deliberate deck evolution and boss-specific preparation.
