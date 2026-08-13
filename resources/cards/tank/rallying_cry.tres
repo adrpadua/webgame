@@ -6,10 +6,8 @@
 script = ExtResource("1_card")
 id = &"rallying_cry"
 title = "Rallying Cry"
-rules_text = "Gain 1 energy and heal 2."
-cost = 0
-speed = &"fast"
+rules_text = "Heal 2."
+speed = &"quick"
 target_type = 0
-energy_delta = 1
 healing = 2
 tags = Array[StringName]([&"tank", &"support"])

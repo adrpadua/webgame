@@ -24,6 +24,7 @@ The current build centers on:
 - [docs/artifacts/embermaw-vertical-slice.md](D:/dev/webgame/docs/artifacts/embermaw-vertical-slice.md): completed playable encounter, responsive layout, asset provenance, and verification
 - [docs/artifacts/accessibility.md](D:/dev/webgame/docs/artifacts/accessibility.md): interaction-size, contrast, and keyboard-focus contract
 - [docs/content/README.md](D:/dev/webgame/docs/content/README.md): authored content docs such as decklists, encounter specs, and boss scripts
+- [docs/content/design-team-handoff.md](D:/dev/webgame/docs/content/design-team-handoff.md): designer Resource schemas, examples, validation, and playtest workflow
 
 ## Repository Layout
 
@@ -46,18 +47,25 @@ The playable scene is [scenes/Main.tscn](D:/dev/webgame/scenes/Main.tscn).
 - Drag cards from the hand into action bar slots to prepare, charge, or replace
 - Activate slotted cards during their matching window
 - Click a hex to target it for piece-targeting effects
-- During the `Quick Window`, drag the player token to an adjacent empty hex or use the move button to spend `1 Tempo` on movement
+- During the `Quick Window`, drag a hand card to an adjacent legal hex to discard it for `1 Stamina` and move; drag the Hero to preview legal routes
 - Advance phases with the phase control to step through the boss timeline
 
 ## Main Code Paths
 
-- [scripts/Main.gd](D:/dev/webgame/scripts/Main.gd): main scene controller and interaction wiring
-- [scripts/player/PlayerState.gd](D:/dev/webgame/scripts/player/PlayerState.gd): player resources, deck, hand, action bar, and activation rules
-- [scripts/turns/TurnManager.gd](D:/dev/webgame/scripts/turns/TurnManager.gd): encounter phase state machine
-- [scripts/boss/BossState.gd](D:/dev/webgame/scripts/boss/BossState.gd): boss timeline state
+- [scripts/sdk/EncounterEngine.gd](D:/dev/webgame/scripts/sdk/EncounterEngine.gd): authoritative Encounter rules and state
+- [scripts/Main.gd](D:/dev/webgame/scripts/Main.gd): direct-manipulation wiring that submits `EncounterAction` records
+- [scripts/player/PlayerState.gd](D:/dev/webgame/scripts/player/PlayerState.gd): read-only player projection for existing UI
+- [scripts/turns/TurnManager.gd](D:/dev/webgame/scripts/turns/TurnManager.gd): read-only phase projection
+- [scripts/boss/BossState.gd](D:/dev/webgame/scripts/boss/BossState.gd): read-only Boss Timeline projection
 - [scripts/cards/CardData.gd](D:/dev/webgame/scripts/cards/CardData.gd): reusable player card resource model
 - [scripts/boss/BossActionData.gd](D:/dev/webgame/scripts/boss/BossActionData.gd): reusable boss action resource model
 - [scripts/hex/HexGrid.gd](D:/dev/webgame/scripts/hex/HexGrid.gd): board, pieces, movement, and spawning
+
+## Validate
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe all
+```
 
 ## Prototype Scope Notes
 

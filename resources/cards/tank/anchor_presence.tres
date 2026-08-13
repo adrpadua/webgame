@@ -6,9 +6,8 @@
 script = ExtResource("1_card")
 id = &"anchor_presence"
 title = "Anchor Presence"
-rules_text = "Gain 1 presence and place this on your board."
-cost = 0
+rules_text = "Gain 1 Presence."
 speed = &"slow"
-target_type = 2
+target_type = 0
 presence_delta = 1
 tags = Array[StringName]([&"tank", &"presence"])

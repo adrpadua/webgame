@@ -1,5 +1,7 @@
 # Mobile One-Turn Playtest Notes
 
+Historical artifact: this predates card-fueled Stamina and the current direct-manipulation controls.
+
 Date: 2026-08-13
 
 Build: local Godot prototype in `D:\dev\webgame`

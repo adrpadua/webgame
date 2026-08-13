@@ -6,6 +6,8 @@ const DuelystBossCrest := preload("res://assets/art/open-duelyst/boss_neutral_cr
 
 signal died(piece)
 signal facing_changed(piece)
+signal piece_drag_started(piece)
+signal piece_drag_ended(piece)
 
 @export var piece_id: StringName
 @export var piece_owner: StringName = &"enemy"
@@ -99,7 +101,13 @@ func _begin_touch_drag() -> void:
 	if piece_owner != &"player":
 		return
 	drag_started = true
+	piece_drag_started.emit(self)
 	force_drag(_build_drag_payload(), _build_drag_preview())
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_DRAG_END and drag_started:
+		drag_started = false
+		piece_drag_ended.emit(self)
 
 func _build_drag_payload() -> Dictionary:
 	return {

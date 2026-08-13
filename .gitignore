@@ -11,3 +11,6 @@ Thumbs.db
 # Local export output
 builds/
 exports/
+
+# Generated Spikes/Probes failure traces
+tmp/probe-artifacts/

@@ -6,9 +6,8 @@
 script = ExtResource("1_card")
 id = &"gather_strength"
 title = "Gather Strength"
-rules_text = "Gain 2 energy."
-cost = 0
-speed = &"fast"
+rules_text = "Gain 2 Armor."
+speed = &"quick"
 target_type = 0
-energy_delta = 2
+armor_delta = 2
 tags = Array[StringName]([&"growth"])

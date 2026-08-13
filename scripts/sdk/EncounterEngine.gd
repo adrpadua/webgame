@@ -3,8 +3,12 @@ extends RefCounted
 
 const ActionResolverModel := preload("res://scripts/sdk/ActionResolver.gd")
 const BoardStateModel := preload("res://scripts/hex/BoardState.gd")
+const BoardQueryModel := preload("res://scripts/hex/BoardQuery.gd")
 const EncounterActionModel := preload("res://scripts/sdk/EncounterAction.gd")
+const BossProgramBeatModel := preload("res://scripts/boss/BossProgramBeat.gd")
 const StatusEffectModel := preload("res://scripts/sdk/StatusEffect.gd")
+const RulesRandomModel := preload("res://scripts/sdk/RulesRandom.gd")
+const FacingDirections := preload("res://scripts/combat/Facing.gd")
 
 var board := BoardStateModel.new()
 var action_resolver := ActionResolverModel.new()
@@ -14,51 +18,99 @@ var status_effects: Dictionary = {}
 var boss_id: StringName = &""
 var primary_hero_id: StringName = &""
 var programs: Array = []
+var loop_programs: bool = true
 var current_program
 var program_index: int = 0
 var brood_spawn_candidates: Array[Vector2i] = []
 var telegraphed_spawn_hexes: Array[Vector2i] = []
+var telegraphs: Dictionary = {}
 var previous_impacted_hexes: Array[Vector2i] = []
 var last_pattern: Array[Vector2i] = []
-var phase: StringName = &"instant"
+var phase: StringName = &"loadout"
 var round: int = 1
 var round_limit: int = 8
 var active: bool = false
 var outcome: StringName = &"ongoing"
+var outcome_reason: String = ""
 var history: Array = []
 var minion_sequence: int = 0
+var enrage_text: String = "The Encounter Clock expired."
+var random_source := RulesRandomModel.new()
 
 func _init() -> void:
 	var timeline_resolver_script = load("res://scripts/sdk/TimelineResolver.gd")
 	timeline_resolver = timeline_resolver_script.new()
 
-func start(config: Dictionary) -> void:
+func start(config_source) -> void:
+	var config: Dictionary = config_source if typeof(config_source) == TYPE_DICTIONARY else _config_from_encounter(config_source)
+	random_source = config.get("random_source", null)
+	if random_source == null:
+		random_source = RulesRandomModel.new(int(config.get("random_seed", 1)))
 	board.setup(int(config.get("board_radius", 2)))
 	heroes.clear()
 	status_effects.clear()
 	history.clear()
 	minion_sequence = 0
 	programs = config.get("programs", []).duplicate()
+	loop_programs = bool(config.get("loop_programs", true))
 	program_index = 0
 	current_program = programs[0] if not programs.is_empty() else null
 	round_limit = max(int(config.get("round_limit", 8)), 1)
+	enrage_text = str(config.get("enrage_text", "The Encounter Clock expired."))
 	brood_spawn_candidates.clear()
 	for coords in config.get("brood_spawn_candidates", []):
 		brood_spawn_candidates.append(coords)
 	telegraphed_spawn_hexes.clear()
+	telegraphs.clear()
 	previous_impacted_hexes.clear()
 	last_pattern.clear()
-	phase = &"instant"
+	phase = &"loadout"
 	round = 1
 	active = true
 	outcome = &"ongoing"
+	outcome_reason = ""
 	var boss: Dictionary = config.get("boss", {})
 	boss_id = boss.get("id", &"boss")
 	board.add_entity(boss_id, &"boss", boss.get("coords", Vector2i.ZERO), int(boss.get("health", 36)), int(boss.get("facing", 4)), &"enemy")
+	if board.has_entity(boss_id):
+		board.get_entity(boss_id)["title"] = str(boss.get("title", "Boss"))
 	for hero_config in config.get("heroes", []):
 		_add_hero(hero_config)
 	primary_hero_id = config.get("primary_hero_id", heroes.keys()[0] if not heroes.is_empty() else &"")
+	_refresh_telegraphs()
 	check_resolution()
+
+func _config_from_encounter(encounter) -> Dictionary:
+	if encounter == null:
+		return {}
+	return {
+		"board_radius": encounter.board_radius,
+		"round_limit": encounter.round_limit,
+		"enrage_text": encounter.enrage_text,
+		"random_seed": encounter.random_seed,
+		"boss": {
+			"id": encounter.boss_id,
+			"title": encounter.boss_title,
+			"coords": encounter.boss_start,
+			"health": encounter.boss_health,
+			"facing": FacingDirections.Direction.SOUTH_WEST,
+		},
+		"heroes": [{
+			"id": encounter.primary_hero_id,
+			"title": encounter.primary_hero_title,
+			"coords": encounter.player_start,
+			"health": encounter.player_health,
+			"facing": FacingDirections.Direction.NORTH_EAST,
+			"slot_count": encounter.slot_count,
+			"refill_target": encounter.hand_refill_target,
+			"deck": encounter.player_deck,
+			"shuffle_deck": true,
+		}],
+		"primary_hero_id": encounter.primary_hero_id,
+		"programs": encounter.boss_programs,
+		"loop_programs": encounter.loop_boss_programs,
+		"brood_spawn_candidates": encounter.brood_spawn_candidates,
+	}
 
 func apply(action):
 	var generated: Array = action_resolver.resolve(self, action)
@@ -74,16 +126,20 @@ func advance_phase() -> Array:
 		return []
 	var actions: Array = []
 	match phase:
+		&"loadout":
+			phase = &"instant"
 		&"instant":
 			actions = timeline_resolver.actions_for_track(self, &"instant")
 			for action in actions:
 				apply(action)
 			phase = &"quick"
 			_start_window(&"quick")
+			_refresh_telegraphs()
 		&"quick":
 			_cleanup_slots(&"quick")
 			phase = &"incoming"
 		&"incoming":
+			_refresh_telegraphs()
 			actions = timeline_resolver.actions_for_track(self, &"incoming")
 			for action in actions:
 				apply(action)
@@ -95,11 +151,20 @@ func advance_phase() -> Array:
 			if round > round_limit:
 				active = false
 				outcome = &"defeat"
+				outcome_reason = enrage_text
 				return actions
 			_start_round()
-			program_index = (program_index + 1) % programs.size() if not programs.is_empty() else 0
-			current_program = programs[program_index] if not programs.is_empty() else null
-			phase = &"instant"
+			if programs.is_empty():
+				program_index = 0
+				current_program = null
+			elif loop_programs:
+				program_index = (program_index + 1) % programs.size()
+				current_program = programs[program_index]
+			else:
+				program_index += 1
+				current_program = programs[program_index] if program_index < programs.size() else null
+			phase = &"loadout"
+			_refresh_telegraphs()
 	check_resolution()
 	return actions
 
@@ -140,20 +205,44 @@ func apply_damage(target_id: StringName, amount: int) -> int:
 	for effect in status_effects.get(target_id, []):
 		adjusted -= int(effect.outcome_for(StatusEffectModel.ON_DAMAGE_TAKEN).get("damage_reduction", 0))
 	adjusted = max(adjusted, 0)
-	var dealt: int = board.damage_entity(target_id, adjusted)
 	if heroes.has(target_id):
 		var hero: Dictionary = heroes[target_id]
-		var armor_blocked: int = min(int(hero.get("armor", 0)), dealt)
+		var armor_blocked: int = min(int(hero.get("armor", 0)), adjusted)
 		hero["armor"] -= armor_blocked
-		var remaining: int = dealt - armor_blocked
-		hero["health"] = max(int(hero["health"]) - remaining, 0)
+		var remaining: int = adjusted - armor_blocked
+		var dealt: int = min(remaining, int(hero["health"]))
+		hero["health"] = max(int(hero["health"]) - dealt, 0)
 		board.get_entity(target_id)["health"] = hero["health"]
 		heroes[target_id] = hero
-	return dealt
+		return dealt
+	return board.damage_entity(target_id, adjusted)
 
 func next_minion_id() -> StringName:
 	minion_sequence += 1
 	return StringName("whelp_%d" % minion_sequence)
+
+func get_telegraphs() -> Dictionary:
+	_refresh_telegraphs()
+	return telegraphs.duplicate()
+
+func _refresh_telegraphs() -> void:
+	telegraphs.clear()
+	telegraphed_spawn_hexes.clear()
+	if current_program == null or boss_id == &"" or not board.has_entity(boss_id):
+		return
+	var boss: Dictionary = board.get_entity(boss_id)
+	for beat in current_program.incoming_beats:
+		match beat.kind:
+			BossProgramBeatModel.Kind.CINDER_BREATH:
+				for coords in BoardQueryModel.forward_cone(board.hexes, boss["coords"], int(boss["facing"]), 2):
+					telegraphs[coords] = &"breath"
+			BossProgramBeatModel.Kind.BROOD_CALL:
+				for coords in brood_spawn_candidates:
+					if telegraphed_spawn_hexes.size() >= beat.count:
+						break
+					if board.is_on_board(coords) and not board.is_occupied(coords):
+						telegraphed_spawn_hexes.append(coords)
+						telegraphs[coords] = &"brood"
 
 func check_resolution() -> void:
 	if not active:
@@ -161,11 +250,13 @@ func check_resolution() -> void:
 	if boss_id == &"" or not board.has_entity(boss_id) or board.get_entity(boss_id).get("health", 0) <= 0:
 		active = false
 		outcome = &"victory"
+		outcome_reason = "The Boss is defeated."
 		return
 	for hero in heroes.values():
 		if hero.get("health", 0) <= 0:
 			active = false
 			outcome = &"defeat"
+			outcome_reason = "A Hero has fallen."
 			return
 
 func _add_hero(config: Dictionary) -> void:
@@ -173,6 +264,7 @@ func _add_hero(config: Dictionary) -> void:
 	var health := int(config.get("health", 34))
 	if hero_id == &"" or not board.add_entity(hero_id, &"hero", config.get("coords", Vector2i.ZERO), health, int(config.get("facing", 1)), &"party"):
 		return
+	board.get_entity(hero_id)["title"] = str(config.get("title", "Hero"))
 	var action_bar: Array = []
 	for index in range(int(config.get("slot_count", 2))):
 		action_bar.append({"top_card": null, "charges": [], "activated_window": &""})
@@ -181,24 +273,32 @@ func _add_hero(config: Dictionary) -> void:
 		"health": health,
 		"max_health": health,
 		"armor": int(config.get("armor", 0)),
-		"energy": int(config.get("energy", 3)),
-		"energy_per_round": int(config.get("energy_per_round", 3)),
-		"stamina": int(config.get("stamina", 0)),
 		"presence": int(config.get("presence", 1)),
+		"deck": config.get("deck", []).duplicate(),
 		"hand": config.get("hand", []).duplicate(),
 		"discard": [],
+		"refill_target": max(int(config.get("refill_target", 4)), 1),
 		"action_bar": action_bar,
 	}
+	if bool(config.get("shuffle_deck", false)):
+		_shuffle(heroes[hero_id]["deck"], &"initial_deck_shuffle")
+	_draw_until_refill(hero_id)
 
 func _start_window(window: StringName) -> void:
-	return
+	for hero_id in heroes:
+		var hero: Dictionary = heroes[hero_id]
+		for slot_index in hero["action_bar"].size():
+			var slot: Dictionary = hero["action_bar"][slot_index]
+			if slot["activated_window"] == window:
+				slot["activated_window"] = &""
+			hero["action_bar"][slot_index] = slot
+		heroes[hero_id] = hero
 
 func _start_round() -> void:
 	board.advance_round()
 	for hero_id in heroes:
 		var hero: Dictionary = heroes[hero_id]
 		hero["armor"] = 0
-		hero["energy"] += hero["energy_per_round"]
 		for effect in status_effects.get(hero_id, []):
 			hero["armor"] += int(effect.outcome_for(StatusEffectModel.ON_ROUND_START).get("armor", 0))
 		heroes[hero_id] = hero
@@ -207,6 +307,24 @@ func _start_round() -> void:
 			if not effect.advance_round():
 				remaining.append(effect)
 		status_effects[hero_id] = remaining
+		_draw_until_refill(hero_id)
+
+func _draw_until_refill(hero_id: StringName) -> void:
+	var hero: Dictionary = heroes.get(hero_id, {})
+	if hero.is_empty():
+		return
+	while hero["hand"].size() < int(hero["refill_target"]):
+		if hero["deck"].is_empty():
+			if hero["discard"].is_empty():
+				break
+			hero["deck"] = hero["discard"].duplicate()
+			hero["discard"].clear()
+			_shuffle(hero["deck"], &"discard_shuffle")
+		hero["hand"].append(hero["deck"].pop_back())
+	heroes[hero_id] = hero
+
+func _shuffle(values: Array, label: StringName) -> void:
+	random_source.shuffle(values, label)
 
 func _cleanup_slots(window: StringName) -> void:
 	for hero_id in heroes:

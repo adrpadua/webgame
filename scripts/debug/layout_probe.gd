@@ -22,4 +22,5 @@ func _initialize() -> void:
 	var root_control: Control = main.get_node("Root")
 	assert(main.size == Vector2(1280, 720), "Main must match the game viewport.")
 	assert(root_control.position.y >= 0.0 and root_control.position.y + root_control.size.y <= 720.0, "Root must fit inside the game viewport.")
+	print("LAYOUT_PROBE_OK")
 	quit()

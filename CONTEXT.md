@@ -28,6 +28,26 @@ _Avoid_: Global enrage rule, overtime
 The visible sequence of boss actions arranged into the `Instant` row and the `Incoming` row. The boss timeline is mostly scripted rather than random.
 _Avoid_: Deck, queue, stack
 
+**Boss Program**:
+The authored pair of ordered Instant and Incoming rows used by the Boss for one Round. An Encounter may sequence or loop multiple Boss Programs.
+_Avoid_: Boss card, turn script
+
+**Boss Beat**:
+One ordered authored action inside a Boss Program row. A Boss Beat states its visible counterplay and all Resources needed by its resolution, such as a Hazard or Minion.
+_Avoid_: Event, command, hidden trigger
+
+**Encounter Briefing**:
+The pre-fight reference that shows a Boss's possible moves, each move's pattern and counterplay, and phase themes. It does not reveal exact beat order beyond the first Round.
+_Avoid_: Full script, surprise-only tutorial
+
+**Phase Reveal**:
+When the Party enters a later Boss phase, reveal that phase's exact program before its first Instant Row resolves.
+_Avoid_: Mid-beat reveal, surprise transition
+
+**Phase Trigger**:
+An authored Boss-specific condition that triggers entry into the next phase, such as crossing a health value or using a named skill a set number of times. Every Phase Trigger is shown in the Encounter Briefing and tracked visibly during the fight. A trigger reached during a player window takes effect after the current Round finishes, revealing the next phase's exact program before its first Instant Row.
+_Avoid_: Random phase change, hidden breakpoint
+
 **Enemy**:
 A hostile combatant in an Encounter. The Boss and every Minion are Enemies.
 _Avoid_: Hostile target, foe
@@ -57,11 +77,11 @@ The boss actions that resolve before the party's `Slow Window`. These are telegr
 _Avoid_: Future row, pending row
 
 **Quick Window**:
-The shared simultaneous player phase after the `Instant Row` resolves. It is for basics, repositioning, setup, and low-cost actions.
+The shared simultaneous player phase after the `Instant Row` resolves. It is for basics, repositioning, setup, and low-cost actions. In multiplayer, committed movement destinations and selected abilities are visible to the Party. The window ends when every player is Ready or its short timer expires; Ready may be withdrawn until resolution.
 _Avoid_: Fast phase, reaction phase
 
 **Slow Window**:
-The shared simultaneous player phase after the `Incoming Row` resolves. It is for spenders, signature abilities, and larger tactical commitments.
+The shared simultaneous player phase after the `Incoming Row` resolves. It is for spenders, signature abilities, and larger tactical commitments. In multiplayer, committed movement destinations and selected abilities are visible to the Party. The window ends when every player is Ready or its short timer expires; Ready may be withdrawn until resolution.
 _Avoid_: Power phase, cast phase
 
 **Action Bar**:
@@ -129,7 +149,7 @@ The visible card occupying a Slot and defining that Slot's actual ability. The T
 _Avoid_: Active card, lead card
 
 **Hand**:
-The player's currently available cards, presented as three equal compact cards in the bottom interaction zone of the portrait combat HUD.
+The player's currently available cards, presented as four compact cards in the bottom interaction zone of the portrait combat HUD. Four is the normal end-of-Round refill target, not a hard maximum.
 _Avoid_: Hand row, card tray
 
 **Compact Card**:
@@ -156,6 +176,14 @@ _Avoid_: Hand tension, mana tension
 Boss damage intended to be answered by the tank through facing, interception, mitigation, or threat control.
 _Avoid_: Single-target damage, front damage
 
+**Downed**:
+The state of a Hero at `0` health. A Downed Hero remains on its hex as a blocking, non-targetable body; it does not immediately end the Encounter and must be revived by the end of the following Round or is permanently defeated. A permanently defeated Hero is removed from play, but the Encounter continues while at least one Hero remains living. If every non-permanently-defeated Hero is Downed at once, the Encounter ends in defeat.
+_Avoid_: Dead, eliminated
+
+**Revive**:
+A universal action available to a living Hero adjacent to a Downed ally. Discard one hand card to return that ally to `25%` of maximum health, rounded up. Healer cards may improve or replace this baseline action.
+_Avoid_: Resurrection, free pickup
+
 **Raid Hit**:
 Boss damage intended to pressure the whole party or non-tanks. The tank may soften a raid hit, but should not fully trivialize it alone.
 _Avoid_: Splash, AOE
@@ -176,8 +204,32 @@ _Avoid_: End boss, surprise boss
 A collectible party member with a distinct identity, visuals, deck, and raid-scoped evolution.
 _Avoid_: Character, class
 
+**Starting Deck**:
+The fixed twenty-card deck a player builds from their Player Hero's unlocked cards before entering a Raid Run. Raid rewards may evolve it only for that Run.
+_Avoid_: Loadout, collection
+
+**Player Hero**:
+The single Hero directly controlled by one person during an Encounter. Each player owns that Hero's hand, Action Bar, position, and tactical choices.
+_Avoid_: Main character, avatar
+
+**AI Hero**:
+A Party member controlled by predictable visible priority rules in solo play. An AI Hero has no player-managed hand or Action Bar.
+_Avoid_: Bot player, companion mode
+
+**Party**:
+The two-to-four Player Heroes cooperating in an Encounter. A Party is controlled by multiple people when possible. In solo play, simple AI Heroes fill the remaining Roles so the same party-shaped encounter mechanics remain in play.
+_Avoid_: Squad, team comp
+
+**Committed Movement**:
+A Player Hero's visible chosen destination during a shared player window. A destination must be legal and unclaimed when committed; another Hero cannot commit to the same hex.
+_Avoid_: Movement queue, collision resolution
+
+**Shared-Window Resolution**:
+Resolve all Committed Movement first, then resolve activated Slots in a public deterministic order: Tank, Healer, Damage. When two Damage Heroes are present, the Party votes for the Damage 1 / Damage 2 tiebreaker during the Loadout Step; that order is locked for both player windows in the Round.
+_Avoid_: Hidden initiative, simultaneous collision
+
 **Role**:
-A Hero's party responsibility, such as Tank, Healer, or Damage.
+A Hero's party responsibility. A standard Party has exactly one Tank, exactly one Healer, and one or two Damage Heroes; only Damage may occupy the optional fourth slot. Solo AI fills any missing Role.
 _Avoid_: Class, job
 
 **Archetype**:
@@ -193,7 +245,7 @@ An effect that sets its user's Threat to one above the current highest Threat va
 _Avoid_: Forced target, provoke
 
 **Target Selector**:
-The explicit rule on a Boss Timeline action that determines its target, such as Highest Threat, Tank, Lowest Health, Farthest, or All.
+The explicit visible rule on a Boss Timeline action that determines its target, such as Highest Threat, a specific Role, Lowest Health, Nearest, Farthest, or All. Its predicted target is highlighted before resolution. If a selected Role is absent or defeated, target the nearest living Hero instead. Resolve selector ties by highest Threat, then the public Party resolution order.
 _Avoid_: Targeting AI, target logic
 
 **Reward Category**:

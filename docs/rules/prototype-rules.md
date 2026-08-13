@@ -10,10 +10,11 @@ Use [player-card-authoring.md](D:/dev/webgame/docs/rules/player-card-authoring.m
 
 Each round follows this order:
 
-1. `Boss Instant`
-2. `Quick Window`
-3. `Boss Incoming`
-4. `Slow Window`
+1. `Loadout Step`
+2. `Boss Instant`
+3. `Quick Window`
+4. `Boss Incoming`
+5. `Slow Window`
 
 When the `Slow Window` ends, the next round begins and the boss timeline rolls forward.
 
@@ -67,10 +68,10 @@ Current slot rules:
 The portrait HUD is driven primarily by direct manipulation rather than a command row:
 
 - Drag a hand card onto an empty action-bar slot to prepare it.
-- Drag another hand card onto an occupied slot to charge it.
+- During Loadout, drag a hand card onto an occupied Slot to replace its whole bundle. During either player window, the same gesture charges it.
 - Hold a card in hand to inspect its full-art, full-text card view; release to dismiss it. The current low-fidelity art is the supplied Paladin placeholder, shared by the prototype cards until per-card art is authored.
 - Tap a prepared action-bar slot during its matching window to activate its top card.
-- Drag a hand card to an adjacent legal hex during the Quick Window to discard it for `1 Stamina` and move the hero.
+- Drag a hand card to an adjacent legal hex during the Quick Window to discard it for `1 Stamina` and move the Hero; drag the Hero itself to preview legal routes.
 - Tap the compact boss-program strip to expand or collapse its three-beat `Instant` and `Incoming` tracks.
 
 The only persistent mobile buttons are `Next` for phase progression, `Restart` after an encounter ends, and the coordinate debug toggle. The desktop inspector retains selected-card feedback, but the same direct actions work there too.
@@ -101,10 +102,7 @@ Current movement rules:
 - The destination must be empty
 - The player may not move onto the boss or an occupied enemy hex
 
-Movement can currently be performed in two ways:
-
-- drag the player token onto a valid adjacent empty hex
-- select a valid hex and press the move button
+Movement is performed by dragging a hand card onto a valid adjacent empty hex. Dragging the Hero previews routes but does not pay for or commit movement.
 
 Moving also sets the player's facing to the traversed hex edge. Facing is always one of `E`, `NE`, `NW`, `W`, `SW`, or `SE`; no in-between directions are legal.
 
@@ -115,10 +113,8 @@ Moving also sets the player's facing to the traversed hex edge. Facing is always
 Cards currently resolve against one of these target styles:
 
 - no target
-- selected hex
 - direct damage to the Boss through a card's `boss_damage` effect
 - selected Minion piece on a hex through the current `PIECE` target type
-- board slot target type exists in the data model, but the current main interaction loop is centered on the action bar rather than board-slot play
 
 The prototype does not yet provide a selectable generic Enemy target. A future `Enemy` selector must allow both the Boss and Minions, then validate their shared range and targeting rules consistently.
 
@@ -150,7 +146,7 @@ The result is shown in the top bar and board feedback. Encounter history remains
 The tank deck currently includes these card identities:
 
 - `Steady Strike` (10 copies): deal `2` boss damage, plus `1` per charged card.
-- `Iron Guard` (10 copies): gain `3` Armor, plus `1` per charged card.
+- `Iron Guard` (10 copies): gain `3` Armor, plus `1` per charged `Guard` card.
 
 The deck list is deliberately prototype-grade and meant to validate whether charging a persistent basic attack or tank response creates useful slot tension.
 

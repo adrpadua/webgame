@@ -11,10 +11,12 @@ Every player card has these authored fields:
 | `id` | Stable, lowercase identifier. It never changes because a display name changes. |
 | `title` | Short action name, ideally one to three words. It describes what the hero does, not the current encounter. |
 | `rules_text` | Complete, encounter-neutral mechanical text. It is the canonical card rules text. |
-| `speed` | `Quick` for basics, setup, movement-adjacent effects, and low-commitment responses; `Slow` for larger commitments and signature effects. |
+| `speed` | `quick` for basics, setup, movement-adjacent effects, and low-commitment responses; `slow` for larger commitments and signature effects. |
 | `max_charge` | The Top Card's Charge Value: the maximum number of tucked cards it can hold. The default dummy-deck cap is `3`. |
 | `target_type` and `range_tiles` | Define what must be selected and where it is legal to use the card. Never imply a target in text that the data model does not enforce. |
-| Effect fields | State the base effect in the corresponding data field: boss damage, Armor, healing, movement, or targeted damage. |
+| Effect fields | State the base effect in the corresponding data field: Boss damage, Armor, healing, Presence, or targeted Minion damage. |
+| `tags` | Registered Keyword IDs from `resources/keywords/`. |
+| `charge_modifiers` | Explicit Charge Modifier Resources; never imply a bonus that is absent from data. |
 
 ## Rules Text
 
@@ -114,7 +116,7 @@ The first playable deck remains intentionally narrow:
 | Card | Copies | Base effect | Charge effect |
 | --- | ---: | --- | --- |
 | `Steady Strike` | 10 | Deal 2 damage to the boss. | +1 damage per charged card. |
-| `Iron Guard` | 10 | Gain 3 Armor. | +1 Armor per charged card. |
+| `Iron Guard` | 10 | Gain 3 Armor. | +1 Armor per charged `Guard` card. |
 
 This deck tests the choice between firing a reusable Top Card immediately and saving cards to build its Charge Stack. Do not add a third card identity until the two-card loop produces useful slot tension in playtests.
 

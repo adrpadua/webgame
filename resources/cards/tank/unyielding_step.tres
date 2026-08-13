@@ -6,11 +6,9 @@
 script = ExtResource("1_card")
 id = &"unyielding_step"
 title = "Unyielding Step"
-rules_text = "Gain 2 armor, 1 energy, and deal 2 damage to the raid boss."
-cost = 1
+rules_text = "Gain 2 Armor and deal 2 damage to the boss."
 speed = &"slow"
 target_type = 0
-energy_delta = 1
 armor_delta = 2
 boss_damage = 2
 tags = Array[StringName]([&"tank", &"tempo"])

@@ -36,7 +36,7 @@ func show_card(new_card: Resource) -> void:
 		return
 	card = new_card
 	title_label.text = card.title
-	meta_label.text = "%s  |  Cost %d  |  Charge %d" % [card.get_window_speed().capitalize(), card.cost, card.get_charge_cap()]
+	meta_label.text = "%s  |  Charge Value %d" % [card.get_window_speed().capitalize(), card.get_charge_cap()]
 	rules_label.text = card.rules_text
 	art.texture = card.get_artwork() if card.has_method("get_artwork") and card.get_artwork() != null else PLACEHOLDER_ART
 	visible = true

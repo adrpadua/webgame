@@ -30,7 +30,7 @@ func bind(new_card: Resource) -> void:
 	if title.length() > 12:
 		title = "%s..." % title.left(9)
 	text = "%s %s %s\n%s" % [_get_type_icon(), _get_type_short_label(), title, _get_stat_icon_row()]
-	tooltip_text = "%s card\n%s\n%s: window   %s: charge capacity   %s: energy cost" % [_get_type_label(), card.rules_text, QUICK_ICON, CHARGE_ICON, ENERGY_ICON]
+	tooltip_text = "%s card\n%s\n%s: window   %s: charge capacity" % [_get_type_label(), card.rules_text, QUICK_ICON, CHARGE_ICON]
 	clip_text = true
 	text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	custom_minimum_size = Vector2(124, 56)
@@ -126,10 +126,9 @@ func _build_drag_preview() -> Control:
 
 func _get_stat_icon_row() -> String:
 	var speed_icon := QUICK_ICON if card.get_window_speed() == &"quick" else SLOW_ICON
-	return "%s  %s  %s" % [
+	return "%s  %s" % [
 		speed_icon,
 		_repeat_icon(CHARGE_ICON, card.get_charge_cap()),
-		_repeat_icon(ENERGY_ICON, card.cost, FREE_ICON),
 	]
 
 func _get_card_type() -> StringName:
@@ -137,7 +136,7 @@ func _get_card_type() -> StringName:
 		return &"interrupt"
 	if card.damage > 0 or card.boss_damage > 0 or _has_tag(&"attack"):
 		return &"damage"
-	if card.healing > 0 or card.energy_delta > 0 or _has_tag(&"support") or _has_tag(&"tempo"):
+	if card.healing > 0 or _has_tag(&"support") or _has_tag(&"tempo"):
 		return &"support"
 	if card.presence_delta > 0 or card.target_type == 2 or _has_tag(&"presence"):
 		return &"class"

@@ -36,10 +36,8 @@ func _test_action_bar_and_statuses() -> void:
 	var strike = load("res://resources/cards/tank/steady_strike.tres")
 	var guard = load("res://resources/cards/tank/iron_guard.tres")
 	var engine = _engine([strike, guard, strike, guard])
-	engine.advance_phase()
-	_assert(engine.apply(EncounterActionModel.discard_for_stamina(&"guardian", strike)).succeeded, "DiscardForStaminaAction should create Stamina")
+	_advance_to_quick(engine)
 	var load_action = engine.apply(EncounterActionModel.load_slot(&"guardian", 0, strike))
-	_assert(engine.apply(EncounterActionModel.discard_for_stamina(&"guardian", guard)).succeeded, "A second discarded card should fund charging")
 	var charge_action = engine.apply(EncounterActionModel.charge_slot(&"guardian", 0, guard))
 	_assert(load_action.succeeded and charge_action.succeeded, "LoadSlotAction and ChargeSlotAction should prepare a persistent Slot")
 	var focus := StatusEffectModel.new(&"focus", 2, [StatusEffectModel.ON_SLOT_FIRED])
@@ -63,13 +61,12 @@ func _test_action_bar_and_statuses() -> void:
 func _test_hazards_and_movement() -> void:
 	var strike = load("res://resources/cards/tank/steady_strike.tres")
 	var engine = _engine([strike])
-	engine.advance_phase()
-	engine.apply(EncounterActionModel.discard_for_stamina(&"guardian", strike))
+	_advance_to_quick(engine)
 	var destination := Vector2i(-1, 0)
 	var burn := HazardEffectModel.new(&"burning", 1, 2, false)
 	var apply_action = engine.apply(EncounterActionModel.apply_hazard(&"boss", destination, burn))
 	var health_before: int = engine.get_hero(&"guardian")["health"]
-	var move_action = engine.apply(EncounterActionModel.move_hero(&"guardian", destination))
+	var move_action = engine.apply(EncounterActionModel.move_hero(&"guardian", destination, strike))
 	_assert(apply_action.succeeded and move_action.succeeded, "ApplyHazardAction and MoveHeroAction should be executable records")
 	_assert(engine.get_hero(&"guardian")["health"] == health_before - 2, "on_enter_hex should resolve the HazardEffect")
 	var blocked := HazardEffectModel.new(&"blocked", 2, 0, true)
@@ -83,7 +80,7 @@ func _test_hazards_and_movement() -> void:
 func _test_timeline_actions() -> void:
 	var hunt = load("res://resources/boss/programs/embermaw_hunt.tres")
 	var engine = _engine([], [hunt])
-	engine.advance_phase()
+	_advance_to_quick(engine)
 	_assert(engine.phase == &"quick", "Instant Row should resolve before the Quick Window")
 	_assert(engine.board.has_hazard(Vector2i(0, 0), &"scorched"), "TimelineResolver should turn Ash Trail into ApplyHazardAction records")
 	engine.advance_phase()
@@ -98,16 +95,12 @@ func _test_round_start_status() -> void:
 	var stance := StatusEffectModel.new(&"stance", 2, [StatusEffectModel.ON_ROUND_START])
 	stance.armor_on_round_start = 2
 	engine.add_status(&"guardian", stance)
-	engine.advance_phase()
-	engine.advance_phase()
-	engine.advance_phase()
-	engine.advance_phase()
-	_assert(engine.round == 2 and engine.phase == &"instant", "Slow Window should start the next Round")
+	for _step in 5:
+		engine.advance_phase()
+	_assert(engine.round == 2 and engine.phase == &"loadout", "Slow Window should start the next Round at Loadout")
 	_assert(engine.get_hero(&"guardian")["armor"] == 2, "on_round_start should apply status effects before the next Instant Row")
-	engine.advance_phase()
-	engine.advance_phase()
-	engine.advance_phase()
-	engine.advance_phase()
+	for _step in 5:
+		engine.advance_phase()
 	_assert(engine.status_effects[&"guardian"].is_empty(), "Status Effects should expire after their authored duration")
 
 func _engine(hand: Array, programs: Array = []):
@@ -122,6 +115,10 @@ func _engine(hand: Array, programs: Array = []):
 		"brood_spawn_candidates": [Vector2i(-2, 1), Vector2i(-1, 2), Vector2i(0, 2), Vector2i(2, -2), Vector2i(2, -1)],
 	})
 	return engine
+
+func _advance_to_quick(engine) -> void:
+	engine.advance_phase()
+	engine.advance_phase()
 
 func _history_has(engine, kind) -> bool:
 	for action in engine.history:

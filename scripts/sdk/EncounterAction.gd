@@ -29,8 +29,8 @@ static func charge_slot(hero_id: StringName, slot_index: int, card) -> Encounter
 static func fire_slot(hero_id: StringName, slot_index: int, target_id: StringName = &"") -> EncounterAction:
 	return _make(Kind.FIRE_SLOT, hero_id, {"slot_index": slot_index, "target_id": target_id})
 
-static func move_hero(hero_id: StringName, destination: Vector2i) -> EncounterAction:
-	return _make(Kind.MOVE_HERO, hero_id, {"destination": destination})
+static func move_hero(hero_id: StringName, destination: Vector2i, card = null) -> EncounterAction:
+	return _make(Kind.MOVE_HERO, hero_id, {"destination": destination, "card": card})
 
 static func resolve_boss(boss_id: StringName, beat, track: StringName) -> EncounterAction:
 	return _make(Kind.RESOLVE_BOSS, boss_id, {"beat": beat, "track": track})
@@ -38,8 +38,8 @@ static func resolve_boss(boss_id: StringName, beat, track: StringName) -> Encoun
 static func apply_hazard(source_id: StringName, coords: Vector2i, hazard) -> EncounterAction:
 	return _make(Kind.APPLY_HAZARD, source_id, {"coords": coords, "hazard": hazard})
 
-static func spawn_minion(source_id: StringName, minion_id: StringName, coords: Vector2i, health: int = 2) -> EncounterAction:
-	return _make(Kind.SPAWN_MINION, source_id, {"minion_id": minion_id, "coords": coords, "health": health})
+static func spawn_minion(source_id: StringName, minion_id: StringName, coords: Vector2i, minion = null) -> EncounterAction:
+	return _make(Kind.SPAWN_MINION, source_id, {"minion_id": minion_id, "coords": coords, "minion": minion})
 
 static func damage(source_id: StringName, target_id: StringName, amount: int, reason_text: String = "") -> EncounterAction:
 	return _make(Kind.DAMAGE, source_id, {"target_id": target_id, "amount": amount, "reason_text": reason_text})

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ChargeModifierData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/ChargeModifierData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"each_charge_boss_damage"
+title = "Charged Assault"
+rules_text = "Gain 1 Boss damage for each charged card."
+keyword_id = &""
+effect = 2
+amount_per_match = 1

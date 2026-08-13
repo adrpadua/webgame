@@ -1,5 +1,7 @@
 # Embermaw Vertical Slice
 
+Historical artifact: this records the earlier Energy/Tempo build. Current rules and controls are authoritative in `docs/rules/prototype-rules.md` and `docs/content/design-team-handoff.md`.
+
 This document records the completed first playable encounter delivered in the current prototype.
 
 ## Playable Loop

@@ -1,5 +1,7 @@
 # Layout And Card Design Grill
 
+Historical artifact: references to card cost predate the current Charge Value and card-fueled Stamina model.
+
 Status: accepted prototype direction. This records the fast-forward design grill for the portrait combat HUD and player cards.
 
 ## Resulting Q&A

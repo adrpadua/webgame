@@ -15,7 +15,6 @@ Hero:
 The deck is a minimal tank shell built to test:
 
 - `Quick Window` basics
-- `Slow Window` payoff cards
 - slot persistence
 - charge-stack decisions
 - mitigation plus boss pressure
@@ -35,9 +34,9 @@ The deck is a minimal tank shell built to test:
 ## Card Roles
 
 - `Steady Strike`: quick basic attack. It deals `2` damage to the boss, plus `1` damage for each charged card.
-- `Iron Guard`: quick tank response. It grants `3` Armor, plus `1` Armor for each charged card.
+- `Iron Guard`: quick tank response. It grants `3` Armor, plus `1` Armor for each charged `Guard` card.
 
-Any card can charge either Top Card. The two effects deliberately use the same simple printed charge rule so the prototype can answer whether holding a persistent Charge Stack feels valuable. They remain prepared at `0 Charge`, activate once after at least one card is tucked beneath them, and discard as a complete bundle only when activated at their Charge Value.
+Any card can charge either Top Card. `Steady Strike` rewards total Charge, while `Iron Guard` demonstrates a Keyword-specific Charge Modifier. They remain prepared at `0 Charge`, activate once after at least one card is tucked beneath them, and discard as a complete bundle only when activated at their Charge Value.
 
 ## Notes
 

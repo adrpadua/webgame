@@ -1,34 +1,9 @@
 extends Control
 
-const TANK_DECK := [
-	"res://resources/cards/tank/steady_strike.tres",
-	"res://resources/cards/tank/steady_strike.tres",
-	"res://resources/cards/tank/steady_strike.tres",
-	"res://resources/cards/tank/steady_strike.tres",
-	"res://resources/cards/tank/steady_strike.tres",
-	"res://resources/cards/tank/steady_strike.tres",
-	"res://resources/cards/tank/steady_strike.tres",
-	"res://resources/cards/tank/steady_strike.tres",
-	"res://resources/cards/tank/steady_strike.tres",
-	"res://resources/cards/tank/steady_strike.tres",
-	"res://resources/cards/tank/iron_guard.tres",
-	"res://resources/cards/tank/iron_guard.tres",
-	"res://resources/cards/tank/iron_guard.tres",
-	"res://resources/cards/tank/iron_guard.tres",
-	"res://resources/cards/tank/iron_guard.tres",
-	"res://resources/cards/tank/iron_guard.tres",
-	"res://resources/cards/tank/iron_guard.tres",
-	"res://resources/cards/tank/iron_guard.tres",
-	"res://resources/cards/tank/iron_guard.tres",
-	"res://resources/cards/tank/iron_guard.tres",
-]
+const EncounterEngineModel := preload("res://scripts/sdk/EncounterEngine.gd")
+const EncounterActionModel := preload("res://scripts/sdk/EncounterAction.gd")
 
-const BOSS_PROGRAMS := [
-	"res://resources/boss/programs/embermaw_hunt.tres",
-	"res://resources/boss/programs/embermaw_embers.tres",
-	"res://resources/boss/programs/embermaw_brood.tres",
-]
-const ENCOUNTER_DATA := preload("res://resources/encounters/embermaw_prototype.tres")
+const CONTENT_CATALOG := preload("res://resources/content_catalog.tres")
 const DUELYST_BACKDROP := preload("res://assets/art/open-duelyst/magaari_ember_highlands_background.jpg")
 
 @onready var player: Node = $PlayerState
@@ -52,6 +27,7 @@ const DUELYST_BACKDROP := preload("res://assets/art/open-duelyst/magaari_ember_h
 @onready var hex_grid: Node = %HexGrid
 @onready var encounter_label: Label = %EncounterLabel
 @onready var feedback_label: Label = %FeedbackLabel
+@onready var action_guide_label: Label = %ActionGuideLabel
 @onready var root_container: VBoxContainer = $Root
 @onready var top_bar: HBoxContainer = $Root/TopBar
 @onready var hand_title: Label = $Root/HandTitle
@@ -64,7 +40,6 @@ const DUELYST_BACKDROP := preload("res://assets/art/open-duelyst/magaari_ember_h
 @onready var mobile_status_top: Control = $Root/MobileStatus/MobileStatusTop
 @onready var mobile_round_label: Label = %MobileRoundLabel
 @onready var mobile_tempo_label: Label = %MobileTempoLabel
-@onready var mobile_tempo_spend_label: Label = %MobileTempoSpendLabel
 @onready var mobile_end_phase_prompt: Label = %MobileEndPhasePrompt
 @onready var mobile_turn_tracker: Label = %MobileTurnTracker
 @onready var mobile_tempo_bar: Label = %MobileTempoBar
@@ -82,15 +57,15 @@ var selected_slot_index: int = -1
 var phase_transition_queued: bool = false
 var player_move_primed: bool = false
 var suppress_move_prime_once: bool = false
-var tempo_spend_amount: int = 0
-var tempo_spend_timer: SceneTreeTimer
 var mobile_continue_button: Button
 var mobile_continue_tween: Tween
+var engine
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_TOP_LEFT)
 	get_viewport().size_changed.connect(_fit_to_viewport)
 	_build_mobile_continue_button()
+	_raise_hud_above_board()
 	_fit_to_viewport()
 	_apply_skin()
 	hand_view.bind(player)
@@ -107,6 +82,7 @@ func _ready() -> void:
 	hex_grid.tile_selected.connect(_on_tile_selected)
 	hex_grid.piece_selected.connect(_on_piece_selected)
 	hex_grid.piece_dragged_to_tile.connect(_on_piece_dragged_to_tile)
+	hex_grid.hand_card_dropped_to_tile.connect(_on_hand_card_dropped_to_tile)
 	hex_grid.bind_combatants(player, boss)
 	player.resources_changed.connect(_refresh_status)
 	player.health_changed.connect(_refresh_status)
@@ -116,7 +92,6 @@ func _ready() -> void:
 	boss.facing_changed.connect(_refresh_status)
 	turn_manager.phase_changed.connect(func(_phase: StringName) -> void: _refresh_status())
 	turn_manager.turn_changed.connect(func(_turn: int) -> void: _refresh_status())
-	boss.action_resolved.connect(_on_boss_action_resolved)
 	encounter.log_changed.connect(_refresh_status)
 	encounter.state_changed.connect(_refresh_status)
 	encounter.encounter_ended.connect(_on_encounter_ended)
@@ -193,15 +168,14 @@ func _refresh_status() -> void:
 	player_panel.update_display(
 		"Player",
 		player.hero_name,
-		"HP %d/%d   Armor %d\nEnergy %d   Tempo %d\nHand %d  Deck %d  Discard %d\nPresence %d" % [
+		"HP %d/%d   Armor %d\nHand %d  Deck %d  Discard %d\nRefill target %d  Presence %d" % [
 			player.health,
 			player.max_health,
 			player.armor,
-			player.energy,
-			player.tempo,
 			player.hand.size(),
 			player.deck.size(),
 			player.discard.size(),
+			player.max_hand_size,
 			player.presence,
 		],
 		player.facing,
@@ -220,19 +194,18 @@ func _refresh_status() -> void:
 		Color(0.92, 0.38, 0.31)
 	)
 	intent_label.text = "%s\n\n%s\n\nLast: %s" % [boss.get_track_text(&"instant"), boss.get_track_text(&"incoming"), boss.last_action_text]
-	tempo_label.text = "Window: %s\nTempo: %d\nEnergy: %d\nFacing: %s" % [player.current_window.capitalize(), player.tempo, player.energy, player.get_facing_name()]
+	tempo_label.text = "Step: %s\nHand: %d / %d\nFacing: %s" % [player.current_window.capitalize(), player.hand.size(), player.max_hand_size, player.get_facing_name()]
 	var card_text: String = selected_card.get("title") if selected_card != null else "none"
 	var tile_text: String = str(selected_tile.axial) if selected_tile != null else "none"
 	var piece_text: String = selected_piece.display_name if selected_piece != null else "none"
 	var slot_text := str(selected_slot_index + 1) if selected_slot_index >= 0 else "none"
 	selected_label.text = "Selected card: %s\nSelected slot: %s\nSelected hex: %s\nSelected piece: %s" % [card_text, slot_text, tile_text, piece_text]
+	action_guide_label.text = _get_action_guide_text()
 	mobile_round_label.text = _get_mobile_round_track()
-	mobile_tempo_label.text = _get_mobile_tempo_track()
+	mobile_tempo_label.text = _get_mobile_hand_track()
 	mobile_turn_tracker.text = _get_mobile_round_track()
-	mobile_tempo_bar.text = _get_mobile_tempo_track()
-	if tempo_spend_amount > 0:
-		mobile_tempo_bar.text = "%s   -%d" % [mobile_tempo_bar.text, tempo_spend_amount]
-	mobile_tempo_label.tooltip_text = "Tempo: %d of %d. Move, equip, or charge costs 1." % [player.tempo, player.tempo_per_window]
+	mobile_tempo_bar.text = _get_mobile_hand_track()
+	mobile_tempo_label.tooltip_text = "Hand cards power charging and pay for movement. Refill to %d at round end." % player.max_hand_size
 	mobile_tempo_bar.tooltip_text = mobile_tempo_label.tooltip_text
 	var mobile_prompt_text := _get_mobile_prompt_text()
 	mobile_end_phase_prompt.text = mobile_prompt_text
@@ -252,6 +225,7 @@ func _refresh_status() -> void:
 	%AdvancePhase.disabled = not encounter.active
 	restart_button.visible = not encounter.active
 	_refresh_tile_info_pane()
+	hex_grid.set_movement_preview_enabled(_has_legal_basic_move())
 	_queue_automatic_phase_transition()
 
 func _on_card_selected(card: Resource) -> void:
@@ -271,7 +245,7 @@ func _on_slot_pressed(index: int) -> void:
 	selected_slot_index = index
 	var slot: Dictionary = player.get_slot(index)
 	var top_card: Resource = slot.get("top_card")
-	if top_card != null and encounter.active and top_card.get_window_speed() == player.current_window:
+	if top_card != null and encounter.active:
 		_on_activate_slot_pressed()
 		return
 	if top_card == null:
@@ -286,27 +260,19 @@ func _on_card_dropped_to_slot(index: int, card: Resource) -> void:
 	selected_card = card
 	var slot: Dictionary = player.get_slot(index)
 	var top_card: Resource = slot.get("top_card")
-	var handled := false
-	if top_card == null:
-		handled = player.prepare_slot(index, card)
-	else:
-		handled = player.charge_slot(index, card)
-		if not handled and slot.get("charges", []).is_empty():
-			handled = player.prepare_slot(index, card)
-	if handled:
-		encounter.append_log("%s prepared %s in slot %d." % [player.hero_name, card.title, index + 1])
+	var action = EncounterActionModel.load_slot(engine.primary_hero_id, index, card) if top_card == null or engine.phase == &"loadout" else EncounterActionModel.charge_slot(engine.primary_hero_id, index, card)
+	var resolved = engine.apply(action)
+	_sync_from_engine()
+	if resolved.succeeded:
 		selected_card = null
 	else:
-		_set_feedback("That card cannot be placed in this slot right now.")
+		_set_feedback(resolved.reason)
 	_refresh_status()
 
 func _on_tile_selected(tile: Node) -> void:
-	if player_move_primed and tile.pieces.is_empty() and _can_basic_move_to(tile):
-		_move_player_to_tile(tile, true)
-		return
 	selected_tile = tile
 	selected_piece = tile.pieces[0] if not tile.pieces.is_empty() else null
-	player_move_primed = selected_piece == hex_grid.player_piece and _can_prime_player_move()
+	player_move_primed = false
 	_refresh_move_previews()
 	_refresh_status()
 
@@ -333,36 +299,41 @@ func _on_piece_selected(piece: Node) -> void:
 		suppress_move_prime_once = false
 		player_move_primed = false
 	else:
-		player_move_primed = piece == hex_grid.player_piece and _can_prime_player_move()
+		player_move_primed = false
 	_refresh_move_previews()
 	_refresh_status()
 
 func _on_piece_dragged_to_tile(piece: Node, tile: Node) -> void:
 	selected_tile = tile
 	selected_piece = piece
-	if piece == hex_grid.player_piece and _can_basic_move_to(tile):
-		_move_player_to_tile(tile, true)
-	else:
-		_set_feedback("Movement requires an adjacent empty hex during the Quick Window and costs 1 Tempo.")
+	_set_feedback("Drag a hand card directly to an adjacent empty hex to spend it for movement.")
 	_refresh_status()
+
+func _on_hand_card_dropped_to_tile(card: Resource, tile: Node) -> void:
+	if not encounter.active:
+		_set_feedback("Restart the encounter to move.")
+		return
+	_move_player_to_tile(tile, card)
 
 func _on_prepare_card_pressed() -> void:
 	if not encounter.active or selected_card == null or selected_slot_index < 0:
 		_set_feedback("Select a hand card and action-bar slot first.")
 		return
-	if player.prepare_slot(selected_slot_index, selected_card):
-		encounter.append_log("%s prepares %s in slot %d." % [player.hero_name, selected_card.title, selected_slot_index + 1])
+	var resolved = engine.apply(EncounterActionModel.load_slot(engine.primary_hero_id, selected_slot_index, selected_card))
+	_sync_from_engine()
+	if resolved.succeeded:
 		selected_card = null
 	else:
-		_set_feedback("Cannot replace a charged slot or prepare without Tempo.")
+		_set_feedback("That card can only replace this slot during the Loadout Step.")
 	_refresh_status()
 
 func _on_charge_card_pressed() -> void:
 	if not encounter.active or selected_card == null or selected_slot_index < 0:
 		_set_feedback("Select a hand card and action-bar slot first.")
 		return
-	if player.charge_slot(selected_slot_index, selected_card):
-		encounter.append_log("%s charges slot %d with %s." % [player.hero_name, selected_slot_index + 1, selected_card.title])
+	var resolved = engine.apply(EncounterActionModel.charge_slot(engine.primary_hero_id, selected_slot_index, selected_card))
+	_sync_from_engine()
+	if resolved.succeeded:
 		selected_card = null
 	else:
 		_set_feedback("The selected slot cannot take another charge.")
@@ -377,37 +348,28 @@ func _on_activate_slot_pressed() -> void:
 	if top_card == null:
 		_set_feedback("That action-bar slot is empty.")
 		return
-	var target: Variant = selected_piece if top_card.target_type == 3 else selected_tile
-	var context := {"tile": selected_tile, "target": target, "boss": boss}
-	var error: String = player.get_activation_error(selected_slot_index, context)
-	if error != "":
-		_set_feedback(error)
+	var target_id: StringName = selected_piece.piece_id if selected_piece != null and top_card.target_type == 3 else &""
+	var resolved = engine.apply(EncounterActionModel.fire_slot(engine.primary_hero_id, selected_slot_index, target_id))
+	_sync_from_engine()
+	if not resolved.succeeded:
+		_set_feedback(resolved.reason)
 		return
-	player.activate_slot(selected_slot_index, context)
-	encounter.append_log("%s activates %s." % [player.hero_name, top_card.title])
 	_check_encounter_end()
 	_refresh_status()
 
 func _on_move_button_pressed() -> void:
 	if not _can_basic_move():
-		_set_feedback("Select an adjacent empty hex during the Quick Window.")
+		_set_feedback("Drag a hand card directly to an adjacent empty hex to move.")
 		return
-	_move_player_to_tile(selected_tile, true)
+	_set_feedback("Drag a hand card directly to the selected hex to spend it for movement.")
 
 func _on_advance_phase_pressed() -> void:
 	if not encounter.active:
 		return
-	match turn_manager.phase:
-		turn_manager.Phase.INSTANT:
-			boss.resolve_instant(player, hex_grid)
-		turn_manager.Phase.INCOMING:
-			boss.resolve_incoming(player, hex_grid)
+	engine.advance_phase()
+	_sync_from_engine()
 	if _check_encounter_end():
 		return
-	turn_manager.advance_phase(player)
-	if turn_manager.phase == turn_manager.Phase.INSTANT:
-		boss.advance_round_timeline(hex_grid)
-		_check_encounter_end()
 	selected_card = null
 	selected_slot_index = -1
 	player_move_primed = false
@@ -418,72 +380,57 @@ func _on_restart_pressed() -> void:
 	_start_encounter()
 
 func _start_encounter() -> void:
-	player.reset_for_encounter()
-	player.load_deck(_load_resource_list(TANK_DECK))
-	player.draw_cards(3)
-	boss.reset_for_encounter()
-	hex_grid.build_grid()
-	boss.load_script(_load_resource_list(BOSS_PROGRAMS))
-	boss.start_timeline()
-	boss.telegraph_incoming(hex_grid)
-	hex_grid.bind_combatants(player, boss)
-	encounter.configure(ENCOUNTER_DATA)
-	encounter.begin()
-	turn_manager.start_game(player)
-	hex_grid.sync_combatant_health(player, boss)
+	var encounter_data: Resource = CONTENT_CATALOG.default_encounter
+	engine = EncounterEngineModel.new()
+	engine.start(encounter_data)
+	player.bind_engine(engine, engine.primary_hero_id)
+	boss.bind_engine(engine)
+	turn_manager.bind_engine(engine)
+	encounter.bind_engine(engine)
+	hex_grid.sync_from_engine(engine)
 	selected_card = null
 	selected_tile = null
 	selected_piece = null
 	selected_slot_index = -1
 	player_move_primed = false
 	_refresh_move_previews()
-	_set_feedback("Drag cards into slots, then activate them in their matching window.")
+	_set_feedback("Loadout: arrange Top Cards, then continue to the Boss Instant.")
 	_refresh_status()
-
-func _on_boss_action_resolved(log_line: String) -> void:
-	encounter.append_log(log_line)
-	hex_grid.sync_combatant_health(player, boss)
 
 func _on_encounter_ended(outcome: StringName, reason: String) -> void:
 	_set_feedback("%s: %s" % [outcome.capitalize(), reason])
 
 func _check_encounter_end() -> bool:
-	hex_grid.sync_combatant_health(player, boss)
-	return encounter.check_resolution(player, boss, turn_manager.turn_number, ENCOUNTER_DATA.enrage_text)
+	_sync_from_engine()
+	return not engine.active
 
 func _set_feedback(text: String) -> void:
 	feedback_label.text = text
 
-func _move_player_to_tile(tile: Node, show_tempo_spend: bool = false) -> bool:
-	if tile == null or not _can_basic_move_to(tile):
+func _move_player_to_tile(tile: Node, stamina_card: Resource) -> bool:
+	if tile == null:
 		return false
-	if not hex_grid.move_piece_to(hex_grid.player_piece, tile.axial):
+	var resolved = engine.apply(EncounterActionModel.move_hero(engine.primary_hero_id, tile.axial, stamina_card))
+	if not resolved.succeeded:
+		_set_feedback(resolved.reason)
 		return false
-	player.facing = hex_grid.player_piece.facing
-	player.tempo -= 1
+	_sync_from_engine()
 	selected_tile = tile
 	selected_piece = hex_grid.player_piece
 	player_move_primed = false
 	suppress_move_prime_once = true
 	_refresh_move_previews()
-	encounter.append_log("%s moves to %s, facing %s." % [player.hero_name, tile.axial, player.get_facing_name()])
 	_refresh_status()
-	if show_tempo_spend:
-		_show_tempo_spend(1)
 	return true
 
-func _show_tempo_spend(amount: int) -> void:
-	tempo_spend_amount = amount
-	mobile_tempo_spend_label.text = "-%d" % amount
-	mobile_tempo_spend_label.visible = true
-	mobile_tempo_bar.text = "%s   -%d" % [_get_mobile_tempo_track(), amount]
-	tempo_spend_timer = get_tree().create_timer(0.9)
-	tempo_spend_timer.timeout.connect(_hide_tempo_spend)
-
-func _hide_tempo_spend() -> void:
-	tempo_spend_amount = 0
-	mobile_tempo_spend_label.visible = false
-	mobile_tempo_bar.text = _get_mobile_tempo_track()
+func _sync_from_engine() -> void:
+	if engine == null:
+		return
+	player.sync_from_engine()
+	boss.sync_from_engine()
+	turn_manager.sync_from_engine()
+	encounter.sync_from_engine()
+	hex_grid.sync_from_engine(engine)
 
 func _refresh_move_previews() -> void:
 	if hex_grid == null or hex_grid.tiles.is_empty():
@@ -639,17 +586,18 @@ func _build_mobile_continue_button() -> void:
 	mobile_continue_button.name = "MobileContinueButton"
 	mobile_continue_button.text = "▶"
 	mobile_continue_button.visible = false
-	mobile_continue_button.custom_minimum_size = Vector2(52, 44)
-	mobile_continue_button.size = Vector2(52, 44)
+	mobile_continue_button.custom_minimum_size = Vector2(96, 44)
+	mobile_continue_button.size = Vector2(96, 44)
 	mobile_continue_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	mobile_continue_button.tooltip_text = "End this window."
 	mobile_continue_button.z_index = 20
+	mobile_continue_button.text = "Continue"
 	add_child(mobile_continue_button)
 
 func _update_mobile_continue_button() -> void:
 	if mobile_continue_button == null:
 		return
-	var should_show := mobile_turn_tracker.visible and _should_show_end_phase_prompt()
+	var should_show: bool = mobile_turn_tracker.visible and (turn_manager.phase == turn_manager.Phase.LOADOUT or _should_show_end_phase_prompt())
 	_layout_mobile_continue_button()
 	if should_show == mobile_continue_button.visible:
 		return
@@ -662,7 +610,7 @@ func _update_mobile_continue_button() -> void:
 func _layout_mobile_continue_button() -> void:
 	if mobile_continue_button == null or mobile_turn_tracker == null:
 		return
-	var button_size := Vector2(52, 44)
+	var button_size := Vector2(96, 44)
 	mobile_continue_button.size = button_size
 	mobile_continue_button.pivot_offset = button_size * 0.5
 	var tracker_rect := mobile_turn_tracker.get_global_rect()
@@ -695,31 +643,45 @@ func _stop_mobile_continue_pulse() -> void:
 		mobile_continue_button.modulate = Color.WHITE
 
 func _get_mobile_prompt_text() -> String:
+	return _get_action_guide_text()
+
+	# Legacy contextual branches remain below while the guide owns the visible prompt.
 	if not encounter.active:
 		return ""
-	if player_move_primed:
-		return "Tap a gold tile to move. Costs 1 Tempo."
+	if turn_manager.phase == turn_manager.Phase.LOADOUT:
+		return "Loadout: replace Top Cards, then tap continue."
 	if turn_manager.phase != turn_manager.Phase.QUICK and turn_manager.phase != turn_manager.Phase.SLOW:
 		return ""
 	if _has_ready_action_bar_slot():
 		return "Action ready. Tap the loaded slot."
 	if _has_hand_slot_action():
 		if _has_legal_basic_move():
-			return "Drag a card to a slot, or tap Player to move."
+			return "Drag a card to a slot, or to an adjacent hex to move."
 		return "Drag a card to a slot."
 	var future_window := _get_loaded_future_window()
 	if future_window != "" and not _has_hand_slot_action() and not _has_legal_basic_move():
 		return "Loaded for %s. Tap ▶ when done." % future_window
 	if _has_legal_basic_move():
-		return "Tap Player to move."
+		return "Drag a hand card to an adjacent hex to move."
 	if _should_show_end_phase_prompt():
 		return "No plays left. Tap ▶."
 	return ""
 
+func _get_action_guide_text() -> String:
+	if not encounter.active:
+		return "Guide: Restart to begin a new encounter."
+	if turn_manager.phase == turn_manager.Phase.LOADOUT:
+		return "Guide: Drag a hand card to an empty Slot to prepare it. During Loadout, drag onto a loaded Slot to replace its whole bundle. Hold a card to inspect it. Tap Continue."
+	if turn_manager.phase == turn_manager.Phase.QUICK:
+		return "Guide: Charge a Slot with a hand card; tap a charged Quick Slot to fire. Drag a hand card to an adjacent hex to move, or drag the hero to preview routes. Tap a hex to inspect. Tap Continue when done."
+	if turn_manager.phase == turn_manager.Phase.SLOW:
+		return "Guide: Prepare empty Slots or Charge any eligible Slot. Tap a charged Slow Slot to fire once. Hold cards or tap hexes to inspect, then tap Continue."
+	return "Guide: The boss is resolving. Read its timeline, then prepare your next response."
+
 func _has_ready_action_bar_slot() -> bool:
 	for slot in player.action_bar:
 		var top_card: Resource = slot.get("top_card")
-		if top_card != null and not slot.get("charges", []).is_empty() and top_card.get_window_speed() == player.current_window and top_card.can_pay(player):
+		if top_card != null and not slot.get("charges", []).is_empty() and top_card.get_window_speed() == player.current_window and slot.get("activated_window", &"") != player.current_window:
 			return true
 	return false
 
@@ -733,33 +695,29 @@ func _get_loaded_future_window() -> String:
 	return ""
 
 func _has_hand_slot_action() -> bool:
-	if player.tempo < 1 or player.hand.is_empty():
+	if player.hand.is_empty():
 		return false
 	for slot in player.action_bar:
 		var top_card: Resource = slot.get("top_card")
 		if top_card == null:
 			return true
-		if slot.get("charges", []).size() < top_card.get_charge_cap() or slot.get("charges", []).is_empty():
+		if player.current_window == &"loadout":
+			return true
+		if slot.get("activated_window", &"") != player.current_window and slot.get("charges", []).size() < top_card.get_charge_cap():
 			return true
 	return false
 
 func _has_player_window_action() -> bool:
 	for slot in player.action_bar:
 		var top_card: Resource = slot.get("top_card")
-		if top_card != null and not slot.get("charges", []).is_empty() and top_card.get_window_speed() == player.current_window and top_card.can_pay(player):
+		if top_card != null and not slot.get("charges", []).is_empty() and top_card.get_window_speed() == player.current_window and slot.get("activated_window", &"") != player.current_window:
 			return true
 	if _has_legal_basic_move():
 		return true
-	if player.tempo < 1:
-		return false
-	for slot in player.action_bar:
-		var top_card: Resource = slot.get("top_card")
-		if top_card == null or slot.get("charges", []).size() < top_card.get_charge_cap() or slot.get("charges", []).is_empty():
-			return not player.hand.is_empty()
-	return false
+	return _has_hand_slot_action()
 
 func _has_legal_basic_move() -> bool:
-	if player.current_window != &"quick" or player.tempo < 1 or hex_grid.player_piece == null:
+	if player.current_window != &"quick" or player.hand.is_empty() or hex_grid.player_piece == null:
 		return false
 	var current_coords: Vector2i = hex_grid.get_piece_coords(hex_grid.player_piece)
 	for coords in hex_grid.get_neighbors(current_coords):
@@ -768,12 +726,15 @@ func _has_legal_basic_move() -> bool:
 	return false
 
 func _can_prime_player_move() -> bool:
-	return player.current_window == &"quick" and player.tempo >= 1 and encounter.active
+	return false
 
 func _get_mobile_round_track() -> String:
 	var phase_icon := "☄"
 	var phase_name := "Boss"
 	match turn_manager.phase:
+		turn_manager.Phase.LOADOUT:
+			phase_icon = "L"
+			phase_name = "Loadout"
 		turn_manager.Phase.QUICK:
 			phase_icon = "⚡"
 			phase_name = "Quick"
@@ -789,16 +750,15 @@ func _get_mobile_round_track() -> String:
 	return "%s %s  R%d/%d  %s" % [phase_icon, phase_name, turn_manager.turn_number, encounter.round_limit, "".join(pips)]
 
 func _get_mobile_tempo_track() -> String:
-	var pips: Array[String] = []
-	for index in player.tempo_per_window:
-		pips.append("◆" if index < player.tempo else "◇")
-	return "Tempo %s" % "".join(pips)
+	return _get_mobile_hand_track()
 
-func _load_resource_list(paths: Array) -> Array:
-	var result: Array = []
-	for path in paths:
-		result.append(load(path))
-	return result
+func _get_mobile_hand_track() -> String:
+	return "Hand %d  Discard %d" % [player.hand.size(), player.discard.size()]
+
+func _raise_hud_above_board() -> void:
+	for hud in [top_bar, mobile_status, hand_scroll, mobile_turn_tracker, left_panel, right_panel_scroll, tile_info_pane]:
+		hud.z_as_relative = false
+		hud.z_index = 4095
 
 func _can_basic_move() -> bool:
 	return _can_basic_move_to(selected_tile)
@@ -808,7 +768,7 @@ func _can_basic_move_to(tile: Node) -> bool:
 		return false
 	if player.current_window != &"quick":
 		return false
-	if player.tempo < 1:
+	if player.hand.is_empty():
 		return false
 	return hex_grid.can_move_piece_to(hex_grid.player_piece, tile.axial)
 
@@ -828,6 +788,8 @@ func _apply_skin() -> void:
 	mobile_tempo_bar.add_theme_color_override("font_color", Color(0.98, 0.97, 0.92))
 	mobile_end_phase_prompt.add_theme_font_size_override("font_size", 11)
 	mobile_end_phase_prompt.add_theme_color_override("font_color", Color(0.96, 0.72, 0.45))
+	action_guide_label.add_theme_font_size_override("font_size", 12)
+	action_guide_label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.54))
 	tile_info_pane.mouse_filter = Control.MOUSE_FILTER_STOP
 	tile_info_pane.add_theme_stylebox_override("panel", _make_info_pane_style())
 	tile_info_badge.add_theme_font_size_override("font_size", 22)

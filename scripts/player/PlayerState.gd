@@ -1,6 +1,7 @@
 class_name PlayerState
 extends Node
 
+const EncounterActionModel := preload("res://scripts/sdk/EncounterAction.gd")
 const FacingDirections := preload("res://scripts/combat/Facing.gd")
 
 signal hand_changed
@@ -12,191 +13,84 @@ signal action_bar_changed
 
 @export var hero_name: String = "Aegis Guardian"
 @export var role: StringName = &"tank"
-@export var max_hand_size: int = 7
-@export var starting_energy: int = 3
-@export var energy_per_turn: int = 3
+@export var max_hand_size: int = 4
 @export var max_health: int = 34
-@export var draw_per_turn: int = 1
-@export var tempo_per_window: int = 2
 @export var slot_count: int = 2
 
-var energy: int = 0:
-	set(value):
-		energy = max(value, 0)
-		resources_changed.emit()
-
-var tempo: int = 0:
-	set(value):
-		tempo = max(value, 0)
-		resources_changed.emit()
-
-var health: int = 0:
-	set(value):
-		health = clamp(value, 0, max_health)
-		health_changed.emit()
-
-var armor: int = 0:
-	set(value):
-		armor = max(value, 0)
-		resources_changed.emit()
-
-var presence: int = 1:
-	set(value):
-		presence = max(value, 0)
-		resources_changed.emit()
-
-@export_enum("E", "NE", "NW", "W", "SW", "SE") var facing: int = FacingDirections.Direction.NORTH_EAST:
-	set(value):
-		facing = FacingDirections.normalize_hex_edge_facing(value, "Player facing")
-		facing_changed.emit()
-
+var health: int = 0
+var armor: int = 0
+var presence: int = 1
+var facing: int = FacingDirections.Direction.NORTH_EAST
 var deck: Array = []
 var discard: Array = []
 var hand: Array = []
-var board_slots: Array[Dictionary] = []
-var action_bar: Array[Dictionary] = []
+var board_slots: Array = []
+var action_bar: Array = []
 var current_window: StringName = &"none"
 
-func _ready() -> void:
-	reset_for_encounter()
+var _engine
+var _hero_id: StringName = &""
 
-func reset_for_encounter() -> void:
-	energy = starting_energy
-	tempo = 0
-	health = max_health
-	armor = 0
-	presence = 1
-	current_window = &"none"
-	board_slots = [
-		{"id": &"growth", "label": "Growth", "card": null},
-		{"id": &"presence", "label": "Presence", "card": null},
-		{"id": &"power", "label": "Power", "card": null},
-		{"id": &"innate", "label": "Innate", "card": null},
-	]
-	action_bar = []
-	for i in range(slot_count):
-		action_bar.append({
-			"top_card": null,
-			"charges": [],
-		})
+func bind_engine(engine, hero_id: StringName) -> void:
+	_engine = engine
+	_hero_id = hero_id
+	sync_from_engine()
+
+func sync_from_engine() -> void:
+	if _engine == null:
+		return
+	var hero: Dictionary = _engine.get_hero(_hero_id)
+	if hero.is_empty():
+		return
+	health = int(hero.get("health", 0))
+	max_health = int(hero.get("max_health", max_health))
+	armor = int(hero.get("armor", 0))
+	presence = int(hero.get("presence", 0))
+	deck = hero.get("deck", []).duplicate()
+	discard = hero.get("discard", []).duplicate()
+	hand = hero.get("hand", []).duplicate()
+	action_bar = hero.get("action_bar", []).duplicate(true)
+	max_hand_size = int(hero.get("refill_target", max_hand_size))
+	slot_count = action_bar.size()
+	current_window = _engine.phase if _engine.phase in [&"loadout", &"quick", &"slow"] else &"none"
+	var entity: Dictionary = _engine.board.get_entity(_hero_id)
+	if not entity.is_empty():
+		hero_name = str(entity.get("title", hero_name))
+		facing = int(entity.get("facing", facing))
 	hand_changed.emit()
-	action_bar_changed.emit()
-
-func begin_round() -> void:
-	armor = 0
-	tempo = 0
-	current_window = &"none"
-	energy += energy_per_turn
-	draw_cards(draw_per_turn)
-
-func start_window(window_speed: StringName) -> void:
-	current_window = window_speed
-	tempo = tempo_per_window
-	action_bar_changed.emit()
-
-func load_deck(cards: Array) -> void:
-	deck = cards.duplicate()
-	deck.shuffle()
-	hand.clear()
-	discard.clear()
-	hand_changed.emit()
-
-func draw_cards(count: int) -> void:
-	for i in range(count):
-		if deck.is_empty():
-			if discard.is_empty():
-				break
-			deck = discard.duplicate()
-			discard.clear()
-			deck.shuffle()
-		if hand.size() < max_hand_size:
-			hand.append(deck.pop_back())
-	hand_changed.emit()
-
-func play_card(card: Resource, context: Dictionary = {}) -> bool:
-	if not hand.has(card) or not card.can_pay(self):
-		return false
-	card.apply(self, context)
-	hand.erase(card)
-	discard.append(card)
-	hand_changed.emit()
-	return true
-
-func place_on_board(slot_index: int, card: Resource, context: Dictionary = {}) -> bool:
-	if slot_index < 0 or slot_index >= board_slots.size() or not hand.has(card):
-		return false
-	if board_slots[slot_index]["card"] != null:
-		return false
-	card.apply(self, context)
-	hand.erase(card)
-	board_slots[slot_index]["card"] = card
-	hand_changed.emit()
+	resources_changed.emit()
 	board_changed.emit()
-	return true
-
-func prepare_slot(slot_index: int, card: Resource) -> bool:
-	if not hand.has(card) or tempo < 1:
-		return false
-	if slot_index < 0 or slot_index >= action_bar.size():
-		return false
-	var slot := action_bar[slot_index]
-	if slot["top_card"] != null and not slot["charges"].is_empty():
-		return false
-	tempo -= 1
-	hand.erase(card)
-	if slot["top_card"] != null:
-		discard.append(slot["top_card"])
-	slot["top_card"] = card
-	slot["charges"] = []
-	hand_changed.emit()
+	health_changed.emit()
+	facing_changed.emit()
 	action_bar_changed.emit()
-	return true
+
+# Compatibility helpers submit actions to the authoritative engine. They do not resolve rules here.
+func prepare_slot(slot_index: int, card: Resource) -> bool:
+	return _submit(EncounterActionModel.load_slot(_hero_id, slot_index, card))
 
 func charge_slot(slot_index: int, card: Resource) -> bool:
-	if not hand.has(card) or tempo < 1:
-		return false
-	if slot_index < 0 or slot_index >= action_bar.size():
-		return false
-	var slot := action_bar[slot_index]
-	var top_card: Resource = slot["top_card"]
-	if top_card == null:
-		return false
-	if slot["charges"].size() >= top_card.get_charge_cap():
-		return false
-	tempo -= 1
-	hand.erase(card)
-	slot["charges"].append(card)
-	hand_changed.emit()
-	action_bar_changed.emit()
-	return true
+	return _submit(EncounterActionModel.charge_slot(_hero_id, slot_index, card))
 
 func activate_slot(slot_index: int, context: Dictionary = {}) -> bool:
-	if get_activation_error(slot_index, context) != "":
-		return false
-	var slot := action_bar[slot_index]
-	var top_card: Resource = slot["top_card"]
-	var payload := context.duplicate()
-	payload["charge_stack"] = slot["charges"].duplicate()
-	top_card.apply(self, payload)
-	for charged_card in slot["charges"]:
-		discard.append(charged_card)
-	slot["charges"].clear()
-	action_bar_changed.emit()
-	return true
+	var target_id: StringName = &""
+	var target = context.get("target")
+	if target != null:
+		target_id = target.get("piece_id") if target.get("piece_id") != null else &""
+	return _submit(EncounterActionModel.fire_slot(_hero_id, slot_index, target_id))
 
 func get_activation_error(slot_index: int, context: Dictionary = {}) -> String:
 	if slot_index < 0 or slot_index >= action_bar.size():
 		return "Select an action-bar slot."
-	var slot := action_bar[slot_index]
-	var top_card: Resource = slot["top_card"]
+	var slot: Dictionary = action_bar[slot_index]
+	var top_card: Resource = slot.get("top_card")
 	if top_card == null:
 		return "That action-bar slot is empty."
-	if slot["charges"].is_empty():
+	if slot.get("charges", []).is_empty():
 		return "Charge %s with a hand card before activating it." % top_card.title
 	if top_card.get_window_speed() != current_window:
 		return "%s is a %s card." % [top_card.title, top_card.get_window_speed().capitalize()]
-	if not top_card.can_pay(self):
-		return "Not enough Energy for %s." % top_card.title
+	if slot.get("activated_window", &"") == current_window:
+		return "%s has already activated this window." % top_card.title
 	return top_card.get_target_error(context)
 
 func get_slot(slot_index: int) -> Dictionary:
@@ -204,24 +98,12 @@ func get_slot(slot_index: int) -> Dictionary:
 		return {}
 	return action_bar[slot_index]
 
-func gain_armor(amount: int) -> void:
-	armor += amount
-
-func heal(amount: int) -> void:
-	health += amount
-
-func gain_presence(amount: int) -> void:
-	presence += amount
-
-func take_damage(amount: int) -> int:
-	var blocked: int = min(armor, amount)
-	armor -= blocked
-	var remaining: int = amount - blocked
-	health -= remaining
-	return remaining
-
-func rotate_facing(steps: int) -> void:
-	facing = facing + steps
-
 func get_facing_name() -> String:
 	return FacingDirections.name_for(facing)
+
+func _submit(action) -> bool:
+	if _engine == null:
+		return false
+	var resolved = _engine.apply(action)
+	sync_from_engine()
+	return resolved.succeeded

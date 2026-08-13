@@ -32,7 +32,7 @@ func bind(index: int, data: Dictionary, is_selected: bool, is_compact: bool = fa
 	loaded_card = slot_data.get("top_card")
 	loaded_charges = slot_data.get("charges", [])
 	ready_action = slot_data.get("ready_action", false)
-	custom_minimum_size = Vector2(84, 66) if compact else Vector2(150, 84)
+	custom_minimum_size = Vector2(84, 78) if compact else Vector2(150, 104)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_theme_color_override("font_color", Color(0.95, 0.93, 0.88))
 	add_theme_font_size_override("font_size", 10 if compact else 13)
@@ -75,7 +75,10 @@ func _draw() -> void:
 		return
 
 	var inset := 6.0 if compact else 8.0
-	var art_rect := Rect2(Vector2(inset, inset), size - Vector2(inset * 2.0, inset * 2.0))
+	var stack_height: float = 18.0 if compact else 26.0
+	var art_rect := Rect2(Vector2(inset, inset), size - Vector2(inset * 2.0, inset * 2.0 + stack_height))
+	var font := get_theme_default_font()
+	_draw_charge_stack(font, art_rect, inset, stack_height)
 	var artwork := _get_card_artwork(loaded_card)
 	if artwork != null:
 		draw_texture_rect(artwork, art_rect, false, Color(0.88, 0.82, 0.68, 0.86))
@@ -83,7 +86,6 @@ func _draw() -> void:
 	draw_rect(art_rect, Color(0.0, 0.0, 0.0, 0.30), true)
 	draw_line(art_rect.position, art_rect.position + Vector2(art_rect.size.x, 0.0), _border_color_for_card(loaded_card).lightened(0.25), 2.0)
 
-	var font := get_theme_default_font()
 	var title := _short_title(loaded_card.title, 12 if compact else 18)
 	var title_size := 10 if compact else 14
 	var title_pos := Vector2(art_rect.position.x + 7.0, art_rect.end.y - (8.0 if compact else 10.0))
@@ -103,6 +105,26 @@ func _draw() -> void:
 	if ready_action:
 		draw_rect(art_rect.grow(1.0), Color(1.0, 0.82, 0.28, 0.34), false, 3.0)
 		draw_string(font, art_rect.position + Vector2(art_rect.size.x - 30.0, art_rect.size.y * 0.55), "▶", HORIZONTAL_ALIGNMENT_CENTER, 24.0, 18 if compact else 22, Color(1.0, 0.88, 0.45))
+
+func _draw_charge_stack(font: Font, art_rect: Rect2, inset: float, stack_height: float) -> void:
+	if loaded_charges.is_empty():
+		return
+	var stack_rect := Rect2(Vector2(inset + 2.0, art_rect.end.y - 2.0), Vector2(size.x - inset * 2.0 - 4.0, stack_height))
+	var count: int = loaded_charges.size()
+	var overlap: float = 5.0 if compact else 8.0
+	var card_width: float = (stack_rect.size.x + overlap * float(count - 1)) / float(count)
+	for index in count:
+		var charged_card: Resource = loaded_charges[index]
+		var card_rect := Rect2(
+			Vector2(stack_rect.position.x + float(index) * (card_width - overlap), stack_rect.position.y + float(index % 2) * 2.0),
+			Vector2(card_width, stack_rect.size.y - 2.0)
+		)
+		var fill := _fill_color_for_card(charged_card).lightened(0.10)
+		var border := _border_color_for_card(charged_card).lightened(0.12)
+		draw_rect(card_rect, fill, true)
+		draw_rect(card_rect, border, false, 1.5)
+		var keywords := _keyword_label(charged_card, 8 if compact else 16)
+		draw_string(font, card_rect.position + Vector2(4.0, card_rect.size.y - 4.0), keywords, HORIZONTAL_ALIGNMENT_LEFT, card_rect.size.x - 8.0, 8 if compact else 10, Color(1.0, 0.96, 0.84))
 
 func _slot_text() -> String:
 	var top_card: Resource = slot_data.get("top_card")
@@ -193,9 +215,29 @@ func _slot_style(hovered: bool = false, focused: bool = false) -> StyleBoxFlat:
 func _slot_tooltip() -> String:
 	if loaded_card == null:
 		return "Drop a hand card here to load this action slot."
+	var charge_text := _charge_stack_tooltip()
 	if ready_action:
-		return "Ready to activate\n%s card\n%s" % [_get_type_label(loaded_card), loaded_card.rules_text]
-	return "%s card\n%s\n%s: window   %s: charges" % [_get_type_label(loaded_card), loaded_card.rules_text, QUICK_ICON, CHARGE_ICON]
+		return "Ready to activate\n%s card\n%s%s" % [_get_type_label(loaded_card), loaded_card.rules_text, charge_text]
+	return "%s card\n%s\n%s: window   %s: charges%s" % [_get_type_label(loaded_card), loaded_card.rules_text, QUICK_ICON, CHARGE_ICON, charge_text]
+
+func _charge_stack_tooltip() -> String:
+	if loaded_charges.is_empty():
+		return "\nCharge stack: empty"
+	var entries: Array[String] = []
+	for charged_card: Resource in loaded_charges:
+		entries.append("%s [%s]" % [charged_card.title, _keyword_label(charged_card, 48)])
+	return "\nCharge stack:\n%s" % "\n".join(entries)
+
+func _keyword_label(card: Resource, max_length: int) -> String:
+	if card == null or card.tags.is_empty():
+		return "Charge"
+	var keywords: Array[String] = []
+	for tag: StringName in card.tags:
+		if tag != &"tank":
+			keywords.append(String(tag).capitalize())
+	if keywords.is_empty():
+		keywords.append("Tank")
+	return _short_title("/".join(keywords), max_length)
 
 func _get_card_artwork(card: Resource) -> Texture2D:
 	if card != null and card.has_method("get_artwork") and card.get_artwork() != null:
@@ -212,7 +254,7 @@ func _get_card_type(card: Resource) -> StringName:
 		return &"interrupt"
 	if card.damage > 0 or card.boss_damage > 0 or _has_tag(card, &"attack"):
 		return &"damage"
-	if card.healing > 0 or card.energy_delta > 0 or _has_tag(card, &"support") or _has_tag(card, &"tempo"):
+	if card.healing > 0 or _has_tag(card, &"support") or _has_tag(card, &"tempo"):
 		return &"support"
 	if card.presence_delta > 0 or card.target_type == 2 or _has_tag(card, &"presence"):
 		return &"class"

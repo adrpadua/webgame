@@ -102,6 +102,7 @@ unique_name_in_owner = true
 layout_mode = 2
 visible = false
 horizontal_alignment = 1
+autowrap_mode = 3
 text = "No plays left. Tap tracker."
 
 [node name="PhaseLabel" type="Label" parent="Root/TopBar"]
@@ -232,6 +233,12 @@ layout_mode = 2
 autowrap_mode = 3
 text = "Drag cards into action-bar slots."
 
+[node name="ActionGuideLabel" type="Label" parent="Root/MainArea/RightPanelScroll/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+text = "Guide"
+
 [node name="ViewOptions" type="VBoxContainer" parent="Root/MainArea/RightPanelScroll/RightPanel"]
 layout_mode = 2
 theme_override_constants/separation = 6
@@ -264,7 +271,7 @@ text = "Activate Slot"
 [node name="MoveButton" type="Button" parent="Root/MainArea/RightPanelScroll/RightPanel"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Move 1 Tempo"
+text = "Discard Card to Move"
 
 [node name="AdvancePhase" type="Button" parent="Root/MainArea/RightPanelScroll/RightPanel"]
 unique_name_in_owner = true

@@ -1,7 +1,9 @@
-[gd_resource type="Resource" script_class="BossProgramData" load_steps=9 format=3]
+[gd_resource type="Resource" script_class="BossProgramData" load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/boss/BossProgramData.gd" id="1_program"]
 [ext_resource type="Script" path="res://scripts/boss/BossProgramBeat.gd" id="2_beat"]
+[ext_resource type="Resource" path="res://resources/hazards/scorched.tres" id="3_hazard"]
+[ext_resource type="Resource" path="res://resources/minions/whelp.tres" id="4_minion"]
 
 [sub_resource type="Resource" id="Turn"]
 script = ExtResource("2_beat")
@@ -20,6 +22,7 @@ kind = 3
 counter_tags = Array[StringName]([&"Move", &"Interrupt"])
 damage = 5
 duration_rounds = 1
+hazard = ExtResource("3_hazard")
 
 [sub_resource type="Resource" id="Scar"]
 script = ExtResource("2_beat")
@@ -29,6 +32,7 @@ rules_text = "The cone remains Scorched."
 kind = 2
 counter_tags = Array[StringName]([&"Move"])
 duration_rounds = 1
+hazard = ExtResource("3_hazard")
 
 [sub_resource type="Resource" id="Brood"]
 script = ExtResource("2_beat")
@@ -37,6 +41,8 @@ title = "Brood Call"
 rules_text = "Whelps emerge at the marked edge hexes."
 kind = 4
 counter_tags = Array[StringName]([&"Kill Adds"])
+minion = ExtResource("4_minion")
+count = 2
 
 [sub_resource type="Resource" id="Claw"]
 script = ExtResource("2_beat")

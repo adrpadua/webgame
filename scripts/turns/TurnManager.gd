@@ -5,41 +5,46 @@ signal phase_changed(phase: StringName)
 signal turn_changed(turn_number: int)
 
 enum Phase {
+	LOADOUT,
 	INSTANT,
 	QUICK,
 	INCOMING,
-	SLOW
+	SLOW,
 }
 
-var phase: Phase = Phase.INSTANT
+var phase: Phase = Phase.LOADOUT
 var turn_number: int = 1
+var _engine
 
-func start_game(player) -> void:
-	turn_number = 1
-	phase = Phase.INSTANT
-	player.begin_round()
-	turn_changed.emit(turn_number)
-	phase_changed.emit(get_phase_name())
+func bind_engine(engine) -> void:
+	_engine = engine
+	sync_from_engine()
 
-func advance_phase(player) -> void:
-	match phase:
-		Phase.INSTANT:
-			phase = Phase.QUICK
-			player.start_window(&"quick")
-		Phase.QUICK:
-			phase = Phase.INCOMING
-		Phase.INCOMING:
-			phase = Phase.SLOW
-			player.start_window(&"slow")
-		Phase.SLOW:
-			turn_number += 1
-			phase = Phase.INSTANT
-			player.begin_round()
-			turn_changed.emit(turn_number)
-	phase_changed.emit(get_phase_name())
+func sync_from_engine() -> void:
+	if _engine == null:
+		return
+	var previous_phase := phase
+	var previous_round := turn_number
+	phase = _phase_from_name(_engine.phase)
+	turn_number = _engine.round
+	if phase != previous_phase:
+		phase_changed.emit(get_phase_name())
+	if turn_number != previous_round:
+		turn_changed.emit(turn_number)
+
+# Kept for older probes; all phase rules still execute inside EncounterEngine.
+func advance_phase(player = null) -> void:
+	if _engine == null:
+		return
+	_engine.advance_phase()
+	sync_from_engine()
+	if player != null and player.has_method("sync_from_engine"):
+		player.sync_from_engine()
 
 func get_phase_name() -> StringName:
 	match phase:
+		Phase.LOADOUT:
+			return &"Loadout Step"
 		Phase.INSTANT:
 			return &"Boss Instant"
 		Phase.QUICK:
@@ -49,3 +54,15 @@ func get_phase_name() -> StringName:
 		Phase.SLOW:
 			return &"Slow Window"
 	return &"Unknown"
+
+func _phase_from_name(value: StringName) -> Phase:
+	match value:
+		&"instant":
+			return Phase.INSTANT
+		&"quick":
+			return Phase.QUICK
+		&"incoming":
+			return Phase.INCOMING
+		&"slow":
+			return Phase.SLOW
+	return Phase.LOADOUT

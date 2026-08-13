@@ -7,7 +7,6 @@ script = ExtResource("1_card")
 id = &"fortify"
 title = "Fortify"
 rules_text = "Gain 6 armor."
-cost = 2
 speed = &"slow"
 target_type = 0
 armor_delta = 6

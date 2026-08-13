@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="HazardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/HazardData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"scorched"
+title = "Scorched"
+rules_text = "Deals 1 damage on entry and blocks voluntary movement while present."
+duration_rounds = 1
+enter_damage = 1
+blocks_voluntary_movement = true

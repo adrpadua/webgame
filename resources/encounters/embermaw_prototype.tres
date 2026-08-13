@@ -1,10 +1,34 @@
-[gd_resource type="Resource" script_class="EncounterData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="EncounterData" load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/encounter/EncounterData.gd" id="1_encounter"]
+[ext_resource type="Script" path="res://scripts/cards/CardData.gd" id="2_card_script"]
+[ext_resource type="Resource" path="res://resources/cards/tank/steady_strike.tres" id="3_strike"]
+[ext_resource type="Resource" path="res://resources/cards/tank/iron_guard.tres" id="4_guard"]
+[ext_resource type="Script" path="res://scripts/boss/BossProgramData.gd" id="5_program_script"]
+[ext_resource type="Resource" path="res://resources/boss/programs/embermaw_hunt.tres" id="6_hunt"]
+[ext_resource type="Resource" path="res://resources/boss/programs/embermaw_embers.tres" id="7_embers"]
+[ext_resource type="Resource" path="res://resources/boss/programs/embermaw_brood.tres" id="8_brood"]
 
 [resource]
 script = ExtResource("1_encounter")
 id = &"embermaw_prototype"
 title = "Embermaw: Ashen Trial"
+rules_text = "Defeat Embermaw before the Encounter Clock expires while managing Scorched hexes and Whelp spawns."
+primary_hero_id = &"guardian"
+primary_hero_title = "Aegis Guardian"
+boss_id = &"embermaw"
+boss_title = "Embermaw"
 round_limit = 8
 enrage_text = "Enrage: Embermaw overwhelms the party."
+board_radius = 2
+player_start = Vector2i(0, 0)
+boss_start = Vector2i(1, -1)
+player_health = 34
+boss_health = 36
+slot_count = 2
+hand_refill_target = 4
+player_deck = Array[Resource]([ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard")])
+boss_programs = Array[Resource]([ExtResource("6_hunt"), ExtResource("7_embers"), ExtResource("8_brood")])
+loop_boss_programs = true
+random_seed = 1337
+brood_spawn_candidates = Array[Vector2i]([Vector2i(-2, 1), Vector2i(-1, 2), Vector2i(0, 2), Vector2i(2, -2), Vector2i(2, -1)])

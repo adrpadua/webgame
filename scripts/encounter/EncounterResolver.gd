@@ -32,7 +32,7 @@ func resolve_beat(beat, snapshot) -> RefCounted:
 		BossProgramBeat.Kind.BROOD_CALL:
 			resolution.spawn_hexes = snapshot.incoming_spawn_hexes.duplicate()
 			if resolution.spawn_hexes.is_empty():
-				resolution.spawn_hexes = BoardQueryModel.first_empty_hexes(snapshot.brood_spawn_candidates, snapshot.empty_hexes, 2)
+				resolution.spawn_hexes = BoardQueryModel.first_empty_hexes(snapshot.brood_spawn_candidates, snapshot.empty_hexes, beat.count)
 			resolution.log_suffix = "summons %d Whelp(s)." % resolution.spawn_hexes.size()
 		_:
 			resolution.log_suffix = beat.rules_text

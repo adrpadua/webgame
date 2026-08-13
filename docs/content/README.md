@@ -18,6 +18,8 @@ Recommended layout:
 
 Current starter docs:
 
+- [design-team-handoff.md](D:/dev/webgame/docs/content/design-team-handoff.md)
+
 - [decks/aegis-guardian-starter.md](D:/dev/webgame/docs/content/decks/aegis-guardian-starter.md)
 - [decks/paladin-placeholder-status.md](D:/dev/webgame/docs/content/decks/paladin-placeholder-status.md)
 - [../rules/player-card-authoring.md](D:/dev/webgame/docs/rules/player-card-authoring.md)

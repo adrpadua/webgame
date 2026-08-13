@@ -17,3 +17,6 @@ enum Kind {
 @export var counter_tags: Array[StringName] = []
 @export var damage: int = 0
 @export var duration_rounds: int = 1
+@export var hazard: Resource
+@export var minion: Resource
+@export_range(1, 12, 1) var count: int = 2

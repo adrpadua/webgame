@@ -64,7 +64,7 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if typeof(data) != TYPE_DICTIONARY:
 		_set_drop_hover(false)
 		return false
-	if data.get("kind") != "board_piece":
+	if data.get("kind") != "board_piece" and data.get("kind") != "hand_card":
 		_set_drop_hover(false)
 		return false
 	_set_drop_hover(true)

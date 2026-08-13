@@ -7,10 +7,12 @@ const FacingDirections := preload("res://scripts/combat/Facing.gd")
 const BoardStateModel := preload("res://scripts/hex/BoardState.gd")
 const BoardQueryModel := preload("res://scripts/hex/BoardQuery.gd")
 const DuelystBackdrop := preload("res://assets/art/open-duelyst/magaari_ember_highlands_background.jpg")
+const MovementPathPreviewScene := preload("res://scripts/hex/MovementPathPreview.gd")
 
 signal tile_selected(tile)
 signal piece_selected(piece)
 signal piece_dragged_to_tile(piece, tile)
+signal hand_card_dropped_to_tile(card: Resource, tile)
 
 @export var radius: int = 2
 @export var show_coordinates: bool = false
@@ -22,6 +24,9 @@ var player_piece: Node
 var boss_piece: Node
 var combatants_bound: bool = false
 var board_state := BoardStateModel.new()
+var movement_path_preview: Control
+var movement_preview_enabled: bool = false
+var rules_board
 
 func _ready() -> void:
 	resized.connect(_layout_tiles)
@@ -38,6 +43,7 @@ func build_grid() -> void:
 		child.queue_free()
 	tiles.clear()
 	board_state.clear()
+	_create_movement_path_preview()
 
 	for q in range(-radius, radius + 1):
 		var r1: int = max(-radius, -q - radius)
@@ -89,12 +95,20 @@ func _layout_tiles() -> void:
 		var tile: Control = tiles[coords]
 		tile.scale = Vector2.ONE * scale_factor
 		tile.position = offset + (axial_to_pixel(coords.x, coords.y) - board_min) * scale_factor
+	if movement_path_preview != null:
+		movement_path_preview.size = size
+		movement_path_preview.queue_redraw()
 	queue_redraw()
 
 func set_show_coordinates(value: bool) -> void:
 	show_coordinates = value
 	for tile in tiles.values():
 		tile.set_show_coordinates(value)
+
+func set_movement_preview_enabled(value: bool) -> void:
+	movement_preview_enabled = value
+	if not value and movement_path_preview != null:
+		movement_path_preview.clear()
 
 func spawn_piece(
 	coords: Vector2i,
@@ -110,9 +124,66 @@ func spawn_piece(
 	var piece := HexPieceScene.new()
 	piece.setup(label, owner, hp, facing, display_name)
 	piece.died.connect(_on_piece_died)
+	if owner == &"player":
+		piece.piece_drag_started.connect(_on_player_drag_started)
+		piece.piece_drag_ended.connect(_on_player_drag_ended)
 	tile.add_piece(piece)
 	_refresh_tile_outline(tile)
 	return piece
+
+func sync_from_engine(engine) -> void:
+	if engine == null:
+		return
+	rules_board = engine.board
+	if radius != engine.board.radius or tiles.is_empty():
+		radius = engine.board.radius
+		build_grid()
+	_clear_rendered_pieces()
+	for entity_id in engine.board.entities:
+		var entity: Dictionary = engine.board.entities[entity_id]
+		var kind: StringName = entity.get("kind", &"")
+		var owner: StringName = &"enemy"
+		var label := "W"
+		var display_name := str(entity.get("title", "Whelp"))
+		if kind == &"hero":
+			owner = &"player"
+			label = "P"
+			display_name = "Player"
+		elif kind == &"boss":
+			owner = &"boss"
+			label = "B"
+			display_name = "Ember"
+		var piece := spawn_piece(entity["coords"], label, owner, int(entity["max_health"]), int(entity["facing"]), display_name)
+		if piece == null:
+			continue
+		piece.piece_id = entity_id
+		piece.health = int(entity["health"])
+		piece.max_health = int(entity["max_health"])
+		piece.queue_redraw()
+		if entity_id == engine.primary_hero_id:
+			player_piece = piece
+		elif entity_id == engine.boss_id:
+			boss_piece = piece
+	for coords in tiles:
+		var tile: HexTile = tiles[coords]
+		tile.set_terrain(&"")
+		tile.set_telegraph(&"")
+		var hazards: Array = engine.board.get_hazards(coords)
+		if not hazards.is_empty():
+			tile.set_terrain(hazards[0].id)
+	for coords in engine.get_telegraphs():
+		var tile: HexTile = tiles.get(coords)
+		if tile != null:
+			tile.set_telegraph(engine.telegraphs[coords])
+	_refresh_tile_outlines()
+
+func _clear_rendered_pieces() -> void:
+	for tile: HexTile in tiles.values():
+		for piece in tile.pieces.duplicate():
+			tile.remove_piece(piece)
+			piece.queue_free()
+	player_piece = null
+	boss_piece = null
 
 func spawn_enemy_wave(count: int) -> int:
 	var spawn_points: Array[Vector2i] = [
@@ -233,6 +304,8 @@ func hex_distance(from_coords: Vector2i, to_coords: Vector2i) -> int:
 	return BoardQueryModel.hex_distance(from_coords, to_coords)
 
 func can_move_piece_to(piece: Node, destination: Vector2i, max_distance: int = 1) -> bool:
+	if rules_board != null and piece != null and rules_board.has_entity(piece.piece_id):
+		return max_distance >= 1 and BoardQueryModel.is_legal_move(rules_board, piece.piece_id, destination)
 	var from_tile := get_piece_tile(piece)
 	var to_tile = tiles.get(destination)
 	if piece == null or from_tile == null or to_tile == null:
@@ -288,14 +361,18 @@ func _on_tile_selected(tile) -> void:
 		piece_selected.emit(tile.pieces[0])
 
 func _on_tile_data_dropped(tile, data: Dictionary) -> void:
-	if data.get("kind") != "board_piece":
-		return
-	var piece: Node = data.get("piece")
-	if piece == null:
-		return
-	tile_selected.emit(tile)
-	piece_selected.emit(piece)
-	piece_dragged_to_tile.emit(piece, tile)
+	match data.get("kind"):
+		"board_piece":
+			var piece: Node = data.get("piece")
+			if piece == null:
+				return
+			tile_selected.emit(tile)
+			piece_selected.emit(piece)
+			piece_dragged_to_tile.emit(piece, tile)
+		"hand_card":
+			var card: Resource = data.get("card")
+			if card != null:
+				hand_card_dropped_to_tile.emit(card, tile)
 
 func _on_piece_died(piece) -> void:
 	for tile in tiles.values():
@@ -306,6 +383,22 @@ func _on_piece_died(piece) -> void:
 		player_piece = null
 	if piece == boss_piece:
 		boss_piece = null
+
+func _create_movement_path_preview() -> void:
+	movement_path_preview = MovementPathPreviewScene.new()
+	movement_path_preview.bind(self)
+	movement_path_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	movement_path_preview.z_as_relative = false
+	movement_path_preview.z_index = 3500
+	add_child(movement_path_preview)
+
+func _on_player_drag_started(piece: Node) -> void:
+	if movement_preview_enabled and movement_path_preview != null:
+		movement_path_preview.show_for(piece)
+
+func _on_player_drag_ended(_piece: Node) -> void:
+	if movement_path_preview != null:
+		movement_path_preview.clear()
 
 func bind_combatants(player, boss) -> void:
 	if combatants_bound:

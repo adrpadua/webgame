@@ -7,7 +7,7 @@ This document catalogs the major gameplay artifacts currently present in the rep
 - [assets](D:/dev/webgame/assets)
   - Source art, audio, fonts, and UI media; see its README for the layout
 - [resources](D:/dev/webgame/resources)
-  - Godot-ready gameplay resources, including current card and boss-action `.tres` files
+  - Designer-authored Cards, Keywords, Charge Modifiers, Boss Programs, Hazards, Minions, and Encounters
 - [data](D:/dev/webgame/data)
   - Reserved for structured authored data when a loader needs it
 - [notes](D:/dev/webgame/notes)
@@ -79,9 +79,9 @@ Legacy/general sample card resources in [resources/cards](D:/dev/webgame/resourc
 - `grow_presence.tres`
 - `strike_hex.tres`
 
-## Boss Action Resources
+## Legacy Boss Action Resources
 
-Boss timeline resources in [resources/boss](D:/dev/webgame/resources/boss):
+Historical pre-SDK Boss actions are isolated under [resources/legacy/boss_actions](D:/dev/webgame/resources/legacy/boss_actions). They are not designer-facing content and are not loaded by Encounters.
 
 - `raid_opening.tres`
   - opening tank hit
@@ -105,26 +105,28 @@ Encounter configuration in [resources/encounters](D:/dev/webgame/resources/encou
 
 - [scripts/Main.gd](D:/dev/webgame/scripts/Main.gd)
   - Main scene coordinator
-  - Connects drag-drop card prep, slot activation, tile targeting, and paid movement
+  - Translates drag-drop interactions into `EncounterAction` records and renders engine projections
+- [scripts/sdk/EncounterEngine.gd](D:/dev/webgame/scripts/sdk/EncounterEngine.gd)
+  - Authoritative rules owner for the live scene and headless simulation
 - [scripts/player/PlayerState.gd](D:/dev/webgame/scripts/player/PlayerState.gd)
-  - Player resources, hand, deck, discard, action bar, and slot rules
+  - Read-only Hero, Hand, and Action Bar projection for the UI
 - [scripts/turns/TurnManager.gd](D:/dev/webgame/scripts/turns/TurnManager.gd)
-  - Encounter phase state machine
+  - Read-only phase and Round projection
 - [scripts/encounter/EncounterState.gd](D:/dev/webgame/scripts/encounter/EncounterState.gd)
-  - Encounter outcome, debug encounter history, and enrage resolution
+  - Read-only outcome and presentation log projection
 - [scripts/encounter/EncounterData.gd](D:/dev/webgame/scripts/encounter/EncounterData.gd)
   - Authored encounter configuration schema
 - [scripts/boss/BossState.gd](D:/dev/webgame/scripts/boss/BossState.gd)
-  - Boss timeline state and action resolution
+  - Read-only Boss Timeline projection
 - [scripts/boss/BossActionData.gd](D:/dev/webgame/scripts/boss/BossActionData.gd)
   - Boss action resource schema
 - [scripts/cards/CardData.gd](D:/dev/webgame/scripts/cards/CardData.gd)
-  - Card resource schema and generic effect application
+  - Designer-facing Card resource schema
 
 ## Board and Piece Scripts
 
 - [scripts/hex/HexGrid.gd](D:/dev/webgame/scripts/hex/HexGrid.gd)
-  - Hex board creation, piece spawning, movement rules, and enemy wave helpers
+  - Hex board rendering, direct manipulation, telegraphs, and route previews over SDK board state
 - [scripts/hex/HexTile.gd](D:/dev/webgame/scripts/hex/HexTile.gd)
   - Individual hex tile UI, coordinate display, and drag-drop tile target behavior
 - [scripts/hex/HexPiece.gd](D:/dev/webgame/scripts/hex/HexPiece.gd)
@@ -148,6 +150,11 @@ Encounter configuration in [resources/encounters](D:/dev/webgame/resources/encou
   - Facing indicator support UI
 
 ## Prototype Validation
+
+- [docs/artifacts/probe-harness.md](D:/dev/webgame/docs/artifacts/probe-harness.md)
+  - Stable headless Probe suite, runner, and Spike-to-Probe promotion rules
+- [scripts/debug/run_probes.ps1](D:/dev/webgame/scripts/debug/run_probes.ps1)
+  - One-command runner for the stable headless Probe suite
 
 - [scripts/debug/playthrough_smoke.gd](D:/dev/webgame/scripts/debug/playthrough_smoke.gd)
   - Headless smoke test for the complete encounter loop, outcomes, targeting, damage profiles, persistent slots, and paid movement

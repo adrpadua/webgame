@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="MinionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/MinionData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"whelp"
+title = "Whelp"
+rules_text = "A fragile Minion that occupies a hex and constrains movement."
+max_health = 2
