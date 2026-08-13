@@ -67,9 +67,9 @@ Elian is calm under pressure. His voice is practical and spare: "Behind me." "Ho
 | Movement | A card discarded to move creates 1 Stamina for that adjacent move. The card does not resolve its rules text. |
 | Class resource | No active Guardian-specific resource is required for the first playable pass. `Guard` remains a Keyword, not a meter. |
 
-## Starter-Kit Jobs
+## Default Starter-Kit Jobs
 
-The first controlled deck test should contain these jobs. It is not yet the default live deck.
+The approved live/default Aegis Guardian starter-deck specification contains these jobs. The five-identity list was previously approved as an evaluation-only candidate; the user-approved default-deck migration adopts that exact list without changing its card rules. The runnable resource migration remains Architecture-owned.
 
 | Job | Candidate card | Timing | Intended decision |
 | --- | --- | --- | --- |
@@ -80,7 +80,9 @@ The first controlled deck test should contain these jobs. It is not yet the defa
 | Defensive payoff | Shield Slam | Quick | Consume a correctly earned Riposte Ready for `+2` Boss damage, or use it as stable progress when no opening exists. |
 | Emergency party save | Intercept | Quick | Redirect one next damage event from a chosen ally. Requires engineering support. |
 
-The controlled, twenty-card test list is `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, and `2x Shield Slam`. Intercept remains outside this first executable list until its rule exists in `EncounterEngine`.
+The approved live/default twenty-card Shield Wall list is exactly `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, and `2x Shield Slam`. Intercept remains outside this first executable list until its rule exists in `EncounterEngine`.
+
+The former `10x Steady Strike` / `10x Iron Guard` baseline remains historical evidence for the old mechanics shell. It does not describe the current default deck and must not be rewritten.
 
 ## Content Rules
 
@@ -90,7 +92,7 @@ The controlled, twenty-card test list is `8x Steady Strike`, `6x Iron Guard`, `2
 
 **Precise rule:** Gain 3 Armor. Gain 1 additional Armor for each charged `Guard` card.
 
-**Affected content:** Existing `iron_guard.tres`, the controlled test deck, `guard` Keyword, and its Charge Modifier.
+**Affected content:** Existing `iron_guard.tres`, the default Shield Wall deck, `guard` Keyword, and its Charge Modifier.
 
 **Edge cases:** Armor may exceed the next hit and does not carry into the next Round. Non-Guard charged cards add Charge but do not improve Armor.
 
@@ -102,7 +104,7 @@ The controlled, twenty-card test list is `8x Steady Strike`, `6x Iron Guard`, `2
 
 **Precise rule:** Deal 2 damage to one selected adjacent Minion after the Slot has at least one Charge.
 
-**Affected content:** Existing `sweeping_blow.tres`, Whelp content, test deck, Minion targeting affordance.
+**Affected content:** Existing `sweeping_blow.tres`, Whelp content, default Shield Wall deck, Minion targeting affordance.
 
 **Edge cases:** The card can be prepared with no Minion in range but cannot fire without a legal selected Minion. It cannot target the Boss.
 
@@ -114,7 +116,7 @@ The controlled, twenty-card test list is `8x Steady Strike`, `6x Iron Guard`, `2
 
 **Precise rule:** Gain 6 Armor during Slow after the Slot has at least one Charge.
 
-**Affected content:** Existing `fortify.tres` and the controlled test deck.
+**Affected content:** Existing `fortify.tres` and the default Shield Wall deck.
 
 **Edge cases:** It cannot repair an Incoming hit that has already resolved. Its Armor expires at next Round start. Full-charge cleanup remains standard.
 
@@ -155,8 +157,8 @@ The controlled, twenty-card test list is `8x Steady Strike`, `6x Iron Guard`, `2
 
 ## Engine/UI Requests
 
-1. **Now:** preserve the existing generic Minion selection path in the visible HUD and add a focused probe before Sweeping Blow enters the default deck.
-2. **Now:** add a focused Slow-card probe before Fortify enters the default deck.
+1. **Now:** preserve the existing generic Minion selection path in the visible HUD and maintain focused Whelp-clear coverage for the default deck.
+2. **Now:** maintain focused Slow-card coverage for Fortify in the default deck.
 3. **Later, required for Intercept:** model targetable allies and one-event damage redirection in `EncounterEngine`; project target and expiry visibly on board and mobile HUD.
 4. **Later, required for raid validation:** add multiple Heroes, role targeting, committed actions, Downed/Revive, and party UI. Do not ship Intercept as player-facing text first.
 

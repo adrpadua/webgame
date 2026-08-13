@@ -1,6 +1,6 @@
 # Combat Postures — Aegis Guardian First Slice
 
-Status: active
+Status: resolved
 
 ## Intake
 
@@ -34,3 +34,7 @@ Captain Elian Voss earns one visible, non-stacking, non-refreshing **Riposte Rea
 ## Closure Gate
 
 Close only when canonical rules, implementation, visible presentation, deterministic automated evidence, Encounter Record facts, and three human-reviewed deck runs agree. Every shared-file handoff requires an independent verifier and recorded evidence.
+
+## Closure Record
+
+2026-08-13 — All five delivery issues are resolved. **This is not a Combat Postures defect:** Riposte Ready passed engine, real-resource, UI, Encounter Record, and QA validation. The rules, engine/status seam, deterministic probes, production-resource reachability, visible status presentation, Encounter Record facts, and three-run human review agree. Issue 05 produced a negative promotion/tuning recommendation solely because the unchanged live two-card baseline contains no Shield Slam, Sweeping Blow, or Fortify; it can demonstrate the defensive Riposte trigger, but cannot evaluate the payoff, Whelp/Slow answers, the expanded machine, or the no-dominant-Shield-Slam question. Viability is `2/5` and Play-feel `1/5` for that cohort. This closes the first-slice delivery as implemented and evaluated, but does not authorize deck promotion, tuning, or content changes. Any controlled-deck follow-up returns through PM/user intake.

@@ -1,6 +1,6 @@
 # Align Role And Recovery Contracts
 
-Status: ready-for-agent
+Status: resolved
 Owner: Coordinator
 
 ## Outcome
@@ -27,3 +27,10 @@ No gameplay, probe, analytics, or CI changes. No standing Playtester task. No ch
 ## Acceptance
 
 The recovery kit and prompts name Test Automation as deterministic-validation owner, Playtester as on-demand/read-only/temporary, Tier 3 reruns as required, Tier 2 routine coordinator reruns as exceptional and recorded, and direct collaboration as non-owning communication only.
+
+## Verification
+
+- PM re-review passed: PM/user authority and approved non-goals remain intact; tier wording is explicitly pending activation.
+- Test Automation re-review passed: deterministic-validation ownership, the pending-activation boundary, and the Playtester constraints remain intact.
+- Coordinator verified the changed canonical documents with scoped `git diff --check`; it passed with existing LF/CRLF notices only.
+- No live tier-policy switch was applied. The current evidence-based closure behavior remains authoritative until the delivery slice closes.

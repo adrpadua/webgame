@@ -40,12 +40,17 @@ $catalog = [ordered]@{
 	riposte = "res://scripts/debug/riposte_ready_probe.gd"
 	riposte_live = "res://scripts/debug/riposte_production_path_probe.gd"
 	riposte_ui = "res://scripts/debug/riposte_status_ui_probe.gd"
+	deck_eval_report = "res://scripts/debug/deck_eval_report_probe.gd"
+	controlled_deck_eval_report = "res://scripts/debug/controlled_deck_eval_report_probe.gd"
+	starter_deck_promotion = "res://scripts/debug/starter_deck_promotion_probe.gd"
 }
 
 $scenarioCatalog = [ordered]@{
 	full_charge_cleanup = "res://scripts/debug/full_charge_cleanup_probe.gd"
 	whelp_clear = "res://scripts/debug/whelp_clear_probe.gd"
 	slow_top_card_cleanup = "res://scripts/debug/slow_top_card_cleanup_probe.gd"
+	deck_eval_baseline = "res://scripts/debug/deck_eval_baseline_probe.gd"
+	controlled_deck_eval = "res://scripts/debug/controlled_deck_eval_probe.gd"
 }
 
 $requested = @($Probe | ForEach-Object { $_ -split "," } | ForEach-Object { $_.Trim() } | Where-Object { $_ })

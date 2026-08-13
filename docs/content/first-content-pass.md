@@ -1,12 +1,14 @@
 # First Content Pass: Embermaw And Aegis Guardian
 
-Status: proposed and ranked. This is a content plan, not an authorization to encode unsupported behavior in card text. `EncounterEngine` remains authoritative.
+Status: proposed and ranked, with the first-pass Shield Wall default migration adopted by the user-approved product intake. This is not an authorization to encode unsupported behavior in card text. `EncounterEngine` remains authoritative.
 
 ## Status And Source Of Truth
 
 **Current authored truth:** the runnable Embermaw loop is defined by `resources/boss/programs/embermaw_hunt.tres`, `embermaw_embers.tres`, and `embermaw_brood.tres`, summarized in [embermaw-prototype.md](D:/dev/webgame/docs/content/encounters/embermaw-prototype.md). In particular, the current **Ember Pattern** resolves `Brood Call`, `Raking Claw` (`tank_hit`), then `Keep a Safe Hex` in its Incoming track. This is the existing Riposte Ready reachability path; it is not a proposed content edit.
 
-**Proposed guidance:** the ranked packages below describe future content tests or changes only after their stated gates and evidence. They do not override the runnable resources.
+**Adopted default-deck guidance:** the `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, `2x Shield Slam` Shield Wall list is the approved live/default Aegis deck specification and is now authored in `resources/encounters/embermaw_prototype.tres`. The prior evaluation-only restriction from proposal 03 is superseded only for default adoption by [product intake 04](D:/dev/webgame/.scratch/product-backlog/issues/04-promote-aegis-starter-deck-to-shield-wall-kit.md); the controlled-cohort evidence remains historical.
+
+**Proposed guidance:** packages not explicitly marked adopted below remain future content tests or changes after their stated gates and evidence. They do not override the runnable resources.
 
 **Superseded guidance:** the former "First-Three-Rounds Teaching Edit" table described a different Round 2 Incoming sequence (`Brood Call, warning`) and must not be read as current authoring. It is replaced by the current-reference and deferred teaching goals below.
 
@@ -14,8 +16,8 @@ Status: proposed and ranked. This is a content plan, not an authorization to enc
 
 | Rank | Pass | Why Now | Delivery |
 | --- | --- | --- | --- |
-| 1 | Make `Kill Adds` answerable | The current boss explicitly asks for an answer the live deck lacks. | Content-only after target-selection smoke test. |
-| 2 | Put one honest Slow action in the live deck | The current loop cannot teach the Slow Window's promise. | Content-only. |
+| 1 | Make `Kill Adds` answerable | The default Shield Wall deck includes Sweeping Blow; validate its authored answer in focused probes. | Adopted default-deck content; QA verification pending. |
+| 2 | Put one honest Slow action in the live deck | The default Shield Wall deck includes Fortify. | Adopted default-deck content; QA verification pending. |
 | 3 | Re-tune the three-program loop into a teaching sequence | The existing data already supports a readable first three Rounds. | Content-only. |
 | 4 | Add an active Whelp intent | Adds need a deadline beyond occupying safe hexes. | Engine/UI extension. |
 | 5 | Add a Phase II spatial package | This fulfills Ashen Trial's raid promise. | Engine/UI extension. |
@@ -88,6 +90,6 @@ Status: proposed and ranked. This is a content plan, not an authorization to enc
 
 **Required evidence:** A seeded eight-Round simulation covering early health threshold and forced-Round-5 transition, a pattern-overlay UI capture for every new Beat, and at least three blind playtests showing players can predict each Phase II failure before it resolves.
 
-## Deck Composition Gate
+## Deck Composition History
 
-The authoring rules deliberately prohibit a third live identity before the two-card loop has demonstrated useful Slot Tension. Ranks 1 and 2 are therefore approved for *testing preparation*, not for default-deck adoption. The smallest valid test list after the gate is `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, and `2x Shield Slam`. It preserves twenty cards, adds an add answer and Slow payoff, and keeps most draws legible.
+The former authoring gate limited the five-identity list to testing preparation. The old `10x Steady Strike` / `10x Iron Guard` baseline and its cohort remain historical evidence for that mechanics shell. The user-approved [default-deck intake](D:/dev/webgame/.scratch/product-backlog/issues/04-promote-aegis-starter-deck-to-shield-wall-kit.md) now adopts `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, and `2x Shield Slam` as the live/default Aegis Shield Wall specification, and `resources/encounters/embermaw_prototype.tres` now carries that list. This adoption does not claim balance completion or authorize encounter, seed, hand, or pacing changes.

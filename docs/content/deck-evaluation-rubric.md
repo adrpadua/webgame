@@ -72,7 +72,7 @@ Automated evidence can identify that alternatives existed. It must not claim tha
 | Dead draw | A Hand card that cannot materially help the current or next player window under the current legal board state. It is not simply a card the player did not use. |
 | Charge efficiency | The proportion of charged cards that contribute to a successful activation, an intentional Primed hold, or another authored supported result. A charge discarded because of an explicit replacement or cleanup is not automatically waste. |
 | Role moment | A recorded, player-observable result in which the Hero fulfills its stated role against a visible raid pressure. |
-| Default-deck promotion gate | A candidate needs both Viability and Play-feel at `3/5` or above, its required focused contracts passing, and no unresolved misleading-output condition. |
+| Default-deck promotion gate | A future candidate needs both Viability and Play-feel at `3/5` or above, its required focused contracts passing, and no unresolved misleading-output condition. The Aegis Shield Wall default migration is a user-approved product exception; it does not establish a general bypass. |
 
 ### Conditions That Make Output Misleading
 
@@ -100,7 +100,7 @@ Score each output from `0` to `5`, then record the evidence used.
 | 4 | Wins or reaches the intended end state on most seeds with understandable failure cases. | Decisions are varied, class-fantasy expression is clear, and repeated runs remain tolerable. |
 | 5 | Consistently wins the intended teaching slice without trivializing its mechanics. | The deck produces strong, repeatable "I chose well" moments with low fatigue. |
 
-For prototype approval, prefer a deck with both scores at `3` or higher. A score below `3` in either output blocks default-deck promotion.
+For future prototype approval, prefer a deck with both scores at `3` or higher. A score below `3` in either output blocks default-deck promotion unless the user approves a specific product exception.
 
 ## Minimum Metrics
 
@@ -152,7 +152,7 @@ For the Embermaw teaching slice, a good Aegis Guardian test deck should:
 - show clear Shield Wall identity through mitigation, positioning, and deliberate Slot commitment;
 - avoid solving every pressure with the same card sequence.
 
-The first evaluation target is not "perfect balance." It is enough evidence to decide whether the next live test deck should remain the current two-card baseline or move to the smallest approved test list from [first-content-pass.md](first-content-pass.md).
+The first historical evaluation target was not "perfect balance." It compared the former two-card baseline with the smallest approved test list. The Aegis Shield Wall list is now the user-approved live/default starter deck; future evaluation asks whether that current default is understandable, viable, and non-repetitive without inferring further tuning.
 
 ## Minimal Gaps
 

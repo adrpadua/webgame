@@ -22,8 +22,11 @@ func _initialize() -> void:
 	recorder.sync(engine)
 	var record := recorder.seal(engine)
 	_assert(record["schema_version"] == 1, "Encounter Record schema version must be explicit.")
+	_assert(record["metadata"] == {"run_label": "", "evaluation_purpose": "", "scenario_id": ""}, "Encounter Record metadata defaults must preserve older callers.")
 	_assert(record["outcome"] == "victory", "Sealed Encounter Record must retain the terminal outcome.")
 	_assert(record["content"]["fingerprint"].length() == 64, "Content fingerprint must be a stable SHA-256 value.")
+	_assert(not record["phase_observations"].is_empty(), "Encounter Records must capture phase observations.")
+	_assert(record["phase_observations"][0].has("hand_card_ids") and record["phase_observations"][0].has("slots") and record["phase_observations"][0].has("legal_useful_actions"), "Phase observations must expose hand, Slot, and legal-useful-action proxy fields.")
 	_assert(not record["content"]["resources"].is_empty(), "Content identity must include reachable authored Resources.")
 	_assert(record["rejected_actions"].size() == 1, "Rejected submitted actions must be preserved with their reason.")
 	var damage_action: Dictionary = record["submitted_actions"].filter(func(action): return action["kind"] == "damage")[0]

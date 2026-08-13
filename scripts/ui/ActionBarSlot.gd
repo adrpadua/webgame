@@ -65,9 +65,6 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if data.get("card") == null:
 		_set_drop_hover(false)
 		return false
-	if data.get("card") != context_card:
-		_set_drop_hover(false)
-		return false
 	if not _can_accept_hand_card():
 		_set_drop_hover(false)
 		return false
@@ -79,7 +76,6 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 	var card: Resource = data.get("card")
 	if card == null:
 		return
-	slot_pressed.emit(slot_index)
 	card_dropped.emit(slot_index, card)
 
 func _notification(what: int) -> void:

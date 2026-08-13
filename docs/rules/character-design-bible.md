@@ -147,4 +147,4 @@ Before a Hero card or deck enters a controlled playtest, record:
 - Encounter Record facts and focused probe required;
 - a new-player test question that reveals whether the combo was understood.
 
-Before promoting a deck into the default encounter, require the scorecard evidence in `docs/content/deck-evaluation-rubric.md`: both Viability and Play-feel need at least `3/5`; the deck must not be promoted on subjective enthusiasm alone.
+Before promoting a future deck into the default encounter, require the scorecard evidence in `docs/content/deck-evaluation-rubric.md`: both Viability and Play-feel need at least `3/5`; the deck must not be promoted on subjective enthusiasm alone. The Aegis Guardian Shield Wall migration is a user-approved product exception recorded in `.scratch/product-backlog/issues/04-promote-aegis-starter-deck-to-shield-wall-kit.md`; it does not weaken this rule for later decks.

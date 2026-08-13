@@ -2,6 +2,16 @@
 
 A Godot 4 prototype for a cooperative fantasy raid-boss tactics game on a hex grid.
 
+## Software Factory Experiment
+
+This repository is both a game prototype and an experiment in an agent-assisted software factory.
+
+The game began as a tabletop board-game prototype in 2024. The current work uses specialized Codex roles—Product Management, Orchestration, Game Design, Architecture, UI/UX, Test Automation, and on-demand Playtesting—to turn that physical design into a playable video game without losing the original player promises, rules intent, or playtest evidence.
+
+The agents do not replace a single source of truth or product ownership. Product decisions begin with the human designer and PM; the repository keeps the durable rules, architecture decisions, backlog, handoff contracts, validation evidence, and coordination ledger. The Orchestrator sequences approved work across the specialist roles, while repeatable probes and independent reviews keep the game and its documentation aligned.
+
+The operating model is intentionally part of the prototype: it is being tested alongside the game. See the [agent recovery kit](D:/dev/webgame/docs/agents/recovery-kit.md), [product backlog](D:/dev/webgame/.scratch/product-backlog/map.md), and [coordination ledger](D:/dev/webgame/docs/artifacts/project-coordination.md) for the current process and delivery state.
+
 The current build centers on:
 
 - A scripted boss timeline with `Boss Instant`, `Quick Window`, `Boss Incoming`, and `Slow Window`

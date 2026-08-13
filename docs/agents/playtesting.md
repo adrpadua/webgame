@@ -6,7 +6,7 @@ Playtester supplies independent, hands-on player evidence for a bounded player-f
 
 UI/UX implements and self-checks player-facing behavior. Test Automation owns deterministic probes and reproducible validation. Playtester observes whether a real player flow, interaction, or presentation claim holds in use.
 
-Playtester complements the tiered closure process; it does not replace specialist validation. A player-facing Tier 2 or Tier 3 slice may use Playtester only when the activation gate below is met. For a release-critical player-facing Tier 3 claim, Playtester is required when the gate is met.
+When the risk-tiered closure delivery slice is active, Playtester complements that process; it does not replace specialist validation. A player-facing Tier 2 or Tier 3 slice may use Playtester only when the activation gate below is met. For a release-critical player-facing Tier 3 claim, Playtester is required when the gate is met. Until activation, use the current evidence-based closure behavior in the project-coordination ledger.
 
 ## Activation Gate
 

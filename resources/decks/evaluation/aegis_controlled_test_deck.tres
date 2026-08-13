@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EvaluationDeckData" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/EvaluationDeckData.gd" id="1_deck"]
+[ext_resource type="Resource" path="res://resources/encounters/embermaw_prototype.tres" id="2_encounter"]
+[ext_resource type="Resource" path="res://resources/cards/tank/steady_strike.tres" id="3_strike"]
+[ext_resource type="Resource" path="res://resources/cards/tank/iron_guard.tres" id="4_guard"]
+[ext_resource type="Resource" path="res://resources/cards/tank/sweeping_blow.tres" id="5_sweep"]
+[ext_resource type="Resource" path="res://resources/cards/tank/fortify.tres" id="6_fortify"]
+[ext_resource type="Resource" path="res://resources/cards/tank/shield_slam.tres" id="7_slam"]
+
+[resource]
+script = ExtResource("1_deck")
+id = &"aegis_controlled_test_deck"
+title = "Aegis Controlled Test Deck"
+rules_text = "Evaluation-only controlled Aegis Guardian test deck. This resource is not the default starter deck and exists only for fixed-seed deck evaluation cohorts."
+encounter = ExtResource("2_encounter")
+player_deck = Array[Resource]([ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("5_sweep"), ExtResource("5_sweep"), ExtResource("6_fortify"), ExtResource("6_fortify"), ExtResource("7_slam"), ExtResource("7_slam")])

@@ -11,17 +11,20 @@ var _record: Dictionary = {}
 var _history_cursor: int = 0
 var _last_round: int = -1
 var _last_phase: StringName = &""
+var _last_observation_index: int = -1
 var _sealed: bool = false
 
-func begin(engine, encounter_resource: Resource) -> void:
+func begin(engine, encounter_resource: Resource, metadata: Dictionary = {}) -> void:
 	_record = {
 		"schema_version": SCHEMA_VERSION,
 		"record_id": "%s-%d" % [Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_"), Time.get_ticks_msec()],
 		"started_at": Time.get_datetime_string_from_system(true),
 		"seed": engine.random_source.seed,
+		"metadata": _metadata(metadata),
 		"content": ContentIdentity.describe(encounter_resource),
 		"git": _git_metadata(),
 		"phase_boundaries": [],
+		"phase_observations": [],
 		"submitted_actions": [],
 		"generated_actions": [],
 		"rejected_actions": [],
@@ -29,6 +32,7 @@ func begin(engine, encounter_resource: Resource) -> void:
 	_history_cursor = 0
 	_last_round = -1
 	_last_phase = &""
+	_last_observation_index = -1
 	_sealed = false
 	sync(engine)
 	_record["initial_rules_snapshot"] = Serializer.snapshot(engine)
@@ -39,8 +43,9 @@ func sync(engine) -> void:
 	_append_boundary(engine)
 	while _history_cursor < engine.history.size():
 		var action = engine.history[_history_cursor]
-		_history_cursor += 1
 		var serialized := Serializer.action(action)
+		serialized["history_index"] = _history_cursor
+		_history_cursor += 1
 		serialized["round"] = engine.round
 		serialized["phase"] = str(engine.phase)
 		if _is_generated(engine, action):
@@ -59,6 +64,7 @@ func seal(engine, forced_outcome: StringName = &"", forced_reason: String = "") 
 	_record["end_reason"] = forced_reason if not forced_reason.is_empty() else engine.outcome_reason
 	_record["end_kind"] = "abandoned" if forced_outcome == &"abandoned" else "end_of_clock" if engine.round > engine.round_limit else str(engine.outcome)
 	_record["final_rules_snapshot"] = Serializer.snapshot(engine)
+	_close_observation(engine.history.size())
 	_record["summary"] = _summary(_record)
 	_record["paths"] = _write(_record)
 	_sealed = true
@@ -70,9 +76,111 @@ func is_active() -> bool:
 func _append_boundary(engine) -> void:
 	if engine.round == _last_round and engine.phase == _last_phase:
 		return
+	_close_observation(_history_cursor)
 	_record["phase_boundaries"].append({"round": engine.round, "phase": str(engine.phase), "history_cursor": _history_cursor})
+	_record["phase_observations"].append(_phase_observation(engine, _history_cursor))
+	_last_observation_index = _record["phase_observations"].size() - 1
 	_last_round = engine.round
 	_last_phase = engine.phase
+
+func _close_observation(next_history_cursor: int) -> void:
+	if _last_observation_index < 0 or not _record.has("phase_observations"):
+		return
+	var observation: Dictionary = _record["phase_observations"][_last_observation_index]
+	if observation.has("next_history_cursor"):
+		return
+	observation["next_history_cursor"] = next_history_cursor
+	observation["selected_rules_actions"] = _selected_actions_between(int(observation.get("history_cursor", 0)), next_history_cursor)
+	_record["phase_observations"][_last_observation_index] = observation
+
+func _phase_observation(engine, history_cursor: int) -> Dictionary:
+	var hero: Dictionary = engine.get_hero(engine.primary_hero_id)
+	return {
+		"round": engine.round,
+		"phase": str(engine.phase),
+		"history_cursor": history_cursor,
+		"hand_card_ids": _card_ids(hero.get("hand", [])),
+		"slots": _slot_observations(hero.get("action_bar", [])),
+		"legal_useful_actions": _legal_useful_action_proxy(engine, hero),
+	}
+
+func _slot_observations(slots: Array) -> Array:
+	var result: Array = []
+	for index in slots.size():
+		var slot: Dictionary = slots[index]
+		var top_card = slot.get("top_card")
+		result.append({
+			"slot_index": index,
+			"top_card_id": str(top_card.id) if top_card != null else "",
+			"charge_card_ids": _card_ids(slot.get("charges", [])),
+			"activated_window": str(slot.get("activated_window", &"")),
+		})
+	return result
+
+func _legal_useful_action_proxy(engine, hero: Dictionary) -> Array:
+	var actions: Array = []
+	if hero.is_empty() or not engine.active:
+		return actions
+	var hand: Array = hero.get("hand", [])
+	var slots: Array = hero.get("action_bar", [])
+	if engine.phase in [&"loadout", &"quick", &"slow"]:
+		for slot_index in slots.size():
+			var slot: Dictionary = slots[slot_index]
+			var top_card = slot.get("top_card")
+			if top_card == null:
+				for card in hand:
+					actions.append({"kind": "load_slot", "slot_index": slot_index, "card_id": str(card.id)})
+			elif engine.phase == &"loadout":
+				for card in hand:
+					actions.append({"kind": "replace_slot", "slot_index": slot_index, "card_id": str(card.id), "top_card_id": str(top_card.id)})
+	if engine.phase in [&"quick", &"slow"]:
+		for slot_index in slots.size():
+			var slot: Dictionary = slots[slot_index]
+			var top_card = slot.get("top_card")
+			if top_card == null:
+				continue
+			if slot.get("activated_window", &"") != engine.phase and slot.get("charges", []).size() < top_card.get_charge_cap():
+				for card in hand:
+					actions.append({"kind": "charge_slot", "slot_index": slot_index, "card_id": str(card.id), "top_card_id": str(top_card.id)})
+			if slot.get("activated_window", &"") != engine.phase and not slot.get("charges", []).is_empty() and top_card.get_window_speed() == engine.phase:
+				actions.append({"kind": "fire_slot", "slot_index": slot_index, "top_card_id": str(top_card.id)})
+	if engine.phase == &"quick" and not hand.is_empty():
+		var source: Dictionary = engine.board.get_entity(engine.primary_hero_id)
+		for coords in engine.board.hexes:
+			if not engine.board.is_occupied(coords) and _hex_distance(source.get("coords", Vector2i.ZERO), coords) == 1:
+				actions.append({"kind": "move_hero", "destination": Serializer.value(coords), "stamina_card_count": hand.size()})
+	return actions
+
+func _selected_actions_between(start_cursor: int, end_cursor: int) -> Array:
+	var selected: Array = []
+	for action in _record.get("submitted_actions", []):
+		var history_index := int(action.get("history_index", -1))
+		if history_index >= start_cursor and history_index < end_cursor and action.get("succeeded", false) and _is_player_choice_action(action):
+			selected.append({
+				"kind": action.get("kind", ""),
+				"source_id": action.get("source_id", ""),
+				"payload": action.get("payload", {}),
+			})
+	return selected
+
+func _is_player_choice_action(action: Dictionary) -> bool:
+	return str(action.get("kind", "")) in ["load_slot", "charge_slot", "fire_slot", "move_hero"]
+
+func _metadata(metadata: Dictionary) -> Dictionary:
+	return {
+		"run_label": str(metadata.get("run_label", "")),
+		"evaluation_purpose": str(metadata.get("evaluation_purpose", "")),
+		"scenario_id": str(metadata.get("scenario_id", "")),
+	}
+
+func _card_ids(cards: Array) -> Array:
+	var result: Array = []
+	for card in cards:
+		result.append(str(card.id))
+	return result
+
+func _hex_distance(first: Vector2i, second: Vector2i) -> int:
+	return int((abs(first.x - second.x) + abs(first.x + first.y - second.x - second.y) + abs(first.y - second.y)) / 2)
 
 func _is_generated(engine, candidate) -> bool:
 	for action in engine.history:

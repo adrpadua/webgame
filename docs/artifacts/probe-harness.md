@@ -27,6 +27,9 @@ The default suite is intentionally named and stable. The runner gives each Probe
 | `riposte` | Authored Tank Hit context, Guarded Front and zero-loss grant, non-grant/non-refresh, first-following-Quick expiry, legal Shield Slam consumption/payoff, Status Effect projection, and normalized Encounter Record facts. |
 | `riposte_live` | Production `embermaw_embers`, encounter geometry, and two Iron Guards prove the reachable Quick setup into Incoming Raking Claw and Riposte Ready grant without changing live content. |
 | `riposte_ui` | Portrait HUD projection of active Riposte Ready, qualifying reason, Quick expiry, legal Shield Slam consumption, and `+2` payoff without adding a meter, combat log, or UI-owned rules. |
+| `deck_eval_report` | Fixed-seed deck-evaluation cohort report grouping, raw viability totals, and per-Round Hand/Slot/legal-useful-action/selected-action evidence. |
+| `controlled_deck_eval_report` | Evaluation-only Aegis controlled test-deck cohort report grouping, stable fingerprint, raw viability totals, and per-Round evidence. |
+| `starter_deck_promotion` | Live/default Aegis starter-deck composition, distinct historical evaluation fixture, and post-promotion record/report labels. |
 
 The report writer returns failure if either documented Markdown artifact cannot be written. The `records` Probe verifies both paths, while `report_encounter_records.ps1` uses the same writer. Test Automation re-review evidence is the focused run of `-Probe records,record_scene`, followed by `report_encounter_records.ps1` and inspection of `tmp/encounter-records/report-*.md` plus `latest-report.md`.
 
@@ -99,6 +102,52 @@ powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe r
 ```
 
 Expected marker is `RIPOSTE_STATUS_UI_PROBE_OK`. The probe mounts the portrait scene, injects a deterministic engine state that already has the authoritative active Status Effect, and asserts the UI names Riposte Ready, the qualifying Tank Hit reason, the Quick expiry boundary, Shield Slam consumption, and the `+2` payoff. It then fires a legal Shield Slam and confirms the pane clears from the authoritative status projection while payoff feedback is derived from the consumed `status_event` and generated Boss-damage Resolution Fact. It does not mutate live content, reorder decks, change status logic, expose Encounter Records as a HUD log, or add a posture meter.
+
+## Deck-Evaluation Cohort Interface
+
+The fixed-seed baseline scenario is:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Scenario deck_eval_baseline
+```
+
+Expected marker is `DECK_EVAL_BASELINE_PROBE_OK labels=baseline-a,baseline-b,baseline-c`. The scenario uses the live `embermaw_prototype` Encounter and live starter deck with probe-local seeds `1337`, `7331`, and `20260813`. It writes three Encounter Records with metadata `{ run_label, evaluation_purpose: "combat_postures_issue_05", scenario_id: "deck_eval_baseline" }` and does not edit live content, deck, seed, starting hand, or teaching pacing.
+
+The report validation probe is:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe records,deck_eval_report
+```
+
+Expected markers are `ENCOUNTER_RECORD_PROBE_OK`, `DECK_EVAL_REPORT_PROBE_OK cohorts=3 labels=baseline-a,baseline-b,baseline-c`, and `PROBE_SUITE_OK count=2`. `deck_eval_report` regenerates the three-record baseline packet, writes the canonical aggregate report, and asserts one unchanged fingerprint, labeled seed rows, separate outcomes/end kinds, raw viability totals, per-Round Hand/Slot/legal-useful-action/selected-action rows, and `latest-report.md`.
+
+This interface is an Evidence Cohort handoff for QA and Design. It does not add a broad analytics platform, dashboard, telemetry backend, HUD scoring, human play-feel judgment, broad seed sweep, or gameplay/content change.
+
+The controlled Aegis test-deck scenario is:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Scenario controlled_deck_eval
+```
+
+Expected marker is `CONTROLLED_DECK_EVAL_PROBE_OK labels=controlled-a,controlled-b,controlled-c`. The scenario uses `resources/decks/evaluation/aegis_controlled_test_deck.tres`, an evaluation-only configuration that wraps the live Embermaw prototype Encounter plus the approved 20-card candidate list: `8x steady_strike`, `6x iron_guard`, `2x sweeping_blow`, `2x fortify`, and `2x shield_slam`. The live/default Encounter starter deck remains unchanged. The scenario uses the same fixed seeds `1337`, `7331`, and `20260813` with labels `controlled-a`, `controlled-b`, and `controlled-c`.
+
+The controlled scenario also asserts the Playtester retest prerequisite: at least one fixed-seed controlled run reaches legal Riposte Ready consumption through Shield Slam without forced hand/order setup. The evaluation driver may choose among naturally available legal actions, but it still uses normal `load_slot`, `charge_slot`, `fire_slot`, and phase advancement. Current evidence is `controlled-a`, where Shield Slam consumes `riposte_ready` in Quick and generates Boss damage `requested=5`, `base_amount=3`, `status_bonus=2`, and `payoff_card_id=shield_slam`.
+
+The controlled report validation probe is:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe records,controlled_deck_eval_report
+```
+
+Expected markers are `ENCOUNTER_RECORD_PROBE_OK`, `CONTROLLED_DECK_EVAL_REPORT_PROBE_OK cohorts=3 labels=controlled-a,controlled-b,controlled-c`, and `PROBE_SUITE_OK count=2`. `controlled_deck_eval_report` regenerates the controlled three-record packet, writes the canonical aggregate report, and asserts one stable controlled-content fingerprint, fixed seed labels, the evaluation-only content root, raw viability totals, per-Round evidence rows, and the same legal Riposte Ready -> Shield Slam payoff evidence. It does not promote the controlled deck, guarantee hands, force order, alter live seeds, or change gameplay rules.
+
+The default starter-deck promotion probe is:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe content,starter_deck_promotion
+```
+
+Expected markers are `CONTENT_VALIDATION_OK`, `STARTER_DECK_PROMOTION_PROBE_OK labels=starter-promotion-a,starter-promotion-b,starter-promotion-c`, and `PROBE_SUITE_OK count=2`. `starter_deck_promotion` proves the Encounter-owned live/default `resources/encounters/embermaw_prototype.tres` deck is exactly `8x steady_strike`, `6x iron_guard`, `2x sweeping_blow`, `2x fortify`, and `2x shield_slam`; proves `resources/decks/evaluation/aegis_controlled_test_deck.tres` remains a distinct evaluation-only historical/repro fixture; and writes canonical reports using `scenario_id: "starter_deck_promotion"`, `evaluation_purpose: "aegis_default_deck_promotion"`, and labels `starter-promotion-a`, `starter-promotion-b`, and `starter-promotion-c`. It must not reuse historical `baseline-a/b/c` or `controlled-a/b/c` meaning and does not change rules, boss programs, live seed, hand guarantees, pacing, or UI behavior.
 
 ## Why this shape
 

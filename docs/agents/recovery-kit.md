@@ -34,9 +34,9 @@ The coordination ledger is an index and evidence ledger. Follow its links instea
 6. Use the handoff protocol below for every ownership transfer, blocker, and completion. The Orchestrator records durable shared state in the coordination ledger.
 7. When the [Playtesting activation gate](playtesting.md#activation-gate) is met, the Orchestrator may create one separate local Playtester task. Archive it after the verified closure rule in that contract.
 
-## Validation closure baseline
+## Approved validation-closure target (pending activation)
 
-The approved process uses risk-tiered closure. The Orchestrator remains the authority hub for assignment, ownership, dependencies, verification, and ledger state, but it is not the routine third executor of stable validation.
+The approved process will use risk-tiered closure after its delivery slice closes. Until then, the current evidence-based closure behavior in the project-coordination ledger remains authoritative. Under the approved target, the Orchestrator remains the authority hub for assignment, ownership, dependencies, verification, and ledger state, but is not the routine third executor of stable validation.
 
 | Tier | Baseline expectation |
 | --- | --- |

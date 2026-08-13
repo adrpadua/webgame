@@ -10,6 +10,7 @@ const BossProgramModel := preload("res://scripts/boss/BossProgramData.gd")
 const BossBeatModel := preload("res://scripts/boss/BossProgramBeat.gd")
 const EncounterModel := preload("res://scripts/encounter/EncounterData.gd")
 const CatalogModel := preload("res://scripts/content/ContentCatalogData.gd")
+const EvaluationDeckModel := preload("res://scripts/content/EvaluationDeckData.gd")
 const BoardQueryModel := preload("res://scripts/hex/BoardQuery.gd")
 
 var errors: Array[String] = []
@@ -52,6 +53,8 @@ func validate_all(root_path: String = "res://resources") -> Array[String]:
 				_validate_encounter(resource)
 			CatalogModel:
 				_validate_catalog(resource)
+			EvaluationDeckModel:
+				_validate_evaluation_deck(resource)
 			_:
 				_error(resource.resource_path, "Unsupported authored Resource type. Add a supported content schema or move historical data under resources/legacy/.")
 	return errors.duplicate()
@@ -220,6 +223,22 @@ func _validate_catalog(catalog: Resource) -> void:
 			_error(path, "encounters[%d] must reference a standalone Encounter under resources/encounters/." % index)
 	if catalog.default_encounter != null and not catalog.encounters.has(catalog.default_encounter):
 		_error(path, "`default_encounter` must also appear in the catalog's `encounters` list.")
+
+func _validate_evaluation_deck(deck: Resource) -> void:
+	var path := deck.resource_path
+	_validate_identity(deck, "Evaluation Deck")
+	if deck.encounter == null or deck.encounter.get_script() != EncounterModel:
+		_error(path, "Evaluation Deck must reference the Encounter it evaluates.")
+	elif not _resources.has(deck.encounter):
+		_error(path, "Evaluation Deck encounter must be a standalone Encounter resource under resources/encounters/.")
+	if deck.player_deck.size() < 1:
+		_error(path, "Evaluation Deck must contain at least one Card.")
+	for index in deck.player_deck.size():
+		var card = deck.player_deck[index]
+		if card == null or card.get_script() != CardModel:
+			_error(path, "player_deck[%d] must reference a CardData resource." % index)
+		elif not _resources.has(card):
+			_error(path, "player_deck[%d] must reference a standalone Card resource under resources/cards/." % index)
 
 func _validate_identity(resource: Resource, type_name: String) -> void:
 	_validate_embedded_identity(resource, resource.resource_path, type_name)
