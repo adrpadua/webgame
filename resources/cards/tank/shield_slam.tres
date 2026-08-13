@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/cards/CardData.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = &"shield_slam"
+title = "Shield Slam"
+rules_text = "Deal 3 damage to the raid boss."
+cost = 2
+speed = &"fast"
+target_type = 0
+boss_damage = 3
+tags = Array[StringName]([&"tank", &"attack"])

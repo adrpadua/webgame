@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/cards/CardData.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = &"strike_hex"
+title = "Strike Hex"
+rules_text = "Deal 1 damage to the first piece on the selected hex."
+cost = 1
+speed = &"fast"
+target_type = 3
+damage = 1
+range_tiles = 1
+tags = Array[StringName]([&"attack"])

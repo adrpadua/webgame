@@ -1,0 +1,13 @@
+# Godot editor/import cache
+.godot/
+
+# Platform and editor clutter
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+*.swp
+
+# Local export output
+builds/
+exports/

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BossActionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/boss/BossActionData.gd" id="1_boss"]
+
+[resource]
+script = ExtResource("1_boss")
+id = &"ember_breath"
+title = "Ember Breath"
+rules_text = "A cone of fire punishes the tank."
+raid_damage = 6

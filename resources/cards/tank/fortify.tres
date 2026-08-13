@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/cards/CardData.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = &"fortify"
+title = "Fortify"
+rules_text = "Gain 6 armor."
+cost = 2
+speed = &"slow"
+target_type = 0
+armor_delta = 6
+tags = Array[StringName]([&"tank", &"guard"])

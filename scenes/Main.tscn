@@ -1,0 +1,347 @@
+[gd_scene load_steps=15 format=3 uid="uid://turn_engine_main"]
+
+[ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/player/PlayerState.gd" id="2_player"]
+[ext_resource type="Script" path="res://scripts/turns/TurnManager.gd" id="3_turn"]
+[ext_resource type="Script" path="res://scripts/board/PlayerBoard.gd" id="4_board"]
+[ext_resource type="Script" path="res://scripts/hex/HexGrid.gd" id="5_grid"]
+[ext_resource type="Script" path="res://scripts/ui/HandView.gd" id="6_hand"]
+[ext_resource type="Script" path="res://scripts/boss/BossState.gd" id="7_boss"]
+[ext_resource type="Script" path="res://scripts/dev/AutoRefresh.gd" id="8_refresh"]
+[ext_resource type="Script" path="res://scripts/ui/CombatantPanel.gd" id="9_combatant"]
+[ext_resource type="Script" path="res://scripts/ui/FacingBadge.gd" id="10_badge"]
+[ext_resource type="Script" path="res://scripts/ui/ActionBarView.gd" id="11_actionbar"]
+[ext_resource type="Script" path="res://scripts/encounter/EncounterState.gd" id="12_encounter"]
+[ext_resource type="Script" path="res://scripts/ui/CardInspectOverlay.gd" id="13_inspect"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+script = ExtResource("1_main")
+
+[node name="PlayerState" type="Node" parent="."]
+script = ExtResource("2_player")
+
+[node name="TurnManager" type="Node" parent="."]
+script = ExtResource("3_turn")
+
+[node name="BossState" type="Node" parent="."]
+script = ExtResource("7_boss")
+
+[node name="EncounterState" type="Node" parent="."]
+script = ExtResource("12_encounter")
+
+[node name="AutoRefresh" type="Node" parent="."]
+script = ExtResource("8_refresh")
+
+[node name="CardInspectOverlay" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("13_inspect")
+
+[node name="Root" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 10.0
+offset_right = -18.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="TopBar" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="MobileStatus" type="VBoxContainer" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+
+[node name="MobileStatusTop" type="HBoxContainer" parent="Root/MobileStatus"]
+layout_mode = 2
+
+[node name="MobileRoundLabel" type="Label" parent="Root/MobileStatus/MobileStatusTop"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 1
+text = "☄  ●○○○○○○○"
+
+[node name="MobileTempoLabel" type="Label" parent="Root/MobileStatus/MobileStatusTop"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(112, 44)
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "Tempo ◆◆"
+
+[node name="MobileTempoSpendLabel" type="Label" parent="Root/MobileStatus/MobileStatusTop"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(34, 44)
+visible = false
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "-1"
+
+[node name="MobileEndPhasePrompt" type="Label" parent="Root/MobileStatus"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+horizontal_alignment = 1
+text = "No plays left. Tap tracker."
+
+[node name="PhaseLabel" type="Label" parent="Root/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(96, 0)
+text = "Round 1/8 - Boss Instant"
+
+[node name="EncounterLabel" type="Label" parent="Root/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
+text = "Encounter active"
+
+[node name="PlayerPanel" type="PanelContainer" parent="Root/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("9_combatant")
+
+[node name="BossPanel" type="PanelContainer" parent="Root/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("9_combatant")
+
+[node name="HandTitle" type="Label" parent="Root"]
+layout_mode = 2
+text = "Hand"
+
+[node name="HandScroll" type="ScrollContainer" parent="Root"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 62)
+size_flags_horizontal = 3
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 0
+
+[node name="HandView" type="HBoxContainer" parent="Root/HandScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 56)
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+script = ExtResource("6_hand")
+
+[node name="MobileTurnTracker" type="Label" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+horizontal_alignment = 1
+text = "☄  ●○○○○○○○"
+
+[node name="MainArea" type="BoxContainer" parent="Root"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="LeftPanel" type="VBoxContainer" parent="Root/MainArea"]
+layout_mode = 2
+custom_minimum_size = Vector2(150, 0)
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.22
+theme_override_constants/separation = 8
+
+[node name="BoardTitle" type="Label" parent="Root/MainArea/LeftPanel"]
+layout_mode = 2
+text = "Action Bar"
+
+[node name="MobileTempoBar" type="Label" parent="Root/MainArea/LeftPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+custom_minimum_size = Vector2(0, 34)
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "Tempo ◆◆"
+
+[node name="ActionBarView" type="BoxContainer" parent="Root/MainArea/LeftPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("11_actionbar")
+
+[node name="HexGrid" type="Control" parent="Root/MainArea"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 260)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.9
+script = ExtResource("5_grid")
+
+[node name="RightPanelScroll" type="ScrollContainer" parent="Root/MainArea"]
+layout_mode = 2
+custom_minimum_size = Vector2(190, 0)
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.28
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="RightPanel" type="VBoxContainer" parent="Root/MainArea/RightPanelScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="SelectedLabel" type="Label" parent="Root/MainArea/RightPanelScroll/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+text = "Selected card: none\nSelected hex: none"
+
+[node name="IntentLabel" type="Label" parent="Root/MainArea/RightPanelScroll/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+text = "Boss intent: none"
+
+[node name="TempoLabel" type="Label" parent="Root/MainArea/RightPanelScroll/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+text = "Window: none"
+
+[node name="FeedbackLabel" type="Label" parent="Root/MainArea/RightPanelScroll/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+text = "Drag cards into action-bar slots."
+
+[node name="ViewOptions" type="VBoxContainer" parent="Root/MainArea/RightPanelScroll/RightPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="OptionsTitle" type="Label" parent="Root/MainArea/RightPanelScroll/RightPanel/ViewOptions"]
+layout_mode = 2
+text = "Map View"
+
+[node name="ShowCoordinates" type="CheckBox" parent="Root/MainArea/RightPanelScroll/RightPanel/ViewOptions"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = false
+text = "Show Coordinates"
+
+[node name="PrepareCard" type="Button" parent="Root/MainArea/RightPanelScroll/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Prepare / Replace"
+
+[node name="ChargeCard" type="Button" parent="Root/MainArea/RightPanelScroll/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Charge Slot"
+
+[node name="ActivateSlot" type="Button" parent="Root/MainArea/RightPanelScroll/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Activate Slot"
+
+[node name="MoveButton" type="Button" parent="Root/MainArea/RightPanelScroll/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Move 1 Tempo"
+
+[node name="AdvancePhase" type="Button" parent="Root/MainArea/RightPanelScroll/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Advance Phase"
+
+[node name="RestartButton" type="Button" parent="Root/MainArea/RightPanelScroll/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Restart Encounter"
+
+[node name="TileInfoPane" type="Panel" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+custom_minimum_size = Vector2(0, 104)
+offset_left = 18.0
+offset_top = 470.0
+offset_right = 372.0
+offset_bottom = 590.0
+mouse_filter = 1
+
+[node name="TileInfoContent" type="VBoxContainer" parent="TileInfoPane"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 4
+
+[node name="TileInfoHeader" type="HBoxContainer" parent="TileInfoPane/TileInfoContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TileInfoBadge" type="Label" parent="TileInfoPane/TileInfoContent/TileInfoHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(44, 44)
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "◇"
+
+[node name="TileInfoTitleStack" type="VBoxContainer" parent="TileInfoPane/TileInfoContent/TileInfoHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TileInfoName" type="Label" parent="TileInfoPane/TileInfoContent/TileInfoHeader/TileInfoTitleStack"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Tile"
+
+[node name="TileInfoSubtitle" type="Label" parent="TileInfoPane/TileInfoContent/TileInfoHeader/TileInfoTitleStack"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Empty"
+
+[node name="TileInfoHealth" type="ProgressBar" parent="TileInfoPane/TileInfoContent"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 8)
+show_percentage = false
+
+[node name="TileInfoStats" type="Label" parent="TileInfoPane/TileInfoContent"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+text = "Tap a tile"
+
+[connection signal="pressed" from="Root/MainArea/RightPanelScroll/RightPanel/PrepareCard" to="." method="_on_prepare_card_pressed"]
+[connection signal="pressed" from="Root/MainArea/RightPanelScroll/RightPanel/ChargeCard" to="." method="_on_charge_card_pressed"]
+[connection signal="pressed" from="Root/MainArea/RightPanelScroll/RightPanel/ActivateSlot" to="." method="_on_activate_slot_pressed"]
+[connection signal="pressed" from="Root/MainArea/RightPanelScroll/RightPanel/MoveButton" to="." method="_on_move_button_pressed"]
+[connection signal="pressed" from="Root/MainArea/RightPanelScroll/RightPanel/AdvancePhase" to="." method="_on_advance_phase_pressed"]
+[connection signal="pressed" from="Root/MainArea/RightPanelScroll/RightPanel/RestartButton" to="." method="_on_restart_pressed"]
+[connection signal="toggled" from="Root/MainArea/RightPanelScroll/RightPanel/ViewOptions/ShowCoordinates" to="." method="_on_show_coordinates_toggled"]

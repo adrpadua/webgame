@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/cards/CardData.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = &"iron_guard"
+title = "Iron Guard"
+rules_text = "Gain 3 Armor. Gain +1 Armor for each charged card."
+cost = 0
+speed = &"fast"
+max_charge = 3
+target_type = 0
+armor_delta = 3
+charge_armor_per_card = 1

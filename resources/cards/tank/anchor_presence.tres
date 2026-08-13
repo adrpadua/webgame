@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/cards/CardData.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = &"anchor_presence"
+title = "Anchor Presence"
+rules_text = "Gain 1 presence and place this on your board."
+cost = 0
+speed = &"slow"
+target_type = 2
+presence_delta = 1
+tags = Array[StringName]([&"tank", &"presence"])

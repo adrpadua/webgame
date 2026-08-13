@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/cards/CardData.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = &"steady_strike"
+title = "Steady Strike"
+rules_text = "Deal 2 damage to the boss. Gain +1 damage for each charged card."
+cost = 0
+speed = &"fast"
+max_charge = 3
+target_type = 0
+boss_damage = 2
+charge_boss_damage_per_card = 1

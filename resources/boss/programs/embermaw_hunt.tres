@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="BossProgramData" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/boss/BossProgramData.gd" id="1_program"]
+[ext_resource type="Script" path="res://scripts/boss/BossProgramBeat.gd" id="2_beat"]
+
+[sub_resource type="Resource" id="Turn"]
+script = ExtResource("2_beat")
+id = &"turn_to_tank"
+title = "Turn to the Tank"
+rules_text = "Embermaw faces the nearest guardian."
+kind = 0
+counter_tags = Array[StringName]([&"Position"])
+
+[sub_resource type="Resource" id="Claw"]
+script = ExtResource("2_beat")
+id = &"raking_claw"
+title = "Raking Claw"
+rules_text = "Front arc, range 1."
+kind = 1
+counter_tags = Array[StringName]([&"Mitigate", &"Move"])
+damage = 4
+
+[sub_resource type="Resource" id="Scar"]
+script = ExtResource("2_beat")
+id = &"claw_scorch"
+title = "Ash Trail"
+rules_text = "The struck front arc becomes Scorched."
+kind = 2
+counter_tags = Array[StringName]([&"Move"])
+duration_rounds = 1
+
+[sub_resource type="Resource" id="Breath"]
+script = ExtResource("2_beat")
+id = &"cinder_breath"
+title = "Cinder Breath"
+rules_text = "Forward cone, range 1-2."
+kind = 3
+counter_tags = Array[StringName]([&"Move", &"Interrupt"])
+damage = 5
+duration_rounds = 1
+
+[sub_resource type="Resource" id="Brood"]
+script = ExtResource("2_beat")
+id = &"brood_call"
+title = "Brood Call"
+rules_text = "Whelps emerge at the marked edge hexes."
+kind = 4
+counter_tags = Array[StringName]([&"Kill Adds"])
+
+[sub_resource type="Resource" id="Warning"]
+script = ExtResource("2_beat")
+id = &"lane_warning"
+title = "Close the Lanes"
+rules_text = "Resolve the cone before Whelps close routes."
+kind = 5
+counter_tags = Array[StringName]([&"Move", &"Kill Adds"])
+
+[resource]
+script = ExtResource("1_program")
+id = &"embermaw_hunt"
+title = "Hunt Pattern"
+rules_text = "Hold Embermaw's front, then leave the marked breath cone."
+instant_beats = Array[ExtResource("2_beat")]([SubResource("Turn"), SubResource("Claw"), SubResource("Scar")])
+incoming_beats = Array[ExtResource("2_beat")]([SubResource("Breath"), SubResource("Brood"), SubResource("Warning")])

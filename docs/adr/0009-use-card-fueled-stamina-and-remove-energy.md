@@ -1,0 +1,3 @@
+# Use card-fueled Stamina and remove Energy
+
+The prototype has no default Stamina grant and no Energy meter. Preparing a Top Card, tucking a charged card, and activating a charged Slot are free. To move one hex, the player drags a hand card to an adjacent legal hex; that card is discarded as `1 Stamina`, its text and Keywords do not resolve, and the hero moves. This preserves a card-driven emergency sprint while removing two visible point systems from the mobile HUD. Hand size is a refill target of four cards at the end of each Round, not a hard limit, so card effects can still overfill the hand later.

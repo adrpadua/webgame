@@ -1,0 +1,71 @@
+# Raid Card Tactics Prototype
+
+A Godot 4 prototype for a cooperative fantasy raid-boss tactics game on a hex grid.
+
+The current build centers on:
+
+- A scripted boss timeline with `Boss Instant`, `Quick Window`, `Boss Incoming`, and `Slow Window`
+- A persistent MMO-style action bar with chargeable slots
+- A tank starter deck for the `Aegis Guardian`
+- A small hex board with visible facing, board pieces, and paid movement
+- Drag-first interactions for cards and board movement so the prototype can scale toward touch devices
+- A portrait-first mobile HUD that keeps status, hand, board, persistent slots, and commands in one play surface
+- WCAG-oriented 44 px minimum targets, 48 px command buttons, high-contrast states, and visible keyboard focus
+
+## Core Docs
+
+- [docs/README.md](D:/dev/webgame/docs/README.md): documentation map and promotion path for working notes
+- [CONTEXT.md](D:/dev/webgame/CONTEXT.md): domain glossary and canonical language
+- [docs/adr/0001-encounter-round-and-enrage.md](D:/dev/webgame/docs/adr/0001-encounter-round-and-enrage.md): why the encounter uses a scripted two-window round
+- [docs/adr/0002-use-a-persistent-action-bar-with-charge-stacks.md](D:/dev/webgame/docs/adr/0002-use-a-persistent-action-bar-with-charge-stacks.md): why player actions use persistent slots and charge stacks
+- [docs/rules/prototype-rules.md](D:/dev/webgame/docs/rules/prototype-rules.md): current playable rules of the prototype
+- [docs/rules/mechanical-pillars-and-inspirations.md](D:/dev/webgame/docs/rules/mechanical-pillars-and-inspirations.md): the outside games that inform the design pillars and the boundaries on what not to copy
+- [docs/artifacts/repo-artifacts.md](D:/dev/webgame/docs/artifacts/repo-artifacts.md): inventory of major gameplay artifacts in the repo
+- [docs/artifacts/embermaw-vertical-slice.md](D:/dev/webgame/docs/artifacts/embermaw-vertical-slice.md): completed playable encounter, responsive layout, asset provenance, and verification
+- [docs/artifacts/accessibility.md](D:/dev/webgame/docs/artifacts/accessibility.md): interaction-size, contrast, and keyboard-focus contract
+- [docs/content/README.md](D:/dev/webgame/docs/content/README.md): authored content docs such as decklists, encounter specs, and boss scripts
+
+## Repository Layout
+
+- [assets](D:/dev/webgame/assets): source art, audio, fonts, and UI media
+- [resources](D:/dev/webgame/resources): Godot-ready gameplay resources, currently cards and boss actions
+- [data](D:/dev/webgame/data): future machine-readable deck, encounter, and localization payloads
+- [scenes](D:/dev/webgame/scenes): Godot scenes
+- [scripts](D:/dev/webgame/scripts): runtime, UI, combat, and debug code
+- [docs](D:/dev/webgame/docs): rules, decisions, authored content, and artifact catalog
+- [notes](D:/dev/webgame/notes): research, playtest material, and screenshots
+
+## Run
+
+Open [project.godot](D:/dev/webgame/project.godot) in Godot 4.7+ and run the main scene.
+
+The playable scene is [scenes/Main.tscn](D:/dev/webgame/scenes/Main.tscn).
+
+## Current Interaction Model
+
+- Drag cards from the hand into action bar slots to prepare, charge, or replace
+- Activate slotted cards during their matching window
+- Click a hex to target it for piece-targeting effects
+- During the `Quick Window`, drag the player token to an adjacent empty hex or use the move button to spend `1 Tempo` on movement
+- Advance phases with the phase control to step through the boss timeline
+
+## Main Code Paths
+
+- [scripts/Main.gd](D:/dev/webgame/scripts/Main.gd): main scene controller and interaction wiring
+- [scripts/player/PlayerState.gd](D:/dev/webgame/scripts/player/PlayerState.gd): player resources, deck, hand, action bar, and activation rules
+- [scripts/turns/TurnManager.gd](D:/dev/webgame/scripts/turns/TurnManager.gd): encounter phase state machine
+- [scripts/boss/BossState.gd](D:/dev/webgame/scripts/boss/BossState.gd): boss timeline state
+- [scripts/cards/CardData.gd](D:/dev/webgame/scripts/cards/CardData.gd): reusable player card resource model
+- [scripts/boss/BossActionData.gd](D:/dev/webgame/scripts/boss/BossActionData.gd): reusable boss action resource model
+- [scripts/hex/HexGrid.gd](D:/dev/webgame/scripts/hex/HexGrid.gd): board, pieces, movement, and spawning
+
+## Prototype Scope Notes
+
+This repo currently represents a playable vertical slice, not the final combat system.
+
+Notable simplifications:
+
+- Only one fully wired player role exists: the tank
+- The boss script loops through a short authored action list
+- Range, facing mechanics, and class-resource nuance are still early
+- The one-player Embermaw encounter is complete; multiplayer roles, phase transformations, and deeper class resources remain future work

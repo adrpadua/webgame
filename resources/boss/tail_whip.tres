@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="BossActionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/boss/BossActionData.gd" id="1_boss"]
+
+[resource]
+script = ExtResource("1_boss")
+id = &"tail_whip"
+title = "Tail Whip"
+rules_text = "A wide lash catches nearby minions and batters the front."
+tank_damage = 3
+raid_damage = 1
+cleave_damage = 1

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/encounter/EncounterData.gd" id="1_encounter"]
+
+[resource]
+script = ExtResource("1_encounter")
+id = &"embermaw_prototype"
+title = "Embermaw: Ashen Trial"
+round_limit = 8
+enrage_text = "Enrage: Embermaw overwhelms the party."

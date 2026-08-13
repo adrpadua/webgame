@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/cards/CardData.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = &"unyielding_step"
+title = "Unyielding Step"
+rules_text = "Gain 2 armor, 1 energy, and deal 2 damage to the raid boss."
+cost = 1
+speed = &"slow"
+target_type = 0
+energy_delta = 1
+armor_delta = 2
+boss_damage = 2
+tags = Array[StringName]([&"tank", &"tempo"])

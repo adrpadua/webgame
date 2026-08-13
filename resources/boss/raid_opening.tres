@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BossActionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/boss/BossActionData.gd" id="1_boss"]
+
+[resource]
+script = ExtResource("1_boss")
+id = &"raid_opening"
+title = "Raid Opening"
+rules_text = "The boss measures the tank, then snaps forward."
+tank_damage = 4
