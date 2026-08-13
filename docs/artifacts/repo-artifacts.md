@@ -27,11 +27,19 @@ This document catalogs the major gameplay artifacts currently present in the rep
   - Scripted two-window encounter structure
 - [docs/adr/0002-use-a-persistent-action-bar-with-charge-stacks.md](D:/dev/webgame/docs/adr/0002-use-a-persistent-action-bar-with-charge-stacks.md)
   - Persistent action bar with charge stacks
+- [docs/artifacts/project-coordination.md](D:/dev/webgame/docs/artifacts/project-coordination.md)
+  - Cross-task source-of-truth map, confirmed handoffs, open questions, and milestone gate
+- [docs/artifacts/deck-evaluation-measurement-plan.md](D:/dev/webgame/docs/artifacts/deck-evaluation-measurement-plan.md)
+  - QA-facing plan for measuring deck viability and play-feel from Encounter Records, probes, and short human rubrics
+- [docs/artifacts/deck-eval-notes](D:/dev/webgame/docs/artifacts/deck-eval-notes)
+  - Human-scored deck-evaluation note template and future review notes
 
 ## Content Docs
 
 - [docs/content/README.md](D:/dev/webgame/docs/content/README.md)
   - Content-docs index and directory purpose
+- [docs/content/deck-evaluation-rubric.md](D:/dev/webgame/docs/content/deck-evaluation-rubric.md)
+  - Design-facing scorecard for deck Viability and Play-feel in the current boss-raid prototype
 - [docs/content/decks/aegis-guardian-starter.md](D:/dev/webgame/docs/content/decks/aegis-guardian-starter.md)
   - Current tank starter decklist and role notes
 - [docs/content/encounters/embermaw-prototype.md](D:/dev/webgame/docs/content/encounters/embermaw-prototype.md)

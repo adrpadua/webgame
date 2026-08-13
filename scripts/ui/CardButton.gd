@@ -4,6 +4,8 @@ extends Button
 signal card_selected(card)
 signal inspection_started(card)
 signal inspection_ended(card)
+signal card_drag_started(card)
+signal card_drag_ended(card)
 
 const HOLD_TO_INSPECT_SECONDS := 0.38
 const QUICK_ICON := "⚡"
@@ -23,24 +25,56 @@ var press_position: Vector2 = Vector2.ZERO
 var drag_started: bool = false
 var inspecting: bool = false
 var hold_timer: SceneTreeTimer
+var selected: bool = false
 
 func bind(new_card: Resource) -> void:
 	card = new_card
-	var title: String = card.title
-	if title.length() > 12:
-		title = "%s..." % title.left(9)
-	text = "%s %s %s\n%s" % [_get_type_icon(), _get_type_short_label(), title, _get_stat_icon_row()]
+	text = ""
 	tooltip_text = "%s card\n%s\n%s: window   %s: charge capacity" % [_get_type_label(), card.rules_text, QUICK_ICON, CHARGE_ICON]
-	clip_text = true
-	text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	custom_minimum_size = Vector2(124, 56)
+	custom_minimum_size = Vector2(112, 116)
+	size = custom_minimum_size
 	size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	add_theme_color_override("font_color", Color(0.95, 0.93, 0.88))
-	add_theme_font_size_override("font_size", 12)
 	add_theme_stylebox_override("normal", _make_style(_fill_color_for_card(), _border_color_for_card()))
 	add_theme_stylebox_override("hover", _make_style(_fill_color_for_card().lightened(0.08), _border_color_for_card().lightened(0.12)))
 	add_theme_stylebox_override("pressed", _make_style(_fill_color_for_card().darkened(0.08), _border_color_for_card()))
 	add_theme_stylebox_override("focus", _make_style(_fill_color_for_card(), Color(1.0, 0.92, 0.50), true))
+	queue_redraw()
+
+func _draw() -> void:
+	if card == null:
+		return
+	var inset := 5.0
+	var art_rect := Rect2(Vector2(inset, inset), size - Vector2(inset * 2.0, inset * 2.0))
+	var title_band := Rect2(Vector2(art_rect.position.x, art_rect.end.y - 34.0), Vector2(art_rect.size.x, 34.0))
+	var timing_badge := Rect2(art_rect.position + Vector2(5.0, 5.0), Vector2(28.0, 20.0))
+	var type_badge := Rect2(Vector2(art_rect.end.x - 39.0, art_rect.position.y + 5.0), Vector2(34.0, 20.0))
+	var font := get_theme_default_font()
+	var artwork: Texture2D = card.get_artwork() if card.has_method("get_artwork") else null
+	if artwork != null:
+		draw_texture_rect(artwork, art_rect, false)
+	else:
+		draw_rect(art_rect, _fill_color_for_card(), true)
+	draw_rect(art_rect, Color(0.02, 0.02, 0.03, 0.18), true)
+	draw_rect(title_band, Color(0.015, 0.018, 0.025, 0.88), true)
+	draw_rect(timing_badge, Color(0.06, 0.07, 0.09, 0.92), true)
+	draw_rect(timing_badge, Color(1.0, 0.78, 0.33), false, 1.5)
+	draw_string(font, timing_badge.position + Vector2(0.0, 15.0), _get_timing_badge(), HORIZONTAL_ALIGNMENT_CENTER, timing_badge.size.x, 11, Color(1.0, 0.90, 0.67))
+	draw_rect(type_badge, _border_color_for_card(), true)
+	draw_string(font, type_badge.position + Vector2(0.0, 15.0), _get_type_icon(), HORIZONTAL_ALIGNMENT_CENTER, type_badge.size.x, 12, Color.WHITE)
+	var display_title: String = card.title if selected else _short_title(card.title, 16)
+	var title_size := _fit_font_size(font, display_title, title_band.size.x - 14.0, 11, 7)
+	draw_string(font, title_band.position + Vector2(7.0, 14.0), display_title, HORIZONTAL_ALIGNMENT_LEFT, title_band.size.x - 14.0, title_size, Color(1.0, 0.97, 0.89))
+	draw_string(font, title_band.position + Vector2(7.0, 28.0), _get_stat_icon_row(), HORIZONTAL_ALIGNMENT_LEFT, title_band.size.x - 14.0, 10, Color(1.0, 0.87, 0.57))
+	draw_rect(art_rect, _border_color_for_card(), false, 2.0)
+	if selected:
+		draw_rect(art_rect.grow(1.0), Color(1.0, 0.92, 0.50), false, 3.0)
+
+func set_selected(value: bool) -> void:
+	if selected == value:
+		return
+	selected = value
+	queue_redraw()
 
 func _pressed() -> void:
 	card_selected.emit(card)
@@ -48,6 +82,9 @@ func _pressed() -> void:
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if card == null:
 		return null
+	if not drag_started:
+		drag_started = true
+		card_drag_started.emit(card)
 	var preview := _build_drag_preview()
 	set_drag_preview(preview)
 	return _build_drag_payload()
@@ -82,6 +119,7 @@ func _begin_touch_drag() -> void:
 	if card == null:
 		return
 	drag_started = true
+	card_drag_started.emit(card)
 	if inspecting:
 		inspection_ended.emit(card)
 		inspecting = false
@@ -97,10 +135,20 @@ func _begin_press(position: Vector2) -> void:
 
 func _end_press() -> void:
 	pointer_active = false
-	drag_started = false
+	_finish_drag()
 	if inspecting:
 		inspection_ended.emit(card)
 		inspecting = false
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_DRAG_END and drag_started:
+		_finish_drag()
+
+func _finish_drag() -> void:
+	if not drag_started:
+		return
+	drag_started = false
+	card_drag_ended.emit(card)
 
 func _on_hold_timer_elapsed() -> void:
 	if not pointer_active or drag_started or card == null:
@@ -116,7 +164,7 @@ func _build_drag_payload() -> Dictionary:
 
 func _build_drag_preview() -> Control:
 	var preview := Button.new()
-	preview.text = text
+	preview.text = card.title
 	preview.custom_minimum_size = custom_minimum_size
 	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	preview.add_theme_color_override("font_color", Color(0.97, 0.95, 0.90))
@@ -130,6 +178,20 @@ func _get_stat_icon_row() -> String:
 		speed_icon,
 		_repeat_icon(CHARGE_ICON, card.get_charge_cap()),
 	]
+
+func _get_timing_badge() -> String:
+	return QUICK_ICON if card.get_window_speed() == &"quick" else SLOW_ICON
+
+func _short_title(title: String, max_length: int) -> String:
+	if title.length() <= max_length:
+		return title
+	return "%s..." % title.left(maxi(max_length - 3, 1))
+
+func _fit_font_size(font: Font, value: String, available_width: float, preferred: int, minimum: int) -> int:
+	var result := preferred
+	while result > minimum and font.get_string_size(value, HORIZONTAL_ALIGNMENT_LEFT, -1, result).x > available_width:
+		result -= 1
+	return result
 
 func _get_card_type() -> StringName:
 	if _has_tag(&"reaction"):

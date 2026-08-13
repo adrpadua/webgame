@@ -11,6 +11,7 @@ enum Kind {
 	SPAWN_MINION,
 	DAMAGE,
 	DISCARD_FOR_STAMINA,
+	EXPIRE_STATUS,
 }
 
 var kind: Kind
@@ -41,11 +42,17 @@ static func apply_hazard(source_id: StringName, coords: Vector2i, hazard) -> Enc
 static func spawn_minion(source_id: StringName, minion_id: StringName, coords: Vector2i, minion = null) -> EncounterAction:
 	return _make(Kind.SPAWN_MINION, source_id, {"minion_id": minion_id, "coords": coords, "minion": minion})
 
-static func damage(source_id: StringName, target_id: StringName, amount: int, reason_text: String = "") -> EncounterAction:
-	return _make(Kind.DAMAGE, source_id, {"target_id": target_id, "amount": amount, "reason_text": reason_text})
+static func damage(source_id: StringName, target_id: StringName, amount: int, reason_text: String = "", fact_context: Dictionary = {}) -> EncounterAction:
+	var payload := {"target_id": target_id, "amount": amount, "reason_text": reason_text}
+	if not fact_context.is_empty():
+		payload["fact_context"] = fact_context.duplicate(true)
+	return _make(Kind.DAMAGE, source_id, payload)
 
 static func discard_for_stamina(hero_id: StringName, card) -> EncounterAction:
 	return _make(Kind.DISCARD_FOR_STAMINA, hero_id, {"card": card})
+
+static func expire_status(entity_id: StringName, status_id: StringName, window: StringName, event: Dictionary) -> EncounterAction:
+	return _make(Kind.EXPIRE_STATUS, entity_id, {"target_id": entity_id, "status_id": status_id, "window": window, "status_event": event.duplicate(true)})
 
 static func _make(new_kind: Kind, new_source_id: StringName, new_payload: Dictionary) -> EncounterAction:
 	var action = load("res://scripts/sdk/EncounterAction.gd").new()

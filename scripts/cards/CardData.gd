@@ -1,6 +1,21 @@
 class_name CardData
 extends Resource
 
+const PLACEHOLDER_ART := preload("res://assets/art/prototype/paladin-placeholder.png")
+const ART_BY_CARD_ID := {
+	&"anchor_presence": preload("res://assets/art/prototype/paladin/tether.webp"),
+	&"fortify": preload("res://assets/art/prototype/paladin/shield.webp"),
+	&"guard_stance": preload("res://assets/art/prototype/paladin/invuln.webp"),
+	&"intercept": preload("res://assets/art/prototype/paladin/interrupt.webp"),
+	&"iron_guard": preload("res://assets/art/prototype/paladin/shield.webp"),
+	&"rallying_cry": preload("res://assets/art/prototype/paladin/taunt.webp"),
+	&"shield_slam": preload("res://assets/art/prototype/paladin/aoe.webp"),
+	&"steady_strike": preload("res://assets/art/prototype/paladin/strike.webp"),
+	&"sweeping_blow": preload("res://assets/art/prototype/paladin/aoe.webp"),
+	&"taunting_challenge": preload("res://assets/art/prototype/paladin/taunt.webp"),
+	&"unyielding_step": preload("res://assets/art/prototype/paladin/gapclose.webp"),
+}
+
 enum TargetType {
 	NONE,
 	HEX,
@@ -37,7 +52,9 @@ func get_charge_cap() -> int:
 	return 3 if get_window_speed() == &"slow" else 2
 
 func get_artwork() -> Texture2D:
-	return artwork
+	if artwork != null:
+		return artwork
+	return ART_BY_CARD_ID.get(id, PLACEHOLDER_ART)
 
 func get_keyword_ids() -> Array[StringName]:
 	return tags.duplicate()

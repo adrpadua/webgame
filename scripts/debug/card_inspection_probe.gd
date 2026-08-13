@@ -11,13 +11,15 @@ func _initialize() -> void:
 	var overlay = main.get_node("%CardInspectOverlay")
 
 	card._begin_press(Vector2(10, 10))
-	await create_timer(0.45).timeout
+	card._on_hold_timer_elapsed()
+	await process_frame
 	_assert(overlay.visible, "Holding a card must show the inspection overlay.")
 	_assert(overlay.title_label.text == card.card.title, "Inspection overlay must show the held card's title.")
 	card._end_press()
 	_assert(not overlay.visible, "Releasing a held card must dismiss the inspection overlay.")
 	card._begin_press(Vector2(10, 10))
-	await create_timer(0.45).timeout
+	card._on_hold_timer_elapsed()
+	await process_frame
 	_assert(overlay.visible, "Holding a card again must show the inspection overlay.")
 	var outside_preview := InputEventMouseButton.new()
 	outside_preview.button_index = MOUSE_BUTTON_LEFT
@@ -27,7 +29,8 @@ func _initialize() -> void:
 	overlay._gui_input(outside_preview)
 	_assert(not overlay.visible, "Tapping outside the card preview must dismiss the inspection overlay.")
 	card._begin_press(Vector2(10, 10))
-	await create_timer(0.45).timeout
+	card._on_hold_timer_elapsed()
+	await process_frame
 	_assert(overlay.visible, "Holding a card a third time must show the inspection overlay.")
 	var outside_release := InputEventMouseButton.new()
 	outside_release.button_index = MOUSE_BUTTON_LEFT

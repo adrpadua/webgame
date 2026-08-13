@@ -34,7 +34,19 @@ static func snapshot(engine) -> Dictionary:
 	for entity_id in _sorted_keys(engine.status_effects):
 		var effects: Array = []
 		for effect in engine.status_effects[entity_id]:
-			effects.append({"id": str(effect.id), "remaining_rounds": effect.remaining_rounds, "triggers": value(effect.triggers)})
+			effects.append({
+				"id": str(effect.id),
+				"title": effect.title,
+				"remaining_rounds": effect.remaining_rounds,
+				"triggers": value(effect.triggers),
+				"trigger_reason": str(effect.trigger_reason),
+				"expires_at_window_end": str(effect.expires_at_window_end),
+				"consume_on_card_id": str(effect.consume_on_card_id),
+				"source_id": str(effect.source_id),
+				"source_beat_id": str(effect.source_beat_id),
+				"trigger_round": effect.trigger_round,
+				"trigger_phase": str(effect.trigger_phase),
+			})
 		statuses.append({"entity_id": str(entity_id), "effects": effects})
 	return {
 		"round": engine.round,
@@ -74,7 +86,7 @@ static func value(source):
 	return source
 
 static func _action_kind(kind: int) -> String:
-	return ["load_slot", "charge_slot", "fire_slot", "move_hero", "resolve_boss", "apply_hazard", "spawn_minion", "damage", "discard_for_stamina"][kind]
+	return ["load_slot", "charge_slot", "fire_slot", "move_hero", "resolve_boss", "apply_hazard", "spawn_minion", "damage", "discard_for_stamina", "expire_status"][kind]
 
 static func _resource_id(resource) -> String:
 	if resource == null:

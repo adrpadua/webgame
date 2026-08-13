@@ -18,6 +18,8 @@ var pieces: Array[Node] = []
 var show_coordinates: bool = true
 var outline_color: Color = DEFAULT_OUTLINE
 var drop_hovered: bool = false
+var hand_card_move_legal: bool = false
+var hand_card_context: Resource
 var telegraph_id: StringName = &""
 var terrain_id: StringName = &""
 
@@ -60,11 +62,21 @@ func set_terrain(value: StringName) -> void:
 	terrain_id = value
 	queue_redraw()
 
+func set_hand_card_move_legal(value: bool, card: Resource = null) -> void:
+	if hand_card_move_legal == value and hand_card_context == card:
+		return
+	hand_card_move_legal = value
+	hand_card_context = card if value else null
+	queue_redraw()
+
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if typeof(data) != TYPE_DICTIONARY:
 		_set_drop_hover(false)
 		return false
 	if data.get("kind") != "board_piece" and data.get("kind") != "hand_card":
+		_set_drop_hover(false)
+		return false
+	if data.get("kind") == "hand_card" and (not hand_card_move_legal or data.get("card") != hand_card_context):
 		_set_drop_hover(false)
 		return false
 	_set_drop_hover(true)
@@ -110,6 +122,11 @@ func _draw() -> void:
 	draw_polyline(PackedVector2Array([outer_hex[0], outer_hex[1], outer_hex[2], outer_hex[3], outer_hex[4], outer_hex[5], outer_hex[0]]), grid_color, 1.25, true)
 	if drop_hovered:
 		draw_texture_rect(DuelystHoverTile, Rect2(Vector2(4, 1), Vector2(68, 66)), false, Color(0.56, 0.96, 0.70, 0.84))
+	if hand_card_move_legal:
+		var cue := Rect2(Vector2(14, 50), Vector2(48, 19))
+		draw_rect(cue, Color(0.02, 0.07, 0.08, 0.92), true)
+		draw_rect(cue, Color(0.52, 0.92, 0.78), false, 1.5)
+		draw_string(get_theme_default_font(), cue.position + Vector2(0, 14), "MOVE", HORIZONTAL_ALIGNMENT_CENTER, cue.size.x, 10, Color(0.74, 1.0, 0.88))
 	if has_focus():
 		var focus_hex := _top_hex_points(5.0)
 		draw_polyline(PackedVector2Array([focus_hex[0], focus_hex[1], focus_hex[2], focus_hex[3], focus_hex[4], focus_hex[5], focus_hex[0]]), Color(1.0, 0.92, 0.50), 2.0, true)

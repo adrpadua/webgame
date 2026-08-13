@@ -28,6 +28,7 @@ func _initialize() -> void:
 	_assert(name_label.text == "Player", "Player tile should show player identity.")
 	_assert(subtitle_label.text.contains("Player"), "Player tile should show owner context.")
 	_assert(health_bar.visible and health_bar.max_value >= 1.0, "Occupied tile should show a health bar.")
+	_assert(name_label.global_position.y < health_bar.global_position.y, "Tapped entity name should render above the health bar.")
 	_assert(stats_label.text.contains("Terrain"), "Occupied tile should include terrain state.")
 	var player_style: StyleBoxFlat = pane.get_theme_stylebox("panel")
 

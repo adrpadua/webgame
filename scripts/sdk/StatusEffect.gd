@@ -13,6 +13,14 @@ var armor_on_round_start: int = 0
 var damage_on_enter_hex: int = 0
 var damage_reduction: int = 0
 var bonus_boss_damage_on_slot_fired: int = 0
+var title: String = "Status Effect"
+var trigger_reason: StringName = &""
+var expires_at_window_end: StringName = &""
+var consume_on_card_id: StringName = &""
+var source_id: StringName = &""
+var source_beat_id: StringName = &""
+var trigger_round: int = 0
+var trigger_phase: StringName = &""
 
 func _init(effect_id: StringName = &"", duration_rounds: int = 1, effect_triggers: Array[StringName] = []) -> void:
 	id = effect_id
@@ -22,7 +30,7 @@ func _init(effect_id: StringName = &"", duration_rounds: int = 1, effect_trigger
 func responds_to(trigger: StringName) -> bool:
 	return triggers.has(trigger)
 
-func outcome_for(trigger: StringName) -> Dictionary:
+func outcome_for(trigger: StringName, context: Dictionary = {}) -> Dictionary:
 	if not responds_to(trigger):
 		return {}
 	match trigger:
@@ -33,9 +41,14 @@ func outcome_for(trigger: StringName) -> Dictionary:
 		ON_DAMAGE_TAKEN:
 			return {"damage_reduction": damage_reduction}
 		ON_SLOT_FIRED:
+			var card = context.get("card")
+			if consume_on_card_id != &"" and (card == null or card.id != consume_on_card_id):
+				return {}
 			return {"bonus_boss_damage": bonus_boss_damage_on_slot_fired}
 	return {}
 
 func advance_round() -> bool:
+	if expires_at_window_end != &"":
+		return false
 	remaining_rounds -= 1
 	return remaining_rounds <= 0

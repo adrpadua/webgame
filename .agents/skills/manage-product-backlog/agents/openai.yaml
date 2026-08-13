@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Product Backlog"
+  short_description: "Turn product decisions into triage-ready backlog items."
+  default_prompt: "Act as the product manager: turn this product discussion into a canonical decision and a triage-ready backlog item."

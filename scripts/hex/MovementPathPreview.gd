@@ -24,13 +24,13 @@ func _draw() -> void:
 	var origin_tile: Control = grid.get_piece_tile(source_piece)
 	if origin_tile == null:
 		return
-	var start := origin_tile.position + origin_tile.size * 0.5
+	var start: Vector2 = grid.get_tile_center(origin_tile)
 	for coords in grid.get_neighbors(origin_tile.axial):
 		if not grid.can_move_piece_to(source_piece, coords):
 			continue
 		var destination_tile: Control = grid.tiles.get(coords)
 		if destination_tile != null:
-			_draw_arrow(start, destination_tile.position + destination_tile.size * 0.5)
+			_draw_arrow(start, grid.get_tile_center(destination_tile))
 
 func _draw_arrow(start: Vector2, end: Vector2) -> void:
 	var direction := (end - start).normalized()

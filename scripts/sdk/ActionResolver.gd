@@ -32,6 +32,8 @@ func resolve(engine, action) -> Array:
 			return _damage(engine, action)
 		EncounterActionModel.Kind.DISCARD_FOR_STAMINA:
 			_discard_for_stamina(engine, action)
+		EncounterActionModel.Kind.EXPIRE_STATUS:
+			_expire_status(engine, action)
 	return []
 
 func _load_slot(engine, action) -> void:
@@ -104,20 +106,36 @@ func _fire_slot(engine, action) -> Array:
 		if target.is_empty() or target.get("kind") != &"minion":
 			action.resolve_failure("The Top Card needs a Minion target.")
 			return []
-		if BoardQueryModel.hex_distance(source.get("coords"), target.get("coords")) > card.range_tiles:
+		var target_range := BoardQueryModel.hex_distance(source.get("coords"), target.get("coords"))
+		action.payload["target_range"] = target_range
+		if target_range > card.range_tiles:
 			action.resolve_failure("The chosen Minion is outside the Top Card's range.")
 			return []
 	var effects := card_resolver.resolve_fire(card, slot["charges"])
+	var base_boss_damage: int = int(effects["boss_damage"])
 	hero["armor"] += effects["armor"]
 	hero["health"] = min(hero["max_health"], hero["health"] + effects["healing"])
 	hero["presence"] += effects["presence"]
 	slot["activated_window"] = engine.phase
 	hero["action_bar"][slot_index] = slot
 	engine.put_hero(action.source_id, hero)
+	var consumed: Dictionary = engine.consume_statuses_for_slot(action.source_id, card)
+	var status_bonus: int = int(consumed.get("bonus_boss_damage", 0))
+	effects["boss_damage"] += status_bonus
+	if not consumed.get("events", []).is_empty():
+		action.payload["resolution_fact"] = {"status_event": consumed["events"][0]}
 	action.resolve_success()
 	var followups: Array = []
 	if effects["boss_damage"] > 0:
-		followups.append(EncounterActionModel.damage(action.source_id, engine.boss_id, effects["boss_damage"], card.title))
+		var fact_context: Dictionary = {}
+		if status_bonus > 0:
+			fact_context = {
+				"base_amount": base_boss_damage,
+				"status_bonus": status_bonus,
+				"status_id": consumed["events"][0]["status_id"],
+				"payoff_card_id": card.id,
+			}
+		followups.append(EncounterActionModel.damage(action.source_id, engine.boss_id, effects["boss_damage"], card.title, fact_context))
 	if effects["target_damage"] > 0:
 		var effect_target_id: StringName = action.payload.get("target_id", &"")
 		followups.append(EncounterActionModel.damage(action.source_id, effect_target_id, effects["target_damage"], card.title))
@@ -148,7 +166,7 @@ func _resolve_boss(engine, action) -> Array:
 	if beat == null:
 		action.resolve_failure("Boss resolution needs an authored beat.")
 		return []
-	var followups: Array = engine.timeline_resolver.resolve_boss_beat(engine, action.source_id, beat)
+	var followups: Array = engine.timeline_resolver.resolve_boss_beat(engine, action.source_id, beat, action.payload.get("track", &""))
 	action.resolve_success()
 	return followups
 
@@ -176,11 +194,18 @@ func _spawn_minion(engine, action) -> void:
 func _damage(engine, action) -> Array:
 	var target_id: StringName = action.payload.get("target_id", &"")
 	var amount: int = action.payload.get("amount", 0)
-	var dealt: int = engine.apply_damage(target_id, amount)
-	if dealt <= 0 and amount > 0:
+	var resolution_fact: Dictionary = engine.apply_damage(target_id, amount)
+	for key in action.payload.get("fact_context", {}):
+		if not resolution_fact.has(key):
+			resolution_fact[key] = action.payload["fact_context"][key]
+	action.payload.erase("fact_context")
+	var dealt: int = int(resolution_fact.get("health_loss", 0))
+	if not bool(resolution_fact.get("target_available", false)):
 		action.resolve_failure("The damage target is unavailable.")
 		return []
 	action.payload["dealt"] = dealt
+	engine.evaluate_damage_status(action, resolution_fact)
+	action.payload["resolution_fact"] = resolution_fact
 	action.resolve_success()
 	return engine.status_actions(StatusEffectModel.ON_DAMAGE_TAKEN, target_id, {"amount": dealt, "source_id": action.source_id})
 
@@ -193,4 +218,16 @@ func _discard_for_stamina(engine, action) -> void:
 	hero["hand"].erase(card)
 	hero["discard"].append(card)
 	engine.put_hero(action.source_id, hero)
+	action.resolve_success()
+
+func _expire_status(engine, action) -> void:
+	var target_id: StringName = action.payload.get("target_id", &"")
+	var status_id: StringName = action.payload.get("status_id", &"")
+	var window: StringName = action.payload.get("window", &"")
+	var effect = engine.get_status(target_id, status_id)
+	if effect == null or effect.expires_at_window_end != window or engine.phase != window:
+		action.resolve_failure("The Status Effect is not eligible to expire at this boundary.")
+		return
+	engine.remove_status(target_id, status_id)
+	action.payload["resolution_fact"] = {"status_event": action.payload.get("status_event", {}).duplicate(true)}
 	action.resolve_success()

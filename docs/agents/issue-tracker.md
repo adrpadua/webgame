@@ -18,6 +18,17 @@ Create a new file under `.scratch/<feature-slug>/`, creating the directory if ne
 
 Read the file at the referenced path. The user will normally pass the path or the issue number directly.
 
+## PM-to-EM intake
+
+Product proposals enter through `.scratch/product-backlog/`:
+
+- `map.md` is PM's priority view.
+- `issues/<NN>-<slug>.md` is the durable proposal record.
+- `Status: needs-triage` means PM is still shaping the proposal or awaiting user approval; it is not authorized implementation work.
+- `Status: ready-for-agent` means the user approved a fully specified product outcome. PM hands the orchestrator the issue path.
+
+After a `ready-for-agent` handoff, the orchestrator owns delivery decomposition, sequencing, dependencies, and closure. Preserve the confirmed product outcome; route any proposed outcome change back to PM and the user. Create implementation scope and tickets in a separate `.scratch/<feature>/` directory, leaving the product proposal as the intake record.
+
 ## Wayfinding operations
 
 Used by `/wayfinder`. The map is a file with one child file per ticket.

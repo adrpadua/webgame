@@ -76,6 +76,14 @@ static func facing_toward(origin: Vector2i, target: Vector2i, current_facing: in
 			best_direction = direction
 	return best_direction
 
+static func is_guarded_front(board, boss_id: StringName, hero_id: StringName) -> bool:
+	var boss: Dictionary = board.get_entity(boss_id)
+	var hero: Dictionary = board.get_entity(hero_id)
+	if boss.is_empty() or hero.is_empty():
+		return false
+	var guarded_hex: Vector2i = boss.get("coords") + FacingDirections.axial_delta_for(int(boss.get("facing", 0)))
+	return hero.get("coords") == guarded_hex
+
 static func first_empty_hexes(candidates: Array[Vector2i], empty_hexes: Dictionary, count: int) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
 	for coords in candidates:

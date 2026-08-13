@@ -17,7 +17,7 @@ func actions_for_track(engine, track: StringName) -> Array:
 		actions.append(EncounterActionModel.resolve_boss(engine.boss_id, beat, track))
 	return actions
 
-func resolve_boss_beat(engine, boss_id: StringName, beat) -> Array:
+func resolve_boss_beat(engine, boss_id: StringName, beat, track: StringName = &"") -> Array:
 	var resolution := encounter_resolver.resolve_beat(beat, _snapshot_for(engine))
 	engine.last_pattern = resolution.pattern_hexes.duplicate()
 	if not resolution.impacted_hexes.is_empty() or beat.kind == BossProgramBeat.Kind.RAKING_CLAW:
@@ -26,7 +26,13 @@ func resolve_boss_beat(engine, boss_id: StringName, beat) -> Array:
 		engine.board.set_entity_facing(boss_id, resolution.next_facing)
 	var actions: Array = []
 	if resolution.player_damage > 0:
-		actions.append(EncounterActionModel.damage(boss_id, engine.primary_hero_id, resolution.player_damage, beat.title))
+		var damage_context := {
+			"boss_beat_id": beat.id,
+			"boss_track": track,
+		}
+		if beat.damage_classification != &"":
+			damage_context["damage_classification"] = beat.damage_classification
+		actions.append(EncounterActionModel.damage(boss_id, engine.primary_hero_id, resolution.player_damage, beat.title, damage_context))
 	for coords in resolution.scorched_hexes:
 		var hazard = beat.hazard.create_effect() if beat.hazard != null else HazardEffectModel.new(&"scorched", resolution.scorched_duration_rounds, 1, true)
 		actions.append(EncounterActionModel.apply_hazard(boss_id, coords, hazard))

@@ -6,8 +6,11 @@ var version: int
 var seed: int
 var config: Dictionary
 var cards: Dictionary = {}
+var minions: Dictionary = {}
+var setup_fixtures: Array = []
 var action_tape: Array = []
 var _execution_started: bool = false
+var _fixture_sequence: int = 0
 
 func _init(scenario_id: StringName, scenario_version: int, scenario_seed: int, initial_config: Dictionary) -> void:
 	id = scenario_id
@@ -19,6 +22,29 @@ func _init(scenario_id: StringName, scenario_version: int, scenario_seed: int, i
 func register_card(card) -> EncounterProbeScenario:
 	cards[card.id] = card
 	return self
+
+func register_minion(minion) -> EncounterProbeScenario:
+	_assert_setup()
+	assert(minion != null and minion.id != &"", "Registered scenario Minions need a stable content ID.")
+	minions[minion.id] = minion
+	return self
+
+func place_minion(minion_content_id: StringName, coords: Vector2i, requested_entity_id: StringName = &"") -> StringName:
+	_assert_setup()
+	assert(minions.has(minion_content_id), "Register Minion content before placing a scenario fixture.")
+	_fixture_sequence += 1
+	var entity_id := requested_entity_id
+	if entity_id == &"":
+		entity_id = StringName("%s_fixture_%d" % [minion_content_id, _fixture_sequence])
+	for fixture in setup_fixtures:
+		assert(StringName(fixture.get("entity_id", "")) != entity_id, "Scenario fixture entity IDs must be unique.")
+	setup_fixtures.append({
+		"operation": "place_minion",
+		"entity_id": str(entity_id),
+		"minion_content_id": str(minion_content_id),
+		"coords": coords,
+	})
+	return entity_id
 
 func give_hand(hero_id: StringName, card_ids: Array[StringName]) -> EncounterProbeScenario:
 	_assert_setup()
@@ -44,6 +70,19 @@ func charge_slot(hero_id: StringName, slot_index: int, card_id: StringName) -> E
 
 func fire_slot(hero_id: StringName, slot_index: int, target_id: StringName = &"") -> EncounterProbeScenario:
 	return _add_step({"operation": "fire_slot", "hero_id": str(hero_id), "slot_index": slot_index, "target_id": str(target_id)})
+
+func expect_rejection(reason_contains: String, rules_state_unchanged: bool = true) -> EncounterProbeScenario:
+	assert(not action_tape.is_empty(), "A rejection expectation must follow an action step.")
+	assert(not reason_contains.strip_edges().is_empty(), "A rejection expectation needs a reason fragment.")
+	var step: Dictionary = action_tape[-1]
+	assert(step.get("operation", "") != "advance_phase", "A rejection expectation must follow an Encounter action.")
+	assert(not step.has("expected_rejection"), "An action step can have only one rejection expectation.")
+	step["expected_rejection"] = {
+		"reason_contains": reason_contains,
+		"rules_state_unchanged": rules_state_unchanged,
+	}
+	action_tape[-1] = step
+	return self
 
 func begin_execution() -> void:
 	_execution_started = true

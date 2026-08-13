@@ -163,22 +163,6 @@ func _draw() -> void:
 
 	_draw_health_bar()
 
-	var font := ThemeDB.fallback_font
-	if font == null:
-		return
-	var name_size := 11
-	var name_text := display_name.left(7)
-	var name_width := font.get_string_size(name_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, name_size).x
-	draw_string(
-		font,
-		center + Vector2(-name_width * 0.5, -2.0),
-		name_text,
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1.0,
-		name_size,
-		Color.WHITE
-	)
-
 func _draw_health_bar() -> void:
 	var bar_width: float = maxf(34.0, size.x - 6.0)
 	var bar_rect := Rect2(Vector2((size.x - bar_width) * 0.5, 1.5), Vector2(bar_width, 7.0))

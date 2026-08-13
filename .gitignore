@@ -14,3 +14,4 @@ exports/
 
 # Generated Spikes/Probes failure traces
 tmp/probe-artifacts/
+tmp/encounter-records/

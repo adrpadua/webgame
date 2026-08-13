@@ -17,6 +17,11 @@ signal hand_card_dropped_to_tile(card: Resource, tile)
 @export var radius: int = 2
 @export var show_coordinates: bool = false
 
+const MIN_VIEW_ZOOM := 1.0
+const MAX_VIEW_ZOOM := 2.5
+const PAN_THRESHOLD := 10.0
+const WHEEL_ZOOM_STEP := 1.12
+
 var tiles: Dictionary = {}
 var board_min := Vector2.ZERO
 var board_max := Vector2.ZERO
@@ -27,10 +32,45 @@ var board_state := BoardStateModel.new()
 var movement_path_preview: Control
 var movement_preview_enabled: bool = false
 var rules_board
+var view_zoom: float = MIN_VIEW_ZOOM
+var view_pan := Vector2.ZERO
+var fit_scale: float = 1.0
+var active_touches: Dictionary = {}
+var touch_start_positions: Dictionary = {}
+var piece_blocked_touches: Dictionary = {}
+var touch_pan_started: bool = false
+var last_pinch_distance: float = 0.0
+var last_pinch_center := Vector2.ZERO
+var mouse_pan_active: bool = false
+var suppress_next_tile_selection: bool = false
+var synced_engine_instance_id: int = 0
 
 func _ready() -> void:
+	clip_contents = true
+	mouse_filter = Control.MOUSE_FILTER_PASS
 	resized.connect(_layout_tiles)
 	build_grid()
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		_handle_screen_touch(event)
+	elif event is InputEventScreenDrag:
+		_handle_screen_drag(event)
+	elif event is InputEventMagnifyGesture and _event_is_over_board(event.position):
+		zoom_at(event.position - global_position, view_zoom * event.factor)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventPanGesture and _event_is_over_board(event.position):
+		pan_by(-event.delta * 20.0)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton and (
+		_event_is_over_board(event.position)
+		or mouse_pan_active and event.button_index in [MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_RIGHT]
+	):
+		_handle_mouse_button(event)
+	elif event is InputEventMouseMotion and mouse_pan_active:
+		pan_by(event.relative)
+		suppress_next_tile_selection = true
+		get_viewport().set_input_as_handled()
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.025, 0.05, 0.06, 0.90), true)
@@ -86,19 +126,138 @@ func _layout_tiles() -> void:
 
 	var board_size := board_max - board_min
 	var available := size - Vector2(12, 12)
-	var scale_factor: float = min(available.x / board_size.x, available.y / board_size.y)
-	scale_factor = clamp(scale_factor, 0.45, 1.65)
+	fit_scale = min(available.x / board_size.x, available.y / board_size.y)
+	fit_scale = clamp(fit_scale, 0.45, 1.65)
+	_clamp_view_pan()
+	var scale_factor: float = fit_scale * view_zoom
 	var drawn_size := board_size * scale_factor
 	var offset := (size - drawn_size) * 0.5
 
 	for coords: Vector2i in tiles.keys():
 		var tile: Control = tiles[coords]
 		tile.scale = Vector2.ONE * scale_factor
-		tile.position = offset + (axial_to_pixel(coords.x, coords.y) - board_min) * scale_factor
+		tile.position = offset + view_pan + (axial_to_pixel(coords.x, coords.y) - board_min) * scale_factor
 	if movement_path_preview != null:
 		movement_path_preview.size = size
 		movement_path_preview.queue_redraw()
 	queue_redraw()
+
+func zoom_at(local_focus: Vector2, requested_zoom: float) -> void:
+	var old_zoom := view_zoom
+	var next_zoom := clampf(requested_zoom, MIN_VIEW_ZOOM, MAX_VIEW_ZOOM)
+	if is_equal_approx(old_zoom, next_zoom):
+		return
+	var center_offset := local_focus - size * 0.5
+	view_pan = center_offset - (center_offset - view_pan) * (next_zoom / old_zoom)
+	view_zoom = next_zoom
+	_clamp_view_pan()
+	_layout_tiles()
+
+func pan_by(delta: Vector2) -> void:
+	view_pan += delta
+	_clamp_view_pan()
+	_layout_tiles()
+
+func reset_view() -> void:
+	view_zoom = MIN_VIEW_ZOOM
+	view_pan = Vector2.ZERO
+	_layout_tiles()
+
+func get_tile_center(tile: Control) -> Vector2:
+	return tile.position + tile.size * tile.scale * 0.5
+
+func _clamp_view_pan() -> void:
+	if board_min == Vector2.INF or size == Vector2.ZERO:
+		view_pan = Vector2.ZERO
+		return
+	var drawn_size := (board_max - board_min) * fit_scale * view_zoom
+	var limit := Vector2(
+		maxf((drawn_size.x - size.x) * 0.5 + 6.0, 0.0),
+		maxf((drawn_size.y - size.y) * 0.5 + 6.0, 0.0)
+	)
+	view_pan = view_pan.clamp(-limit, limit)
+
+func _handle_screen_touch(event: InputEventScreenTouch) -> void:
+	if event.pressed:
+		if not _event_is_over_board(event.position):
+			return
+		if _position_hits_piece(event.position):
+			piece_blocked_touches[event.index] = true
+			return
+		active_touches[event.index] = event.position
+		touch_start_positions[event.index] = event.position
+		if active_touches.size() == 2:
+			last_pinch_distance = _touch_distance()
+			last_pinch_center = _touch_center()
+	else:
+		piece_blocked_touches.erase(event.index)
+		if not active_touches.has(event.index):
+			return
+		active_touches.erase(event.index)
+		touch_start_positions.erase(event.index)
+		if active_touches.size() < 2:
+			last_pinch_distance = 0.0
+		if active_touches.is_empty():
+			touch_pan_started = false
+			call_deferred("_clear_selection_suppression")
+
+func _handle_screen_drag(event: InputEventScreenDrag) -> void:
+	if not active_touches.has(event.index):
+		return
+	active_touches[event.index] = event.position
+	if active_touches.size() >= 2:
+		var pinch_center := _touch_center()
+		var pinch_distance := _touch_distance()
+		if last_pinch_distance > 0.0:
+			zoom_at(pinch_center - global_position, view_zoom * pinch_distance / last_pinch_distance)
+			pan_by(pinch_center - last_pinch_center)
+		last_pinch_distance = pinch_distance
+		last_pinch_center = pinch_center
+		touch_pan_started = true
+		suppress_next_tile_selection = true
+		get_viewport().set_input_as_handled()
+		return
+	var start: Vector2 = touch_start_positions.get(event.index, event.position)
+	if touch_pan_started or start.distance_to(event.position) >= PAN_THRESHOLD:
+		touch_pan_started = true
+		pan_by(event.relative)
+		suppress_next_tile_selection = true
+		get_viewport().set_input_as_handled()
+
+func _handle_mouse_button(event: InputEventMouseButton) -> void:
+	if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
+		zoom_at(event.position - global_position, view_zoom * WHEEL_ZOOM_STEP)
+		get_viewport().set_input_as_handled()
+	elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
+		zoom_at(event.position - global_position, view_zoom / WHEEL_ZOOM_STEP)
+		get_viewport().set_input_as_handled()
+	elif event.button_index in [MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_RIGHT]:
+		mouse_pan_active = event.pressed
+		if not event.pressed:
+			suppress_next_tile_selection = true
+			call_deferred("_clear_selection_suppression")
+		get_viewport().set_input_as_handled()
+
+func _event_is_over_board(viewport_position: Vector2) -> bool:
+	return get_global_rect().has_point(viewport_position)
+
+func _position_hits_piece(viewport_position: Vector2) -> bool:
+	for tile in tiles.values():
+		for piece in tile.pieces:
+			if piece.get_global_rect().has_point(viewport_position):
+				return true
+	return false
+
+func _clear_selection_suppression() -> void:
+	suppress_next_tile_selection = false
+
+func _touch_center() -> Vector2:
+	var points: Array = active_touches.values()
+	return (points[0] + points[1]) * 0.5
+
+func _touch_distance() -> float:
+	var points: Array = active_touches.values()
+	return points[0].distance_to(points[1])
 
 func set_show_coordinates(value: bool) -> void:
 	show_coordinates = value
@@ -109,6 +268,12 @@ func set_movement_preview_enabled(value: bool) -> void:
 	movement_preview_enabled = value
 	if not value and movement_path_preview != null:
 		movement_path_preview.clear()
+
+func set_hand_card_move_context(card: Resource) -> void:
+	for coords: Vector2i in tiles:
+		var tile: Node = tiles[coords]
+		var legal := card != null and player_piece != null and can_move_piece_to(player_piece, coords)
+		tile.set_hand_card_move_legal(legal, card if legal else null)
 
 func spawn_piece(
 	coords: Vector2i,
@@ -134,6 +299,10 @@ func spawn_piece(
 func sync_from_engine(engine) -> void:
 	if engine == null:
 		return
+	var engine_instance_id: int = engine.get_instance_id()
+	if synced_engine_instance_id != 0 and synced_engine_instance_id != engine_instance_id:
+		reset_view()
+	synced_engine_instance_id = engine_instance_id
 	rules_board = engine.board
 	if radius != engine.board.radius or tiles.is_empty():
 		radius = engine.board.radius
@@ -356,6 +525,9 @@ func get_neighbors(coords: Vector2i) -> Array[Vector2i]:
 	]
 
 func _on_tile_selected(tile) -> void:
+	if suppress_next_tile_selection:
+		suppress_next_tile_selection = false
+		return
 	tile_selected.emit(tile)
 	if not tile.pieces.is_empty():
 		piece_selected.emit(tile.pieces[0])

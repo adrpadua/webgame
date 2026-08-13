@@ -20,6 +20,7 @@ title = "Raking Claw"
 rules_text = "Front arc, range 1."
 kind = 1
 counter_tags = Array[StringName]([&"Mitigate", &"Move"])
+damage_classification = &"tank_hit"
 damage = 4
 
 [sub_resource type="Resource" id="Scar"]

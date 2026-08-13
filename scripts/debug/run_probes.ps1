@@ -34,10 +34,18 @@ $catalog = [ordered]@{
 	mobile = "res://scripts/debug/mobile_hud_probe.gd"
 	accessibility = "res://scripts/debug/accessibility_probe.gd"
 	replay = "res://scripts/debug/full_charge_cleanup_probe.gd"
+	records = "res://scripts/debug/encounter_record_probe.gd"
+	record_scene = "res://scripts/debug/encounter_record_scene_probe.gd"
+	presentation = "res://scripts/debug/card_action_board_presentation_probe.gd"
+	riposte = "res://scripts/debug/riposte_ready_probe.gd"
+	riposte_live = "res://scripts/debug/riposte_production_path_probe.gd"
+	riposte_ui = "res://scripts/debug/riposte_status_ui_probe.gd"
 }
 
 $scenarioCatalog = [ordered]@{
 	full_charge_cleanup = "res://scripts/debug/full_charge_cleanup_probe.gd"
+	whelp_clear = "res://scripts/debug/whelp_clear_probe.gd"
+	slow_top_card_cleanup = "res://scripts/debug/slow_top_card_cleanup_probe.gd"
 }
 
 $requested = @($Probe | ForEach-Object { $_ -split "," } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
@@ -81,7 +89,9 @@ foreach ($name in $selected) {
 	Write-Host "==> $label ($probeScript)"
 	$previousErrorActionPreference = $ErrorActionPreference
 	$ErrorActionPreference = "Continue"
-	$probeOutput = (& $Godot --headless --path $repoRoot --script $probeScript --quit-after 15 2>&1 | Out-String)
+	# Godot interprets --quit-after as rendered frames, not seconds. At 60 FPS,
+	# 900 frames provides the intended 15-second safety ceiling.
+	$probeOutput = (& $Godot --headless --path $repoRoot --script $probeScript --quit-after 900 2>&1 | Out-String)
 	$ErrorActionPreference = $previousErrorActionPreference
 	Write-Host $probeOutput
 	if ($LASTEXITCODE -ne 0 -or $probeOutput -match "(SCRIPT ERROR:|(?m)^ERROR:|Assertion failed)") {

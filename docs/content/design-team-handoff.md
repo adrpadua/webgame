@@ -23,6 +23,24 @@ powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe p
 
 Validation errors name the Resource path, invalid field/reference, and expected correction. Run the full suite with `-Probe all` before asking engineering to review a content batch.
 
+## Encounter Evidence
+
+Every completed playable **Encounter** now writes a local, Git-ignored **Encounter Record** beneath `tmp/encounter-records/`. A restart or abort writes an `abandoned` record with its explicit reason. The player HUD does not expose this data.
+
+Each Record has a versioned JSON document (`schema_version: 1`) and a matching Markdown summary. It includes the seed, authored Resource IDs and paths, content fingerprint, submitted/generated/rejected actions, explicit damage Resolution Facts, phase boundaries, outcome, end reason, and final rules snapshot. Use the fingerprint when comparing deck or Boss Program experiments: aggregate results are split by fingerprint so changed content is never silently mixed with older playthroughs.
+
+After playing one or more Encounters, generate the design report:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/report_encounter_records.ps1
+```
+
+This writes a timestamped aggregate report and replaces `tmp/encounter-records/latest-report.md`. Invalid, malformed, and unsupported-schema records are skipped with path-based diagnostics; the command fails only when no valid Records remain. Clean local evidence when starting a fresh comparison:
+
+```powershell
+Remove-Item -Recurse -Force ./tmp/encounter-records
+```
+
 ## Content Contract
 
 | Type and home | Required authoring contract |

@@ -55,8 +55,9 @@ func _test_action_bar_and_statuses() -> void:
 	shield.damage_reduction = 1
 	engine.add_status(&"guardian", shield)
 	var health_before: int = engine.get_hero(&"guardian")["health"]
-	engine.apply(EncounterActionModel.damage(&"boss", &"guardian", 3, "test"))
+	var damage_action = engine.apply(EncounterActionModel.damage(&"boss", &"guardian", 3, "test"))
 	_assert(engine.get_hero(&"guardian")["health"] == health_before - 2, "on_damage_taken should reduce incoming damage")
+	_assert(damage_action.payload["resolution_fact"] == {"requested": 3, "prevented": 1, "health_loss": 2, "target_available": true}, "Damage actions must expose an explicit Resolution Fact.")
 
 func _test_hazards_and_movement() -> void:
 	var strike = load("res://resources/cards/tank/steady_strike.tres")

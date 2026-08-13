@@ -1,0 +1,93 @@
+# First Content Pass: Embermaw And Aegis Guardian
+
+Status: proposed and ranked. This is a content plan, not an authorization to encode unsupported behavior in card text. `EncounterEngine` remains authoritative.
+
+## Status And Source Of Truth
+
+**Current authored truth:** the runnable Embermaw loop is defined by `resources/boss/programs/embermaw_hunt.tres`, `embermaw_embers.tres`, and `embermaw_brood.tres`, summarized in [embermaw-prototype.md](D:/dev/webgame/docs/content/encounters/embermaw-prototype.md). In particular, the current **Ember Pattern** resolves `Brood Call`, `Raking Claw` (`tank_hit`), then `Keep a Safe Hex` in its Incoming track. This is the existing Riposte Ready reachability path; it is not a proposed content edit.
+
+**Proposed guidance:** the ranked packages below describe future content tests or changes only after their stated gates and evidence. They do not override the runnable resources.
+
+**Superseded guidance:** the former "First-Three-Rounds Teaching Edit" table described a different Round 2 Incoming sequence (`Brood Call, warning`) and must not be read as current authoring. It is replaced by the current-reference and deferred teaching goals below.
+
+## Ranked Pass
+
+| Rank | Pass | Why Now | Delivery |
+| --- | --- | --- | --- |
+| 1 | Make `Kill Adds` answerable | The current boss explicitly asks for an answer the live deck lacks. | Content-only after target-selection smoke test. |
+| 2 | Put one honest Slow action in the live deck | The current loop cannot teach the Slow Window's promise. | Content-only. |
+| 3 | Re-tune the three-program loop into a teaching sequence | The existing data already supports a readable first three Rounds. | Content-only. |
+| 4 | Add an active Whelp intent | Adds need a deadline beyond occupying safe hexes. | Engine/UI extension. |
+| 5 | Add a Phase II spatial package | This fulfills Ashen Trial's raid promise. | Engine/UI extension. |
+
+## 1. Whelp Answer Package
+
+**Player-facing intent:** A Whelp is a problem the tank can solve deliberately, not a permanent lane tax.
+
+**Precise rule:** Add `2x Sweeping Blow` to the live twenty-card deck. It remains a Quick Top Card, needs one charged card to activate, selects an adjacent Minion, and deals its authored `2` damage. A Whelp has `2` health, so one successful Sweeping Blow removes it. The Boss retains `Kill Adds` as a counter tag only while this card is present in the encounter deck.
+
+**Affected content:** `resources/encounters/embermaw_prototype.tres`; reuse `resources/cards/tank/sweeping_blow.tres` and `resources/minions/whelp.tres`. Update [aegis-guardian-starter.md](D:/dev/webgame/docs/content/decks/aegis-guardian-starter.md) and [embermaw-prototype.md](D:/dev/webgame/docs/content/encounters/embermaw-prototype.md) when implemented.
+
+**Edge cases:** No Minion may exist when Sweeping Blow is loaded; the card must remain a legal prepared Top Card but cannot fire without a selected in-range Minion. A Whelp can block the only adjacent hex, so the target affordance must remain reachable without moving. A charged Sweeping Blow is not itself a Whelp answer until it is in the Quick Window.
+
+**Required evidence:** Add a focused `whelp_clear` probe that spawns a Whelp, loads and charges Sweeping Blow through `EncounterEngine`, fires at range 1, and verifies the Minion is removed and scene parity remains intact. Run a new-player playtest asking when and why the player used the card.
+
+## 2. Slow Window Anchor
+
+**Player-facing intent:** The Slow Window should feel like a deliberate commitment after the incoming mechanic, not an empty advance button.
+
+**Precise rule:** Add `2x Fortify` to the live deck. Fortify is a Slow Top Card: after it receives at least one charged card, it grants its authored `6 Armor` during Slow. Do not change its base values in this pass.
+
+**Affected content:** `resources/encounters/embermaw_prototype.tres`; reuse `resources/cards/tank/fortify.tres`; update the starter-deck document.
+
+**Edge cases:** Armor clears when the next Round begins, so a player cannot use Fortify to retroactively answer Incoming. The player can prepare Fortify in Loadout or Slow, but it fires only during Slow. A full activated Fortify follows Full-Charge Cleanup; a partial activation persists.
+
+**Required evidence:** Add a focused `slow_window_card` probe that proves Fortify cannot fire in Quick, fires in Slow after charging, absorbs a subsequent Boss hit, and follows cleanup correctly. In a playtest, ask the player to name a situation where holding Fortify is better than firing it.
+
+## 3. First-Three-Rounds Teaching Direction
+
+**Player-facing intent:** Teach one spatial responsibility at a time before asking the player to combine them.
+
+**Current authored first loop (reference only):**
+
+| Round | Instant | Incoming | Question |
+| --- | --- | --- | --- |
+| 1 | Turn to Tank, Raking Claw, Ash Trail | Cinder Breath, warning | Can you read facing and leave the cone? |
+| 2 | Stalk the Guardian, Cinder Breath, Ember Scar | Brood Call, Raking Claw, Keep a Safe Hex | Can you charge Guard in Quick, then absorb the incoming Tank Hit from Guarded Front? |
+| 3 | Turn to Tank, Raking Claw, Ash Trail | Brood Call, Cinder Breath, warning | Can you manage both route pressure and the front arc? |
+
+**Proposed rule:** retain these three Programs and supported Beat kinds while evaluating whether the first loop teaches one spatial responsibility at a time. Do not change Beat order, labels, or live authored content through this proposal. Do not label an action `Raid Hit` or claim a delayed Whelp attack until the engine supports that behavior.
+
+**Affected content if approved after evaluation:** `resources/boss/programs/embermaw_hunt.tres`, `embermaw_embers.tres`, `embermaw_brood.tres`, plus the runnable encounter documentation. No live resource changes are authorized by this document.
+
+**Edge cases:** Ash Trail only Scorches the prior impacted hero hex; it produces no terrain when Raking Claw misses. Brood Call may spawn fewer than two Whelps when authored candidates are occupied. Cinder Breath must never mark off-board hexes.
+
+**Required evidence:** QA's production-resource Riposte scenario must use the actual Ember Pattern, with an Iron Guard Top Card, a Guard charge card, and Guarded Front; it must assert an Incoming `Raking Claw` with `tank_hit`, `4` Armor absorbed, `0` Health loss from that Tank Hit, and the Riposte Ready grant. Extend the existing boss-program and resolver probes to assert each Round's ordered Beat IDs, telegraph hexes, legal spawn fallback, and no out-of-board pattern. Run a four-Round qualitative test with no card changes first, then with the Whelp answer package.
+
+## 4. Whelp Advance And Attack
+
+**Player-facing intent:** Unkilled Whelps create a visible deadline and force target priority without surprising the party.
+
+**Precise rule:** At a defined end-of-Round step, each living Whelp displays its intended adjacent move toward its nearest living Hero. It moves one legal hex; if already adjacent and unable to move closer, it deals `1` Raid Hit to its selected Hero. Its next intent is visible before the player commits the preceding player window.
+
+**Affected content:** `resources/minions/whelp.tres`, Boss Program documentation, encounter briefing, a new Minion behavior Resource or authored fields, board intent UI, and `EncounterEngine`.
+
+**Edge cases:** Equidistant targets, blocked routes, occupied destinations, a Downed or absent selected Hero, and two Whelps competing for one hex require a deterministic public rule. Do not use random resolution without a seeded, visible tie-breaker.
+
+**Required evidence:** An engine probe must cover movement, attack, collision, and selector ties from a fixed seed; a UI probe must prove the intent icon and target/pattern are visible before resolution. A solo playtest must show that ignoring a Whelp is a conscious loss of board space, not an invisible punishment.
+
+## 5. Phase II: Conflagration
+
+**Player-facing intent:** The final four Rounds combine learned spatial rules into a readable raid finish rather than adding arbitrary damage.
+
+**Precise rule:** At the documented phase trigger, Embermaw performs Molting Roar after the current Round, rotates one legal edge clockwise, retains Whelps and Scorched terrain, reveals the Phase II package, and deals no unavoidable transition damage. Phase II introduces Ashen Brand, Molten Tail, and Cinderstorm exactly as defined in [embermaw-ashen-trial-design.md](D:/dev/webgame/docs/content/encounters/embermaw-ashen-trial-design.md).
+
+**Affected content:** the Embermaw encounter, Boss Programs, Hazards, Minions, phase briefing, and the data schema/engine/UI listed in the backlog.
+
+**Edge cases:** Multiple phase triggers in the same Round, a boss defeat during the trigger action, zero legal displacement hexes, a marked Hero being Downed, and one-player fallback targeting must be explicit before authoring.
+
+**Required evidence:** A seeded eight-Round simulation covering early health threshold and forced-Round-5 transition, a pattern-overlay UI capture for every new Beat, and at least three blind playtests showing players can predict each Phase II failure before it resolves.
+
+## Deck Composition Gate
+
+The authoring rules deliberately prohibit a third live identity before the two-card loop has demonstrated useful Slot Tension. Ranks 1 and 2 are therefore approved for *testing preparation*, not for default-deck adoption. The smallest valid test list after the gate is `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, and `2x Shield Slam`. It preserves twenty cards, adds an add answer and Slow payoff, and keeps most draws legible.

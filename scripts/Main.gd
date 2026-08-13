@@ -2,6 +2,7 @@ extends Control
 
 const EncounterEngineModel := preload("res://scripts/sdk/EncounterEngine.gd")
 const EncounterActionModel := preload("res://scripts/sdk/EncounterAction.gd")
+const EncounterRecordModel := preload("res://scripts/records/EncounterRecord.gd")
 
 const CONTENT_CATALOG := preload("res://resources/content_catalog.tres")
 const DUELYST_BACKDROP := preload("res://assets/art/open-duelyst/magaari_ember_highlands_background.jpg")
@@ -59,12 +60,22 @@ var player_move_primed: bool = false
 var suppress_move_prime_once: bool = false
 var mobile_continue_button: Button
 var mobile_continue_tween: Tween
+var mobile_help_button: Button
+var mobile_controls_row: Control
+var mobile_help_pane: Panel
+var mobile_help_label: Label
+var mobile_status_effect_pane: Panel
+var mobile_status_effect_label: Label
+var mobile_controls_layout_queued: bool = false
 var engine
+var encounter_record
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_TOP_LEFT)
 	get_viewport().size_changed.connect(_fit_to_viewport)
 	_build_mobile_continue_button()
+	_build_mobile_help_controls()
+	_build_mobile_status_effect_pane()
 	_raise_hud_above_board()
 	_fit_to_viewport()
 	_apply_skin()
@@ -73,10 +84,13 @@ func _ready() -> void:
 	hand_view.card_selected.connect(_on_card_selected)
 	hand_view.card_inspection_started.connect(_on_card_inspection_started)
 	hand_view.card_inspection_ended.connect(_on_card_inspection_ended)
+	hand_view.card_drag_started.connect(_on_hand_card_drag_started)
+	hand_view.card_drag_ended.connect(_on_hand_card_drag_ended)
 	%CardInspectOverlay.dismiss_requested.connect(_on_card_inspection_dismiss_requested)
 	mobile_round_label.mouse_filter = Control.MOUSE_FILTER_STOP
 	mobile_round_label.gui_input.connect(_on_mobile_round_input)
 	mobile_continue_button.pressed.connect(_on_mobile_continue_pressed)
+	mobile_help_button.pressed.connect(_on_mobile_help_pressed)
 	action_bar_view.slot_pressed.connect(_on_slot_pressed)
 	action_bar_view.card_dropped.connect(_on_card_dropped_to_slot)
 	hex_grid.tile_selected.connect(_on_tile_selected)
@@ -118,12 +132,12 @@ func _apply_responsive_layout() -> void:
 	mobile_status.visible = mobile
 	mobile_status_top.visible = not mobile
 	mobile_turn_tracker.visible = mobile
-	mobile_tempo_bar.visible = mobile
+	mobile_tempo_bar.visible = false
 	right_panel_scroll.visible = not mobile
 	hand_title.visible = not mobile
 	board_title.visible = not mobile
 	root_container.add_theme_constant_override("separation", 6 if mobile else 8)
-	hand_scroll.custom_minimum_size.y = 84.0 if mobile else 62.0
+	hand_scroll.custom_minimum_size.y = 128.0 if mobile else 120.0
 	hex_grid.custom_minimum_size = Vector2(0, 230) if mobile else Vector2(320, 260)
 	left_panel.custom_minimum_size = Vector2.ZERO if mobile else Vector2(150, 0)
 	left_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -207,10 +221,13 @@ func _refresh_status() -> void:
 	mobile_tempo_bar.text = _get_mobile_hand_track()
 	mobile_tempo_label.tooltip_text = "Hand cards power charging and pay for movement. Refill to %d at round end." % player.max_hand_size
 	mobile_tempo_bar.tooltip_text = mobile_tempo_label.tooltip_text
+	mobile_turn_tracker.tooltip_text = "Cards in hand, discard pile, current window, and round progress. Tap to continue when prompted."
 	var mobile_prompt_text := _get_mobile_prompt_text()
 	mobile_end_phase_prompt.text = mobile_prompt_text
 	mobile_end_phase_prompt.visible = not mobile_prompt_text.is_empty()
+	_update_mobile_status_effect_pane()
 	_update_mobile_continue_button()
+	_update_mobile_help_controls()
 	mobile_round_label.tooltip_text = "Round %d of %d: %s. %s" % [
 		turn_manager.turn_number,
 		encounter.round_limit,
@@ -218,6 +235,7 @@ func _refresh_status() -> void:
 		"Tap to end this window." if encounter.active and _should_show_end_phase_prompt() else "Tap to restart." if not encounter.active else "Current phase.",
 	]
 	action_bar_view.set_selected_slot(selected_slot_index)
+	_refresh_card_destination_context()
 	prepare_button.visible = false
 	charge_button.visible = false
 	activate_button.visible = false
@@ -232,6 +250,17 @@ func _on_card_selected(card: Resource) -> void:
 	selected_card = card
 	_refresh_status()
 
+func _on_hand_card_drag_started(card: Resource) -> void:
+	if not encounter.active or not player.hand.has(card):
+		return
+	selected_card = card
+	_refresh_card_destination_context()
+
+func _on_hand_card_drag_ended(card: Resource) -> void:
+	if selected_card == card:
+		selected_card = null
+	_refresh_card_destination_context()
+
 func _on_card_inspection_started(card: Resource) -> void:
 	%CardInspectOverlay.show_card(card)
 
@@ -241,10 +270,29 @@ func _on_card_inspection_ended(_card: Resource) -> void:
 func _on_card_inspection_dismiss_requested() -> void:
 	%CardInspectOverlay.hide_card()
 
+func _refresh_card_destination_context() -> void:
+	var has_current_card: bool = encounter.active and selected_card != null and player.hand.has(selected_card)
+	hand_view.set_selected_card(selected_card if has_current_card else null)
+	action_bar_view.set_card_context(selected_card if has_current_card and player.current_window in [&"loadout", &"quick", &"slow"] else null)
+	hex_grid.set_hand_card_move_context(selected_card if has_current_card and player.current_window == &"quick" else null)
+
+func _can_project_card_to_slot(slot: Dictionary) -> bool:
+	var top_card: Resource = slot.get("top_card")
+	if top_card == null:
+		return player.current_window in [&"loadout", &"quick", &"slow"]
+	if player.current_window == &"loadout":
+		return true
+	if player.current_window not in [&"quick", &"slow"]:
+		return false
+	return slot.get("activated_window", &"") != player.current_window and slot.get("charges", []).size() < top_card.get_charge_cap()
+
 func _on_slot_pressed(index: int) -> void:
 	selected_slot_index = index
 	var slot: Dictionary = player.get_slot(index)
 	var top_card: Resource = slot.get("top_card")
+	if encounter.active and selected_card != null and player.hand.has(selected_card) and _can_project_card_to_slot(slot):
+		_on_card_dropped_to_slot(index, selected_card)
+		return
 	if top_card != null and encounter.active:
 		_on_activate_slot_pressed()
 		return
@@ -270,6 +318,9 @@ func _on_card_dropped_to_slot(index: int, card: Resource) -> void:
 	_refresh_status()
 
 func _on_tile_selected(tile: Node) -> void:
+	if encounter.active and player.current_window == &"quick" and selected_card != null and player.hand.has(selected_card) and hex_grid.can_move_piece_to(hex_grid.player_piece, tile.axial):
+		_on_hand_card_dropped_to_tile(selected_card, tile)
+		return
 	selected_tile = tile
 	selected_piece = tile.pieces[0] if not tile.pieces.is_empty() else null
 	player_move_primed = false
@@ -354,6 +405,7 @@ func _on_activate_slot_pressed() -> void:
 	if not resolved.succeeded:
 		_set_feedback(resolved.reason)
 		return
+	_set_status_payoff_feedback()
 	_check_encounter_end()
 	_refresh_status()
 
@@ -380,9 +432,13 @@ func _on_restart_pressed() -> void:
 	_start_encounter()
 
 func _start_encounter() -> void:
+	if encounter_record != null and encounter_record.is_active() and engine != null:
+		encounter_record.seal(engine, &"abandoned", "Restarted by player.")
 	var encounter_data: Resource = CONTENT_CATALOG.default_encounter
 	engine = EncounterEngineModel.new()
 	engine.start(encounter_data)
+	encounter_record = EncounterRecordModel.new()
+	encounter_record.begin(engine, encounter_data)
 	player.bind_engine(engine, engine.primary_hero_id)
 	boss.bind_engine(engine)
 	turn_manager.bind_engine(engine)
@@ -431,6 +487,17 @@ func _sync_from_engine() -> void:
 	turn_manager.sync_from_engine()
 	encounter.sync_from_engine()
 	hex_grid.sync_from_engine(engine)
+	if encounter_record != null:
+		encounter_record.sync(engine)
+		if not engine.active:
+			encounter_record.seal(engine)
+
+func abort_encounter(reason: String = "Aborted by player.") -> void:
+	if encounter_record != null and encounter_record.is_active() and engine != null:
+		encounter_record.seal(engine, &"abandoned", reason)
+
+func _exit_tree() -> void:
+	abort_encounter("Application closed before the Encounter ended.")
 
 func _refresh_move_previews() -> void:
 	if hex_grid == null or hex_grid.tiles.is_empty():
@@ -582,17 +649,198 @@ func _should_show_end_phase_prompt() -> bool:
 	return not _has_player_window_action()
 
 func _build_mobile_continue_button() -> void:
+	mobile_controls_row = Control.new()
+	mobile_controls_row.name = "MobileControlsRow"
+	mobile_controls_row.visible = false
+	mobile_controls_row.custom_minimum_size = Vector2(0, 48)
+	mobile_controls_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mobile_controls_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mobile_status.add_child(mobile_controls_row)
+
 	mobile_continue_button = Button.new()
 	mobile_continue_button.name = "MobileContinueButton"
 	mobile_continue_button.text = "▶"
 	mobile_continue_button.visible = false
-	mobile_continue_button.custom_minimum_size = Vector2(96, 44)
-	mobile_continue_button.size = Vector2(96, 44)
+	mobile_continue_button.custom_minimum_size = Vector2(118, 46)
 	mobile_continue_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	mobile_continue_button.tooltip_text = "End this window."
-	mobile_continue_button.z_index = 20
 	mobile_continue_button.text = "Continue"
-	add_child(mobile_continue_button)
+	mobile_controls_row.add_child(mobile_continue_button)
+
+func _build_mobile_help_controls() -> void:
+	mobile_help_button = Button.new()
+	mobile_help_button.name = "MobileHelpButton"
+	mobile_help_button.text = "?"
+	mobile_help_button.visible = false
+	mobile_help_button.custom_minimum_size = Vector2(48, 48)
+	mobile_help_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	mobile_help_button.tooltip_text = "Show guide."
+	mobile_controls_row.add_child(mobile_help_button)
+
+	mobile_help_pane = Panel.new()
+	mobile_help_pane.name = "MobileHelpPane"
+	mobile_help_pane.visible = false
+	mobile_help_pane.mouse_filter = Control.MOUSE_FILTER_STOP
+	mobile_help_pane.custom_minimum_size = Vector2(0, 164)
+	mobile_help_pane.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mobile_status.add_child(mobile_help_pane)
+	mobile_status.move_child(mobile_help_pane, mobile_controls_row.get_index())
+
+	mobile_help_label = Label.new()
+	mobile_help_label.name = "MobileHelpLabel"
+	mobile_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mobile_help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mobile_help_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	mobile_help_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mobile_help_label.offset_left = 12.0
+	mobile_help_label.offset_top = 10.0
+	mobile_help_label.offset_right = -12.0
+	mobile_help_label.offset_bottom = -10.0
+	mobile_help_label.add_theme_font_size_override("font_size", 12)
+	mobile_help_label.add_theme_color_override("font_color", Color(0.98, 0.91, 0.74))
+	mobile_help_pane.add_child(mobile_help_label)
+
+func _build_mobile_status_effect_pane() -> void:
+	mobile_status_effect_pane = Panel.new()
+	mobile_status_effect_pane.name = "MobileStatusEffectPane"
+	mobile_status_effect_pane.visible = false
+	mobile_status_effect_pane.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mobile_status_effect_pane.custom_minimum_size = Vector2(0, 58)
+	mobile_status_effect_pane.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mobile_status.add_child(mobile_status_effect_pane)
+	mobile_status.move_child(mobile_status_effect_pane, mobile_end_phase_prompt.get_index() + 1)
+
+	mobile_status_effect_label = Label.new()
+	mobile_status_effect_label.name = "MobileStatusEffectLabel"
+	mobile_status_effect_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mobile_status_effect_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mobile_status_effect_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	mobile_status_effect_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mobile_status_effect_label.offset_left = 12.0
+	mobile_status_effect_label.offset_top = 6.0
+	mobile_status_effect_label.offset_right = -12.0
+	mobile_status_effect_label.offset_bottom = -6.0
+	mobile_status_effect_pane.add_child(mobile_status_effect_label)
+
+func _on_mobile_help_pressed() -> void:
+	mobile_help_pane.visible = not mobile_help_pane.visible
+	mobile_help_button.tooltip_text = "Hide guide." if mobile_help_pane.visible else "Show guide."
+	_update_mobile_help_controls()
+
+func _update_mobile_help_controls() -> void:
+	if mobile_help_button == null or mobile_help_pane == null or mobile_help_label == null:
+		return
+	var mobile: bool = size.x < 820 or size.x < size.y
+	mobile_controls_row.visible = mobile
+	mobile_help_button.visible = mobile
+	mobile_help_label.text = _get_action_guide_text()
+	if not mobile:
+		mobile_help_pane.visible = false
+		return
+	_layout_mobile_help_controls()
+
+func _update_mobile_status_effect_pane() -> void:
+	if mobile_status_effect_pane == null or mobile_status_effect_label == null:
+		return
+	var status_text := _get_riposte_ready_status_text()
+	var mobile: bool = size.x < 820 or size.x < size.y
+	mobile_status_effect_pane.visible = mobile and not status_text.is_empty()
+	mobile_status_effect_label.text = status_text
+	mobile_status_effect_label.tooltip_text = _get_riposte_ready_tooltip()
+	if mobile_status_effect_pane.visible:
+		_layout_mobile_status_effect_pane()
+
+func _layout_mobile_status_effect_pane() -> void:
+	var viewport_inset: float = maxf((mobile_status.size.x - size.x) * 0.5 + 12.0, 12.0)
+	mobile_status_effect_label.offset_left = viewport_inset
+	mobile_status_effect_label.offset_right = -viewport_inset
+
+func _get_riposte_ready_status_text() -> String:
+	if engine == null:
+		return ""
+	var effect = _get_riposte_ready_effect()
+	if effect == null:
+		return ""
+	return "Riposte Ready  |  Tank Hit fully blocked. Shield Slam +2 before Quick ends."
+
+func _get_riposte_ready_tooltip() -> String:
+	var effect = _get_riposte_ready_effect()
+	if effect == null:
+		return ""
+	return "Granted by %s in Round %d %s. Expires at end of the first following %s Window. A legal %s consumes it." % [
+		_riposte_reason_text(effect.trigger_reason),
+		effect.trigger_round,
+		String(effect.trigger_phase).capitalize(),
+		String(effect.expires_at_window_end).capitalize(),
+		_riposte_card_text(effect.consume_on_card_id),
+	]
+
+func _get_riposte_ready_effect():
+	if engine == null:
+		return null
+	for effect in engine.status_effects.get(engine.primary_hero_id, []):
+		if effect.id == &"riposte_ready":
+			return effect
+	return null
+
+func _riposte_reason_text(reason: StringName) -> String:
+	match reason:
+		&"qualifying_tank_hit":
+			return "a Guarded Front Tank Hit with 0 Health loss"
+		_:
+			return String(reason).capitalize()
+
+func _riposte_card_text(card_id: StringName) -> String:
+	match card_id:
+		&"shield_slam":
+			return "Shield Slam"
+		_:
+			return String(card_id).replace("_", " ").capitalize()
+
+func _set_status_payoff_feedback() -> void:
+	var latest := _latest_riposte_payoff_fact()
+	if latest.is_empty():
+		return
+	_set_feedback("Riposte Ready consumed: Shield Slam dealt +%d Boss damage (%d total)." % [
+		int(latest.get("status_bonus", 0)),
+		int(latest.get("requested", 0)),
+	])
+
+func _latest_riposte_payoff_fact() -> Dictionary:
+	if engine == null or engine.history.is_empty():
+		return {}
+	for action_index in range(engine.history.size() - 1, -1, -1):
+		var action = engine.history[action_index]
+		var fact: Dictionary = action.payload.get("resolution_fact", {})
+		if fact.get("status_event", {}).get("event", &"") == &"consumed" and fact.get("status_event", {}).get("status_id", &"") == &"riposte_ready":
+			for generated in action.generated_actions:
+				var generated_fact: Dictionary = generated.payload.get("resolution_fact", {})
+				if generated_fact.get("status_id", &"") == &"riposte_ready":
+					return generated_fact
+	return {}
+
+func _layout_mobile_help_controls() -> void:
+	mobile_help_pane.custom_minimum_size.y = 164.0 if mobile_help_pane.visible else 0.0
+	var viewport_inset: float = maxf((mobile_status.size.x - size.x) * 0.5 + 12.0, 12.0)
+	mobile_help_label.offset_left = viewport_inset
+	mobile_help_label.offset_right = -viewport_inset
+	_layout_mobile_status_effect_pane()
+	_layout_mobile_controls_row()
+
+func _layout_mobile_controls_row() -> void:
+	if mobile_controls_row == null or mobile_controls_layout_queued:
+		return
+	mobile_controls_layout_queued = true
+	call_deferred("_place_mobile_controls_after_layout")
+
+func _place_mobile_controls_after_layout() -> void:
+	mobile_controls_layout_queued = false
+	if mobile_controls_row == null or not mobile_controls_row.visible:
+		return
+	var continue_size := mobile_continue_button.size
+	var help_size := mobile_help_button.size
+	mobile_continue_button.global_position = Vector2((size.x - continue_size.x) * 0.5, mobile_controls_row.global_position.y)
+	mobile_help_button.global_position = Vector2(size.x - help_size.x - 12.0, mobile_controls_row.global_position.y)
 
 func _update_mobile_continue_button() -> void:
 	if mobile_continue_button == null:
@@ -608,20 +856,10 @@ func _update_mobile_continue_button() -> void:
 		_stop_mobile_continue_pulse()
 
 func _layout_mobile_continue_button() -> void:
-	if mobile_continue_button == null or mobile_turn_tracker == null:
+	if mobile_continue_button == null:
 		return
-	var button_size := Vector2(96, 44)
-	mobile_continue_button.size = button_size
-	mobile_continue_button.pivot_offset = button_size * 0.5
-	var tracker_rect := mobile_turn_tracker.get_global_rect()
-	var font := mobile_turn_tracker.get_theme_default_font()
-	var font_size := mobile_turn_tracker.get_theme_font_size("font_size")
-	var text_width := font.get_string_size(mobile_turn_tracker.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
-	var text_right := tracker_rect.position.x + tracker_rect.size.x * 0.5 + text_width * 0.5
-	mobile_continue_button.position = Vector2(
-		clampf(text_right + 8.0, 18.0, size.x - button_size.x - 18.0),
-		clampf(tracker_rect.position.y + (tracker_rect.size.y - button_size.y) * 0.5, 18.0, size.y - button_size.y - 18.0)
-	)
+	mobile_continue_button.pivot_offset = mobile_continue_button.size * 0.5
+	_layout_mobile_controls_row()
 
 func _start_mobile_continue_pulse() -> void:
 	_stop_mobile_continue_pulse()
@@ -629,10 +867,8 @@ func _start_mobile_continue_pulse() -> void:
 	mobile_continue_button.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	mobile_continue_tween = create_tween()
 	mobile_continue_tween.set_loops()
-	mobile_continue_tween.tween_property(mobile_continue_button, "scale", Vector2(1.13, 1.13), 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	mobile_continue_tween.parallel().tween_property(mobile_continue_button, "modulate", Color(1.0, 0.88, 0.62, 1.0), 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	mobile_continue_tween.tween_property(mobile_continue_button, "scale", Vector2.ONE, 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	mobile_continue_tween.parallel().tween_property(mobile_continue_button, "modulate", Color.WHITE, 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	mobile_continue_tween.tween_property(mobile_continue_button, "modulate", Color(1.0, 0.82, 0.48, 1.0), 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	mobile_continue_tween.tween_property(mobile_continue_button, "modulate", Color.WHITE, 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 func _stop_mobile_continue_pulse() -> void:
 	if mobile_continue_tween != null:
@@ -643,13 +879,10 @@ func _stop_mobile_continue_pulse() -> void:
 		mobile_continue_button.modulate = Color.WHITE
 
 func _get_mobile_prompt_text() -> String:
-	return _get_action_guide_text()
-
-	# Legacy contextual branches remain below while the guide owns the visible prompt.
 	if not encounter.active:
 		return ""
 	if turn_manager.phase == turn_manager.Phase.LOADOUT:
-		return "Loadout: replace Top Cards, then tap continue."
+		return "Load cards, then Continue."
 	if turn_manager.phase != turn_manager.Phase.QUICK and turn_manager.phase != turn_manager.Phase.SLOW:
 		return ""
 	if _has_ready_action_bar_slot():
@@ -747,7 +980,7 @@ func _get_mobile_round_track() -> String:
 	var pips: Array[String] = []
 	for round_index in encounter.round_limit:
 		pips.append("●" if round_index < turn_manager.turn_number else "○")
-	return "%s %s  R%d/%d  %s" % [phase_icon, phase_name, turn_manager.turn_number, encounter.round_limit, "".join(pips)]
+	return "▣%d  ⌫%d   %s %s  R%d/%d  %s" % [player.hand.size(), player.discard.size(), phase_icon, phase_name, turn_manager.turn_number, encounter.round_limit, "".join(pips)]
 
 func _get_mobile_tempo_track() -> String:
 	return _get_mobile_hand_track()
@@ -782,14 +1015,19 @@ func _apply_skin() -> void:
 	tempo_label.add_theme_color_override("font_color", Color(0.90, 0.87, 0.74))
 	mobile_round_label.add_theme_font_size_override("font_size", 16)
 	mobile_round_label.add_theme_color_override("font_color", Color(0.94, 0.85, 0.64))
-	mobile_turn_tracker.add_theme_font_size_override("font_size", 13)
-	mobile_turn_tracker.add_theme_color_override("font_color", Color(0.94, 0.85, 0.64))
+	mobile_turn_tracker.custom_minimum_size = Vector2(0, 58)
+	mobile_turn_tracker.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	mobile_turn_tracker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	mobile_turn_tracker.add_theme_font_size_override("font_size", 15)
+	mobile_turn_tracker.add_theme_color_override("font_color", Color(0.97, 0.88, 0.64))
+	mobile_turn_tracker.add_theme_stylebox_override("normal", _make_mobile_tracker_style())
 	mobile_tempo_bar.add_theme_font_size_override("font_size", 18)
 	mobile_tempo_bar.add_theme_color_override("font_color", Color(0.98, 0.97, 0.92))
 	mobile_end_phase_prompt.add_theme_font_size_override("font_size", 11)
 	mobile_end_phase_prompt.add_theme_color_override("font_color", Color(0.96, 0.72, 0.45))
 	action_guide_label.add_theme_font_size_override("font_size", 12)
 	action_guide_label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.54))
+	mobile_help_pane.add_theme_stylebox_override("panel", _make_info_pane_style(Color(0.08, 0.065, 0.05, 0.98), Color(0.76, 0.50, 0.30)))
 	tile_info_pane.mouse_filter = Control.MOUSE_FILTER_STOP
 	tile_info_pane.add_theme_stylebox_override("panel", _make_info_pane_style())
 	tile_info_badge.add_theme_font_size_override("font_size", 22)
@@ -829,6 +1067,13 @@ func _apply_skin() -> void:
 	mobile_continue_button.add_theme_stylebox_override("hover", _make_button_style(Color(0.38, 0.24, 0.19), Color(0.86, 0.57, 0.38)))
 	mobile_continue_button.add_theme_color_override("font_color", Color(0.97, 0.93, 0.88))
 	mobile_continue_button.add_theme_font_size_override("font_size", 18)
+	mobile_help_button.add_theme_stylebox_override("normal", phase_button)
+	mobile_help_button.add_theme_stylebox_override("hover", _make_button_style(Color(0.38, 0.24, 0.19), Color(0.86, 0.57, 0.38)))
+	mobile_help_button.add_theme_color_override("font_color", Color(0.97, 0.93, 0.88))
+	mobile_help_button.add_theme_font_size_override("font_size", 18)
+	mobile_status_effect_pane.add_theme_stylebox_override("panel", _make_info_pane_style(Color(0.09, 0.12, 0.10, 0.97), Color(0.55, 0.78, 0.50)))
+	mobile_status_effect_label.add_theme_font_size_override("font_size", 12)
+	mobile_status_effect_label.add_theme_color_override("font_color", Color(0.91, 1.0, 0.78))
 	_apply_accessible_button_theme(prepare_button, action_button, Color(0.25, 0.38, 0.28), Color(0.53, 0.75, 0.55))
 	_apply_accessible_button_theme(charge_button, action_button, Color(0.25, 0.38, 0.28), Color(0.53, 0.75, 0.55))
 	_apply_accessible_button_theme(activate_button, action_button, Color(0.25, 0.38, 0.28), Color(0.53, 0.75, 0.55))
@@ -836,6 +1081,9 @@ func _apply_skin() -> void:
 	_apply_accessible_button_theme(%AdvancePhase, phase_button, Color(0.38, 0.24, 0.19), Color(0.86, 0.57, 0.38))
 	_apply_accessible_button_theme(mobile_continue_button, phase_button, Color(0.38, 0.24, 0.19), Color(0.86, 0.57, 0.38))
 	mobile_continue_button.add_theme_font_size_override("font_size", 18)
+	_apply_accessible_button_theme(mobile_help_button, phase_button, Color(0.38, 0.24, 0.19), Color(0.86, 0.57, 0.38))
+	mobile_help_button.custom_minimum_size = Vector2(48, 48)
+	mobile_help_button.add_theme_font_size_override("font_size", 18)
 	_apply_accessible_button_theme(restart_button, _make_button_style(Color(0.30, 0.17, 0.14), Color(0.82, 0.47, 0.33)), Color(0.38, 0.22, 0.18), Color(0.94, 0.60, 0.42))
 	_apply_accessible_checkbox_theme(show_coordinates_checkbox)
 
@@ -895,6 +1143,21 @@ func _make_progress_style(fill: Color, border: Color) -> StyleBoxFlat:
 	style.corner_radius_top_right = 3
 	style.corner_radius_bottom_left = 3
 	style.corner_radius_bottom_right = 3
+	return style
+
+func _make_mobile_tracker_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.10, 0.095, 0.085, 0.88)
+	style.border_color = Color(0.53, 0.51, 0.46, 0.52)
+	style.set_border_width_all(1)
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.content_margin_left = 58
+	style.content_margin_right = 136
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
 	return style
 
 func _make_button_style(fill: Color, border: Color, border_width: int = 2) -> StyleBoxFlat:

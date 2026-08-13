@@ -1,0 +1,4 @@
+interface:
+  display_name: "Accept Grill Recommendations"
+  short_description: "Accept all recommendations in a grilling round."
+  default_prompt: "Use /accept-grill-recommendations to accept this grilling round and show the selected answers."

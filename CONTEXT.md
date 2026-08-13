@@ -8,6 +8,18 @@ A cooperative fantasy boss battler on a hex grid. The core domain is a scripted 
 A single boss fight from setup through victory, defeat, or enrage. An encounter is the top-level unit that owns the boss script, the round count, and the board state.
 _Avoid_: Match, battle, combat
 
+**Encounter Record**:
+A normalized, persisted account of one completed Encounter. It contains the submitted and generated rules actions, phase and Round boundaries, seed, content identity, final state, and design summary. It excludes raw pointer motion and presentation-only state.
+_Avoid_: Match log, telemetry event, replay file
+
+**Resolution Fact**:
+A normalized rules result attached to a completed action. For damage, it states requested damage, damage prevented, and health loss; when that damage defeats a Minion, it also records `target_removed = true`. Encounter Records use these facts instead of inferring outcomes from snapshots.
+_Avoid_: Derived metric, UI estimate
+
+**Abandoned Encounter**:
+An Encounter attempt ended by restart or manual abort before victory, defeat, or end-of-clock behavior. An Encounter Record preserves its explicit abandonment reason for playtest analysis.
+_Avoid_: Deleted run, incomplete log
+
 **Round**:
 One full cycle of boss resolution and player response. A round advances the enrage timer by exactly one.
 _Avoid_: Turn, tick
@@ -56,6 +68,10 @@ _Avoid_: Hostile target, foe
 A temporary rule attached to a combatant that responds to an explicit trigger, such as the start of a Round, taking damage, or firing a Slot.
 _Avoid_: Passive, invisible buff
 
+**Riposte Ready**:
+A non-stacking, non-refreshing Aegis Guardian Status Effect. When a Boss Tank Hit resolves against Captain Elian Voss while he occupies the Guarded Front and causes `0` Health loss, grant Riposte Ready if he does not already have it. It expires at the end of the first Quick Window after that qualifying hit, whether the hit occurred in an Instant Row or an Incoming Row. A legal Shield Slam consumes Riposte Ready and deals `2` additional Boss damage. The effect must show its qualifying trigger, expiry, and consumption; it is not a general posture category or a resource meter.
+_Avoid_: Awakening, stacking buff, generic stance
+
 **Hazard**:
 A temporary board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex.
 _Avoid_: Surprise damage, ambient effect
@@ -67,6 +83,10 @@ _Avoid_: Enemy, boss enemy
 **Minion**:
 A non-Boss Enemy placed on the hex board by an Encounter. A Minion may have its own health, facing, and rules, but it does not own the Boss Timeline.
 _Avoid_: Enemy, add, trash mob
+
+**Minion Defeat**:
+When a resolved damage action reduces a Minion's Health to `0`, it immediately removes that Minion from the board before the damage action completes. Its hex becomes unoccupied, the Minion cannot be targeted by any later action, and state owned exclusively by that Minion is discarded. This is part of damage resolution, not an end-of-window or end-of-Round cleanup. The damage action remains successful and its Resolution Fact records `target_removed = true`. Boss defeat and Hero Downed use their own rules.
+_Avoid_: Delayed despawn, end-of-turn cleanup, defeated-but-blocking
 
 **Instant Row**:
 The boss actions that resolve before the party's `Quick Window`. These are urgent mechanics that are already live this round.
@@ -148,6 +168,10 @@ _Avoid_: Card type, flavor tag
 The visible card occupying a Slot and defining that Slot's actual ability. The Top Card determines range, Charge Value, timing, and effect text.
 _Avoid_: Active card, lead card
 
+**Loaded**:
+The neutral presentation state of an occupied Slot whose Top Card exists and whose Charge Stack is empty. A Loaded Slot is not actionable: it needs at least one Charge before it can activate. `Loaded` describes a UI-visible state derived from the existing Slot snapshot; it does not add a rules action, timing permission, or resource cost.
+_Avoid_: Ready, Primed, Activated, Locked
+
 **Hand**:
 The player's currently available cards, presented as four compact cards in the bottom interaction zone of the portrait combat HUD. Four is the normal end-of-Round refill target, not a hard maximum.
 _Avoid_: Hand row, card tray
@@ -168,12 +192,28 @@ _Avoid_: Footer, toolbar
 A role-specific resource spent on signature actions. For the tank, this is currently `Guard`.
 _Avoid_: Stamina, charge
 
+**Armor**:
+A Hero's temporary damage shield. Armor blocks incoming damage before Health and does not convert into damage, protection, or another effect unless a future explicit rule changes this.
+_Avoid_: Spendable defense, shield currency
+
+**Interception**:
+A Shield Wall protection effect that redirects damage intended for a chosen ally to the Guardian. Interception is distinct from Armor: the redirected damage can then be blocked by the Guardian's Armor.
+_Avoid_: Area defense, passive damage reduction
+
+**Intercepted Hit**:
+The next one damage event that would affect the ally selected by an Interception effect. The full event redirects to the Guardian, then the Guardian's ordinary mitigation applies. The Interception effect expires after that event or at the end of the Round if unused.
+_Avoid_: Permanent redirect, damage split
+
+**Guarded Front**:
+The Boss-facing adjacent hex directly in front of a Shield Wall Hero. The Guardian's positional protection and front-line duties use this hex; it is not a universal safe zone.
+_Avoid_: Tank lane, front row
+
 **Slot Tension**:
 The primary player pressure created by deciding whether to keep charging a slot, fire it now, or replace it. Slot tension is more central to the game than Stamina tension or class-resource tension.
 _Avoid_: Hand tension, mana tension
 
 **Tank Hit**:
-Boss damage intended to be answered by the tank through facing, interception, mitigation, or threat control.
+Boss damage authored as a Tank Hit and intended to be answered by the Tank through facing, interception, mitigation, or threat control. A Boss Beat's Tank Hit identity is explicit; it is not inferred from generic damage, Hazards, or Minions.
 _Avoid_: Single-target damage, front damage
 
 **Downed**:
@@ -235,6 +275,10 @@ _Avoid_: Class, job
 **Archetype**:
 A Hero's mechanical identity that determines how its cards and rewards express its Role.
 _Avoid_: Role, class
+
+**Shield Wall**:
+A Tank Archetype that claims dangerous space, protects allies through direct mitigation and positioning, and makes the Boss's frontal pressure survivable.
+_Avoid_: Battle captain, support tank
 
 **Threat**:
 A persistent per-Hero value that normally determines which valid Hero a boss targets. Damage dealt to the boss gains equal Threat unless an effect says otherwise.

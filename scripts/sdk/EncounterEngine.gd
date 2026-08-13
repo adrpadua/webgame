@@ -10,6 +10,10 @@ const StatusEffectModel := preload("res://scripts/sdk/StatusEffect.gd")
 const RulesRandomModel := preload("res://scripts/sdk/RulesRandom.gd")
 const FacingDirections := preload("res://scripts/combat/Facing.gd")
 
+const TANK_HIT: StringName = &"tank_hit"
+const RIPOSTE_READY: StringName = &"riposte_ready"
+const SHIELD_SLAM: StringName = &"shield_slam"
+
 var board := BoardStateModel.new()
 var action_resolver := ActionResolverModel.new()
 var timeline_resolver
@@ -136,6 +140,10 @@ func advance_phase() -> Array:
 			_start_window(&"quick")
 			_refresh_telegraphs()
 		&"quick":
+			var expiry_actions := _status_expiry_actions(&"quick")
+			for expiry_action in expiry_actions:
+				apply(expiry_action)
+			actions.append_array(expiry_actions)
 			_cleanup_slots(&"quick")
 			phase = &"incoming"
 		&"incoming":
@@ -184,10 +192,81 @@ func add_status(entity_id: StringName, effect) -> bool:
 	status_effects[entity_id].append(effect)
 	return true
 
+func has_status(entity_id: StringName, status_id: StringName) -> bool:
+	return get_status(entity_id, status_id) != null
+
+func get_status(entity_id: StringName, status_id: StringName):
+	for effect in status_effects.get(entity_id, []):
+		if effect.id == status_id:
+			return effect
+	return null
+
+func remove_status(entity_id: StringName, status_id: StringName) -> bool:
+	var effects: Array = status_effects.get(entity_id, [])
+	for index in effects.size():
+		if effects[index].id == status_id:
+			effects.remove_at(index)
+			status_effects[entity_id] = effects
+			return true
+	return false
+
+func evaluate_damage_status(action, resolution_fact: Dictionary) -> void:
+	if action.source_id != boss_id or action.payload.get("target_id", &"") != primary_hero_id:
+		return
+	if resolution_fact.get("damage_classification", &"") != TANK_HIT:
+		return
+	var guarded_front := BoardQueryModel.is_guarded_front(board, boss_id, primary_hero_id)
+	resolution_fact["guarded_front"] = guarded_front
+	var evaluation := {"status_id": RIPOSTE_READY, "result": &"not_granted", "reason": &""}
+	if int(resolution_fact.get("health_loss", 0)) > 0:
+		evaluation["reason"] = &"health_lost"
+	elif not guarded_front:
+		evaluation["reason"] = &"not_guarded_front"
+	elif has_status(primary_hero_id, RIPOSTE_READY):
+		evaluation["reason"] = &"already_active"
+	else:
+		var effect := StatusEffectModel.new(RIPOSTE_READY, 1, [StatusEffectModel.ON_SLOT_FIRED])
+		effect.title = "Riposte Ready"
+		effect.trigger_reason = &"qualifying_tank_hit"
+		effect.expires_at_window_end = &"quick"
+		effect.consume_on_card_id = SHIELD_SLAM
+		effect.bonus_boss_damage_on_slot_fired = 2
+		effect.source_id = action.source_id
+		effect.source_beat_id = resolution_fact.get("boss_beat_id", &"")
+		effect.trigger_round = round
+		effect.trigger_phase = phase
+		add_status(primary_hero_id, effect)
+		evaluation["result"] = &"granted"
+		evaluation["reason"] = effect.trigger_reason
+		resolution_fact["status_event"] = _status_event(effect, &"granted", effect.trigger_reason)
+	resolution_fact["status_evaluation"] = evaluation
+
+func consume_statuses_for_slot(entity_id: StringName, card) -> Dictionary:
+	var result := {"bonus_boss_damage": 0, "events": []}
+	if card == null:
+		return result
+	var remaining: Array = []
+	for effect in status_effects.get(entity_id, []):
+		var consumes: bool = effect.consume_on_card_id != &"" and effect.consume_on_card_id == card.id and effect.responds_to(StatusEffectModel.ON_SLOT_FIRED)
+		if not consumes:
+			remaining.append(effect)
+			continue
+		var outcome_data: Dictionary = effect.outcome_for(StatusEffectModel.ON_SLOT_FIRED, {"card": card})
+		var bonus := int(outcome_data.get("bonus_boss_damage", 0))
+		result["bonus_boss_damage"] += bonus
+		var event := _status_event(effect, &"consumed", &"matching_card_fired")
+		event["card_id"] = card.id
+		event["bonus_boss_damage"] = bonus
+		result["events"].append(event)
+	status_effects[entity_id] = remaining
+	return result
+
 func status_actions(trigger: StringName, entity_id: StringName, context: Dictionary = {}) -> Array:
 	var actions: Array = []
 	for effect in status_effects.get(entity_id, []):
-		var outcome_data: Dictionary = effect.outcome_for(trigger)
+		if effect.consume_on_card_id != &"":
+			continue
+		var outcome_data: Dictionary = effect.outcome_for(trigger, context)
 		if outcome_data.get("bonus_boss_damage", 0) > 0 and boss_id != entity_id:
 			actions.append(EncounterActionModel.damage(entity_id, boss_id, outcome_data["bonus_boss_damage"], effect.id))
 	return actions
@@ -200,11 +279,15 @@ func hazard_actions(entity_id: StringName, coords: Vector2i) -> Array:
 			actions.append(EncounterActionModel.damage(&"hazard", entity_id, outcome_data["damage"], hazard.id))
 	return actions
 
-func apply_damage(target_id: StringName, amount: int) -> int:
-	var adjusted: int = max(amount, 0)
+func apply_damage(target_id: StringName, amount: int) -> Dictionary:
+	var requested: int = max(amount, 0)
+	var adjusted: int = requested
+	var prevented: int = 0
 	for effect in status_effects.get(target_id, []):
-		adjusted -= int(effect.outcome_for(StatusEffectModel.ON_DAMAGE_TAKEN).get("damage_reduction", 0))
-	adjusted = max(adjusted, 0)
+		var reduction := int(effect.outcome_for(StatusEffectModel.ON_DAMAGE_TAKEN).get("damage_reduction", 0))
+		var before_reduction := adjusted
+		adjusted = max(adjusted - reduction, 0)
+		prevented += before_reduction - adjusted
 	if heroes.has(target_id):
 		var hero: Dictionary = heroes[target_id]
 		var armor_blocked: int = min(int(hero.get("armor", 0)), adjusted)
@@ -214,8 +297,18 @@ func apply_damage(target_id: StringName, amount: int) -> int:
 		hero["health"] = max(int(hero["health"]) - dealt, 0)
 		board.get_entity(target_id)["health"] = hero["health"]
 		heroes[target_id] = hero
-		return dealt
-	return board.damage_entity(target_id, adjusted)
+		return {"requested": requested, "prevented": prevented + armor_blocked, "health_loss": dealt, "target_available": true}
+	var target: Dictionary = board.get_entity(target_id)
+	var health_before := int(target.get("health", 0))
+	var dealt := board.damage_entity(target_id, adjusted)
+	if health_before <= 0:
+		return {"requested": requested, "prevented": prevented, "health_loss": 0, "target_available": false}
+	var resolution_fact := {"requested": requested, "prevented": prevented, "health_loss": dealt, "target_available": true}
+	if target.get("kind") == &"minion" and dealt > 0 and dealt == health_before:
+		board.remove_entity(target_id)
+		status_effects.erase(target_id)
+		resolution_fact["target_removed"] = true
+	return resolution_fact
 
 func next_minion_id() -> StringName:
 	minion_sequence += 1
@@ -341,3 +434,24 @@ func _cleanup_slots(window: StringName) -> void:
 				slot["activated_window"] = &""
 			hero["action_bar"][slot_index] = slot
 		heroes[hero_id] = hero
+
+func _status_expiry_actions(window: StringName) -> Array:
+	var actions: Array = []
+	for entity_id in status_effects:
+		for effect in status_effects[entity_id]:
+			if effect.expires_at_window_end != window:
+				continue
+			actions.append(EncounterActionModel.expire_status(entity_id, effect.id, window, _status_event(effect, &"expired", &"expiry_window_ended")))
+	return actions
+
+func _status_event(effect, event: StringName, reason: StringName) -> Dictionary:
+	return {
+		"status_id": effect.id,
+		"event": event,
+		"reason": reason,
+		"expires_at_window_end": effect.expires_at_window_end,
+		"source_id": effect.source_id,
+		"source_beat_id": effect.source_beat_id,
+		"trigger_round": effect.trigger_round,
+		"trigger_phase": effect.trigger_phase,
+	}

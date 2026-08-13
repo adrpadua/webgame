@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Cross-functional coordination dashboard for the Embermaw prototype."
+    />
+    <title>Embermaw · Coordination Board</title>
+    <style>
+      :root {
+        --ink: #eff3ff;
+        --muted: #aeb8d0;
+        --panel: #11182a;
+        --panel-strong: #17213a;
+        --line: #2b3c61;
+        --blue: #68b6ff;
+        --gold: #f5c860;
+        --green: #59d494;
+        --orange: #ff9f6a;
+        --pink: #ff8fb1;
+        --violet: #b89cff;
+        --canvas: #080d18;
+      }
+
+      * { box-sizing: border-box; }
+      html { background: var(--canvas); }
+      body {
+        margin: 0;
+        min-width: 320px;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 82% -8%, #243b6a 0, transparent 32rem),
+          radial-gradient(circle at 8% 20%, #173a51 0, transparent 27rem),
+          var(--canvas);
+        font: 16px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      a { color: var(--blue); }
+      a:hover { color: #b8dcff; }
+      .shell { max-width: 1400px; margin: 0 auto; padding: 36px 24px 56px; }
+      .eyebrow {
+        color: var(--gold); font-size: .75rem; font-weight: 800; letter-spacing: .14em;
+        text-transform: uppercase;
+      }
+      h1, h2, h3, p { margin-top: 0; }
+      h1 { margin-bottom: 8px; font-size: clamp(2rem, 5vw, 4.25rem); line-height: 1; letter-spacing: -.055em; }
+      h2 { font-size: 1.25rem; letter-spacing: -.025em; }
+      h3 { font-size: 1rem; margin-bottom: 7px; }
+      .lede { max-width: 730px; color: var(--muted); font-size: 1.08rem; }
+      .topbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+      .stamp { border: 1px solid var(--line); background: #0e1526bb; border-radius: 12px; padding: 10px 13px; color: var(--muted); font-size: .82rem; white-space: nowrap; }
+      .stamp strong { color: var(--green); }
+      .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0 38px; }
+      .metric { border: 1px solid var(--line); background: #0e1526cc; border-radius: 14px; padding: 15px; }
+      .metric b { display: block; font-size: 1.6rem; line-height: 1.1; }
+      .metric span { color: var(--muted); font-size: .8rem; }
+      .metric.done b { color: var(--green); }
+      .metric.review b { color: var(--gold); }
+      .metric.open b { color: var(--orange); }
+      .metric.risk b { color: var(--pink); }
+      .section-title { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin: 30px 0 12px; }
+      .section-title p { margin: 0; color: var(--muted); font-size: .9rem; }
+      .lanes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 13px; }
+      .lane { border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 14px; background: linear-gradient(160deg, #17233dcc, #101727e8); overflow: hidden; }
+      .lane-head { padding: 15px 15px 10px; min-height: 107px; }
+      .lane-head p { color: var(--muted); font-size: .83rem; margin: 6px 0 0; }
+      .lane-body { border-top: 1px solid var(--line); padding: 13px 15px 16px; }
+      .state { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+      .state::before { content: ""; width: 7px; height: 7px; background: currentColor; border-radius: 50%; box-shadow: 0 0 12px currentColor; }
+      .task { margin: 13px 0 0; padding-top: 12px; border-top: 1px solid #263656; }
+      .task:first-of-type { border-top: 0; padding-top: 0; }
+      .task p { margin: 0; color: var(--muted); font-size: .84rem; }
+      .next { margin-top: 14px; padding: 10px; border-left: 2px solid var(--accent); color: var(--muted); background: #09111f77; font-size: .82rem; }
+      .next b { color: var(--ink); }
+      .orchestrator { --accent: var(--gold); }
+      .architecture { --accent: var(--violet); }
+      .design { --accent: var(--orange); }
+      .qa { --accent: var(--green); }
+      .ui { --accent: var(--blue); }
+      .flow { display: grid; grid-template-columns: 1fr 88px 1fr 88px 1fr; align-items: stretch; gap: 8px; }
+      .flow-card { border: 1px solid var(--line); background: var(--panel); border-radius: 13px; padding: 16px; }
+      .flow-card p { margin-bottom: 0; color: var(--muted); font-size: .9rem; }
+      .arrow { display: grid; place-items: center; color: var(--gold); font-weight: 800; font-size: 1.8rem; }
+      .arrow span { display: block; color: var(--muted); font-size: .7rem; line-height: 1.2; text-align: center; font-weight: 600; }
+      .source-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 14px; }
+      .sources, .gate { border: 1px solid var(--line); border-radius: 14px; background: #0e1526cc; padding: 18px; }
+      .sources ul, .gate ul { padding-left: 18px; margin: 0; }
+      .sources li, .gate li { margin: 8px 0; color: var(--muted); }
+      .sources strong, .gate strong { color: var(--ink); }
+      .gate { border-color: #806422; background: linear-gradient(135deg, #241c0d, #11182a); }
+      .gate h2 { color: var(--gold); }
+      .open-questions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      .question { border: 1px solid #59415a; border-radius: 12px; padding: 15px; background: #1c1423bb; }
+      .question .label { color: var(--pink); font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+      .question p { margin: 8px 0 0; color: var(--muted); font-size: .88rem; }
+      footer { margin-top: 28px; color: #7e8ba8; font-size: .8rem; }
+      @media (max-width: 1120px) { .lanes { grid-template-columns: repeat(3, 1fr); } }
+      @media (max-width: 800px) { .summary, .open-questions { grid-template-columns: repeat(2, 1fr); } .flow { grid-template-columns: 1fr; } .arrow { transform: rotate(90deg); min-height: 34px; } .source-grid { grid-template-columns: 1fr; } }
+      @media (max-width: 600px) { .shell { padding: 26px 15px 42px; } .topbar { display: block; } .stamp { display: inline-block; margin-top: 8px; } .lanes, .summary, .open-questions { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">Embermaw prototype · cross-functional view</div>
+          <h1>Coordination Board</h1>
+          <p class="lede">A concise view of the four working lanes and the orchestrator keeping their rules, implementation, UX, automation, and documentation in agreement.</p>
+        </div>
+        <div class="stamp" aria-live="polite"><strong>● Live repository view</strong><br /><span id="last-sync">Connecting to coordination ledger…</span></div>
+      </header>
+
+      <section class="summary" aria-label="Project summary">
+        <div class="metric done"><b id="completed-count">3</b><span>Completed task lanes</span></div>
+        <div class="metric review"><b id="review-count">1</b><span>Independent QA review pending</span></div>
+        <div class="metric open"><b id="open-count">2</b><span>Open cross-team decisions</span></div>
+        <div class="metric risk"><b>1</b><span>Deferred integration dependency</span></div>
+      </section>
+
+      <section aria-labelledby="lanes-title">
+        <div class="section-title"><h2 id="lanes-title">Who is doing what</h2><p>Each lane owns its area; the orchestrator owns alignment.</p></div>
+        <div class="lanes">
+          <article class="lane orchestrator" data-lane="Orchestrator">
+            <div class="lane-head"><span class="state">Coordinating</span><h3>Orchestrator</h3><p>Integration, handoffs, canonical docs, milestone checks.</p></div>
+            <div class="lane-body">
+              <div class="task"><h3>Current work</h3><p>Wait for QA’s independent Encounter Record review, reconcile findings, and keep the handoff ledger current.</p></div>
+              <div class="task"><h3>Protected boundary</h3><p>Architecture’s recorder hooks in <code>Main.gd</code> must preserve UI’s art-first Hand and Action Bar.</p></div>
+              <div class="next"><b>Next:</b> Verify closure evidence before declaring the telemetry milestone complete.</div>
+            </div>
+          </article>
+
+          <article class="lane architecture" data-lane="Architecture">
+            <div class="lane-head"><span class="state" data-state>Review pending</span><h3>Architecture</h3><p>Rules SDK and local Encounter Record/report layer.</p></div>
+            <div class="lane-body">
+              <div class="task"><h3>Completed</h3><p>Schema v1 records, fingerprinted reports, lifecycle sealing, explicit damage facts, and scene integration.</p></div>
+              <div class="task"><h3>Boundary</h3><p><code>EncounterEngine</code> remains the sole rules authority; records live off-HUD.</p></div>
+              <div class="next" data-next><b>Next:</b> Respond to QA review findings, if any.</div>
+            </div>
+          </article>
+
+          <article class="lane design" data-lane="Design">
+            <div class="lane-head"><span class="state" data-state>Complete</span><h3>Game Design</h3><p>Aegis Guardian rules and executable acceptance contracts.</p></div>
+            <div class="lane-body">
+              <div class="task"><h3>Completed</h3><p>Whelp Clear and Slow Top Card cleanup contracts, including exact legal actions and rejection cases.</p></div>
+              <div class="task"><h3>Deferred</h3><p>Live deck changes, Interception, multi-Hero targeting, and Phase II await shared contracts and playtest evidence.</p></div>
+              <div class="next" data-next><b>Next:</b> Evaluate five-identity deck Slot Tension through controlled playtests.</div>
+            </div>
+          </article>
+
+          <article class="lane qa" data-lane="QA">
+            <div class="lane-head"><span class="state" data-state>Review pending</span><h3>QA Automation</h3><p>Seeded replay harness and independent contract validation.</p></div>
+            <div class="lane-body">
+              <div class="task"><h3>Completed</h3><p>Stable headless probes and seeded replay coverage protect the current Encounter loop.</p></div>
+              <div class="task"><h3>Review now</h3><p>Validate schema v1, local artifacts, report grouping, malformed records, and terminal/restart lifecycle behavior.</p></div>
+              <div class="next" data-next><b>Blocked by future API:</b> Whelp replay scenarios need <code>place_minion</code> and typed <code>fire_slot(..., target_id)</code>.</div>
+            </div>
+          </article>
+
+          <article class="lane ui" data-lane="UI/UX">
+            <div class="lane-head"><span class="state" data-state>Complete</span><h3>UI / UX</h3><p>Art-first mobile Hand and Action Bar presentation.</p></div>
+            <div class="lane-body">
+              <div class="task"><h3>Completed</h3><p>Illustrated cards, enlarged prepared-action frames, preserved drag/tap/hold behavior, and accessibility checks.</p></div>
+              <div class="task"><h3>Constraint</h3><p>The Bottom Interaction Zone is reserved for direct player input—not telemetry or a combat log.</p></div>
+              <div class="next" data-next><b>Next:</b> Keep UI probes and accessibility guidance aligned with later interaction changes.</div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="flow-title">
+        <div class="section-title"><h2 id="flow-title">The active handoff</h2><p>Architecture has delivered; QA independently verifies; orchestration closes the loop.</p></div>
+        <div class="flow">
+          <article class="flow-card"><div class="eyebrow">Architecture</div><h3>Encounter Record v1</h3><p>Local JSON/Markdown artifacts, seeded replay IDs, content fingerprints, report command, damage facts, and exactly-once sealing.</p></article>
+          <div class="arrow" aria-hidden="true">→<span>schema & lifecycle<br />for review</span></div>
+          <article class="flow-card"><div class="eyebrow">QA Automation</div><h3>Independent validation</h3><p>Run record probes against schema, malformed input diagnostics, aggregate grouping, and completion/restart lifecycle.</p></article>
+          <div class="arrow" aria-hidden="true">→<span>evidence or<br />findings</span></div>
+          <article class="flow-card"><div class="eyebrow">Orchestrator</div><h3>Milestone decision</h3><p>Confirm documentation, implementation, and test evidence agree—or route a precise follow-up to the responsible owner.</p></article>
+        </div>
+      </section>
+
+      <section class="source-grid" aria-labelledby="truth-title">
+        <article class="sources">
+          <div class="section-title"><h2 id="truth-title">Sources of truth</h2></div>
+          <ul>
+            <li><strong>Shared language and rules:</strong> <a href="../../CONTEXT.md">CONTEXT.md</a> and the relevant content contracts.</li>
+            <li><strong>Architecture decisions:</strong> <a href="../adr/">docs/adr/</a>.</li>
+            <li><strong>Design acceptance:</strong> <a href="../content/aegis-guardian-acceptance-contracts.md">Aegis Guardian acceptance contracts</a>.</li>
+            <li><strong>QA expectations:</strong> <a href="../artifacts/probe-harness.md">Spikes and Probes Harness</a>.</li>
+            <li><strong>UI behavior:</strong> <a href="../artifacts/embermaw-vertical-slice.md">vertical-slice artifact</a> and <a href="../artifacts/accessibility.md">accessibility contract</a>.</li>
+            <li><strong>Telemetry contract:</strong> <a href="../artifacts/encounter-records.md">Encounter Records</a>.</li>
+            <li><strong>Handoff ledger:</strong> <a href="../artifacts/project-coordination.md">Project Coordination</a>.</li>
+          </ul>
+        </article>
+        <article class="gate">
+          <h2>Milestone gate</h2>
+          <ul>
+            <li><strong>Implementation</strong> matches the applicable rule or ADR.</li>
+            <li><strong>Focused automated coverage</strong> passes with evidence.</li>
+            <li><strong>Canonical documentation</strong> is updated.</li>
+            <li><strong>Orchestrator</strong> confirms no active cross-team conflict remains.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section aria-labelledby="questions-title">
+        <div class="section-title"><h2 id="questions-title">Open decisions & dependencies</h2><p>Visible uncertainty is intentional; none of these should silently turn into implementation work.</p></div>
+        <div class="open-questions">
+          <article class="question"><div class="label">Design question</div><p>Does the five-identity Aegis test deck improve Slot Tension over the two-card baseline? Design owns the controlled-playtest recommendation.</p></article>
+          <article class="question"><div class="label">Cross-team contract</div><p>Multi-Hero targeting, ordering, and Interception need a shared Design, Architecture, UI/UX, and QA specification before work begins.</p></article>
+          <article class="question"><div class="label">Future QA dependency</div><p>Whelp coverage waits for setup-only Minion placement and typed target selection in the scenario layer. This is not yet a live gameplay change.</p></article>
+        </div>
+      </section>
+
+      <footer>Built from the repository’s current coordination, design, QA, UI, and telemetry artifacts. This page polls <code>project-coordination.md</code>; linked documents remain authoritative.</footer>
+    </main>
+    <script>
+      const clean = (value) => value.replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1");
+
+      function setLane(lane) {
+        const card = document.querySelector(`[data-lane="${lane.area}"]`);
+        if (!card) return;
+        const state = card.querySelector("[data-state]");
+        const next = card.querySelector("[data-next]");
+        if (state) state.textContent = lane.state;
+        if (next) next.innerHTML = `<b>Next:</b> ${clean(lane.next)}`;
+      }
+
+      async function refreshDashboard() {
+        try {
+          const response = await fetch("/api/coordination", { cache: "no-store" });
+          if (!response.ok) throw new Error("coordination ledger is unavailable");
+          const data = await response.json();
+          data.lanes.forEach(setLane);
+          document.querySelector("#completed-count").textContent = data.summary.completed;
+          document.querySelector("#review-count").textContent = data.summary.review;
+          document.querySelector("#open-count").textContent = data.summary.openQuestions;
+          document.querySelector("#last-sync").textContent = `Ledger checked ${new Date(data.updatedAt).toLocaleTimeString()}`;
+        } catch (error) {
+          document.querySelector("#last-sync").textContent = "Waiting for the local dashboard server…";
+        }
+      }
+
+      refreshDashboard();
+      window.setInterval(refreshDashboard, 3000);
+    </script>
+  </body>
+</html>

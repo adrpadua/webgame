@@ -60,6 +60,7 @@ References:
 Borrow:
 
 - authored hero decks with strong class identity
+- a distinct internal engine for every Hero: setup pieces, converters, payoffs, and recovery tools make a role feel learned rather than merely selected
 - a mostly automated boss or villain script
 - cooperative play where players bring different tactical roles to the same encounter
 
@@ -68,11 +69,13 @@ Do not borrow:
 - fully non-spatial combat
 - pure deck-silo interaction where the board is only status text
 - long text density as the default way to express content
+- unbounded reaction chains or exceptions that hide the base turn structure
 
 Why it fits this repo:
 
 - This project wants role kits that feel authored, not generic.
 - A scripted boss deck that mostly runs itself is much closer to a raid encounter than a reactive enemy hand.
+- The Action Bar and Charge Stack make a Hero's engine visible on a phone; range, facing, and telegraphs determine what that engine should do for the party.
 
 Reference:
 

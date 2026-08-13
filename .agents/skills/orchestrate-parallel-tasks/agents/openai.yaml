@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orchestrate Parallel Tasks"
+  short_description: "Coordinate parallel Codex tasks and maintain project truth."
+  default_prompt: "Coordinate the active parallel Codex tasks, reconcile dependencies, and update the repository sources of truth."
