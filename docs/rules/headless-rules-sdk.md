@@ -30,7 +30,7 @@ Authored Resources -> EncounterEngine -> action history/state -> scene projectio
 | --- | --- |
 | `EncounterEngine` | Encounter state, phase progression, action legality and state transitions, action history, seeded deck order, and outcomes. One module (ADR 0014): resolution is private implementation behind `apply`. |
 | `EncounterAction` | First-class player, Boss, Hazard, Minion, and damage requests. |
-| `TimelineResolver` | Boss Beat conversion into generated actions. Internal collaborator below the engine seam. |
+| `TimelineResolver` | Authored Boss Beat resolution: each Beat kind's spatial rule and its conversion into generated actions (ADR 0016). Internal collaborator below the engine seam. |
 | `CardResolver` | Top Card and Charge Stack effects, including Keyword Charge Modifiers. Internal collaborator below the engine seam. |
 | `BoardState` / `BoardQuery` | Scene-free placement, Hazards, target-pattern geometry, range, and movement legality. Target-pattern vocabulary, bindings, and reference-only asset mapping are defined in [Prototype Rules](prototype-rules.md#reusable-target-pattern-catalog). |
 | Scene projections | Read-only state shaped for existing controls and panels. |

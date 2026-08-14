@@ -4,7 +4,7 @@ The harness keeps the **Encounter** rules and player-facing presentation indepen
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1
-powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe rules,resolver
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe rules,boss_beats
 powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Scenario full_charge_cleanup
 powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Godot 'C:\path\to\Godot_console.exe'
 ```
@@ -19,7 +19,7 @@ The default suite is intentionally named and stable. The runner gives each Probe
 | `engine_seam` | The Encounter Engine module surface: the documented seam and read projections are callable, the action-resolution callback surface is not, no resolver collaborator is exposed, no separate resolver module exists, and the load/charge/fire flow resolves through `apply` alone. |
 | `action_stream` | ADR 0015's stream contract: Full-Charge Cleanup, Round rollover (with draws and reshuffles), every phase transition, and Encounter Clock expiry ride history as first-class actions; `advance_phase` returns its complete ordered slice; and `PlayerState` folds the stream into consumed-once Slot transition cues. |
 | `parity` | Visible direct-manipulation flows project the same rules state and outcomes owned by `EncounterEngine`. |
-| `resolver` | Spatial resolution of authored Boss Timeline beats from an `EncounterSnapshot`. |
+| `boss_beats` | Authored Boss Timeline Beat contracts through the engine seam — targeted Tank Hits on and off the former arc, scorching, cone hit/miss, facing snap, spawn selection — and the collapsed-chain shape (no resolver, snapshot, or resolution module beside `TimelineResolver`). |
 | `target_patterns` | BoardQuery-owned reusable Target Pattern catalog results for all nine core patterns, six legal facings where applicable, stable ordering, and edge clipping. |
 | `target_bound_patterns` | BoardQuery-owned Target-Bound Pattern resolution: Tank selector first, source-to-target Facing snap, selected-versus-affected Piece identity, inclusion, continuation, and clipping. |
 | `encounter` | New-player direct-manipulation flow through several complete Rounds. |
