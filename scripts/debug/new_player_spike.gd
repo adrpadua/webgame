@@ -17,7 +17,8 @@ func _initialize() -> void:
 	_assert(turn_manager.phase == turn_manager.Phase.LOADOUT, "A new player starts in Loadout.")
 	_assert(main.mobile_continue_button.visible, "Loadout must show a visible continue control on mobile.")
 	_assert(player.hand.size() == 4, "A new player begins with four cards.")
-	_assert(main._get_action_guide_text().contains("prepare") and main._get_action_guide_text().contains("inspect"), "Loadout guide should teach preparation, replacement, inspection, and continuing.")
+	var loadout_guide: String = main._get_action_guide_text()
+	_assert(loadout_guide.contains("Put a hand card") and loadout_guide.contains("replaces") and loadout_guide.contains("inspect") and loadout_guide.contains("Play"), "Loadout guide should teach preparation, replacement, inspection, and continuing.")
 
 	var quick_top := _first_card_for_window(player.hand, &"quick")
 	_assert(quick_top != null and player.prepare_slot(0, quick_top), "The player can prepare a Quick Top Card during Loadout.")
