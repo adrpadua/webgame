@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "pilot-01-mobile-safe-bounds-ui",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T04:55:00-07:00",
+  "owner": "UI/UX",
+  "canonical_issue": ".scratch/harden-mobile-layout-safe-bounds/issues/02-implement-mobile-safe-bounds.md",
+  "objective": "Implement the approved strong mobile safe-bounds contract for always-visible and transient prompt-adjacent required controls, including fully in-bounds placement, explicit edge padding, and readable non-clipped content at supported portrait sizes.",
+  "non_goals": [
+    "No broad combat HUD redesign",
+    "No gameplay, action-timing, or input-authority change",
+    "No new controls or utility surfaces",
+    "No merger with unrelated regressions"
+  ],
+  "expected_writers": {
+    "assignment": "Coordinator",
+    "acknowledgment": "UI/UX",
+    "completion": "UI/UX"
+  },
+  "dependencies": [
+    {
+      "id": "safe-bounds-policy",
+      "state": "satisfied"
+    },
+    {
+      "id": "separate-mobile-layout-regression",
+      "state": "satisfied"
+    }
+  ],
+  "required_evidence": [
+    "Focused portrait safe-bounds probe covers 390x844 and the default non-headless path",
+    "Negative coverage fails clipped, off-screen, or unreadable required controls",
+    "Architecture and Test Automation independently verify before shared-file ownership release"
+  ],
+  "next_owner": "UI/UX"
+}

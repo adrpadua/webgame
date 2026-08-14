@@ -30,6 +30,8 @@ func resolve_boss_beat(engine, boss_id: StringName, beat, track: StringName = &"
 			"boss_beat_id": beat.id,
 			"boss_track": track,
 		}
+		if beat.target_selector != &"":
+			damage_context["target_selector"] = beat.target_selector
 		if beat.damage_classification != &"":
 			damage_context["damage_classification"] = beat.damage_classification
 		actions.append(EncounterActionModel.damage(boss_id, engine.primary_hero_id, resolution.player_damage, beat.title, damage_context))

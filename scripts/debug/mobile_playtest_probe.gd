@@ -25,9 +25,9 @@ func _initialize() -> void:
 	var mobile_tempo_bar: Label = main.get_node("%MobileTempoBar")
 	var mobile_tempo_spend_label: Label = main.get_node("%MobileTempoSpendLabel")
 	var mobile_turn_tracker: Label = main.get_node("%MobileTurnTracker")
-	var mobile_continue_button: Button = main.get_node("MobileContinueButton")
-	var mobile_help_button: Button = main.get_node("MobileHelpButton")
-	var mobile_help_pane: Control = main.get_node("MobileHelpPane")
+	var mobile_continue_button: Button = main.get_node("Root/MobileStatus/MobileControlsRow/MobileContinueButton")
+	var mobile_help_button: Button = main.get_node("Root/MobileStatus/MobileControlsRow/MobileHelpButton")
+	var mobile_help_pane: Control = main.get_node("Root/MobileStatus/MobileHelpPane")
 	var board_title: Control = main.get_node("Root/MainArea/LeftPanel/BoardTitle")
 
 	_assert(mobile_status.visible, "Mobile status should be visible in portrait.")

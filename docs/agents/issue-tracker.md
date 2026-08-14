@@ -29,6 +29,8 @@ Product proposals enter through `.scratch/product-backlog/`:
 
 After a `ready-for-agent` handoff, the orchestrator owns delivery decomposition, sequencing, dependencies, and closure. Preserve the confirmed product outcome; route any proposed outcome change back to PM and the user. Create implementation scope and tickets in a separate `.scratch/<feature>/` directory, leaving the product proposal as the intake record.
 
+When a delivery uses deterministic handoff packets, keep the issue file as the scope and status record and store durable assignment/acknowledgment/completion evidence under `docs/artifacts/handoff-packets/<handoff-id>/`. The packet schema and advisory validator live in `docs/artifacts/handoff-packets.md`; issue comments and task messages may link packet verdicts but are not the packet authority.
+
 ## Wayfinding operations
 
 Used by `/wayfinder`. The map is a file with one child file per ticket.

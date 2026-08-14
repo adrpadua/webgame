@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "duplicated-fixture-id",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T05:06:00-07:00",
+  "owner": "Architecture",
+  "canonical_issue": ".scratch/example.md",
+  "objective": "Duplicate ID second fixture.",
+  "non_goals": [],
+  "expected_writers": {
+    "assignment": "Coordinator",
+    "acknowledgment": "Architecture",
+    "completion": "Architecture"
+  },
+  "dependencies": [],
+  "required_evidence": [],
+  "next_owner": "Architecture"
+}

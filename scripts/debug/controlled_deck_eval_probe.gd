@@ -10,14 +10,9 @@ var failures: Array[String] = []
 func _initialize() -> void:
 	BaselineGenerator.clear_record_root()
 	_assert(CONTROLLED_DECK.resource_path == "res://resources/decks/evaluation/aegis_controlled_test_deck.tres", "Controlled deck must use the non-default evaluation resource path.")
-	_assert(_composition(CONTROLLED_DECK.player_deck) == {
-		"steady_strike": 8,
-		"iron_guard": 6,
-		"sweeping_blow": 2,
-		"fortify": 2,
-		"shield_slam": 2,
-	}, "Controlled deck must match the approved 8/6/2/2/2 composition.")
-	_assert(_composition(ENCOUNTER.player_deck) == {"steady_strike": 10, "iron_guard": 10}, "Live default starter deck must remain unchanged.")
+	_assert(CONTROLLED_DECK.resource_path != ENCOUNTER.resource_path, "Controlled deck must remain distinct from the live/default Encounter resource.")
+	_assert(CONTROLLED_DECK.encounter == ENCOUNTER, "Controlled deck must wrap the live Encounter without becoming the live/default resource.")
+	_assert(_composition(CONTROLLED_DECK.player_deck) == _shield_wall_composition(), "Controlled deck must match the approved 8/6/2/2/2 historical/repro composition.")
 	var records := BaselineGenerator.generate({
 		"deck_config": CONTROLLED_DECK,
 		"run_label_prefix": "controlled",
@@ -36,6 +31,7 @@ func _initialize() -> void:
 		_assert(record.get("content", {}).get("root", {}).get("path", "") == CONTROLLED_DECK.resource_path, "Controlled records must fingerprint the evaluation-only deck config.")
 		_assert(not record.get("phase_observations", []).is_empty(), "Controlled records must include phase observations.")
 	_assert(labels.has("controlled-a") and labels.has("controlled-b") and labels.has("controlled-c"), "Controlled labels must be controlled-a, controlled-b, and controlled-c.")
+	_assert(not labels.has("baseline-a") and not labels.has("starter-promotion-a"), "Controlled labels must remain separate from historical baseline and post-promotion evidence.")
 	_assert(fingerprints.size() == 1, "The three controlled records must share one unchanged content fingerprint.")
 	_assert(_has_riposte_shield_slam_payoff(records), "At least one controlled fixed-seed run must reach legal Riposte Ready consumption through Shield Slam without forced hand/order setup.")
 	if failures.is_empty():
@@ -51,6 +47,15 @@ func _composition(cards: Array) -> Dictionary:
 	for card in cards:
 		result[str(card.id)] = int(result.get(str(card.id), 0)) + 1
 	return result
+
+func _shield_wall_composition() -> Dictionary:
+	return {
+		"steady_strike": 8,
+		"iron_guard": 6,
+		"sweeping_blow": 2,
+		"fortify": 2,
+		"shield_slam": 2,
+	}
 
 func _has_riposte_shield_slam_payoff(records: Array) -> bool:
 	for record in records:

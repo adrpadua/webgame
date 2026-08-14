@@ -5,13 +5,13 @@ Owner: Game Design
 
 ## Outcome
 
-Make the approved Shield Wall list the documented current live/default Aegis starter deck, while preserving the old two-card baseline and proposal-03 evaluation-only authorization as historical records.
+Make the approved Shield Wall list the documented current live/default Elian starter deck, while preserving the old two-card baseline and proposal-03 evaluation-only authorization as historical records.
 
 ## Canonical Sources
 
 - `CONTEXT.md`
-- `docs/content/heroes/aegis-guardian-design.md`
-- `docs/content/decks/aegis-guardian-starter.md`
+- `docs/content/heroes/elian-voss-design.md`
+- `docs/content/decks/elian-voss-starter.md`
 - `docs/rules/character-design-bible.md`
 - `docs/content/deck-evaluation-rubric.md`
 - `docs/content/first-content-pass.md`
@@ -27,7 +27,7 @@ No live resource edit, value/rule change, tuning conclusion, or teaching/pacing 
 
 ## Handoff
 
-Design reconciled the canonical intent without editing the runnable resource. Updated paths are `docs/content/heroes/aegis-guardian-design.md`, `docs/content/decks/aegis-guardian-starter.md`, `docs/rules/character-design-bible.md`, `docs/content/deck-evaluation-rubric.md`, and `docs/content/first-content-pass.md`; `CONTEXT.md` remains unchanged because no rules term or Riposte/Shield Slam contract changed.
+Design reconciled the canonical intent without editing the runnable resource. Updated paths are `docs/content/heroes/elian-voss-design.md`, `docs/content/decks/elian-voss-starter.md`, `docs/rules/character-design-bible.md`, `docs/content/deck-evaluation-rubric.md`, and `docs/content/first-content-pass.md`; `CONTEXT.md` remains unchanged because no rules term or Riposte/Shield Slam contract changed.
 
 The documents state the approved `8/6/2/2/2` default specification, retain the `10x/10x` result as historical baseline evidence, and explicitly say `resources/encounters/embermaw_prototype.tres` still needs Architecture migration. Proposal 03 is superseded only for default adoption; its controlled evidence remains historical.
 

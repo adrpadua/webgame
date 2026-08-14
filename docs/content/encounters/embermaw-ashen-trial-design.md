@@ -46,7 +46,7 @@ Damage is a consequence of a pattern. A timeline card must not be authored as a 
 - **Failure:** the frontmost target takes a Tank Hit; every additional target in the arc takes a Raid Hit.
 - **Teaching value:** facing defines a front and position changes who is responsible for the hit.
 
-This is the baseline tank check. It is deliberately survivable in the one-player demo, where Aegis Guardian is always the frontmost target.
+This is the baseline tank check. It is deliberately survivable in the one-player demo, where Elian Voss is always the frontmost target.
 
 ### Cinder Breath
 
@@ -57,6 +57,17 @@ This is the baseline tank check. It is deliberately survivable in the one-player
 - **Teaching value:** an obvious board overlay turns the boss's facing into a party-wide movement problem.
 
 `Scorched` hexes deal a small hit when entered and prevent a player from ending a voluntary move there. They are a constraint, not a source of surprise damage.
+
+### Future Party Pattern Example: Furnace Cleave
+
+This is a future human-readable example only, not current Embermaw resource content.
+
+- **Selector:** Tank.
+- **Pattern:** `FrontCone`, range 2, source Embermaw, Facing derived from Embermaw's hex to the selected Tank's hex.
+- **Inclusion:** the selected Tank's hex is included. The cone continues beyond the Tank, so any non-Tank Hero standing behind the Tank in that projected cone is also affected.
+- **Answer:** the Tank holds or moves to aim the cleave away from the raid; non-Tanks avoid the projected cone behind the Tank.
+- **Failure:** the selected Tank takes the authored Tank damage; every other Hero in the resolved cone takes the authored Raid damage.
+- **Teaching value:** tanks face the boss away from the raid by controlling position, while the rest of the party reads the projection and avoids standing behind the Tank.
 
 ### Brood Call
 
@@ -122,7 +133,7 @@ The break is a readability beat. It refreshes the board's meaning instead of int
 | Healer | stabilizes failed patterns, clears Ashen Brand, preserves party freedom to move | invests in mitigation for unavoidable overlap |
 | Damage | clears Whelps, interrupts Cinder Breath, exploits openings after Tail | supplies mobility or displacement to resolve shared patterns |
 
-In the current solo tank demo, Aegis Guardian receives all three responsibilities in simplified form: armor answers Claw, paid movement answers Breath/Brand, and attacks clear Whelps. The multiplayer rules must preserve specialization instead of letting the tank trivialize every Raid Hit.
+In the current solo tank demo, Elian Voss receives all three responsibilities in simplified form: armor answers Claw, paid movement answers Breath/Brand, and attacks clear Whelps. The multiplayer rules must preserve specialization instead of letting the tank trivialize every Raid Hit.
 
 ## Mobile Presentation
 

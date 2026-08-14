@@ -19,8 +19,13 @@ func _initialize() -> void:
 
 	var snapshot = _snapshot(Vector2i(0, 0))
 	var claw_resolution = resolver.resolve_beat(claw, snapshot)
-	_assert(claw_resolution.player_damage == 4, "Raking Claw should hit a player in the front arc")
-	_assert(claw_resolution.impacted_hexes == [Vector2i(0, 0)], "Raking Claw should record the struck hex")
+	_assert(claw.target_selector == &"tank", "Raking Claw must author the Tank selector.")
+	_assert(claw.counter_tags == [&"Mitigate"], "Raking Claw must no longer advertise movement evasion.")
+	_assert(claw_resolution.player_damage == 4, "Raking Claw should hit the Tank in the former front arc.")
+	_assert(claw_resolution.impacted_hexes == [Vector2i(0, 0)], "Raking Claw should record the targeted Tank hex.")
+	var off_arc_claw_resolution = resolver.resolve_beat(claw, _snapshot(Vector2i(0, -1)))
+	_assert(off_arc_claw_resolution.player_damage == 4, "Raking Claw must damage the Tank even when off the former front arc.")
+	_assert(off_arc_claw_resolution.impacted_hexes == [Vector2i(0, -1)], "Raking Claw must record the targeted Tank hex when movement leaves the former arc.")
 
 	var scar_snapshot = _snapshot(Vector2i(0, -1))
 	scar_snapshot.previous_impacted_hexes = claw_resolution.impacted_hexes

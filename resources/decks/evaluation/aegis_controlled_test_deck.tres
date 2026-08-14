@@ -11,7 +11,7 @@
 [resource]
 script = ExtResource("1_deck")
 id = &"aegis_controlled_test_deck"
-title = "Aegis Controlled Test Deck"
-rules_text = "Evaluation-only controlled Aegis Guardian test deck. This resource is not the default starter deck and exists only for fixed-seed deck evaluation cohorts."
+title = "Elian controlled Test Deck"
+rules_text = "Evaluation-only controlled Elian Voss test deck. This resource is not the default starter deck and exists only for fixed-seed deck evaluation cohorts."
 encounter = ExtResource("2_encounter")
 player_deck = Array[Resource]([ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("3_strike"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("4_guard"), ExtResource("5_sweep"), ExtResource("5_sweep"), ExtResource("6_fortify"), ExtResource("6_fortify"), ExtResource("7_slam"), ExtResource("7_slam")])

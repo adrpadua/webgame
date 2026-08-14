@@ -1,10 +1,10 @@
-# Combat Postures — Aegis Guardian First Slice
+# Combat Postures — Elian Voss First Slice
 
 Status: resolved
 
 ## Intake
 
-Authorized product proposal: [`.scratch/product-backlog/issues/01-combat-postures-aegis-guardian.md`](../product-backlog/issues/01-combat-postures-aegis-guardian.md), approved by the user on 2026-08-13.
+Authorized product proposal: [`.scratch/product-backlog/issues/01-combat-postures-elian-voss.md`](../product-backlog/issues/01-combat-postures-elian-voss.md), approved by the user on 2026-08-13.
 
 The confirmed outcome and explicit non-goals in that proposal are fixed delivery constraints. Any material outcome change returns to Product Management and the user.
 
@@ -23,7 +23,7 @@ Captain Elian Voss earns one visible, non-stacking, non-refreshing **Riposte Rea
 ## Shared Contracts
 
 - Rules and terms: `CONTEXT.md`
-- Aegis intent: `docs/content/heroes/aegis-guardian-design.md`
+- Elian intent: `docs/content/heroes/elian-voss-design.md`
 - Hero authoring constraints: `docs/rules/character-design-bible.md`
 - UI/accessibility: `docs/artifacts/embermaw-vertical-slice.md`, `docs/artifacts/accessibility.md`
 - Validation: `docs/artifacts/probe-harness.md`

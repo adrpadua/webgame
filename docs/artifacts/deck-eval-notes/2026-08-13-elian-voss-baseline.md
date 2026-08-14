@@ -1,8 +1,8 @@
-# Deck Evaluation Note: Aegis Guardian Live Baseline
+# Deck Evaluation Note: Elian Voss Live Baseline
 
 Date: 2026-08-13  
 Reviewer: Game Design, deterministic-record review  
-Deck/resource: Live Aegis Guardian starter deck, `10x Steady Strike` and `10x Iron Guard`  
+Deck/resource: Live Elian Voss starter deck, `10x Steady Strike` and `10x Iron Guard`  
 Encounter/resource: `resources/encounters/embermaw_prototype.tres`  
 Seed labels: `baseline-a` (`1337`), `baseline-b` (`7331`), `baseline-c` (`20260813`)  
 Content fingerprint: `b6e02c7931b56fe22492b1313e1ed64dc32daf2cd190bfa8f48272caa0ef4733`  

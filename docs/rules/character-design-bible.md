@@ -107,11 +107,11 @@ Give every card a deliberate place in the machine. For an initial 20-card deck, 
 | Recovery / tutor | Restarts a disrupted engine or makes a narrow plan reliable. | Sparse and purposeful. | It eliminates all hand and Slot tension. |
 | Signature exception | Makes this Hero feel unlike any other. | One compact, well-tested subsystem. | It adds an unbounded rules exception or a new invisible meter. |
 
-## Aegis Guardian Application
+## Elian Voss Application
 
 Captain Elian Voss's machine is currently **Shield Wall**, not holy spellcasting.
 
-| Part | Aegis expression |
+| Part | Elian expression |
 | --- | --- |
 | Raid job | Hold the Guarded Front, survive the intended Tank Hit, and keep a safe route open. |
 | Engine nouns | Armor, `Guard` Keyword count in a Charge Stack, Riposte Ready, and the prepared Quick/Slow Slot. |
@@ -147,4 +147,4 @@ Before a Hero card or deck enters a controlled playtest, record:
 - Encounter Record facts and focused probe required;
 - a new-player test question that reveals whether the combo was understood.
 
-Before promoting a future deck into the default encounter, require the scorecard evidence in `docs/content/deck-evaluation-rubric.md`: both Viability and Play-feel need at least `3/5`; the deck must not be promoted on subjective enthusiasm alone. The Aegis Guardian Shield Wall migration is a user-approved product exception recorded in `.scratch/product-backlog/issues/04-promote-aegis-starter-deck-to-shield-wall-kit.md`; it does not weaken this rule for later decks.
+Before promoting a future deck into the default encounter, require the scorecard evidence in `docs/content/deck-evaluation-rubric.md`: both Viability and Play-feel need at least `3/5`; the deck must not be promoted on subjective enthusiasm alone. The Elian Voss Shield Wall migration is a user-approved product exception recorded in `.scratch/product-backlog/issues/04-promote-aegis-starter-deck-to-shield-wall-kit.md`; it does not weaken this rule for later decks.

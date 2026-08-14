@@ -11,7 +11,7 @@ Completed.
 The long playtest ended in defeat by boss damage:
 
 - Outcome: `defeat`
-- Reason: `Aegis Guardian falls.`
+- Reason: `Elian Voss falls.`
 - Final turn reached: 8
 - Moves completed: 3
 - Boss-damaging action-bar attacks completed: 3
@@ -35,7 +35,7 @@ The scripted playtest used real encounter state and authored cards.
 
 ## Evidence
 
-- `LONG_ENCOUNTER_PLAYTEST_OK outcome=defeat reason="Aegis Guardian falls." turns=8 moves=3 attacks=3 activated=Steady Strike,Unyielding Step,Shield Slam player_hp=0 boss_hp=29 phase_advances=14`
+- `LONG_ENCOUNTER_PLAYTEST_OK outcome=defeat reason="Elian Voss falls." turns=8 moves=3 attacks=3 activated=Steady Strike,Unyielding Step,Shield Slam player_hp=0 boss_hp=29 phase_advances=14`
 - `PLAYTHROUGH_SMOKE_OK`
 - `MOBILE_PLAYTEST_OK`
 - `ACCESSIBILITY_PROBE_OK`

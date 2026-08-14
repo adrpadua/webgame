@@ -15,6 +15,11 @@ func _init() -> void:
 	_assert(slot._get_drop_intent_label() == "CHARGE", "Dropping on a loaded slot during an action window should advertise Charge.")
 	_assert(slot.tooltip_text.begins_with("Guard card"), "Loaded action slots should preserve card type context.")
 	_assert(slot.loaded_card == card, "The loaded card should be retained for artwork rendering.")
+	var tooltip: Control = slot._make_custom_tooltip(slot.tooltip_text)
+	get_root().add_child(tooltip)
+	await process_frame
+	_assert(tooltip.get_combined_minimum_size().x <= 300.0, "Action slot tooltip should stay within the portrait-width budget.")
+	tooltip.queue_free()
 	slot.bind(0, {"top_card": card, "charges": []}, true, true, &"loadout")
 	_assert(slot._get_drop_intent_label() == "REPLACE", "Dropping on a loaded slot during Loadout should advertise Replace.")
 	slot.bind(0, {"top_card": null, "charges": []}, true, true, &"quick")

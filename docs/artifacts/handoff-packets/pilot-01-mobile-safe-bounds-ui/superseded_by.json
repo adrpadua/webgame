@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "packet_type": "supersession",
+  "handoff_id": "pilot-01-mobile-safe-bounds-ui",
+  "revision": 3,
+  "state": "superseded",
+  "writer_role": "Architecture",
+  "created_at": "2026-08-14T05:20:00-07:00",
+  "supersedes": ".",
+  "active_revision": "revisions/0003",
+  "reason": "The original advisory-pilot root packets remain preserved as malformed evidence, revision 0002 remains preserved as the first corrected advisory packet set, and revision 0003 narrows the active safe-bounds evidence to the approved presentation-only scope after removing the unsupported Undo/reset/replay behavior."
+}

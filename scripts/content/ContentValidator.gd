@@ -145,6 +145,14 @@ func _validate_program(program: Resource) -> void:
 				BossBeatModel.Kind.RAKING_CLAW:
 					if beat.damage < 1:
 						_error(beat_path, "Raking Claw needs positive damage.")
+					if beat.target_selector != BossBeatModel.TARGET_SELECTOR_TANK:
+						_error(beat_path, "Raking Claw must use Target Selector `tank`.")
+					if beat.rules_text != "Target: Tank. Deal 4 damage. Movement does not evade this hit.":
+						_error(beat_path, "Raking Claw rules text must be `Target: Tank. Deal 4 damage. Movement does not evade this hit.`")
+					if beat.damage_classification != &"tank_hit":
+						_error(beat_path, "Raking Claw must retain `tank_hit` damage classification.")
+					if beat.counter_tags != [&"Mitigate"]:
+						_error(beat_path, "Raking Claw counter tags must be exactly `Mitigate`.")
 				BossBeatModel.Kind.CINDER_BREATH:
 					if beat.damage < 1:
 						_error(beat_path, "Cinder Breath needs positive damage.")

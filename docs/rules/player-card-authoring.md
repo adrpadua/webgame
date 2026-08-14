@@ -84,6 +84,7 @@ An incidental rider is acceptable only when it reinforces that job. The dummy de
 ## Action Bar Semantics
 
 - A hand card dragged to an empty Slot becomes that Slot's Top Card.
+- Different copies of the same Card may be Top Cards in different Slots; each Slot resolves and cleans up independently.
 - A hand card dragged to an occupied Slot becomes a charged card, if the Slot has remaining Charge Value.
 - The Top Card determines timing, targeting, and Charge Value.
 - The Top Card persists after activation.

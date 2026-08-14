@@ -13,10 +13,9 @@ func resolve_beat(beat, snapshot) -> RefCounted:
 			resolution.log_suffix = "turns %s." % FacingDirections.name_for(resolution.next_facing)
 		BossProgramBeat.Kind.RAKING_CLAW:
 			resolution.pattern_hexes = BoardQueryModel.front_arc(snapshot.board_hexes, snapshot.boss_coords, snapshot.boss_facing)
-			if resolution.pattern_hexes.has(snapshot.player_coords):
-				resolution.player_damage = beat.damage
-				resolution.impacted_hexes.append(snapshot.player_coords)
-			resolution.log_suffix = "sweeps the front arc%s." % (" for %d" % resolution.player_damage if resolution.player_damage > 0 else " and misses")
+			resolution.player_damage = beat.damage
+			resolution.impacted_hexes.append(snapshot.player_coords)
+			resolution.log_suffix = "targets the Tank for %d." % resolution.player_damage
 		BossProgramBeat.Kind.SCORCH_LAST_PATTERN:
 			resolution.scorched_hexes = snapshot.previous_impacted_hexes.duplicate()
 			resolution.scorched_duration_rounds = beat.duration_rounds

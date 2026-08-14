@@ -5,7 +5,7 @@ extends Resource
 @export var title: String = "Embermaw: Ashen Trial"
 @export_multiline var rules_text: String = ""
 @export var primary_hero_id: StringName = &"guardian"
-@export var primary_hero_title: String = "Aegis Guardian"
+@export var primary_hero_title: String = "Elian Voss"
 @export var boss_id: StringName = &"embermaw"
 @export var boss_title: String = "Embermaw"
 @export var round_limit: int = 8

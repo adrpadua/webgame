@@ -1,6 +1,6 @@
-# Aegis Guardian Starter Deck
+# Elian Voss Starter Deck
 
-This is the approved live/default Aegis Guardian deck specification. The runnable prototype resource `resources/encounters/embermaw_prototype.tres` now uses this exact list. The first-pass Shield Wall kit proves the Action Bar and Charge Stack loop while giving the tank a defensive payoff, an adjacent-Minion answer, and a Slow commitment.
+This is the approved live/default Elian Voss deck specification. The runnable prototype resource `resources/encounters/embermaw_prototype.tres` now uses this exact list. The first-pass Shield Wall kit proves the Action Bar and Charge Stack loop while giving the tank a defensive payoff, an adjacent-Minion answer, and a Slow commitment.
 
 Role:
 
@@ -8,7 +8,7 @@ Role:
 
 Hero:
 
-- `Aegis Guardian`
+- `Elian Voss`
 
 ## Deck Identity
 

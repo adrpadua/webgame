@@ -14,7 +14,7 @@ func _initialize() -> void:
 	var boss = main.get_node("BossState")
 	var turn_manager = main.get_node("TurnManager")
 	var hex_grid = main.get_node("%HexGrid")
-	_assert(player.deck.size() + player.hand.size() == 20, "Aegis Guardian should start each encounter with the authored 20-card deck")
+	_assert(player.deck.size() + player.hand.size() == 20, "Elian Voss should start each encounter with the authored 20-card deck")
 
 	var quick_card = load("res://resources/cards/tank/steady_strike.tres")
 	var quick_charge = load("res://resources/cards/tank/iron_guard.tres")

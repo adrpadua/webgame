@@ -1,8 +1,12 @@
 # Run Six-Handoff Pilot Review
 
-Status: ready-for-agent
+Status: in-progress
 Owner: Coordinator
-Blocked by: 02, 03
+Blocked by: six completed post-activation handoffs with the approved ledger fields
+
+## Pilot Start
+
+Issues 01 through 03 are resolved. The first eligible Playtester activation completed with a caller-first PASS packet and archive flow, while the display-capture remediation demonstrated a documented exception/retest route. The pilot remains open until six completed handoffs have durable tier, reason, validator verdicts, evidence, and coordinator-rerun status. Do not retroactively relabel unrelated historical work.
 
 ## Outcome
 

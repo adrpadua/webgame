@@ -6,7 +6,7 @@ Status labels: `Now` means content/design work can begin after its stated proof;
 
 | Rank | Item | Owner | Blocking proof | Exit condition |
 | --- | --- | --- | --- | --- |
-| 1 | Establish deck-evaluation scorecard and measurement plan | Design/QA | [deck-evaluation-rubric.md](deck-evaluation-rubric.md) and [deck-evaluation-measurement-plan.md](../artifacts/deck-evaluation-measurement-plan.md) reviewed | Viability and Play-feel scores can be collected for the current Aegis Guardian deck before live deck expansion. |
+| 1 | Establish deck-evaluation scorecard and measurement plan | Design/QA | [deck-evaluation-rubric.md](deck-evaluation-rubric.md) and [deck-evaluation-measurement-plan.md](../artifacts/deck-evaluation-measurement-plan.md) reviewed | Viability and Play-feel scores can be collected for the current Elian Voss deck before live deck expansion. |
 | 2 | Add a Whelp-clearing card to the test deck | Design | `whelp_clear` probe | A new player can identify, select, and remove a Whelp. |
 | 3 | Add a Slow Top Card to the test deck | Design | `slow_window_card` probe | Slow contains a meaningful, legal activation. |
 | 4 | Run the first-three-Rounds teaching test | Design | ordered timeline probe plus three observed runs | Each Round teaches one answer before combination pressure. |

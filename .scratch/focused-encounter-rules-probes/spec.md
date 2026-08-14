@@ -1,6 +1,6 @@
 # Focused Encounter Rules Probes
 
-Status: ready-for-agent
+Status: active
 
 ## Problem Statement
 
@@ -13,6 +13,10 @@ Duelyst's useful lesson is not its PvP stack or its backend-heavy test organizat
 ## Solution
 
 Add a focused rules-Probe layer that sits between one-off Spikes and broad acceptance Probes.
+
+## Approved Delivery Boundary
+
+The current delivery is deliberately smaller than the draft's future-tranche examples: it must establish the documented three-layer model and complete exactly one proof-of-value focused rules Probe for an existing defeat/attrition or end-of-clock contract. Rejection/no-rules-state-change evidence is required only when that selected contract has an applicable illegal-action boundary. Any broader first tranche, record/replay deepening, or additional mechanic family is deferred unless the selected proof demonstrates a necessary authoritative fact gap and follows canonical review plus independent verification.
 
 This layer will let Test Automation author many small deterministic Encounter scenarios against the existing scene-free rules seam, using exact setup fixtures, one or a few authored actions, explicit expected outcomes, and stable failure artifacts. These focused rules Probes will protect single mechanics and invalid-action boundaries without creating a second gameplay implementation or moving test helpers into production rules code.
 

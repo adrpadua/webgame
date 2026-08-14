@@ -19,11 +19,13 @@ Recommended layout:
 Current starter docs:
 
 - [design-team-handoff.md](D:/dev/webgame/docs/content/design-team-handoff.md)
+- [world-style-bible.md](D:/dev/webgame/docs/content/world-style-bible.md)
+- [hand-drawn-character-art-style.md](D:/dev/webgame/docs/content/hand-drawn-character-art-style.md)
 - [../artifacts/encounter-records.md](D:/dev/webgame/docs/artifacts/encounter-records.md)
 
-- [decks/aegis-guardian-starter.md](D:/dev/webgame/docs/content/decks/aegis-guardian-starter.md)
-- [heroes/aegis-guardian-design.md](D:/dev/webgame/docs/content/heroes/aegis-guardian-design.md)
-- [aegis-guardian-acceptance-contracts.md](D:/dev/webgame/docs/content/aegis-guardian-acceptance-contracts.md)
+- [decks/elian-voss-starter.md](D:/dev/webgame/docs/content/decks/elian-voss-starter.md)
+- [heroes/elian-voss-design.md](D:/dev/webgame/docs/content/heroes/elian-voss-design.md)
+- [elian-voss-acceptance-contracts.md](D:/dev/webgame/docs/content/elian-voss-acceptance-contracts.md)
 - [decks/paladin-placeholder-status.md](D:/dev/webgame/docs/content/decks/paladin-placeholder-status.md)
 - [../rules/player-card-authoring.md](D:/dev/webgame/docs/rules/player-card-authoring.md)
 - [../rules/character-design-bible.md](D:/dev/webgame/docs/rules/character-design-bible.md)

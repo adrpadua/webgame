@@ -11,6 +11,10 @@ Evaluate whether a player **Starting Deck** is both effective and fun in the cur
 
 `EncounterEngine` remains authoritative for all rules outcomes. The rubric must not invent HUD-only rules or score presentation-only state as gameplay.
 
+### Solo Tank Slice Boundary
+
+The current playable prototype is a one-Hero diagnostic slice of a game designed for a three-to-four-Hero Party. A solo Elian Voss is expected to hold Boss pressure until the **end of Round 4** and demonstrate Tank responsibilities; the Guardian is **not** expected to defeat the Boss alone or survive beyond that halfway checkpoint without healing. Perfect avoidance of telegraphed board patterns must not remove the required Targeted Boss Hit attrition. For this slice, Viability asks whether every seeded run has a living Guardian at the end of Round 4 and shows the required Tank role moments under that attrition. Record behavior after that checkpoint for diagnosis, but do not score it as solo-slice success. Boss victory, full encounter completion, and end-of-clock success are future multi-Hero Party evaluation criteria.
+
 ## Evidence Consumer Contract
 
 Status: accepted first-pass Design contract for Engineering Enablement and QA. Owner: Game Design. Consumers: Architecture and QA Automation. This section states what Design needs to make a deck decision; it does not prescribe an engine, report, or UI implementation.
@@ -19,7 +23,7 @@ Status: accepted first-pass Design contract for Engineering Enablement and QA. O
 
 | Design decision | Minimum question the evidence must answer | Required evidence cohort | Approval or rejection signal |
 | --- | --- | --- | --- |
-| Keep the baseline or advance to the smallest controlled test deck | Does the deck survive the teaching slice and make intended progress without unsupported or illegal play? | The fixed baseline seed set, one unchanged content fingerprint, terminal outcome/end kind, final Round, and legal/rejected action facts. | At least `3/5` Viability; every seed reaches Round 4; most seeds reach the teaching endpoint. Repeated illegal/unsupported paths reject the candidate. |
+| Keep the baseline or advance to the smallest controlled test deck | Does the deck hold the solo Tank teaching slice through its end-of-Round-4 checkpoint and make intended role progress without unsupported or illegal play? | The fixed baseline seed set, one unchanged content fingerprint, hero health at the Round-4 boundary, Tank-role Resolution Facts, and legal/rejected action facts. | At least `3/5` Viability; the Guardian is living at the end of Round 4 in every seed and the cohort demonstrates the stated Tank role moments. Boss victory and post-checkpoint survival are not required in the solo slice. Repeated illegal/unsupported paths reject the candidate. |
 | Add or tune a role card | Does the card answer the authored pressure it claims to answer, at the required timing and position? | One focused deterministic scenario for that pressure plus the baseline seed set; card/target identity, relevant board pressure, legal activation, and Resolution Facts. | The card's promised answer occurs through `EncounterEngine` and is visible in the record. A rules-text claim without an executable answer rejects the card. |
 | Judge Slot Tension | Did the player face a real choice among useful Slot plans, rather than a forced sequence or cosmetic alternative? | Per-Round hand, Slot, legal-action, selected-action, and window facts, plus a human review of representative runs. | Meaningful Slot decision in most Rounds after Loadout and human agreement that the alternatives had different plausible purposes. |
 | Judge role identity and deck play-feel | Did the deck make the player feel and act like its named raid Role without repeating one solved line? | At least three observed runs of the same deck/scenario set, completed human rubric notes, and representative record links. | At least `3/5` Play-feel, a cited role moment, and no dominant sequence that resolves every major pressure. |
@@ -72,7 +76,7 @@ Automated evidence can identify that alternatives existed. It must not claim tha
 | Dead draw | A Hand card that cannot materially help the current or next player window under the current legal board state. It is not simply a card the player did not use. |
 | Charge efficiency | The proportion of charged cards that contribute to a successful activation, an intentional Primed hold, or another authored supported result. A charge discarded because of an explicit replacement or cleanup is not automatically waste. |
 | Role moment | A recorded, player-observable result in which the Hero fulfills its stated role against a visible raid pressure. |
-| Default-deck promotion gate | A future candidate needs both Viability and Play-feel at `3/5` or above, its required focused contracts passing, and no unresolved misleading-output condition. The Aegis Shield Wall default migration is a user-approved product exception; it does not establish a general bypass. |
+| Default-deck promotion gate | A future candidate needs both Viability and Play-feel at `3/5` or above, its required focused contracts passing, and no unresolved misleading-output condition. The Elian Shield Wall default migration is a user-approved product exception; it does not establish a general bypass. |
 
 ### Conditions That Make Output Misleading
 
@@ -126,7 +130,7 @@ After each run, ask the player or observer to answer each item from `1` to `5`.
 | Prompt | 1 | 3 | 5 |
 | --- | --- | --- | --- |
 | Did you know what the deck was trying to do? | No clear plan | A plan emerged after several Rounds | Clear from the first two Rounds |
-| Did the deck express its Hero identity? | Generic cards | Some tank/role moments | Strong Aegis Guardian / Shield Wall moments |
+| Did the deck express its Hero identity? | Generic cards | Some tank/role moments | Strong Elian Voss / Shield Wall moments |
 | How often did you face a meaningful Slot decision? | Rarely | Once or twice per run | Most Rounds |
 | Did dead draws feel acceptable? | They blocked play | They appeared but had alternatives | They created useful tension or were rare |
 | Did charge decisions feel rewarding? | Tucking felt arbitrary | Some charges mattered | Charge choices shaped the run |
@@ -141,10 +145,10 @@ Record one short free-text note for:
 
 ## First-Pass Good-Deck Target
 
-For the Embermaw teaching slice, a good Aegis Guardian test deck should:
+For the Embermaw teaching slice, a good Elian Voss test deck should:
 
 - score at least `3/5` on both Viability and Play-feel across the fixed seed set;
-- survive through Round 4 on every seed and win or reach the intended teaching endpoint on most seeds;
+- have a living Guardian at the end of Round 4 on every seed and demonstrate the named solo Tank teaching moments; Boss victory and survival beyond that halfway checkpoint are not required in this one-Hero slice;
 - answer at least one Whelp once the Whelp Clear contract is implemented;
 - use at least one Slow Top Card in Slow once the Slow Top Card contract is implemented;
 - produce at least one meaningful Slot decision in most Rounds after Loadout;
@@ -152,7 +156,7 @@ For the Embermaw teaching slice, a good Aegis Guardian test deck should:
 - show clear Shield Wall identity through mitigation, positioning, and deliberate Slot commitment;
 - avoid solving every pressure with the same card sequence.
 
-The first historical evaluation target was not "perfect balance." It compared the former two-card baseline with the smallest approved test list. The Aegis Shield Wall list is now the user-approved live/default starter deck; future evaluation asks whether that current default is understandable, viable, and non-repetitive without inferring further tuning.
+The first historical evaluation target was not "perfect balance." It compared the former two-card baseline with the smallest approved test list. The Elian Shield Wall list is now the user-approved live/default starter deck; future evaluation asks whether that current default is understandable, viable, and non-repetitive without inferring further tuning. A future Party cohort, not this solo slice, evaluates Boss defeat and full raid success.
 
 ## Minimal Gaps
 

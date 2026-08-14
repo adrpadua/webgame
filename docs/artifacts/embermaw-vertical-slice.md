@@ -2,22 +2,24 @@
 
 Historical artifact: this records the earlier Energy/Tempo build. Current rules and controls are authoritative in `docs/rules/prototype-rules.md` and `docs/content/design-team-handoff.md`.
 
+The planned contextual tutorial prompt surface is a presentation consumer of authored contracts in [embermaw-prototype.md](../content/encounters/embermaw-prototype.md#contextual-teaching-contracts). It is not implemented by this historical artifact and must not infer gameplay from HUD state.
+
 This document records the completed first playable encounter delivered in the current prototype.
 
 ## Playable Loop
 
-The playable scope is one `Aegis Guardian` tank versus `Embermaw`.
+The playable scope is one `Elian Voss` tank versus `Embermaw`.
 
 - The encounter opens on the authored board with visible coordinates, colored tile outlines, and legal hex-edge facing arrows.
 - The round sequence is `Boss Instant` -> `Quick Window` -> `Boss Incoming` -> `Slow Window`.
 - The encounter clock defaults to eight rounds and is authored by [resources/encounters/embermaw_prototype.tres](D:/dev/webgame/resources/encounters/embermaw_prototype.tres).
-- Boss actions show and resolve separate `Tank Hit` and `Raid Hit` values. In the one-player slice, raid hits resolve against Aegis Guardian.
+- Boss actions show and resolve separate `Tank Hit` and `Raid Hit` values. In the one-player slice, raid hits resolve against Elian Voss.
 - The player wins by defeating Embermaw and loses through health depletion or enrage. Terminal results lock gameplay and expose `Restart Encounter`.
 - Encounter history is retained in `EncounterState` for debugging, but is deliberately absent from the player HUD.
 
 ## Player Surface
 
-- Aegis Guardian uses the authored 20-card starter deck.
+- Elian Voss uses the authored 20-card starter deck.
 - Hand, deck, discard, Armor, Presence, health, Action Bar Slots, and boss timeline are visible in the running UI. Stamina is paid by discarding a hand card to move; it is not a persistent HUD meter.
 - Cards drag from hand to action-bar slots; click/tap selection remains available as a fallback.
 - Slots preserve their Top Card, consume only charge cards on activation, and enforce the authored timing and charge-lock rules.
@@ -37,6 +39,12 @@ The layout probe at [scripts/debug/layout_probe.gd](D:/dev/webgame/scripts/debug
 
 Portrait mobile is the primary HUD mode. It activates when the physical game window is narrow or taller than it is wide; this intentionally reads the actual window size rather than Godot's stretched logical canvas.
 
+Status: confirmed. Owner: UI/UX.
+
+The portrait mobile HUD keeps a logical design canvas of `390x844` for probes, layout rules, and interaction sizing, but the default non-headless display override now opens at `488x1056` so the playable capture window is easier to inspect. Godot stretch remains `canvas_items` with explicit `keep` aspect preservation, so the larger default window is a clean `1.25x` presentation of the same portrait canvas rather than a new layout breakpoint or a distorted stretch.
+
+Rationale: the prior default window was too small for external observation and manual capture, even though the internal portrait probes already exercised the correct logical HUD. Keeping the probe-sized logical canvas preserves every existing mobile contract while making the default live window more legible for playtest and review. Follow-up: QA should independently verify that the default non-headless window still presents the same portrait hierarchy and that no new distortion or layout breakpoint appears.
+
 Mobile reading order:
 
 1. Compact live status and a contextual prompt
@@ -45,7 +53,26 @@ Mobile reading order:
 4. Hand: a shallow centered fan of illustrated portrait Compact Cards; the selected card lifts and enlarges while adjacent cards remain visible, with drag, tap selection, and hold-to-inspect intact
 5. Turn tracker and contextual Continue affordance when progression is available
 
-The desktop status panels and detailed right-side inspector are hidden on mobile so they do not compete with the board. The former command grid is not rendered; direct card and Slot interactions drive the player flow. Full instructions live in the toggleable `?` help pane. `Continue` and `?` share one reserved controls row beneath the open help pane, or beneath the compact prompt header while help is closed: `Continue` is centered and `?` aligns to the right edge, so these controls never overlap status or guidance. Health bars above the player, boss, and minion tokens provide the live combat readout. Encounter history remains outside the HUD.
+The desktop status panels and detailed right-side inspector are hidden on mobile so they do not compete with the board. The former command grid is not rendered; direct card and Slot interactions drive the player flow. Full instructions live in the toggleable `?` help pane. Portrait mobile now applies explicit safe bounds to every prompt-adjacent required control across both the logical `390x844` design viewport and the default `488x1056` non-headless presentation.
+
+Status: confirmed. Owner: UI/UX.
+
+Owned safe lanes:
+
+- Prompt and Status Effect text use the physical portrait canvas, not the wider stretched root, as their readable left/right bounds.
+- The contextual prompt must remain fully inside that safe text lane as well; its readable text cannot touch or cross the physical viewport edge in either supported portrait presentation.
+- `Play` occupies the action-bar lane and stays aligned to the compact Action Bar's right edge with explicit inner padding.
+- `?` occupies the far-right safe lane with explicit edge padding against the physical viewport.
+
+Pressure behavior:
+
+- Required controls never clip, leave the physical viewport, or lose their target size.
+- If `Play` + `?` cannot coexist on one line without overlap, the controls row grows and `?` wraps onto a second line while `Play` stays in the action-bar lane.
+- Help and Status Effect text continue to wrap inside their safe content column rather than expanding past the portrait viewport.
+
+Rationale: the stretched root can be wider than the physical portrait viewport, especially in the default capture-friendly presentation. Safe lanes keep required controls fully on-screen and readable without redesigning the HUD or changing interaction authority. Follow-up: Architecture should verify this remains a presentation-only seam, and QA should verify the supported portrait viewport matrix plus negative clipped/off-screen assertions.
+
+Health bars above the player, boss, and minion tokens provide the live combat readout. Encounter history remains outside the HUD.
 
 Board navigation is presentation-only. A one-finger drag that begins on open board space pans the zoomed board; a two-finger pinch zooms around the gesture center and may pan at the same time. Touches beginning on a unit remain available to the unit's existing tap and drag interactions. Desktop players may zoom with the mouse wheel and pan with the middle or right mouse button. Zoom and pan are clamped so the tactical board cannot be lost, and each encounter opens in a fully fitted view. These transforms do not alter hex legality, facing, actions, rules state, or Encounter Records.
 
@@ -53,13 +80,13 @@ Board navigation is presentation-only. A one-finger drag that begins on open boa
 
 Status: confirmed. Owner: UI/UX, derived from the Game Design and Architecture Combat Postures contracts.
 
-When the authoritative engine projection contains `Riposte Ready` on Aegis Guardian, the portrait HUD shows a compact Status Effect pane in the mobile status stack. It names `Riposte Ready`, states that a Tank Hit was fully blocked, identifies the first-following-Quick expiry boundary, and names Shield Slam as the legal consuming card with `+2` Boss damage. The tooltip expands the trigger as a Guarded Front Tank Hit with `0` Health loss and includes the trigger Round/phase from the active Status Effect snapshot.
+When the authoritative engine projection contains `Riposte Ready` on Elian Voss, the portrait HUD shows a compact Status Effect pane in the mobile status stack. It names `Riposte Ready`, states that a Tank Hit was fully blocked, identifies the first-following-Quick expiry boundary, and names Shield Slam as the legal consuming card with `+2` Boss damage. The tooltip expands the trigger as a Guarded Front Tank Hit with `0` Health loss and includes the trigger Round/phase from the active Status Effect snapshot.
 
 The pane is presentation-only: it does not create trigger, expiry, consumption, payoff, legality, or timing rules. It reads active Status Effect fields from `EncounterEngine.status_effects`. After a legal Shield Slam consumes the effect, the pane clears because the authoritative Status Effect is gone, and the existing feedback line briefly reports the `+2` payoff from the resolved `status_event` plus generated Boss-damage Resolution Fact. The HUD does not expose Encounter Records as a combat log, does not add a posture meter, and does not show inactive or hypothetical Riposte states.
 
 Rationale: the player needs to know why the opening exists, what closes it, and what card spends it without confusing Riposte Ready for a new resource. A compact Status Effect pane keeps the decision visible near the prompt while preserving the Bottom Interaction Zone for cards and Slots. Follow-up: QA should verify legibility and overlap in portrait, while Architecture should verify the UI remains an adapter over status projections and action facts.
 
-The portrait regression probe at [scripts/debug/mobile_hud_probe.gd](D:/dev/webgame/scripts/debug/mobile_hud_probe.gd) checks the `390x844` design viewport, mobile visibility rules, board-before-action-bar ordering, command availability, and the absence of a player-facing combat log.
+The portrait regression probe at [scripts/debug/mobile_hud_probe.gd](D:/dev/webgame/scripts/debug/mobile_hud_probe.gd) checks both the `390x844` logical design viewport and the `488x1056` default presentation viewport, mobile visibility rules, board-before-action-bar ordering, required-control safe padding, unclipped button labels, and the absence of a player-facing combat log. The default live display override may be larger, but it must preserve this logical portrait canvas without aspect distortion.
 
 ## Visual Skin
 

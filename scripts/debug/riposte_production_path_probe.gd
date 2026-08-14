@@ -16,6 +16,9 @@ func _initialize() -> void:
 	_assert(authored_claw != null, "Ember Pattern must author Raking Claw in its Incoming Row.")
 	if authored_claw != null:
 		_assert(authored_claw.damage_classification == &"tank_hit" and authored_claw.damage == 4, "The production Incoming Raking Claw must remain an authored 4-damage Tank Hit.")
+		_assert(authored_claw.target_selector == &"tank", "The production Incoming Raking Claw must target the Tank.")
+		_assert(authored_claw.rules_text == "Target: Tank. Deal 4 damage. Movement does not evade this hit.", "The production Incoming Raking Claw must use the approved targeted-hit rules text.")
+		_assert(authored_claw.counter_tags == [&"Mitigate"], "The production Incoming Raking Claw must expose Mitigate as its only counter tag.")
 
 	var engine := EncounterEngineModel.new()
 	engine.start(_config())
@@ -35,6 +38,7 @@ func _initialize() -> void:
 	if damage != null:
 		var fact: Dictionary = damage.payload.get("resolution_fact", {})
 		_assert(fact.get("damage_classification") == &"tank_hit", "The live Damage fact must retain Tank Hit classification.")
+		_assert(fact.get("target_selector") == &"tank", "The live Damage fact must retain the authored Tank selector.")
 		_assert(fact.get("boss_beat_id") == &"raking_claw" and fact.get("boss_track") == &"incoming", "The live Damage fact must retain authored Beat and Incoming track.")
 		_assert(fact.get("requested") == 4 and fact.get("prevented") == 4 and fact.get("health_loss") == 0, "The production Iron Guard line must fully mitigate Incoming Raking Claw.")
 		_assert(fact.get("guarded_front", false), "The production Guardian must remain in Guarded Front.")

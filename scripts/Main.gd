@@ -6,6 +6,11 @@ const EncounterRecordModel := preload("res://scripts/records/EncounterRecord.gd"
 
 const CONTENT_CATALOG := preload("res://resources/content_catalog.tres")
 const DUELYST_BACKDROP := preload("res://assets/art/open-duelyst/magaari_ember_highlands_background.jpg")
+const MOBILE_SAFE_EDGE_PADDING := 12.0
+const MOBILE_ACTION_CONTROL_PADDING := 8.0
+const MOBILE_CONTROLS_ROW_HEIGHT := 48.0
+const MOBILE_CONTROLS_ROW_WRAP_HEIGHT := 96.0
+const MOBILE_CONTROL_ROW_GAP := 12.0
 
 @onready var player: Node = $PlayerState
 @onready var boss: Node = $BossState
@@ -61,18 +66,22 @@ var suppress_move_prime_once: bool = false
 var mobile_continue_button: Button
 var mobile_continue_tween: Tween
 var mobile_help_button: Button
+var mobile_prompt_lane: MarginContainer
 var mobile_controls_row: Control
 var mobile_help_pane: Panel
 var mobile_help_label: Label
 var mobile_status_effect_pane: Panel
 var mobile_status_effect_label: Label
+var mobile_prompt_layout_queued: bool = false
 var mobile_controls_layout_queued: bool = false
+var mobile_controls_wrapped: bool = false
 var engine
 var encounter_record
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_TOP_LEFT)
 	get_viewport().size_changed.connect(_fit_to_viewport)
+	_build_mobile_prompt_lane()
 	_build_mobile_continue_button()
 	_build_mobile_help_controls()
 	_build_mobile_status_effect_pane()
@@ -140,10 +149,12 @@ func _apply_responsive_layout() -> void:
 	hand_scroll.custom_minimum_size.y = 128.0 if mobile else 120.0
 	hex_grid.custom_minimum_size = Vector2(0, 230) if mobile else Vector2(320, 260)
 	left_panel.custom_minimum_size = Vector2.ZERO if mobile else Vector2(150, 0)
-	left_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER if mobile else Control.SIZE_EXPAND_FILL
 	left_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER if mobile else Control.SIZE_EXPAND_FILL
 	hex_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	action_bar_view.set_compact(mobile)
+	action_bar_view.custom_minimum_size.x = 0.0
+	action_bar_view.size_flags_horizontal = Control.SIZE_SHRINK_CENTER if mobile else Control.SIZE_EXPAND_FILL
 	if mobile:
 		root_container.move_child(mobile_status, 0)
 		main_area.move_child(hex_grid, 0)
@@ -182,6 +193,9 @@ func _refresh_status() -> void:
 	player_panel.update_display(
 		"Player",
 		player.hero_name,
+		player.health,
+		player.max_health,
+		player.armor,
 		"HP %d/%d   Armor %d\nHand %d  Deck %d  Discard %d\nRefill target %d  Presence %d" % [
 			player.health,
 			player.max_health,
@@ -198,6 +212,9 @@ func _refresh_status() -> void:
 	boss_panel.update_display(
 		"Boss",
 		boss.boss_name,
+		boss.health,
+		boss.max_health,
+		0,
 		"HP %d/%d\nInstant %s\nIncoming %s" % [
 			boss.health,
 			boss.max_health,
@@ -225,6 +242,7 @@ func _refresh_status() -> void:
 	var mobile_prompt_text := _get_mobile_prompt_text()
 	mobile_end_phase_prompt.text = mobile_prompt_text
 	mobile_end_phase_prompt.visible = not mobile_prompt_text.is_empty()
+	_layout_mobile_prompt()
 	_update_mobile_status_effect_pane()
 	_update_mobile_continue_button()
 	_update_mobile_help_controls()
@@ -652,19 +670,18 @@ func _build_mobile_continue_button() -> void:
 	mobile_controls_row = Control.new()
 	mobile_controls_row.name = "MobileControlsRow"
 	mobile_controls_row.visible = false
-	mobile_controls_row.custom_minimum_size = Vector2(0, 48)
+	mobile_controls_row.custom_minimum_size = Vector2(0, MOBILE_CONTROLS_ROW_HEIGHT)
 	mobile_controls_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mobile_controls_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mobile_status.add_child(mobile_controls_row)
 
 	mobile_continue_button = Button.new()
 	mobile_continue_button.name = "MobileContinueButton"
-	mobile_continue_button.text = "▶"
+	mobile_continue_button.text = "Play"
 	mobile_continue_button.visible = false
-	mobile_continue_button.custom_minimum_size = Vector2(118, 46)
+	mobile_continue_button.custom_minimum_size = Vector2(74, 48)
 	mobile_continue_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	mobile_continue_button.tooltip_text = "End this window."
-	mobile_continue_button.text = "Continue"
+	mobile_continue_button.tooltip_text = "Advance to the next window."
 	mobile_controls_row.add_child(mobile_continue_button)
 
 func _build_mobile_help_controls() -> void:
@@ -700,6 +717,18 @@ func _build_mobile_help_controls() -> void:
 	mobile_help_label.add_theme_color_override("font_color", Color(0.98, 0.91, 0.74))
 	mobile_help_pane.add_child(mobile_help_label)
 
+func _build_mobile_prompt_lane() -> void:
+	mobile_prompt_lane = MarginContainer.new()
+	mobile_prompt_lane.name = "MobilePromptLane"
+	mobile_prompt_lane.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mobile_prompt_lane.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var prompt_index: int = mobile_end_phase_prompt.get_index()
+	mobile_status.remove_child(mobile_end_phase_prompt)
+	mobile_prompt_lane.add_child(mobile_end_phase_prompt)
+	mobile_status.add_child(mobile_prompt_lane)
+	mobile_status.move_child(mobile_prompt_lane, prompt_index)
+	mobile_end_phase_prompt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
 func _build_mobile_status_effect_pane() -> void:
 	mobile_status_effect_pane = Panel.new()
 	mobile_status_effect_pane.name = "MobileStatusEffectPane"
@@ -708,7 +737,8 @@ func _build_mobile_status_effect_pane() -> void:
 	mobile_status_effect_pane.custom_minimum_size = Vector2(0, 58)
 	mobile_status_effect_pane.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mobile_status.add_child(mobile_status_effect_pane)
-	mobile_status.move_child(mobile_status_effect_pane, mobile_end_phase_prompt.get_index() + 1)
+	var prompt_host_index: int = mobile_prompt_lane.get_index() if mobile_prompt_lane != null else mobile_end_phase_prompt.get_index()
+	mobile_status.move_child(mobile_status_effect_pane, prompt_host_index + 1)
 
 	mobile_status_effect_label = Label.new()
 	mobile_status_effect_label.name = "MobileStatusEffectLabel"
@@ -751,9 +781,26 @@ func _update_mobile_status_effect_pane() -> void:
 		_layout_mobile_status_effect_pane()
 
 func _layout_mobile_status_effect_pane() -> void:
-	var viewport_inset: float = maxf((mobile_status.size.x - size.x) * 0.5 + 12.0, 12.0)
+	var viewport_inset: float = _get_mobile_safe_inset()
 	mobile_status_effect_label.offset_left = viewport_inset
 	mobile_status_effect_label.offset_right = -viewport_inset
+
+func _layout_mobile_prompt() -> void:
+	if mobile_end_phase_prompt == null or mobile_prompt_lane == null:
+		return
+	var mobile: bool = size.x < 820 or size.x < size.y
+	if not mobile:
+		mobile_prompt_lane.add_theme_constant_override("margin_left", 0)
+		mobile_prompt_lane.add_theme_constant_override("margin_right", 0)
+		mobile_end_phase_prompt.custom_minimum_size.x = 0.0
+		return
+	var parent_rect: Rect2 = mobile_status.get_global_rect()
+	var inset: float = _get_mobile_safe_inset()
+	var safe_left: int = int(round(maxf(-parent_rect.position.x + inset, 0.0)))
+	var safe_right: int = int(round(maxf(parent_rect.end.x - (size.x - inset), 0.0)))
+	mobile_prompt_lane.add_theme_constant_override("margin_left", safe_left)
+	mobile_prompt_lane.add_theme_constant_override("margin_right", safe_right)
+	mobile_end_phase_prompt.custom_minimum_size.x = 0.0
 
 func _get_riposte_ready_status_text() -> String:
 	if engine == null:
@@ -821,7 +868,7 @@ func _latest_riposte_payoff_fact() -> Dictionary:
 
 func _layout_mobile_help_controls() -> void:
 	mobile_help_pane.custom_minimum_size.y = 164.0 if mobile_help_pane.visible else 0.0
-	var viewport_inset: float = maxf((mobile_status.size.x - size.x) * 0.5 + 12.0, 12.0)
+	var viewport_inset: float = _get_mobile_safe_inset()
 	mobile_help_label.offset_left = viewport_inset
 	mobile_help_label.offset_right = -viewport_inset
 	_layout_mobile_status_effect_pane()
@@ -837,21 +884,54 @@ func _place_mobile_controls_after_layout() -> void:
 	mobile_controls_layout_queued = false
 	if mobile_controls_row == null or not mobile_controls_row.visible:
 		return
-	var continue_size := mobile_continue_button.size
-	var help_size := mobile_help_button.size
-	mobile_continue_button.global_position = Vector2((size.x - continue_size.x) * 0.5, mobile_controls_row.global_position.y)
-	mobile_help_button.global_position = Vector2(size.x - help_size.x - 12.0, mobile_controls_row.global_position.y)
+	var action_bar_rect: Rect2 = action_bar_view.get_global_rect()
+	var row_rect: Rect2 = mobile_controls_row.get_global_rect()
+	var continue_size: Vector2 = mobile_continue_button.size
+	var help_size: Vector2 = mobile_help_button.size
+	var safe_left: float = _get_row_safe_left(row_rect)
+	var safe_right: float = _get_row_safe_right(row_rect)
+	var action_bar_right: float = clampf(action_bar_rect.end.x - row_rect.position.x - MOBILE_ACTION_CONTROL_PADDING, safe_left, safe_right)
+	var first_row_y: float = 0.0
+	var second_row_y: float = MOBILE_CONTROLS_ROW_HEIGHT
+	var help_x: float = safe_right - help_size.x
+	var play_x: float = clampf(action_bar_right - continue_size.x, safe_left, safe_right - continue_size.x)
+	var should_wrap: bool = play_x + continue_size.x + MOBILE_CONTROL_ROW_GAP > help_x
+	if should_wrap != mobile_controls_wrapped:
+		mobile_controls_wrapped = should_wrap
+		mobile_controls_row.custom_minimum_size.y = MOBILE_CONTROLS_ROW_WRAP_HEIGHT if mobile_controls_wrapped else MOBILE_CONTROLS_ROW_HEIGHT
+		_layout_mobile_help_controls()
+		return
+	mobile_continue_button.position = Vector2(play_x, first_row_y)
+	mobile_help_button.position = Vector2(help_x, second_row_y if mobile_controls_wrapped else first_row_y)
+
+func _get_mobile_safe_inset(padding: float = MOBILE_SAFE_EDGE_PADDING) -> float:
+	return maxf((mobile_status.size.x - size.x) * 0.5 + padding, padding)
+
+func _get_row_safe_left(row_rect: Rect2, padding: float = MOBILE_SAFE_EDGE_PADDING) -> float:
+	return maxf(-row_rect.position.x + padding, 0.0)
+
+func _get_row_safe_right(row_rect: Rect2, padding: float = MOBILE_SAFE_EDGE_PADDING) -> float:
+	return minf(_get_row_safe_left(row_rect, padding) + size.x - padding * 2.0, row_rect.size.x)
 
 func _update_mobile_continue_button() -> void:
 	if mobile_continue_button == null:
 		return
-	var should_show: bool = mobile_turn_tracker.visible and (turn_manager.phase == turn_manager.Phase.LOADOUT or _should_show_end_phase_prompt())
+	var in_player_window: bool = turn_manager.phase == turn_manager.Phase.LOADOUT or turn_manager.phase == turn_manager.Phase.QUICK or turn_manager.phase == turn_manager.Phase.SLOW
+	var should_show: bool = mobile_turn_tracker.visible and encounter.active and in_player_window
 	_layout_mobile_continue_button()
 	if should_show == mobile_continue_button.visible:
+		if should_show:
+			if turn_manager.phase == turn_manager.Phase.LOADOUT or _should_show_end_phase_prompt():
+				_start_mobile_continue_pulse()
+			else:
+				_stop_mobile_continue_pulse()
 		return
 	mobile_continue_button.visible = should_show
 	if should_show:
-		_start_mobile_continue_pulse()
+		if turn_manager.phase == turn_manager.Phase.LOADOUT or _should_show_end_phase_prompt():
+			_start_mobile_continue_pulse()
+		else:
+			_stop_mobile_continue_pulse()
 	else:
 		_stop_mobile_continue_pulse()
 
@@ -882,7 +962,7 @@ func _get_mobile_prompt_text() -> String:
 	if not encounter.active:
 		return ""
 	if turn_manager.phase == turn_manager.Phase.LOADOUT:
-		return "Load cards, then Continue."
+		return "Load cards, then Tap Play to move on."
 	if turn_manager.phase != turn_manager.Phase.QUICK and turn_manager.phase != turn_manager.Phase.SLOW:
 		return ""
 	if _has_ready_action_bar_slot():
@@ -893,22 +973,22 @@ func _get_mobile_prompt_text() -> String:
 		return "Drag a card to a slot."
 	var future_window := _get_loaded_future_window()
 	if future_window != "" and not _has_hand_slot_action() and not _has_legal_basic_move():
-		return "Loaded for %s. Tap ▶ when done." % future_window
+		return "Loaded for %s. Tap Play when done." % future_window
 	if _has_legal_basic_move():
 		return "Drag a hand card to an adjacent hex to move."
 	if _should_show_end_phase_prompt():
-		return "No plays left. Tap ▶."
+		return "No plays left. Tap Play to move on."
 	return ""
 
 func _get_action_guide_text() -> String:
 	if not encounter.active:
 		return "Guide: Restart to begin a new encounter."
 	if turn_manager.phase == turn_manager.Phase.LOADOUT:
-		return "Guide: Drag a hand card to an empty Slot to prepare it. During Loadout, drag onto a loaded Slot to replace its whole bundle. Hold a card to inspect it. Tap Continue."
+		return "Guide: Drag a hand card to an empty Slot to prepare it. During Loadout, drag onto a loaded Slot to replace its whole bundle. Hold a card to inspect it. Tap Play to move on."
 	if turn_manager.phase == turn_manager.Phase.QUICK:
-		return "Guide: Charge a Slot with a hand card; tap a charged Quick Slot to fire. Drag a hand card to an adjacent hex to move, or drag the hero to preview routes. Tap a hex to inspect. Tap Continue when done."
+		return "Guide: Charge a Slot with a hand card; tap a charged Quick Slot to fire. Drag a hand card to an adjacent hex to move, or drag the hero to preview routes. Tap a hex to inspect. Tap Play when done."
 	if turn_manager.phase == turn_manager.Phase.SLOW:
-		return "Guide: Prepare empty Slots or Charge any eligible Slot. Tap a charged Slow Slot to fire once. Hold cards or tap hexes to inspect, then tap Continue."
+		return "Guide: Prepare empty Slots or Charge any eligible Slot. Tap a charged Slow Slot to fire once. Hold cards or tap hexes to inspect, then Tap Play to move on."
 	return "Guide: The boss is resolving. Read its timeline, then prepare your next response."
 
 func _has_ready_action_bar_slot() -> bool:

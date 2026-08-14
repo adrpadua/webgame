@@ -7,7 +7,7 @@ This prototype follows a practical WCAG-oriented interaction baseline for its pl
 - Every visible, enabled `Button` and `CheckBox` in the player HUD has a minimum rendered target of `44x44` pixels.
 - Primary command buttons use a `48` pixel minimum height to make the action grid easier to hit during play.
 - Cards and action-bar slots exceed the minimum target so drag and tap interactions remain comfortable on touch screens.
-- Mobile `Continue` and Help retain separate targets in a reserved row below prompt or help content; attention feedback changes color only and cannot enlarge either control into its neighbor.
+- Mobile prompt text, `Play`, and Help retain separate readable/interactive lanes below the board-state header. Required prompt-adjacent controls must stay fully inside the physical portrait viewport with explicit edge padding, readable unclipped labels/icons, and preserved target sizes across the supported portrait viewport matrix. Under horizontal pressure, Help wraps to a second controls row rather than shrinking or clipping the required targets. Attention feedback changes color only and cannot enlarge either control into its neighbor.
 - Hexes are validated after their responsive board scaling, not merely at their authored size.
 - Controlled Hand overlap never shrinks the underlying Compact Card targets; selection raises one card and keeps adjacent cards partially visible.
 - Every drag destination also has a tap path: select a Compact Card, then tap a labeled legal Slot or `MOVE` hex.
@@ -36,4 +36,4 @@ Run the following from `D:\dev\webgame`:
 & "C:\Users\adrpa\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64_console.exe" --headless --path "D:\dev\webgame" --script res://scripts/debug/board_navigation_probe.gd
 ```
 
-The probe instantiates the portrait `390x844` HUD, measures each enabled interactive control after layout, checks the minimum target contract, verifies that every control has a non-empty focus style, and calculates the command-state contrast ratios.
+The probe instantiates the portrait HUD, measures each enabled interactive control after layout, checks the minimum target contract, verifies that every control has a non-empty focus style, and calculates the command-state contrast ratios. The mobile HUD probe separately validates the supported portrait viewport matrix (`390x844` logical canvas and `488x1056` default presentation), explicit safe padding, and unclipped required-control labels.

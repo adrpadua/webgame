@@ -11,7 +11,7 @@ YYYY-MM-DD-<deck-slug>-<seed-set>.md
 Example:
 
 ```text
-2026-08-13-aegis-guardian-baseline.md
+2026-08-13-elian-voss-baseline.md
 ```
 
 ## Template

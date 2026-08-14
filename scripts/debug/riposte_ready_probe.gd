@@ -37,6 +37,7 @@ func _test_grant_and_non_refresh() -> void:
 	_assert(engine.has_status(&"guardian", &"riposte_ready"), "A fully mitigated Tank Hit in Guarded Front must grant Riposte Ready.")
 	var fact: Dictionary = damage.payload.get("resolution_fact", {})
 	_assert(fact.get("damage_classification") == &"tank_hit", "Tank Hit identity must survive into the Damage Resolution Fact.")
+	_assert(fact.get("target_selector") == &"tank", "Tank Hit facts must preserve the authored Tank selector.")
 	_assert(fact.get("boss_beat_id") == &"probe_tank_hit", "Instant Tank Hit facts must preserve the authored Beat ID.")
 	_assert(fact.get("boss_track") == &"instant", "Instant Tank Hit facts must preserve their authored track.")
 	_assert(fact.get("guarded_front", false), "The Damage Resolution Fact must record the Guarded Front predicate.")
@@ -100,6 +101,7 @@ func _test_incoming_expiry() -> void:
 	var incoming_damage = _damage_action(incoming_actions)
 	_assert(engine.phase == &"slow" and engine.has_status(&"guardian", &"riposte_ready"), "An Incoming Tank Hit must grant Riposte Ready during Slow.")
 	_assert(incoming_damage.payload["resolution_fact"].get("boss_track") == &"incoming", "Incoming Tank Hit facts must preserve their authored track.")
+	_assert(incoming_damage.payload["resolution_fact"].get("target_selector") == &"tank", "Incoming Tank Hit facts must preserve the authored Tank selector.")
 	engine.advance_phase()
 	engine.advance_phase()
 	engine.advance_phase()
@@ -183,6 +185,7 @@ func _tank_program(track: StringName) -> Array:
 	beat.id = &"probe_tank_hit"
 	beat.title = "Probe Tank Hit"
 	beat.kind = BossProgramBeatModel.Kind.RAKING_CLAW
+	beat.target_selector = BossProgramBeatModel.TARGET_SELECTOR_TANK
 	beat.damage = 4
 	beat.damage_classification = &"tank_hit"
 	var program := BossProgramDataModel.new()

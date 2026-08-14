@@ -1,4 +1,4 @@
-# Controlled Aegis Test-Deck Evaluation Cohort
+# Controlled Elian Test-Deck Evaluation Cohort
 
 Status: ready-for-agent
 
@@ -10,7 +10,7 @@ Without a bounded evaluation-only deck candidate, the project cannot accurately 
 
 ## Desired Outcome
 
-Authorize one new fixed-seed evaluation cohort that uses the already documented controlled 20-card Aegis Guardian test deck:
+Authorize one new fixed-seed evaluation cohort that uses the already documented controlled 20-card Elian Voss test deck:
 
 - `8x Steady Strike`
 - `6x Iron Guard`
@@ -34,7 +34,7 @@ This is a bounded evaluation authorization, not a default-deck decision. Deliver
 
 ## Explicit Non-Goals
 
-- Replacing the live/default Aegis Guardian starter deck.
+- Replacing the live/default Elian Voss starter deck.
 - Balance tuning, card-value changes, or encounter retuning from the first pass.
 - Changing the live baseline result that closed Combat Postures issue 05.
 - Broad seed sweeps, hand guarantees, forced draw order, or teaching-pacing edits beyond the named fixed-seed cohort.
@@ -64,12 +64,12 @@ Before this intake can close as delivered, focused evidence must show that:
 
 ## Canonical Documents To Consult Or Update
 
-- [Aegis Guardian design](../../../docs/content/heroes/aegis-guardian-design.md): controlled 20-card test list, role intent, and required evidence.
+- [Elian Voss design](../../../docs/content/heroes/elian-voss-design.md): controlled 20-card test list, role intent, and required evidence.
 - [Character Design Bible](../../../docs/rules/character-design-bible.md): Shield Wall machine, starter-deck caution, and Slot Tension expectations.
 - [Deck Evaluation Rubric](../../../docs/content/deck-evaluation-rubric.md): viability, play-feel, Slot Tension, role moment, and promotion gate.
 - [Deck Evaluation Measurement Plan](../../../docs/artifacts/deck-evaluation-measurement-plan.md): fixed-seed cohort/report flow.
 - [First Content Pass](../../../docs/content/first-content-pass.md): smallest valid test list after the live two-card gate.
-- [Combat Postures delivery spec](../../../.scratch/combat-postures-aegis-guardian/spec.md): delivered first-slice context and the closed baseline-cohort limitation.
+- [Combat Postures delivery spec](../../../.scratch/combat-postures-elian-voss/spec.md): delivered first-slice context and the closed baseline-cohort limitation.
 - [Project coordination ledger](../../../docs/artifacts/project-coordination.md): cross-role ownership, active work, and closure state.
 
 ## Confirmed Product Decisions
@@ -93,4 +93,4 @@ Product intent is fully specified. Delivery may choose the smallest reversible c
 
 ## Approval Record
 
-The user requested on 2026-08-13 that Elian's deck be updated with the new cards so the project can run an accurate evaluation. PM records the smallest approved interpretation as an evaluation-only controlled Aegis test-deck cohort, not a default-starter replacement. This item is authorized for delivery planning only. The Orchestrator must acknowledge this exact path, create separate implementation tracking, preserve the confirmed outcome and non-goals, and route any broader default-deck or tuning proposal back to Product Management and the user.
+The user requested on 2026-08-13 that Elian's deck be updated with the new cards so the project can run an accurate evaluation. PM records the smallest approved interpretation as an evaluation-only controlled Elian test-deck cohort, not a default-starter replacement. This item is authorized for delivery planning only. The Orchestrator must acknowledge this exact path, create separate implementation tracking, preserve the confirmed outcome and non-goals, and route any broader default-deck or tuning proposal back to Product Management and the user.

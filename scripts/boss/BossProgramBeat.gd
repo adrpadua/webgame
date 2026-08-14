@@ -10,11 +10,14 @@ enum Kind {
 	WARNING,
 }
 
+const TARGET_SELECTOR_TANK := &"tank"
+
 @export var id: StringName
 @export var title: String = "Boss Beat"
 @export_multiline var rules_text: String = ""
 @export var kind: Kind = Kind.WARNING
 @export var counter_tags: Array[StringName] = []
+@export var target_selector: StringName = &""
 @export var damage_classification: StringName = &""
 @export var damage: int = 0
 @export var duration_rounds: int = 1

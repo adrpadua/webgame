@@ -1,6 +1,8 @@
 class_name CardButton
 extends Button
 
+const GameTooltipScene := preload("res://scripts/ui/GameTooltip.gd")
+
 signal card_selected(card)
 signal inspection_started(card)
 signal inspection_ended(card)
@@ -135,7 +137,8 @@ func _begin_press(position: Vector2) -> void:
 
 func _end_press() -> void:
 	pointer_active = false
-	_finish_drag()
+	if not drag_started:
+		_finish_drag()
 	if inspecting:
 		inspection_ended.emit(card)
 		inspecting = false
@@ -171,6 +174,9 @@ func _build_drag_preview() -> Control:
 	preview.add_theme_font_size_override("font_size", 12)
 	preview.add_theme_stylebox_override("normal", _make_style(_fill_color_for_card().lightened(0.12), _border_color_for_card().lightened(0.12)))
 	return preview
+
+func _make_custom_tooltip(for_text: String) -> Object:
+	return GameTooltipScene.new(for_text)
 
 func _get_stat_icon_row() -> String:
 	var speed_icon := QUICK_ICON if card.get_window_speed() == &"quick" else SLOW_ICON

@@ -1,4 +1,4 @@
-# Aegis Guardian: Executable Acceptance Contracts
+# Elian Voss: Executable Acceptance Contracts
 
 Status: handoff specification for Architecture and QA. Do not add these cards to the live deck or change shared rules as part of this handoff.
 
@@ -18,7 +18,7 @@ Status: handoff specification for Architecture and QA. Do not add these cards to
 
 ### Legal Action Sequence
 
-1. Start a fixed-seed Encounter with Aegis Guardian, an empty Slot 1, Sweeping Blow and one other card in Hand.
+1. Start a fixed-seed Encounter with Elian Voss, an empty Slot 1, Sweeping Blow and one other card in Hand.
 2. Use setup-only `place_minion` to place one Whelp on an adjacent legal hex. Capture its returned entity ID as `whelp_id`.
 3. Advance from Loadout through Instant to Quick.
 4. Apply `LOAD_SLOT` for Sweeping Blow into Slot 1. The action succeeds.
@@ -68,7 +68,7 @@ Add one focused seeded replay scenario, `whelp_clear`, plus a scene-parity asser
 
 ### Legal Action Sequence
 
-1. Start a fixed-seed Encounter with Aegis Guardian, an empty Slot 1, Fortify and two other Cards in Hand.
+1. Start a fixed-seed Encounter with Elian Voss, an empty Slot 1, Fortify and two other Cards in Hand.
 2. In Loadout, apply `LOAD_SLOT` for Fortify into Slot 1. The action succeeds.
 3. Advance through Instant to Quick.
 4. Apply `CHARGE_SLOT` with the first Card. The action succeeds.

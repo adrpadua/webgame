@@ -6,7 +6,7 @@ Owner: Design + QA Automation
 
 ## Request
 
-Review and operationalize the prototype deck-evaluation scorecard for Aegis Guardian and future early decks.
+Review and operationalize the prototype deck-evaluation scorecard for Elian Voss and future early decks.
 
 ## Canonical Inputs
 

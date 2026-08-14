@@ -40,7 +40,7 @@ This document catalogs the major gameplay artifacts currently present in the rep
   - Content-docs index and directory purpose
 - [docs/content/deck-evaluation-rubric.md](D:/dev/webgame/docs/content/deck-evaluation-rubric.md)
   - Design-facing scorecard for deck Viability and Play-feel in the current boss-raid prototype
-- [docs/content/decks/aegis-guardian-starter.md](D:/dev/webgame/docs/content/decks/aegis-guardian-starter.md)
+- [docs/content/decks/elian-voss-starter.md](D:/dev/webgame/docs/content/decks/elian-voss-starter.md)
   - Current tank starter decklist and role notes
 - [docs/content/encounters/embermaw-prototype.md](D:/dev/webgame/docs/content/encounters/embermaw-prototype.md)
   - Current prototype encounter spec

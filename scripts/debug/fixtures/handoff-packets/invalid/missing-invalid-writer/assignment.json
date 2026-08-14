@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "missing-invalid-writer",
+  "revision": 1,
+  "state": "draft",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T05:03:00-07:00",
+  "owner": "Architecture",
+  "canonical_issue": ".scratch/example.md",
+  "non_goals": [],
+  "expected_writers": {
+    "assignment": "Coordinator",
+    "acknowledgment": "Architecture",
+    "completion": "Architecture"
+  },
+  "dependencies": [],
+  "required_evidence": [],
+  "next_owner": "Architecture"
+}

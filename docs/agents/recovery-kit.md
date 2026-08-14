@@ -14,6 +14,7 @@ Read these sources before recreating work. Treat repository files as authoritati
 | Durable technical decisions | [ADRs](../adr/) |
 | Reusable game rules and player-card authoring | [rules documentation](../rules/) |
 | Current cross-role state, handoffs, shared ownership, and open questions | [project-coordination.md](../artifacts/project-coordination.md) |
+| Durable assignment, acknowledgment, and completion packet evidence | [handoff-packets.md](../artifacts/handoff-packets.md) and `docs/artifacts/handoff-packets/<handoff-id>/` |
 | Product proposals and approval state | [product backlog](../../.scratch/product-backlog/) and [issue workflow](issue-tracker.md) |
 | Feature delivery state | `.scratch/<feature>/spec.md` and `issues/` for each active effort |
 | Game content and supported authoring surface | [content documentation](../content/), [design-team handoff](../content/design-team-handoff.md), and relevant `resources/` files |
@@ -23,6 +24,8 @@ Read these sources before recreating work. Treat repository files as authoritati
 | Asset, code, and document map | [repo artifacts](../artifacts/repo-artifacts.md) |
 
 The coordination ledger is an index and evidence ledger. Follow its links instead of copying detailed rules into a status message or another ledger row.
+
+When a handoff packet exists, treat the packet files as the durable evidence authority. Task messages and the coordination ledger route work and index verdicts; they do not replace packet contents.
 
 ## Recovery sequence
 
@@ -115,6 +118,25 @@ Requested route: <role or user>
 ```
 
 The sender remains accountable until an acknowledgment is received. The Orchestrator writes the durable ownership, dependency, evidence, or closure state to [the coordination ledger](../artifacts/project-coordination.md).
+
+### Mandatory return packet
+
+Every assigned owner must send a task-message return to the assigning Orchestrator at three points: acknowledgment, a blocker or discovery that changes dependency/scope, and completion. A repository edit, probe artifact, or idle task state is not a return. Use this packet:
+
+```text
+State: completed | blocked | needs-decision
+Outcome / non-goal compliance: <what was delivered or why it cannot proceed>
+Changed paths and canonical docs updated: <paths, or none>
+Validation command(s) and exact result: <evidence, or why unavailable>
+Dependencies / risks / decision needed: <items or none>
+Required next owner and requested action: <role and bounded action>
+```
+
+The sender remains accountable until the acknowledgment return is received. The Orchestrator does not advance a dependent item or close a milestone until the completion return is received and recorded in the ledger.
+
+### Durable packet evidence
+
+For handoffs covered by the deterministic control-plane contract, preserve immutable packet files at `docs/artifacts/handoff-packets/<handoff-id>/assignment.json`, `acknowledgment.json`, and `completion.json`. The schema and advisory validator are defined in [handoff-packets.md](../artifacts/handoff-packets.md). Packet files are evidence authority; the ledger indexes their verdict and current routing. Proposal-06 archive work must not move or rewrite packet files.
 
 ## Escalation map
 

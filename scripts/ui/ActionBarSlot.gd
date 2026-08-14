@@ -1,6 +1,8 @@
 class_name ActionBarSlot
 extends Button
 
+const GameTooltipScene := preload("res://scripts/ui/GameTooltip.gd")
+
 signal slot_pressed(index: int)
 signal card_dropped(index: int, card: Resource)
 
@@ -54,6 +56,9 @@ func bind(index: int, data: Dictionary, is_selected: bool, is_compact: bool = fa
 
 func _pressed() -> void:
 	slot_pressed.emit(slot_index)
+
+func _make_custom_tooltip(for_text: String) -> Object:
+	return GameTooltipScene.new(for_text)
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if typeof(data) != TYPE_DICTIONARY:

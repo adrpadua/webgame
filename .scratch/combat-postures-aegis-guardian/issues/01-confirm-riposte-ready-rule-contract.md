@@ -10,7 +10,7 @@ Record the approved Riposte Ready lifecycle once in the canonical domain/content
 ## Canonical Sources
 
 - `CONTEXT.md`
-- `docs/content/heroes/aegis-guardian-design.md`
+- `docs/content/heroes/elian-voss-design.md`
 - `docs/rules/character-design-bible.md`
 
 ## Required Handoff
@@ -27,5 +27,5 @@ Canonical documents agree with the approved product issue, use existing domain v
 
 ## Comments
 
-- 2026-08-13: Game Design updated `CONTEXT.md`, `docs/content/heroes/aegis-guardian-design.md`, and `docs/rules/character-design-bible.md` with the exact approved lifecycle and non-goals.
+- 2026-08-13: Game Design updated `CONTEXT.md`, `docs/content/heroes/elian-voss-design.md`, and `docs/rules/character-design-bible.md` with the exact approved lifecycle and non-goals.
 - 2026-08-13: Coordinator comparison and `git diff --check` passed. Architecture independently confirmed the contract is internally consistent and implementable: Tank Hit identity is authored, Guarded Front is a board predicate, and grant, expiry, and consumption have deterministic engine boundaries. Issue 02 is unblocked.

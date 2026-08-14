@@ -12,6 +12,7 @@ var failures: Array[String] = []
 func _initialize() -> void:
 	_test_board_queries()
 	_test_action_bar_and_statuses()
+	_test_duplicate_top_cards()
 	_test_hazards_and_movement()
 	_test_timeline_actions()
 	_test_round_start_status()
@@ -58,6 +59,21 @@ func _test_action_bar_and_statuses() -> void:
 	var damage_action = engine.apply(EncounterActionModel.damage(&"boss", &"guardian", 3, "test"))
 	_assert(engine.get_hero(&"guardian")["health"] == health_before - 2, "on_damage_taken should reduce incoming damage")
 	_assert(damage_action.payload["resolution_fact"] == {"requested": 3, "prevented": 1, "health_loss": 2, "target_available": true}, "Damage actions must expose an explicit Resolution Fact.")
+
+func _test_duplicate_top_cards() -> void:
+	var strike = load("res://resources/cards/tank/steady_strike.tres")
+	var guard = load("res://resources/cards/tank/iron_guard.tres")
+	var engine = _engine([strike, strike, guard, guard])
+	_assert(engine.apply(EncounterActionModel.load_slot(&"guardian", 0, strike)).succeeded, "The first copy should load into Slot 1.")
+	_assert(engine.apply(EncounterActionModel.load_slot(&"guardian", 1, strike)).succeeded, "A second copy of the same Card must load into Slot 2.")
+	var hero: Dictionary = engine.get_hero(&"guardian")
+	_assert(hero["action_bar"][0]["top_card"] == strike and hero["action_bar"][1]["top_card"] == strike, "Duplicate Top Cards must remain independently installed.")
+	_advance_to_quick(engine)
+	_assert(engine.apply(EncounterActionModel.charge_slot(&"guardian", 0, guard)).succeeded, "Slot 1 should independently accept a Charge.")
+	_assert(engine.apply(EncounterActionModel.charge_slot(&"guardian", 1, guard)).succeeded, "Slot 2 should independently accept a Charge.")
+	_assert(engine.apply(EncounterActionModel.fire_slot(&"guardian", 0)).succeeded, "The first duplicate Top Card should fire.")
+	_assert(engine.apply(EncounterActionModel.fire_slot(&"guardian", 1)).succeeded, "The second duplicate Top Card should fire independently.")
+	_assert(engine.board.get_entity(&"boss")["health"] == 30, "Two charged duplicate Steady Strikes should each resolve their own damage.")
 
 func _test_hazards_and_movement() -> void:
 	var strike = load("res://resources/cards/tank/steady_strike.tres")

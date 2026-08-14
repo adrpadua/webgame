@@ -328,6 +328,7 @@ func sync_from_engine(engine) -> void:
 		piece.piece_id = entity_id
 		piece.health = int(entity["health"])
 		piece.max_health = int(entity["max_health"])
+		piece.armor = int(entity.get("armor", 0))
 		piece.queue_redraw()
 		if entity_id == engine.primary_hero_id:
 			player_piece = piece
@@ -508,10 +509,12 @@ func sync_combatant_health(player, boss) -> void:
 	if player_piece != null:
 		player_piece.health = player.health
 		player_piece.max_health = player.max_health
+		player_piece.armor = player.armor
 		player_piece.queue_redraw()
 	if boss_piece != null:
 		boss_piece.health = boss.health
 		boss_piece.max_health = boss.max_health
+		boss_piece.armor = 0
 		boss_piece.queue_redraw()
 
 func get_neighbors(coords: Vector2i) -> Array[Vector2i]:
@@ -587,6 +590,7 @@ func bind_combatants(player, boss) -> void:
 			if player_piece != null:
 				player_piece.health = player.health
 				player_piece.max_health = player.max_health
+				player_piece.armor = player.armor
 				player_piece.queue_redraw()
 		)
 
@@ -601,6 +605,7 @@ func bind_combatants(player, boss) -> void:
 			if boss_piece != null:
 				boss_piece.health = boss.health
 				boss_piece.max_health = boss.max_health
+				boss_piece.armor = 0
 				boss_piece.queue_redraw()
 		)
 

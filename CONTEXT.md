@@ -69,7 +69,7 @@ A temporary rule attached to a combatant that responds to an explicit trigger, s
 _Avoid_: Passive, invisible buff
 
 **Riposte Ready**:
-A non-stacking, non-refreshing Aegis Guardian Status Effect. When a Boss Tank Hit resolves against Captain Elian Voss while he occupies the Guarded Front and causes `0` Health loss, grant Riposte Ready if he does not already have it. It expires at the end of the first Quick Window after that qualifying hit, whether the hit occurred in an Instant Row or an Incoming Row. A legal Shield Slam consumes Riposte Ready and deals `2` additional Boss damage. The effect must show its qualifying trigger, expiry, and consumption; it is not a general posture category or a resource meter.
+A non-stacking, non-refreshing Elian Voss Status Effect. When a Boss Tank Hit resolves against Captain Elian Voss while they occupy the Guarded Front and causes `0` Health loss, grant Riposte Ready if they do not already have it. It expires at the end of the first Quick Window after that qualifying hit, whether the hit occurred in an Instant Row or an Incoming Row. A legal Shield Slam consumes Riposte Ready and deals `2` additional Boss damage. The effect must show its qualifying trigger, expiry, and consumption; it is not a general posture category or a resource meter.
 _Avoid_: Awakening, stacking buff, generic stance
 
 **Hazard**:
@@ -111,6 +111,10 @@ _Avoid_: Hand row, toolbar
 **Slot**:
 A single action bar position that holds one prepared ability and its charge stack. A slot is the smallest player planning unit that persists across rounds.
 _Avoid_: Lane, queue
+
+**Duplicate Top Cards**:
+Different copies of the same Card may occupy different Slots at the same time. Each Slot owns its own Charge Stack and activation limit; installing, charging, firing, replacing, or cleaning up one copy never changes another copy solely because they share a Card ID or Resource. There is no global one-per-Action-Bar restriction.
+_Avoid_: Unique action-bar card, shared duplicate cooldown
 
 **Persistent Slot**:
 A Slot whose Top Card remains in place across rounds until it is replaced, discarded by Full-Charge Cleanup, or removed by an effect. Activating a Slot does not automatically clear its Charge Stack.
@@ -213,8 +217,16 @@ The primary player pressure created by deciding whether to keep charging a slot,
 _Avoid_: Hand tension, mana tension
 
 **Tank Hit**:
-Boss damage authored as a Tank Hit and intended to be answered by the Tank through facing, interception, mitigation, or threat control. A Boss Beat's Tank Hit identity is explicit; it is not inferred from generic damage, Hazards, or Minions.
+Boss damage authored as a Targeted Boss Hit and intended to be answered by the Tank through mitigation, interception, or threat control. A Boss Beat's Tank Hit identity is explicit; it is not inferred from generic damage, Hazards, or Minions. Moving out of a board pattern does not evade a Tank Hit unless that Beat explicitly says it is avoidable.
 _Avoid_: Single-target damage, front damage
+
+**Targeted Boss Hit**:
+Boss damage resolved against the Hero selected by the Beat's explicit Target Selector, rather than against Heroes standing in a board pattern. It creates planned attrition that remains after perfect movement; mitigation, interception, threat control, or an explicit Beat exception may answer it. A Targeted Boss Hit is not an unavoidable Raid Hit by default.
+_Avoid_: Dodgeable cone, generic damage
+
+**Avoidable Board Pattern**:
+An authored set of board hexes that harms only combatants occupying its resolved geometry. A Hero can answer it by leaving the pattern when timing and movement rules allow. Avoiding an Avoidable Board Pattern does not answer a simultaneous Targeted Boss Hit.
+_Avoid_: All boss damage, target selector
 
 **Downed**:
 The state of a Hero at `0` health. A Downed Hero remains on its hex as a blocking, non-targetable body; it does not immediately end the Encounter and must be revived by the end of the following Round or is permanently defeated. A permanently defeated Hero is removed from play, but the Encounter continues while at least one Hero remains living. If every non-permanently-defeated Hero is Downed at once, the Encounter ends in defeat.
@@ -291,6 +303,30 @@ _Avoid_: Forced target, provoke
 **Target Selector**:
 The explicit visible rule on a Boss Timeline action that determines its target, such as Highest Threat, a specific Role, Lowest Health, Nearest, Farthest, or All. Its predicted target is highlighted before resolution. If a selected Role is absent or defeated, target the nearest living Hero instead. Resolve selector ties by highest Threat, then the public Party resolution order.
 _Avoid_: Targeting AI, target logic
+
+**Target Pattern**:
+An engine-resolved geometric set of affected hexes. A Target Pattern uses axial coordinates and, when directional, exactly one legal hex-edge Facing: `E`, `NE`, `NW`, `W`, `SW`, or `SE`. It resolves its hexes before any combatant, allegiance, range, or other target filtering. A Target Pattern is not a target-selection interface or an image-driven rule.
+_Avoid_: Reticle, UI highlight, image mask
+
+**Pattern Selection Binding**:
+The authored input a Target Pattern requires: `none` uses the supplied source origin without a player selection; `hex` uses a selected on-board hex as the origin; `piece` uses the selected Piece's current hex as the origin; and `direction` uses the supplied source origin plus one legal hex-edge Facing. The catalog declares one binding per pattern use; it does not create a generic Enemy selector.
+_Avoid_: Targeting UI, free aim
+
+**Target-Bound Pattern**:
+A Boss Beat composition that first uses a Target Selector to choose a Piece, then resolves a directional Target Pattern from the Boss's hex toward that selected Piece. The derived Facing is snapped to exactly one legal hex-edge Facing: `E`, `NE`, `NW`, `W`, `SW`, or `SE`. A Target-Bound Pattern may include the selected Piece's hex when authored and may continue beyond that Piece, so a Tank can be the selected target while non-Tanks standing behind the Tank are affected by the same geometry. It does not create arbitrary-angle aiming, a player-card targeting UI, or a persistent player-facing burden.
+_Avoid_: Free-aim cone, player-facing tax, generic target selector
+
+**Pattern Result**:
+The normalized geometry result of resolving a Target Pattern. It contains the Pattern ID, origin, selection binding, resolved Facing when applicable, and a stable ordered list of legal on-board affected axial hexes. Consumers filter or present this result; they do not recompute its geometry.
+_Avoid_: UI estimate, derived shape
+
+**Tutorial Prompt**:
+One short, dismissible teaching surface that appears when an authoritative Encounter fact or projection makes its concept relevant. A Tutorial Prompt explains an existing rule or visible pressure; it does not create legal actions, advance the Encounter, or become a gameplay fact.
+_Avoid_: Scripted tutorial step, modal turn gate, HUD rule
+
+**Tutorial Prompt Contract**:
+The authored teaching definition for one Tutorial Prompt: its ID, authoritative trigger meaning, priority, intended completion, player-language intent, and any required projection. Presentation policy such as blocking, show-once persistence, directive level, and Help history remains a product decision outside the rules contract.
+_Avoid_: UI-only trigger, forced action
 
 **Reward Category**:
 The visible family of a route reward, such as Defense, Mobility, Damage, Resource, Utility, or Boss Tech. Its concrete reward is Hero-specific.

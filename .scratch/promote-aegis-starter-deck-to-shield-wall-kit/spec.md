@@ -1,4 +1,4 @@
-# Promote Aegis Starter Deck to the Shield Wall Kit
+# Promote Elian starter Deck to the Shield Wall Kit
 
 Status: resolved
 
@@ -8,7 +8,7 @@ Authorized product proposal: [`.scratch/product-backlog/issues/04-promote-aegis-
 
 ## Delivery Outcome
 
-Replace the live/default Aegis Guardian deck in `resources/encounters/embermaw_prototype.tres` with exactly `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, and `2x Shield Slam`.
+Replace the live/default Elian Voss deck in `resources/encounters/embermaw_prototype.tres` with exactly `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, and `2x Shield Slam`.
 
 This is a distinct default-content decision. It does not rewrite the historically closed two-card baseline result or silently merge proposal 03's evaluation-only authorization.
 
@@ -26,7 +26,7 @@ No card-value or rule change, encounter pacing, seed, hand guarantee, teaching-o
 ## Shared Contracts
 
 - Product authority: `.scratch/product-backlog/issues/04-promote-aegis-starter-deck-to-shield-wall-kit.md`
-- Domain/content truth: `CONTEXT.md`, `docs/content/heroes/aegis-guardian-design.md`, `docs/content/decks/aegis-guardian-starter.md`, `docs/rules/character-design-bible.md`, `docs/content/deck-evaluation-rubric.md`, and `docs/content/first-content-pass.md`
+- Domain/content truth: `CONTEXT.md`, `docs/content/heroes/elian-voss-design.md`, `docs/content/decks/elian-voss-starter.md`, `docs/rules/character-design-bible.md`, `docs/content/deck-evaluation-rubric.md`, and `docs/content/first-content-pass.md`
 - Deterministic validation: `docs/artifacts/probe-harness.md` and the existing content/probe contracts
 - Cross-task state: `docs/artifacts/project-coordination.md`
 

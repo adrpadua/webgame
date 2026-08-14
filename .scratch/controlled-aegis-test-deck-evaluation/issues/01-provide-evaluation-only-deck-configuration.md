@@ -1,6 +1,6 @@
 # Provide Evaluation-Only Deck Configuration
 
-Status: implemented-pending-qa
+Status: resolved
 Owner: Architecture
 
 ## Outcome
@@ -9,7 +9,7 @@ Implement the smallest reversible configuration that runs the documented control
 
 ## Canonical Sources
 
-- `docs/content/heroes/aegis-guardian-design.md`
+- `docs/content/heroes/elian-voss-design.md`
 - `docs/rules/character-design-bible.md`
 - `docs/artifacts/encounter-records.md`
 - `docs/artifacts/probe-harness.md`
@@ -25,13 +25,13 @@ No additional default encounter/starter-deck edit under proposal 03, balance/car
 
 ## Acceptance
 
-The controlled configuration is clearly evaluation-only, uses exactly 20 cards with the approved identities/counts, preserves the live starter deck unchanged, and produces deterministic inputs consumable by the existing Encounter Record/report flow.
+The controlled configuration is clearly evaluation-only, uses exactly 20 cards with the approved identities/counts, remains distinct from the live/default Encounter resource, and produces deterministic inputs consumable by the existing Encounter Record/report flow. Proposal 04 separately promoted the same list to the live/default starter deck, so this proposal-03 acceptance no longer asserts the old `10x/10x` live default.
 
 ## Architecture Handoff
 
 Implemented evaluation-only configuration path: `resources/decks/evaluation/aegis_controlled_test_deck.tres`.
 
-The resource wraps the live `embermaw_prototype` Encounter for content identity and uses the approved 20-card candidate only in the controlled evaluation cohort: `8x steady_strike`, `6x iron_guard`, `2x sweeping_blow`, `2x fortify`, and `2x shield_slam`. It is not referenced by the live Encounter, content catalog, default starter deck, or player HUD.
+The resource wraps the live `embermaw_prototype` Encounter for content identity and uses the approved 20-card candidate only in the controlled evaluation cohort: `8x steady_strike`, `6x iron_guard`, `2x sweeping_blow`, `2x fortify`, and `2x shield_slam`. It remains a separate `resources/decks/evaluation/` fixture and is not itself the live/default Encounter resource or a player HUD surface.
 
 Temporary Architecture ownership pending QA verification:
 
@@ -55,4 +55,4 @@ Focused evidence:
 
 Playtester retest dependency: the controlled cohort can reach a legal Riposte Ready -> Shield Slam flow without forced hand/order setup. The deterministic evaluation policy keeps Shield Slam as a payoff card when naturally drawn and fires it only through the normal `fire_slot` action while Riposte Ready is active. Current executable evidence is `controlled-a`: Shield Slam consumes `riposte_ready` in Quick and generates Boss damage `requested=5`, `base_amount=3`, `status_bonus=2`, `payoff_card_id=shield_slam`. `controlled-b` and `controlled-c` remain separate fixed-seed outcomes and are not required to demonstrate the payoff.
 
-Non-goals preserved: no live/default starter-deck edit, no balance/card/encounter/seed/starting-hand/teaching-pacing change, no hand guarantee or forced order, no analytics/HUD/general deck system, and no rewrite of the closed live-baseline result.
+Non-goals preserved for proposal 03: no additional live/default starter-deck edit, no balance/card/encounter/seed/starting-hand/teaching-pacing change, no hand guarantee or forced order, no analytics/HUD/general deck system, and no rewrite of the closed live-baseline result.

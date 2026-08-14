@@ -19,7 +19,7 @@ Provide a repeatable measurement path for early **Starting Deck** evaluation wit
 
 Use a small fixed seed set until the prototype has broader content:
 
-- `baseline-a`: live `resources/encounters/embermaw_prototype.tres`, live Aegis Guardian starter deck, seed `1337`.
+- `baseline-a`: live `resources/encounters/embermaw_prototype.tres`, live Elian Voss starter deck, seed `1337`.
 - `baseline-b`: same Encounter and deck, seed `7331`.
 - `baseline-c`: same Encounter and deck, seed `20260813`.
 - `controlled-a`: evaluation-only `resources/decks/evaluation/aegis_controlled_test_deck.tres`, seed `1337`.
@@ -28,7 +28,9 @@ Use a small fixed seed set until the prototype has broader content:
 
 Until dedicated deck-evaluation scenarios exist, those labels mean "run the live Embermaw prototype content with the named seed and record/report the run under that label." If a tool cannot yet emit a scenario label, QA should record the label in the human note and treat scenario labeling as the first reporting gap.
 
-The controlled labels are not default-deck promotion. They exist only for the approved Aegis controlled test-deck cohort: `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, and `2x Shield Slam`. The configuration wraps the live Encounter for content fingerprinting and report grouping but does not edit `embermaw_prototype.tres`, its default starter deck, live seed, starting hand, or teaching pacing.
+These labels currently evaluate a solo Tank diagnostic, not a complete Party encounter. The target checkpoint is a living Guardian at the **end of Round 4**, plus the documented Tank role evidence. A solo Boss victory and survival beyond that halfway checkpoint are not required; without a Healer, Elian should not be expected to last substantially longer. Preserve outcomes and Boss-damage totals for diagnosis, but exclude post-checkpoint longevity from the solo score. Party victory and end-of-clock success require a future multi-Hero cohort.
+
+The controlled labels are not default-deck promotion. They exist only for the approved Elian controlled test-deck cohort: `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, and `2x Shield Slam`. The configuration wraps the live Encounter for content fingerprinting and report grouping, remains a distinct proposal-03 historical/repro fixture, and uses labels separate from historical baseline and post-promotion starter evidence. Proposal 04 separately promoted the same list to the live/default starter deck, so controlled-cohort validation must not assert the old `10x/10x` default.
 
 For the Combat Postures Playtester retest dependency, the controlled cohort must prove at least one legal Riposte Ready -> Shield Slam payoff through naturally drawn cards and normal rules actions. Current executable evidence is `controlled-a`: Shield Slam consumes `riposte_ready` in Quick and records Boss damage `requested=5`, `base_amount=3`, `status_bonus=2`, and `payoff_card_id=shield_slam`. The other controlled seeds remain useful fixed-seed outcomes, but they are not required to show that payoff.
 
@@ -60,12 +62,12 @@ Human rubric capture remains outside the game UI.
 
 | Metric | Method |
 | --- | --- |
-| Class-fantasy clarity | Player/observer rates whether the deck felt like Aegis Guardian / Shield Wall and cites one observed moment. |
+| Class-fantasy clarity | Player/observer rates whether the deck felt like Elian Voss / Shield Wall and cites one observed moment. |
 | Repetition fatigue | Same player repeats the seed set at least three times and rates fatigue after the final run. |
 | Meaningful-choice quality | Observer marks whether automatic Slot Tension counts reflected real decisions or only obvious play. |
 | Hazard-answer intent | Observer notes whether movement or mitigation was a deliberate answer to a visible pressure. |
 
-Store one Markdown note per deck review under [deck-eval-notes](deck-eval-notes/) using the template in that directory. The filename convention is `YYYY-MM-DD-<deck-slug>-<seed-set>.md`, for example `2026-08-13-aegis-guardian-baseline.md`. The note must include the deck/resource under review, content fingerprint if available, seed labels, the `1` to `5` answers from the Design rubric, and the four required free-text notes.
+Store one Markdown note per deck review under [deck-eval-notes](deck-eval-notes/) using the template in that directory. The filename convention is `YYYY-MM-DD-<deck-slug>-<seed-set>.md`, for example `2026-08-13-elian-voss-baseline.md`. The note must include the deck/resource under review, content fingerprint if available, seed labels, the `1` to `5` answers from the Design rubric, and the four required free-text notes.
 
 ## Focused Coverage
 
@@ -73,8 +75,8 @@ Preserve the existing probe suite. Add only focused coverage when a metric becom
 
 1. `deck_eval_baseline`: generates fixed-seed Encounter Records for the current live deck and asserts the three run labels, one fingerprint, observations, selected actions, and legal-useful-action proxy exist.
 2. `deck_eval_report`: verifies report grouping by content fingerprint, seed/scenario label, raw viability totals, and the deck-evaluation section.
-3. `controlled_deck_eval`: generates fixed-seed Encounter Records for the evaluation-only controlled Aegis test deck and asserts exact `8/6/2/2/2` composition, one stable controlled fingerprint, labels, live starter-deck preservation, and at least one legal Riposte Ready -> Shield Slam payoff.
-4. `controlled_deck_eval_report`: verifies canonical report grouping, raw viability totals, per-Round evidence, and the same payoff evidence for the controlled cohort.
+3. `controlled_deck_eval`: generates fixed-seed Encounter Records for the evaluation-only controlled Elian test deck and asserts exact `8/6/2/2/2` composition, one stable controlled fingerprint, distinct controlled labels, historical/repro fixture provenance, and at least one legal Riposte Ready -> Shield Slam payoff.
+4. `controlled_deck_eval_report`: verifies canonical report grouping, raw viability totals, per-Round evidence, filtered controlled-record scope, and the same payoff evidence for the controlled cohort.
 5. Extend the future `whelp_clear` and `slow_top_card_cleanup` scenarios to emit enough Encounter Record evidence for minions-cleared and charge-efficiency checks.
 
 Do not make these probes default until the scenario data and report fields are deterministic.

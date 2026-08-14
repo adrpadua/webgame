@@ -14,6 +14,7 @@ signal piece_drag_ended(piece)
 @export var display_name: String = "Unit"
 @export var health: int = 1
 @export var max_health: int = 1
+@export var armor: int = 0
 @export var attack: int = 1
 @export_enum("E", "NE", "NW", "W", "SW", "SE") var facing: int = FacingDirections.Direction.SOUTH_WEST:
 	set(value):
@@ -139,10 +140,6 @@ func _draw() -> void:
 	var radius: float = min(size.x, size.y) * 0.33
 	var fill := _get_fill_color()
 	var ring := _get_ring_color()
-	var facing_vector := FacingDirections.vector_for(facing)
-	var arrow_base: Vector2 = center + facing_vector * (radius * 0.15)
-	var arrow_tip: Vector2 = center + facing_vector * (radius + 14.0)
-	var wing_offset: Vector2 = Vector2(-facing_vector.y, facing_vector.x)
 
 	draw_circle(center + Vector2(0, 3), radius + 2.0, Color(0.0, 0.0, 0.0, 0.28))
 	draw_circle(center, radius, fill)
@@ -150,18 +147,19 @@ func _draw() -> void:
 	draw_arc(center, radius, 0.0, TAU, 48, ring, 3.0)
 	if piece_owner == &"boss":
 		draw_texture_rect(DuelystBossCrest, Rect2(center - Vector2(23, 23), Vector2(46, 46)), false, Color(1.0, 1.0, 1.0, 0.92))
-
-	draw_line(arrow_base, arrow_tip, ring, 4.0, true)
-	draw_colored_polygon(
-		PackedVector2Array([
-			arrow_tip,
-			arrow_tip - facing_vector * 11.0 + wing_offset * 7.0,
-			arrow_tip - facing_vector * 11.0 - wing_offset * 7.0,
-		]),
-		ring
-	)
+	if piece_owner != &"player":
+		_draw_facing_marker(center, radius, ring)
 
 	_draw_health_bar()
+
+func _draw_facing_marker(center: Vector2, radius: float, ring: Color) -> void:
+	var facing_vector := FacingDirections.vector_for(facing)
+	var left_vector := FacingDirections.vector_for(facing - 1)
+	var right_vector := FacingDirections.vector_for(facing + 1)
+	var tip := center + facing_vector * (radius + 8.0)
+	var left := center + left_vector * (radius - 2.0)
+	var right := center + right_vector * (radius - 2.0)
+	draw_colored_polygon(PackedVector2Array([tip, left, right]), ring)
 
 func _draw_health_bar() -> void:
 	var bar_width: float = maxf(34.0, size.x - 6.0)
@@ -175,6 +173,11 @@ func _draw_health_bar() -> void:
 	draw_style_box(_make_bar_style(Color(0.025, 0.02, 0.02, 0.90), Color(0.84, 0.79, 0.65, 0.76)), bar_rect)
 	if fill_rect.size.x > 0.0:
 		draw_style_box(_make_bar_style(fill_color, fill_color.lightened(0.2)), fill_rect)
+	if armor > 0:
+		var armor_ratio := minf(float(armor) / maxf(float(max_health), 1.0), 0.45)
+		var armor_width := minf((bar_rect.size.x - 2.0) * armor_ratio, (bar_rect.size.x - 2.0) * 0.45)
+		var armor_rect := Rect2(Vector2(bar_rect.end.x - armor_width - 1.0, bar_rect.position.y + 1.0), Vector2(armor_width, bar_rect.size.y - 2.0))
+		draw_style_box(_make_bar_style(Color(0.18, 0.30, 0.40, 0.96), Color(0.60, 0.82, 0.98, 0.98)), armor_rect)
 
 	var font := ThemeDB.fallback_font
 	if font == null:
@@ -183,6 +186,11 @@ func _draw_health_bar() -> void:
 	var health_size := 7
 	var health_width := font.get_string_size(health_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, health_size).x
 	draw_string(font, Vector2(size.x * 0.5 - health_width * 0.5, 7.8), health_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, health_size, Color(1.0, 0.97, 0.90))
+	if armor > 0:
+		var armor_text := "AR %d" % armor
+		var armor_size := 7
+		var armor_width_text := font.get_string_size(armor_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, armor_size).x
+		draw_string(font, Vector2(size.x * 0.5 - armor_width_text * 0.5, 16.0), armor_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, armor_size, Color(0.80, 0.93, 1.0))
 
 func _make_bar_style(fill: Color, border: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "blocked-terminal",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T05:07:00-07:00",
+  "owner": "Architecture",
+  "canonical_issue": ".scratch/example.md",
+  "objective": "Blocked dependency and retained terminal fixture.",
+  "non_goals": [],
+  "expected_writers": {
+    "assignment": "Coordinator",
+    "acknowledgment": "Architecture",
+    "completion": "Architecture"
+  },
+  "dependencies": [
+    {
+      "id": "qa-pass",
+      "state": "blocked"
+    }
+  ],
+  "required_evidence": [],
+  "next_owner": "Architecture"
+}

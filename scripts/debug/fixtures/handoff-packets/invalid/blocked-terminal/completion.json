@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "blocked-terminal",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Architecture",
+  "created_at": "2026-08-14T05:08:00-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": "This should fail.",
+  "changed_paths": [],
+  "validation": [],
+  "evidence": [],
+  "next_owner": "Test Automation",
+  "requested_action": "Expected failure."
+}

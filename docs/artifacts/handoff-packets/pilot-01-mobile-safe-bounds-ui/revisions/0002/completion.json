@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "pilot-01-mobile-safe-bounds-ui",
+  "revision": 2,
+  "state": "completed",
+  "writer_role": "UI/UX",
+  "created_at": "2026-08-14T00:57:26-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 2,
+  "outcome": {
+    "status": "completed",
+    "non_goal_compliance": [
+      "No broad combat HUD redesign",
+      "No gameplay, action-timing, or input-authority change",
+      "No new controls or utility surfaces",
+      "No merger with unrelated regressions"
+    ],
+    "summary": [
+      "Defined explicit physical safe-padding lanes for portrait mobile prompt-adjacent controls.",
+      "Bound prompt, help, and status-effect text to the physical portrait canvas rather than the wider stretched root.",
+      "Kept Undo and Play aligned to the compact Action Bar lane with explicit inner padding.",
+      "Added pressure behavior so Help wraps to a second row instead of clipping or shrinking required controls.",
+      "Added negative probe assertions for clipped, off-screen, overlapping, or unreadable required controls."
+    ]
+  },
+  "changed_paths": [
+    "scripts/Main.gd",
+    "scripts/debug/mobile_hud_probe.gd",
+    "scripts/debug/mobile_playtest_probe.gd",
+    "docs/artifacts/embermaw-vertical-slice.md",
+    "docs/artifacts/accessibility.md"
+  ],
+  "validation": [
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\run_probes.ps1 -Probe mobile,accessibility",
+      "result": [
+        "MOBILE_HUD_PROBE_OK",
+        "ACCESSIBILITY_PROBE_OK controls=30",
+        "PROBE_SUITE_OK count=2"
+      ]
+    },
+    {
+      "command": "& \"C:\\Users\\adrpa\\AppData\\Local\\Microsoft\\WinGet\\Packages\\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\\Godot_v4.7.1-stable_win64_console.exe\" --path \"D:\\dev\\webgame\" --script \"res://scripts/debug/mobile_hud_probe.gd\"",
+      "result": [
+        "MOBILE_HUD_PROBE_OK",
+        "Screenshots written: tmp/mobile-help-hidden.png, tmp/mobile-help-open.png"
+      ]
+    },
+    {
+      "command": "git diff --check -- scripts/Main.gd scripts/debug/mobile_hud_probe.gd scripts/debug/mobile_playtest_probe.gd docs/artifacts/embermaw-vertical-slice.md docs/artifacts/accessibility.md",
+      "result": [
+        "Pass",
+        "CRLF warnings only"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "marker",
+      "value": "MOBILE_HUD_PROBE_OK"
+    },
+    {
+      "kind": "marker",
+      "value": "ACCESSIBILITY_PROBE_OK controls=30"
+    },
+    {
+      "kind": "marker",
+      "value": "PROBE_SUITE_OK count=2"
+    },
+    {
+      "kind": "artifact",
+      "value": "tmp/mobile-help-hidden.png"
+    },
+    {
+      "kind": "artifact",
+      "value": "tmp/mobile-help-open.png"
+    }
+  ],
+  "next_owner": "Coordinator",
+  "requested_action": "Route Architecture and QA independent verification before releasing UI/UX shared-file ownership."
+}

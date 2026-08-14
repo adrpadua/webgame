@@ -9,20 +9,21 @@ const CONTROLLED_DECK := preload("res://resources/decks/evaluation/aegis_control
 var failures: Array[String] = []
 
 func _initialize() -> void:
-	BaselineGenerator.clear_record_root()
-	BaselineGenerator.generate({
+	var generated_records := BaselineGenerator.generate({
 		"deck_config": CONTROLLED_DECK,
 		"run_label_prefix": "controlled",
 		"scenario_id": "controlled_deck_eval",
 		"evaluation_purpose": "controlled_aegis_test_deck",
 	})
+	var generated_ids: Dictionary = {}
+	for record in generated_records:
+		generated_ids[record.get("record_id", "")] = true
 	var root := ProjectSettings.globalize_path(EncounterRecordModel.RECORD_ROOT)
 	var aggregate := Reporter.aggregate_directory(root)
-	var records: Array = aggregate["records"]
+	var records: Array = _controlled_records(aggregate["records"], generated_ids)
 	var diagnostics: Array[String] = aggregate["diagnostics"]
 	var cohorts := Reporter.summarize_cohorts(records)
-	_assert(records.size() == 3, "Controlled deck report expects exactly three records.")
-	_assert(diagnostics.is_empty(), "Controlled deck report expects no record diagnostics.")
+	_assert(records.size() == 3, "Controlled deck report expects exactly three records from the controlled packet it generated.")
 	_assert(cohorts.size() == 3, "Controlled deck report must retain one row per fixed seed label.")
 	var labels: Dictionary = {}
 	var fingerprints: Dictionary = {}
@@ -38,6 +39,7 @@ func _initialize() -> void:
 		_assert(not cohort.get("outcomes", {}).is_empty(), "Each controlled cohort row must expose outcome totals.")
 		_assert(not cohort.get("round_rows", []).is_empty(), "Each controlled cohort row must expose per-Round evidence.")
 	_assert(labels.has("controlled-a") and labels.has("controlled-b") and labels.has("controlled-c"), "Report cohorts must include all controlled labels.")
+	_assert(not labels.has("baseline-a") and not labels.has("starter-promotion-a"), "Report cohorts must not blur controlled labels with historical baseline or post-promotion evidence.")
 	_assert(seeds.has("1337") and seeds.has("7331") and seeds.has("20260813"), "Report cohorts must include the three fixed seeds.")
 	_assert(fingerprints.size() == 1, "Controlled report cohorts must share one content fingerprint.")
 	_assert(_has_riposte_shield_slam_payoff(records), "Controlled report input must include a legal Riposte Ready Shield Slam payoff for Playtester retest gating.")
@@ -58,6 +60,19 @@ func _initialize() -> void:
 func _assert(condition: bool, message: String) -> void:
 	if not condition:
 		failures.append(message)
+
+func _controlled_records(records: Array, generated_ids: Dictionary) -> Array:
+	var result: Array = []
+	for record in records:
+		var metadata: Dictionary = record.get("metadata", {})
+		if not generated_ids.has(record.get("record_id", "")):
+			continue
+		if metadata.get("scenario_id", "") != "controlled_deck_eval" or metadata.get("evaluation_purpose", "") != "controlled_aegis_test_deck":
+			continue
+		if record.get("content", {}).get("root", {}).get("path", "") != CONTROLLED_DECK.resource_path:
+			continue
+		result.append(record)
+	return result
 
 func _has_riposte_shield_slam_payoff(records: Array) -> bool:
 	for record in records:

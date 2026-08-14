@@ -38,11 +38,11 @@ Known limitations and explicit non-goals:
 Required verdict and retest owner:
 ```
 
-The Playtester rejects an incomplete packet with the recovery kit's `Cannot accept yet` response. A direct conversation never assigns the Playtester task or transfers ownership.
+The sender packet must identify the caller that expects the return packet. For normal operation this caller is the Orchestrator task that activated Playtester. The Playtester rejects an incomplete packet with the recovery kit's `Cannot accept yet` response. A direct conversation never assigns the Playtester task or transfers ownership.
 
 ## Evidence And Return Packet
 
-Playtester returns a task message. It does not write a repository report. The return packet states:
+Playtester returns one task message to the caller first. It does not write a repository report. The return packet states:
 
 ```text
 Verdict: PASS | PASS WITH CONCERNS | FAIL
@@ -54,6 +54,8 @@ Concerns or failures: player impact, reproducibility, and severity
 Recommended route: owner and canonical source, if follow-up is needed
 Retest required: yes or no; exact condition
 ```
+
+If the assignment names additional roles to notify, the caller still receives the full packet as the primary return. Secondary owners are named in `Recommended route` and may be copied only if the assignment explicitly asks for that extra routing.
 
 Evidence must be specific enough that UI/UX, Test Automation, or the responsible owner can reproduce the observed player path. Screenshots, captures, or short recordings may support the finding when available, but they do not replace the written flow and observed result.
 
@@ -83,4 +85,4 @@ The Orchestrator records only durable shared state, ownership, dependency, or cl
 
 After a FAIL, the responsible owner fixes or explicitly rejects the finding through the established process. After a PASS WITH CONCERNS, the Orchestrator decides whether the stated retest condition blocks the slice. Test Automation reruns applicable deterministic coverage after a relevant change. The Orchestrator reopens Playtester only when the original player-facing claim needs independent confirmation.
 
-The Playtester handoff closes only when the return packet is acknowledged, required follow-up and retest evidence are complete, the canonical documentation agrees, and the Orchestrator records the verified result. The Orchestrator then archives the separate local Playtester task.
+The Playtester handoff closes only when the caller acknowledges the return packet, required follow-up and retest evidence are complete, the canonical documentation agrees, and the Orchestrator records the verified result. The Orchestrator then archives the separate local Playtester task.

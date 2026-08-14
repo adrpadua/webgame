@@ -1,4 +1,4 @@
-# Combat Postures for Hero Roles: Aegis Guardian First Slice
+# Combat Postures for Hero Roles: Elian Voss First Slice
 
 Status: ready-for-agent
 
@@ -14,7 +14,7 @@ The player-facing promise is: “I handled the mechanic correctly, and that crea
 
 ## First Slice
 
-- Applies only to the Aegis Guardian / Captain Elian Voss.
+- Applies only to the Elian Voss / Captain Elian Voss.
 - Only a Boss Beat authored as a Tank Hit can grant Riposte Ready. Hazards, Minion damage, and other incidental damage cannot grant it.
 - When that Tank Hit resolves against Elian, grant Riposte Ready only if Elian is in the Guarded Front and takes `0` Health loss from that hit.
 - Riposte Ready is non-stacking and does not refresh. It lasts through the first Quick Window after the qualifying hit, then expires at the end of that window.
@@ -68,7 +68,7 @@ Before this proposal can close as a delivered first slice, focused evidence must
 ## Canonical Documents To Consult Or Update
 
 - [CONTEXT.md](../../../CONTEXT.md): Status Effect, Resolution Fact, Armor, Guarded Front, Tank Hit, Slot Tension, and any newly confirmed term or rule.
-- [Aegis Guardian design](../../../docs/content/heroes/aegis-guardian-design.md): Shield Wall promise, Core Loop, Shield Slam intent, and controlled test deck.
+- [Elian Voss design](../../../docs/content/heroes/elian-voss-design.md): Shield Wall promise, Core Loop, Shield Slam intent, and controlled test deck.
 - [Character Design Bible](../../../docs/rules/character-design-bible.md): Hero machine, Shield Wall role expression, complexity budget, and content approval checklist.
 - [Deck Evaluation Rubric](../../../docs/content/deck-evaluation-rubric.md): viability, play-feel, Slot Tension, class-fantasy clarity, and repetition-fatigue evidence.
 - [Project coordination ledger](../../../docs/artifacts/project-coordination.md): cross-role ownership, active work, and dependencies.
@@ -76,7 +76,7 @@ Before this proposal can close as a delivered first slice, focused evidence must
 
 ## Confirmed Product Decisions
 
-- **Riposte Ready** is an Aegis Guardian Status Effect. “Combat Postures” is the feature name, not a new general rules category.
+- **Riposte Ready** is an Elian Voss Status Effect. “Combat Postures” is the feature name, not a new general rules category.
 - Only a Boss Beat authored as a Tank Hit qualifies. A qualifying hit must resolve against Elian while he occupies the Guarded Front and cause `0` Health loss.
 - Riposte Ready is non-stacking and never refreshes. It expires at the end of the first Quick Window after the qualifying hit, whether that hit occurs in an Instant Row or an Incoming Row.
 - A legal Shield Slam automatically consumes Riposte Ready and gains `2` additional Boss damage.

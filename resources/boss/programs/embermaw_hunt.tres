@@ -17,9 +17,10 @@ counter_tags = Array[StringName]([&"Position"])
 script = ExtResource("2_beat")
 id = &"raking_claw"
 title = "Raking Claw"
-rules_text = "Front arc, range 1."
+rules_text = "Target: Tank. Deal 4 damage. Movement does not evade this hit."
 kind = 1
-counter_tags = Array[StringName]([&"Mitigate", &"Move"])
+counter_tags = Array[StringName]([&"Mitigate"])
+target_selector = &"tank"
 damage_classification = &"tank_hit"
 damage = 4
 

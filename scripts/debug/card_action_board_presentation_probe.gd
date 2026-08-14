@@ -39,6 +39,14 @@ func _initialize() -> void:
 	var fitted_title_size: int = first_card._fit_font_size(title_font, first_card.card.title, first_card.size.x - 24.0, 11, 7)
 	_assert(title_font.get_string_size(first_card.card.title, HORIZONTAL_ALIGNMENT_LEFT, -1, fitted_title_size).x <= first_card.size.x - 24.0, "Selected title should fit without clipping.")
 	_assert(main.action_bar_view.context_card == first_card.card, "Selecting a current Hand card should expose Slot destinations for that exact card.")
+	first_card.drag_started = true
+	main._on_hand_card_drag_started(first_card.card)
+	var drag_payload: Dictionary = {"kind": "hand_card", "card": first_card.card}
+	first_card._end_press()
+	await process_frame
+	_assert(main.action_bar_view.context_card == first_card.card, "Pointer release must not clear destinations before the drop completes.")
+	var first_slot: Control = main.action_bar_view.get_child(0)
+	_assert(first_slot._can_drop_data(Vector2.ZERO, drag_payload), "A legal Slot should still accept the dragged card after pointer release.")
 
 	var quick_card: Resource = load("res://resources/cards/tank/guard_stance.tres")
 	var charge_card: Resource = load("res://resources/cards/tank/taunting_challenge.tres")
@@ -89,8 +97,10 @@ func _initialize() -> void:
 	_assert(illegal_cues == 0, "MOVE must appear only on already-legal destinations.")
 	var legal_tile: Node = main.hex_grid.tiles.values().filter(func(tile: Node) -> bool: return tile.hand_card_move_legal)[0]
 	_assert(not legal_tile._can_drop_data(Vector2.ZERO, {"kind": "hand_card", "card": quick_card}), "MOVE must reject a different card payload than the projected Hand card.")
+	_assert(legal_tile._can_drop_data(Vector2.ZERO, {"kind": "hand_card", "card": first_card.card}), "MOVE should accept the currently projected dragged Hand card.")
 	_assert(main._can_project_card_to_slot({"top_card": null, "charges": [], "activated_window": &""}), "Tap fallback should recognize a legal empty Slot.")
 
+	first_card._finish_drag()
 	main._on_hand_card_drag_ended(first_card.card)
 	await process_frame
 	_assert(main.action_bar_view.context_card == null, "Drag end should clear Action Bar destinations.")

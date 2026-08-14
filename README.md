@@ -12,11 +12,35 @@ The agents do not replace a single source of truth or product ownership. Product
 
 The operating model is intentionally part of the prototype: it is being tested alongside the game. See the [agent recovery kit](D:/dev/webgame/docs/agents/recovery-kit.md), [product backlog](D:/dev/webgame/.scratch/product-backlog/map.md), and [coordination ledger](D:/dev/webgame/docs/artifacts/project-coordination.md) for the current process and delivery state.
 
+```mermaid
+flowchart LR
+    Tabletop["2024 tabletop prototype"] --> Intent["Player promises\nand game rules"]
+    Intent --> PM["Product Management"]
+    PM --> Backlog["Approved backlog"]
+    Backlog --> Orchestrator["Orchestrator"]
+    Orchestrator --> Specialists["Design · Architecture\nUI/UX · Test Automation"]
+    Specialists --> Build["Godot video-game prototype"]
+    Build --> Evidence["Probes · independent review\nPlaytester when gated"]
+    Evidence --> Intent
+```
+
+```mermaid
+flowchart TD
+    Intake["Human-approved product outcome"] --> Plan["PM records backlog item"]
+    Plan --> Route["Orchestrator decomposes and routes work"]
+    Route --> Implement["Specialist implements\nand updates canonical docs"]
+    Implement --> Validate["Owner self-check +\nsmallest independent validator"]
+    Validate -->|"evidence complete"| Close["Orchestrator audits evidence\nand records closure"]
+    Validate -->|"failure, conflict, or high risk"| Resolve["Route corrective action\nand independent retest"]
+    Resolve --> Validate
+    Close --> Next["Next approved backlog item"]
+```
+
 The current build centers on:
 
 - A scripted boss timeline with `Boss Instant`, `Quick Window`, `Boss Incoming`, and `Slow Window`
 - A persistent MMO-style action bar with chargeable slots
-- A tank starter deck for the `Aegis Guardian`
+- A tank starter deck for the `Elian Voss`
 - A small hex board with visible facing, board pieces, and paid movement
 - Drag-first interactions for cards and board movement so the prototype can scale toward touch devices
 - A portrait-first mobile HUD that keeps status, hand, board, persistent slots, and commands in one play surface

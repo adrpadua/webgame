@@ -29,8 +29,14 @@ Authored Resources -> EncounterEngine -> action history/state -> scene projectio
 | `ActionResolver` | Action legality and state transitions. |
 | `TimelineResolver` | Boss Beat conversion into generated actions. |
 | `CardResolver` | Top Card and Charge Stack effects, including Keyword Charge Modifiers. |
-| `BoardState` / `BoardQuery` | Scene-free placement, Hazards, patterns, range, and movement legality. |
+| `BoardState` / `BoardQuery` | Scene-free placement, Hazards, target-pattern geometry, range, and movement legality. Target-pattern vocabulary, bindings, and reference-only asset mapping are defined in [Prototype Rules](prototype-rules.md#reusable-target-pattern-catalog). |
 | Scene projections | Read-only state shaped for existing controls and panels. |
+
+`BoardQuery.resolve_target_pattern(board_hexes, catalog_id, origin, options = {})` is the public headless seam for reusable Target Pattern geometry. It returns `catalog_id`, `selection_binding`, `origin`, `anchor`, `facing`, and stable ordered on-board axial `impacts`; consumers apply targeting filters or presentation after this result instead of recomputing geometry.
+
+Targeted Boss Hits use the smallest authored selector seam on `BossProgramBeat.target_selector`. Current runnable content supports Raking Claw with `target_selector = "tank"` and `damage_classification = "tank_hit"`; `TimelineResolver` carries those authored facts into the generated Damage action so Encounter Records can distinguish selector-owned Tank attrition from avoidable board-pattern damage.
+
+Target-Bound Boss Patterns use `BoardQuery.resolve_target_bound_pattern(board_hexes, source_piece, candidate_pieces, target_selector, catalog_id, options = {})`. This headless seam resolves the selected Piece before geometry, snaps source-to-selected-target orientation to one legal hex-edge Facing, resolves the existing directional Target Pattern catalog, and reports selected Piece identity separately from affected Piece IDs. Same-hex source/target cases are invalid unless a future authored fallback explicitly opts in.
 
 ## Verification
 

@@ -26,6 +26,8 @@ Before work begins, record the item in `docs/artifacts/project-coordination.md` 
 
 Implementation details, rules, UI behavior, and test contracts remain in their established canonical documents. The coordination row links to those sources and records ownership, dependencies, evidence, and verification time.
 
+When the enablement item is a delivery-control or handoff-validation seam, use `docs/artifacts/handoff-packets.md` as the canonical packet contract. Packet files under `docs/artifacts/handoff-packets/<handoff-id>/` are durable evidence; the coordination ledger remains an index and must not become the schema definition.
+
 ## Closure Gate
 
 An Engineering Enablement handoff closes only when:
@@ -33,6 +35,7 @@ An Engineering Enablement handoff closes only when:
 - the bounded user can complete the named workflow through the documented interface;
 - the owner has updated the canonical contract;
 - focused validation passes with recorded evidence;
+- any required handoff packet validates against the advisory packet contract;
 - the independent user or verifier confirms the handoff;
 - implementation, documentation, and validation agree;
 - the result stays within its stated non-goals.

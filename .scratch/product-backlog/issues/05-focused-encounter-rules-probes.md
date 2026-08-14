@@ -1,6 +1,6 @@
 # Focused Encounter Rules Probes
 
-Status: needs-triage
+Status: ready-for-agent
 
 ## Player Problem
 
@@ -65,11 +65,11 @@ Before this intake can close as delivered, evidence must show that:
 - [Engineering enablement operating contract](../../../docs/agents/engineering-enablement.md): ownership, bounded user, validation, and closure rules for reusable harness work.
 - [Project coordination ledger](../../../docs/artifacts/project-coordination.md): active ownership, handoff shape, and temporary shared-file routing.
 
-## Open Product/Process Decisions
+## Confirmed Product/Process Decisions
 
-- Should the first approved rollout be the smallest possible proof-of-value (`one` focused defeat/attrition or end-of-clock contract), or should approval already include a broader initial tranche such as one defeat/attrition contract, one invalid-action matrix, and one lifecycle-focused mechanic?
-- Must the first approved slice stay entirely within today's replay and Encounter Record contracts, or may it deepen those contracts if delivery proves one missing authoritative rules fact is necessary?
-- Should the durable selection guidance live only in `probe-harness.md`, or should it also be reflected in a second process document such as the Engineering Enablement contract?
+- The first approved rollout is the smallest possible proof-of-value: one focused defeat/attrition or end-of-clock contract.
+- The first approved slice should stay within today's replay and Encounter Record contracts by default. Delivery may deepen one of those contracts only if it proves a missing authoritative rules fact is necessary for the approved slice, and any such deepening must be routed through the established canonical source and independent verification flow rather than inferred casually.
+- The durable selection guidance should be canonical in `probe-harness.md` and also reflected briefly in `engineering-enablement.md` so cross-role intake and routing can point to the model without duplicating the detailed harness contract.
 
 ## Risks And Dependencies
 
@@ -81,4 +81,6 @@ Before this intake can close as delivered, evidence must show that:
 
 ## Approval Record
 
-On 2026-08-13, the user asked PM to review the Test Automation draft at `.scratch/focused-encounter-rules-probes/spec.md` and, if it fit PM scope, put it into the backlog/intake flow. PM agrees that it fits as a process-oriented validation capability and records it here as a `needs-triage` proposal pending user approval of the exact first-slice boundary.
+On 2026-08-13, the user asked PM to review the Test Automation draft at `.scratch/focused-encounter-rules-probes/spec.md` and, if it fit PM scope, put it into the backlog/intake flow. PM agreed that it fit as a process-oriented validation capability and recorded it as `needs-triage` pending approval of the exact first-slice boundary.
+
+On Friday, August 14, 2026, the user approved PM's recommended answers: start with the smallest proof-of-value slice, preserve today's replay/Encounter Record contracts unless a missing authoritative fact is proven necessary, and keep the selection model canonical in `probe-harness.md` with a brief routing reflection in `engineering-enablement.md`. This item is now `ready-for-agent`.

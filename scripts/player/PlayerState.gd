@@ -11,7 +11,7 @@ signal health_changed
 signal facing_changed
 signal action_bar_changed
 
-@export var hero_name: String = "Aegis Guardian"
+@export var hero_name: String = "Elian Voss"
 @export var role: StringName = &"tank"
 @export var max_hand_size: int = 4
 @export var max_health: int = 34
