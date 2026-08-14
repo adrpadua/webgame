@@ -136,19 +136,10 @@ static func line(board_hexes: Dictionary, origin: Vector2i, facing: int, maximum
 		result.append(coords)
 	return result
 
+# One front-cone geometry (ADR 0017): the live rule shares the Target Pattern
+# catalog's symmetric wedge implementation.
 static func forward_cone(board_hexes: Dictionary, origin: Vector2i, facing: int, maximum_range: int = 2) -> Array[Vector2i]:
-	var result: Array[Vector2i] = []
-	var forward: Vector2i = FacingDirections.axial_delta_for(facing)
-	var left: Vector2i = FacingDirections.axial_delta_for(facing - 1)
-	var right: Vector2i = FacingDirections.axial_delta_for(facing + 1)
-	for distance in range(1, maximum_range + 1):
-		var center: Vector2i = origin + forward * distance
-		for spread in range(-(distance - 1), distance):
-			var side: Vector2i = left if spread < 0 else right
-			var coords: Vector2i = center + side * abs(spread)
-			if board_hexes.has(coords) and not result.has(coords):
-				result.append(coords)
-	return result
+	return _front_cone_impacts(board_hexes, origin, facing, maximum_range)
 
 static func facing_toward(origin: Vector2i, target: Vector2i, current_facing: int) -> int:
 	var best_direction: int = current_facing

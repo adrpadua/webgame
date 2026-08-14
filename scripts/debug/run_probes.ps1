@@ -30,6 +30,7 @@ $catalog = [ordered]@{
 	legality = "res://scripts/debug/legality_probe.gd"
 	engine_seam = "res://scripts/debug/engine_seam_probe.gd"
 	action_stream = "res://scripts/debug/action_stream_probe.gd"
+	board_authority = "res://scripts/debug/board_authority_probe.gd"
 	parity = "res://scripts/debug/live_sdk_parity_probe.gd"
 	boss_beats = "res://scripts/debug/boss_beat_probe.gd"
 	target_patterns = "res://scripts/debug/target_pattern_resolver_probe.gd"

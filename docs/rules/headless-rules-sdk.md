@@ -22,7 +22,7 @@ Authored Resources -> EncounterEngine -> action history/state -> scene projectio
                            +----------- EncounterAction -----------+
 ```
 
-`Main.gd` translates direct manipulation into `EncounterAction` records. `PlayerState`, `BossState`, `TurnManager`, and `EncounterState` are scene-facing projections; they do not resolve gameplay. `HexGrid` renders `BoardState` and asks `BoardQuery` for legal movement previews.
+`Main.gd` translates direct manipulation into `EncounterAction` records. `PlayerState`, `BossState`, `TurnManager`, and `EncounterState` are scene-facing projections; they do not resolve gameplay. `HexGrid` renders the engine's `BoardState` — the only board authority (ADR 0017) — and asks `BoardQuery` over it for legal movement previews; the view holds no board state or rules of its own.
 
 ## Modules
 

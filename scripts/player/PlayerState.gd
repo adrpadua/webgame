@@ -24,7 +24,6 @@ var facing: int = FacingDirections.Direction.NORTH_EAST
 var deck: Array = []
 var discard: Array = []
 var hand: Array = []
-var board_slots: Array = []
 var action_bar: Array = []
 var current_window: StringName = &"none"
 
