@@ -1,8 +1,8 @@
 # Implement Mobile Safe Bounds
 
-Status: blocked; scope breach requires UI remediation
+Status: completed-pending-independent-verification
 Owner: UI/UX
-Blocked by: Architecture found new Undo/reset control, replay, and Encounter Record lifecycle behavior inside the safe-bounds delta; remove or separately authorize that semantic work before re-verification
+Blocked by: Architecture and Test Automation re-verification of the active immutable packet revision 0003
 
 ## Outcome
 

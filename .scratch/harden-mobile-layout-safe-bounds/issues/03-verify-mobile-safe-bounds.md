@@ -2,7 +2,7 @@
 
 Status: blocked
 Owner: Test Automation
-Blocked by: 02 UI remediation; the current safe-bounds delta includes unapproved Undo/reset semantics and cannot close as layout-only
+Blocked by: Architecture boundary recheck; UI remediation and active packet revision 0003 are ready for independent evidence
 
 ## Outcome
 
