@@ -24,8 +24,8 @@ func _assert_card_type(path: String, expected_label: String, expected_icon: Stri
 	button.bind(load(path))
 	if not button.tooltip_text.begins_with("%s card" % expected_label):
 		failures.append("%s should be classified as %s; tooltip was %s." % [path, expected_label, button.tooltip_text])
-	if not button.text.begins_with(expected_icon):
-		failures.append("%s should include %s as the leading type icon; text was %s." % [path, expected_icon, button.text])
+	if button._get_type_icon() != expected_icon:
+		failures.append("%s should use %s as its type icon; got %s." % [path, expected_icon, button._get_type_icon()])
 	var style: StyleBoxFlat = button.get_theme_stylebox("normal")
 	if style.border_color != expected_border:
 		failures.append("%s should use %s border, got %s." % [path, expected_label, style.border_color])

@@ -1,4 +1,4 @@
-extends SceneTree
+extends "res://scripts/debug/ProbeCase.gd"
 
 # Probe contract (ADR 0017): `engine.board` is the only board authority.
 # HexGrid renders it and answers view queries by delegating to BoardQuery over
@@ -22,12 +22,13 @@ const GRID_MUTATOR_METHODS: Array[String] = [
 	"sync_combatant_health",
 ]
 
-var failures: Array[String] = []
+func probe_marker() -> String:
+	return "BOARD_AUTHORITY_PROBE_OK"
 
-func _initialize() -> void:
+func run_probe() -> void:
 	var main := MAIN_SCENE.instantiate()
 	root.add_child(main)
-	await _wait_frames(3)
+	await wait_frames(3)
 	var grid: Control = main.hex_grid
 	var engine = main.engine
 
@@ -50,7 +51,7 @@ func _initialize() -> void:
 	# Behavior guards: the view renders the rules board and asks the engine.
 	engine.apply(EncounterActionModel.apply_hazard(engine.boss_id, Vector2i(-1, 0), HazardEffectModel.new(&"scorched", 2, 1, true)))
 	main._sync_from_engine()
-	await _wait_frames(1)
+	await wait_frames(1)
 	_assert(grid.tiles[Vector2i(-1, 0)].terrain_id == &"scorched", "A rules-board Hazard must render as tile terrain.")
 
 	engine.advance_phase()
@@ -59,7 +60,7 @@ func _initialize() -> void:
 	var hand: Array = engine.get_hero(engine.primary_hero_id)["hand"]
 	_assert(not hand.is_empty(), "The behavior guard needs a hand card for movement cues.")
 	main._on_card_selected(hand[0])
-	await _wait_frames(1)
+	await wait_frames(1)
 	var legal_destinations: Dictionary = {}
 	for action in engine.legal_actions(engine.primary_hero_id):
 		if action.kind == EncounterActionModel.Kind.MOVE_HERO:
@@ -71,13 +72,6 @@ func _initialize() -> void:
 	_assert(not legal_destinations.is_empty(), "The behavior guard expects at least one legal Quick move.")
 	_assert(cue_destinations == legal_destinations, "Hand-card MOVE cues must exactly match the engine's legal move destinations (cues %s vs engine %s)." % [str(cue_destinations.keys()), str(legal_destinations.keys())])
 
-	if failures.is_empty():
-		print("BOARD_AUTHORITY_PROBE_OK")
-		quit()
-		return
-	for failure in failures:
-		push_error(failure)
-	quit(1)
 
 func _same_hexes(first: Array, second: Array) -> bool:
 	if first.size() != second.size():
@@ -87,10 +81,4 @@ func _same_hexes(first: Array, second: Array) -> bool:
 			return false
 	return true
 
-func _wait_frames(count: int) -> void:
-	for _index in count:
-		await process_frame
 
-func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		failures.append(message)

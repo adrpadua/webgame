@@ -97,9 +97,15 @@ The playable scene is [scenes/Main.tscn](D:/dev/webgame/scenes/Main.tscn).
 
 ## Validate
 
-```powershell
-powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe all
+```bash
+scripts/debug/run_probes.sh          # POSIX / CI
 ```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1
+```
+
+Both adapters read `scripts/debug/probes.manifest` and require each Probe's declared success marker (ADR 0018).
 
 ## Prototype Scope Notes
 

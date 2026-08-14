@@ -1,4 +1,4 @@
-extends SceneTree
+extends "res://scripts/debug/ProbeCase.gd"
 
 # Probe contract (ADR 0016): authored Boss Timeline beats resolve through the
 # engine seam — `apply` on a RESOLVE_BOSS action — with their spatial rules
@@ -13,9 +13,10 @@ const HUNT := preload("res://resources/boss/programs/embermaw_hunt.tres")
 
 const BROOD_CANDIDATES: Array[Vector2i] = [Vector2i(-2, 1), Vector2i(-1, 2), Vector2i(0, 2), Vector2i(2, -2), Vector2i(2, -1)]
 
-var failures: Array[String] = []
+func probe_marker() -> String:
+	return "BOSS_BEAT_PROBE_OK"
 
-func _initialize() -> void:
+func run_probe() -> void:
 	var turn = HUNT.instant_beats[0]
 	var claw = HUNT.instant_beats[1]
 	var scar = HUNT.instant_beats[2]
@@ -65,13 +66,6 @@ func _initialize() -> void:
 	for chain_file in ["EncounterResolver.gd", "EncounterSnapshot.gd", "EncounterResolution.gd"]:
 		_assert(not FileAccess.file_exists(ProjectSettings.globalize_path("res://scripts/encounter/%s" % chain_file)), "The Boss Beat chain module `%s` must not exist beside the TimelineResolver." % chain_file)
 
-	if failures.is_empty():
-		print("BOSS_BEAT_PROBE_OK")
-		quit()
-		return
-	for failure in failures:
-		push_error(failure)
-	quit(1)
 
 func _generated_damage(action):
 	for generated in action.generated_actions:
@@ -91,6 +85,3 @@ func _engine(player_coords: Vector2i, boss_facing: int = FacingDirections.Direct
 	})
 	return engine
 
-func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		failures.append(message)

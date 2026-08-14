@@ -1,4 +1,4 @@
-extends SceneTree
+extends "res://scripts/debug/ProbeCase.gd"
 
 # Probe contract (ADR 0015): phase-machine state changes are first-class
 # EncounterActions on the engine's history stream, and `advance_phase` returns
@@ -6,31 +6,24 @@ extends SceneTree
 # instead of re-deriving or diffing state.
 
 const EncounterActionModel := preload("res://scripts/sdk/EncounterAction.gd")
-const EncounterEngineModel := preload("res://scripts/sdk/EncounterEngine.gd")
 const FacingDirections := preload("res://scripts/combat/Facing.gd")
 const PlayerStateModel := preload("res://scripts/player/PlayerState.gd")
 
 const STRIKE := preload("res://resources/cards/tank/steady_strike.tres")
 const GUARD := preload("res://resources/cards/tank/iron_guard.tres")
 
-var failures: Array[String] = []
+func probe_marker() -> String:
+	return "ACTION_STREAM_PROBE_OK"
 
-func _initialize() -> void:
+func run_probe() -> void:
 	_test_full_charge_cleanup_on_stream()
 	_test_round_rollover_on_stream()
 	_test_phase_transitions_on_stream()
 	_test_end_of_clock_on_stream()
 	_test_presentation_folds_the_stream()
-	if failures.is_empty():
-		print("ACTION_STREAM_PROBE_OK")
-		quit()
-		return
-	for failure in failures:
-		push_error(failure)
-	quit(1)
 
 func _test_full_charge_cleanup_on_stream() -> void:
-	var engine = _engine([STRIKE, GUARD, GUARD, GUARD])
+	var engine = standard_engine([STRIKE, GUARD, GUARD, GUARD])
 	engine.apply(EncounterActionModel.load_slot(&"guardian", 0, STRIKE))
 	engine.advance_phase()
 	engine.advance_phase()
@@ -57,7 +50,7 @@ func _test_full_charge_cleanup_on_stream() -> void:
 func _test_round_rollover_on_stream() -> void:
 	# Empty deck + one discarded Stamina card forces the refill to reshuffle,
 	# so the rollover must emit ROUND_START, SHUFFLE_DECK, then DRAW_CARD.
-	var engine = _engine([STRIKE, GUARD, GUARD, GUARD])
+	var engine = standard_engine([STRIKE, GUARD, GUARD, GUARD])
 	engine.advance_phase()
 	engine.advance_phase()
 	engine.apply(EncounterActionModel.move_hero(&"guardian", Vector2i(0, 1), STRIKE))
@@ -80,7 +73,7 @@ func _test_round_rollover_on_stream() -> void:
 	_assert(engine.get_hero(&"guardian")["hand"].size() == 4, "The Persistent Hand must refill to its target through the stream.")
 
 func _test_phase_transitions_on_stream() -> void:
-	var engine = _engine([STRIKE, GUARD, GUARD, GUARD])
+	var engine = standard_engine([STRIKE, GUARD, GUARD, GUARD])
 	var transitions: Array = []
 	for _step in 5:
 		var slice: Array = engine.advance_phase()
@@ -91,7 +84,7 @@ func _test_phase_transitions_on_stream() -> void:
 	_assert(engine.round == 2 and engine.phase == &"loadout", "The streamed transitions must land in next-Round Loadout.")
 	# A fired, non-full Slot keeps its cards across the boundary: the window
 	# flag clears when the ADVANCE_PHASE resolves, with no Full-Charge Cleanup.
-	var flag_engine = _engine([STRIKE, GUARD, GUARD, GUARD])
+	var flag_engine = standard_engine([STRIKE, GUARD, GUARD, GUARD])
 	flag_engine.apply(EncounterActionModel.load_slot(&"guardian", 0, STRIKE))
 	flag_engine.advance_phase()
 	flag_engine.advance_phase()
@@ -104,15 +97,7 @@ func _test_phase_transitions_on_stream() -> void:
 	_assert(boundary_slot["activated_window"] == &"" and boundary_slot["charges"].size() == 1, "The ADVANCE_PHASE resolution must clear the window flag and keep the Charge Stack.")
 
 func _test_end_of_clock_on_stream() -> void:
-	var engine := EncounterEngineModel.new()
-	engine.start({
-		"board_radius": 2,
-		"round_limit": 1,
-		"enrage_text": "Embermaw devours the raid.",
-		"boss": {"id": &"boss", "coords": Vector2i(1, -1), "health": 36, "facing": FacingDirections.Direction.SOUTH_WEST},
-		"heroes": [{"id": &"guardian", "coords": Vector2i(0, 0), "health": 34, "slot_count": 2}],
-		"primary_hero_id": &"guardian",
-	})
+	var engine = standard_engine([], {"round_limit": 1, "enrage_text": "Embermaw devours the raid."})
 	var last_slice: Array = []
 	for _step in 5:
 		last_slice = engine.advance_phase()
@@ -130,7 +115,7 @@ func _test_end_of_clock_on_stream() -> void:
 func _test_presentation_folds_the_stream() -> void:
 	# The scene-facing PlayerState projection derives Slot transition cues by
 	# folding the stream — no snapshot diffing, consumed once per read.
-	var engine = _engine([STRIKE, GUARD, GUARD, GUARD])
+	var engine = standard_engine([STRIKE, GUARD, GUARD, GUARD])
 	var player := PlayerStateModel.new()
 	player.bind_engine(engine, &"guardian")
 	engine.apply(EncounterActionModel.load_slot(&"guardian", 0, STRIKE))
@@ -160,17 +145,4 @@ func _of_kind(actions: Array, kind: int) -> Array:
 			result.append(action)
 	return result
 
-func _engine(hand: Array):
-	var engine := EncounterEngineModel.new()
-	engine.start({
-		"board_radius": 2,
-		"round_limit": 8,
-		"boss": {"id": &"boss", "coords": Vector2i(1, -1), "health": 36, "facing": FacingDirections.Direction.SOUTH_WEST},
-		"heroes": [{"id": &"guardian", "coords": Vector2i(0, 0), "health": 34, "slot_count": 2, "hand": hand, "refill_target": hand.size()}],
-		"primary_hero_id": &"guardian",
-	})
-	return engine
 
-func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		failures.append(message)

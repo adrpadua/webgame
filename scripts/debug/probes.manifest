@@ -1,0 +1,52 @@
+# Probe suite manifest (ADR 0018) — the single registration source.
+# Format: lane|name|script|marker
+#   default  — deterministic probes run by every full suite run
+#   scenario — deterministic EncounterProbeScenario tapes, also run by default
+#   manual   — needs a real window (screenshot/visual capture); skipped headlessly
+#   tool     — report/artifact generators invoked by their own entrypoints
+# Both runner adapters (run_probes.sh, run_probes.ps1) read this file and
+# require each probe's declared marker in its output. The suite_manifest probe
+# keeps this file complete: every executable probe script must appear here.
+default|suite_manifest|res://scripts/debug/suite_manifest_probe.gd|SUITE_MANIFEST_PROBE_OK
+default|content|res://scripts/debug/content_validation_probe.gd|CONTENT_VALIDATION_OK
+default|rules|res://scripts/debug/sdk_encounter_harness.gd|SDK_ENCOUNTER_HARNESS_OK
+default|legality|res://scripts/debug/legality_probe.gd|LEGALITY_PROBE_OK
+default|engine_seam|res://scripts/debug/engine_seam_probe.gd|ENGINE_SEAM_PROBE_OK
+default|action_stream|res://scripts/debug/action_stream_probe.gd|ACTION_STREAM_PROBE_OK
+default|board_authority|res://scripts/debug/board_authority_probe.gd|BOARD_AUTHORITY_PROBE_OK
+default|parity|res://scripts/debug/live_sdk_parity_probe.gd|LIVE_SDK_PARITY_OK
+default|boss_beats|res://scripts/debug/boss_beat_probe.gd|BOSS_BEAT_PROBE_OK
+default|target_patterns|res://scripts/debug/target_pattern_resolver_probe.gd|TARGET_PATTERN_RESOLVER_PROBE_OK
+default|target_bound_patterns|res://scripts/debug/target_bound_pattern_probe.gd|TARGET_BOUND_PATTERN_PROBE_OK
+default|encounter|res://scripts/debug/new_player_spike.gd|NEW_PLAYER_SPIKE_OK
+default|layout|res://scripts/debug/layout_probe.gd|LAYOUT_PROBE_OK
+default|mobile|res://scripts/debug/mobile_hud_probe.gd|MOBILE_HUD_PROBE_OK
+default|accessibility|res://scripts/debug/accessibility_probe.gd|ACCESSIBILITY_PROBE_OK
+default|replay|res://scripts/debug/full_charge_cleanup_probe.gd|FULL_CHARGE_CLEANUP_PROBE_OK
+default|focused_end_of_clock|res://scripts/debug/focused_end_of_clock_probe.gd|FOCUSED_END_OF_CLOCK_PROBE_OK
+default|records|res://scripts/debug/encounter_record_probe.gd|ENCOUNTER_RECORD_PROBE_OK
+default|record_scene|res://scripts/debug/encounter_record_scene_probe.gd|ENCOUNTER_RECORD_SCENE_PROBE_OK
+default|presentation|res://scripts/debug/card_action_board_presentation_probe.gd|CARD_ACTION_BOARD_PRESENTATION_PROBE_OK
+default|riposte|res://scripts/debug/riposte_ready_probe.gd|RIPOSTE_READY_PROBE_OK
+default|riposte_live|res://scripts/debug/riposte_production_path_probe.gd|RIPOSTE_PRODUCTION_PATH_PROBE_OK
+default|riposte_ui|res://scripts/debug/riposte_status_ui_probe.gd|RIPOSTE_STATUS_UI_PROBE_OK
+default|deck_eval_report|res://scripts/debug/deck_eval_report_probe.gd|DECK_EVAL_REPORT_PROBE_OK
+default|controlled_deck_eval_report|res://scripts/debug/controlled_deck_eval_report_probe.gd|CONTROLLED_DECK_EVAL_REPORT_PROBE_OK
+default|starter_deck_promotion|res://scripts/debug/starter_deck_promotion_probe.gd|STARTER_DECK_PROMOTION_PROBE_OK
+default|board_navigation|res://scripts/debug/board_navigation_probe.gd|BOARD_NAVIGATION_PROBE_OK
+default|card_economy|res://scripts/debug/card_economy_probe.gd|CARD_ECONOMY_PROBE_OK
+default|card_inspection|res://scripts/debug/card_inspection_probe.gd|CARD_INSPECTION_PROBE_OK
+default|card_tap_fallback|res://scripts/debug/card_tap_fallback_probe.gd|CARD_TAP_FALLBACK_PROBE_OK
+default|card_type|res://scripts/debug/card_type_probe.gd|CARD_TYPE_PROBE_OK
+default|charge_stack_render|res://scripts/debug/charge_stack_render_probe.gd|CHARGE_STACK_RENDER_PROBE_OK
+default|first_loadout_ui|res://scripts/debug/first_loadout_ui_probe.gd|FIRST_LOADOUT_UI_PROBE_OK
+default|movement_path_render|res://scripts/debug/movement_path_render_probe.gd|MOVEMENT_PATH_RENDER_PROBE_OK
+default|tile_info|res://scripts/debug/tile_info_probe.gd|TILE_INFO_PROBE_OK
+default|action_bar_art|res://scripts/debug/action_bar_art_probe.gd|ACTION_BAR_ART_PROBE_OK
+default|player_card_authoring|res://scripts/debug/player_card_authoring_probe.gd|PLAYER_CARD_AUTHORING_PROBE_OK
+scenario|whelp_clear|res://scripts/debug/whelp_clear_probe.gd|WHELP_CLEAR_PROBE_OK
+scenario|slow_top_card_cleanup|res://scripts/debug/slow_top_card_cleanup_probe.gd|SLOW_TOP_CARD_CLEANUP_PROBE_OK
+scenario|deck_eval_baseline|res://scripts/debug/deck_eval_baseline_probe.gd|DECK_EVAL_BASELINE_PROBE_OK
+scenario|controlled_deck_eval|res://scripts/debug/controlled_deck_eval_probe.gd|CONTROLLED_DECK_EVAL_PROBE_OK
+manual|card_action_bar_visual|res://scripts/debug/card_action_bar_visual_probe.gd|CARD_ACTION_BAR_VISUAL_PROBE_OK
+tool|record_report|res://scripts/debug/encounter_record_report.gd|ENCOUNTER_RECORD_REPORT_OK

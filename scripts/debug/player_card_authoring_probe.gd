@@ -13,7 +13,7 @@ func _initialize() -> void:
 	var strike = load("res://resources/cards/tank/steady_strike.tres")
 	var guard = load("res://resources/cards/tank/iron_guard.tres")
 	_assert(strike.rules_text == "Deal 2 damage to the boss. Gain +1 damage for each charged card.", "Steady Strike must use the canonical generic charge wording.")
-	_assert(guard.rules_text == "Gain 3 Armor. Gain +1 Armor for each charged card.", "Iron Guard must use the canonical generic charge wording.")
+	_assert(guard.rules_text == "Gain 3 Armor. Gain +1 Armor for each charged Guard card.", "Iron Guard must state its Keyword Charge Modifier wording.")
 	print("PLAYER_CARD_AUTHORING_PROBE_OK")
 	quit()
 

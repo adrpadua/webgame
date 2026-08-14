@@ -2,17 +2,29 @@
 
 The harness keeps the **Encounter** rules and player-facing presentation independently verifiable while the prototype evolves. It is a runner over existing Godot headless scripts, not a competing test framework.
 
+Registration lives in one manifest — `scripts/debug/probes.manifest` (`lane|name|script|marker`, ADR 0018) — read by two adapters:
+
+```bash
+scripts/debug/run_probes.sh                    # POSIX / CI
+scripts/debug/run_probes.sh rules boss_beats   # named probes
+GODOT=/path/to/godot scripts/debug/run_probes.sh
+```
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1
 powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe rules,boss_beats
-powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Scenario full_charge_cleanup
 powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Godot 'C:\path\to\Godot_console.exe'
 ```
 
-The default suite is intentionally named and stable. The runner gives each Probe a 15-second ceiling and fails on a non-zero Godot exit, engine error, or failed assertion:
+A full run executes the `default` and `scenario` lanes and reports the skipped `manual` (needs a real window) and `tool` lanes — nothing is silently dropped. A Probe passes only when Godot exits `0`, its output contains the manifest's declared `*_OK` marker, and no engine error or failed assertion appears; an exit code alone is not a pass (the adapters' self-test fixtures under `scripts/debug/fixtures/` prove this). The `suite_manifest` Probe keeps the manifest complete: every executable probe script must be registered, pointing at an existing file whose source declares its marker.
+
+New Probes extend `scripts/debug/ProbeCase.gd` (accumulating `_assert`, one marker/exit contract via `probe_marker()`/`run_probe()`, `wait_frames`, and the `standard_engine` scene-free Encounter fixture) and add one manifest line.
+
+Probe contracts in the default suite:
 
 | Probe | Contract |
 | --- | --- |
+| `suite_manifest` | `probes.manifest` is the single, complete registration source: every executable probe script is manifested once, with an existing file, a legal lane, and its declared success marker present in source. |
 | `content` | Every designer-authored Resource loads and satisfies the content contract, with actionable path-based failures. |
 | `rules` | Scene-free **Encounter** rules, action records, Slots, Status Effects, Hazards, and Boss Timeline execution. |
 | `legality` | The `EncounterEngine.legality` / `legal_actions` seam: the player-action legality matrix, target-aware fire enumeration, and the invariant that `apply` succeeds if and only if `legality` agrees, with matching rejection reasons. |
