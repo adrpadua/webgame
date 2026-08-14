@@ -39,7 +39,7 @@ func resolve_boss_beat(engine, boss_id: StringName, beat, track: StringName = &"
 		var hazard = beat.hazard.create_effect() if beat.hazard != null else HazardEffectModel.new(&"scorched", resolution.scorched_duration_rounds, 1, true)
 		actions.append(EncounterActionModel.apply_hazard(boss_id, coords, hazard))
 	for coords in resolution.spawn_hexes:
-		actions.append(EncounterActionModel.spawn_minion(boss_id, engine.next_minion_id(), coords, beat.minion))
+		actions.append(EncounterActionModel.spawn_minion(boss_id, engine._next_minion_id(), coords, beat.minion))
 	return actions
 
 func _snapshot_for(engine):

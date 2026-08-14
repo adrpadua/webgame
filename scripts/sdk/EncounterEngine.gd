@@ -1,7 +1,14 @@
 class_name EncounterEngine
 extends RefCounted
 
-const ActionResolverModel := preload("res://scripts/sdk/ActionResolver.gd")
+# The Encounter Engine is one module (ADR 0014): its seam is start / apply /
+# advance_phase / legality / legal_actions plus read projections. Action
+# legality and state transitions are implementation below the seam; `legality`
+# is the single statement of every pre-resolution rule, and `_resolve` routes
+# through it before mutating, so an action is applied if and only if the same
+# predicate calls it legal.
+
+const CardResolverModel := preload("res://scripts/sdk/CardResolver.gd")
 const BoardStateModel := preload("res://scripts/hex/BoardState.gd")
 const BoardQueryModel := preload("res://scripts/hex/BoardQuery.gd")
 const EncounterActionModel := preload("res://scripts/sdk/EncounterAction.gd")
@@ -15,8 +22,6 @@ const RIPOSTE_READY: StringName = &"riposte_ready"
 const SHIELD_SLAM: StringName = &"shield_slam"
 
 var board := BoardStateModel.new()
-var action_resolver := ActionResolverModel.new()
-var timeline_resolver
 var heroes: Dictionary = {}
 var status_effects: Dictionary = {}
 var boss_id: StringName = &""
@@ -41,9 +46,12 @@ var minion_sequence: int = 0
 var enrage_text: String = "The Encounter Clock expired."
 var random_source := RulesRandomModel.new()
 
+var _card_resolver := CardResolverModel.new()
+var _timeline_resolver
+
 func _init() -> void:
 	var timeline_resolver_script = load("res://scripts/sdk/TimelineResolver.gd")
-	timeline_resolver = timeline_resolver_script.new()
+	_timeline_resolver = timeline_resolver_script.new()
 
 func start(config_source) -> void:
 	var config: Dictionary = config_source if typeof(config_source) == TYPE_DICTIONARY else _config_from_encounter(config_source)
@@ -82,7 +90,7 @@ func start(config_source) -> void:
 		_add_hero(hero_config)
 	primary_hero_id = config.get("primary_hero_id", heroes.keys()[0] if not heroes.is_empty() else &"")
 	_refresh_telegraphs()
-	check_resolution()
+	_check_resolution()
 
 func _config_from_encounter(encounter) -> Dictionary:
 	if encounter == null:
@@ -117,12 +125,12 @@ func _config_from_encounter(encounter) -> Dictionary:
 	}
 
 func apply(action):
-	var generated: Array = action_resolver.resolve(self, action)
+	var generated: Array = _resolve(action)
 	history.append(action)
 	for followup in generated:
 		action.generated_actions.append(followup)
 		apply(followup)
-	check_resolution()
+	_check_resolution()
 	return action
 
 func advance_phase() -> Array:
@@ -133,7 +141,7 @@ func advance_phase() -> Array:
 		&"loadout":
 			phase = &"instant"
 		&"instant":
-			actions = timeline_resolver.actions_for_track(self, &"instant")
+			actions = _timeline_resolver.actions_for_track(self, &"instant")
 			for action in actions:
 				apply(action)
 			phase = &"quick"
@@ -148,7 +156,7 @@ func advance_phase() -> Array:
 			phase = &"incoming"
 		&"incoming":
 			_refresh_telegraphs()
-			actions = timeline_resolver.actions_for_track(self, &"incoming")
+			actions = _timeline_resolver.actions_for_track(self, &"incoming")
 			for action in actions:
 				apply(action)
 			phase = &"slow"
@@ -173,19 +181,65 @@ func advance_phase() -> Array:
 				current_program = programs[program_index] if program_index < programs.size() else null
 			phase = &"loadout"
 			_refresh_telegraphs()
-	check_resolution()
+	_check_resolution()
 	return actions
 
 func legality(action) -> Dictionary:
-	return action_resolver.legality(self, action)
+	if not active:
+		return _illegal("The Encounter has already ended.")
+	match action.kind:
+		EncounterActionModel.Kind.LOAD_SLOT:
+			return _load_slot_legality(action)
+		EncounterActionModel.Kind.CHARGE_SLOT:
+			return _charge_slot_legality(action)
+		EncounterActionModel.Kind.FIRE_SLOT:
+			return _fire_slot_legality(action)
+		EncounterActionModel.Kind.MOVE_HERO:
+			return _move_hero_legality(action)
+		EncounterActionModel.Kind.DISCARD_FOR_STAMINA:
+			return _discard_for_stamina_legality(action)
+		EncounterActionModel.Kind.RESOLVE_BOSS:
+			return _resolve_boss_legality(action)
+		EncounterActionModel.Kind.EXPIRE_STATUS:
+			return _expire_status_legality(action)
+	# APPLY_HAZARD, SPAWN_MINION, and DAMAGE are generated actions whose only
+	# failure modes are resolution-time outcomes (an occupied spawn hex, an
+	# already-removed target); they carry no pre-resolution legality rule.
+	return _legal()
 
 func legal_actions(hero_id: StringName) -> Array:
-	return action_resolver.legal_actions(self, hero_id)
+	var actions: Array = []
+	if not active:
+		return actions
+	var hero: Dictionary = get_hero(hero_id)
+	if hero.is_empty():
+		return actions
+	var hand: Array = hero.get("hand", [])
+	var slots: Array = hero.get("action_bar", [])
+	for slot_index in slots.size():
+		for card in hand:
+			var load_action = EncounterActionModel.load_slot(hero_id, slot_index, card)
+			if legality(load_action)["legal"]:
+				actions.append(load_action)
+			var charge_action = EncounterActionModel.charge_slot(hero_id, slot_index, card)
+			if legality(charge_action)["legal"]:
+				actions.append(charge_action)
+		for target_id in _fire_target_candidates(slots[slot_index]):
+			var fire_action = EncounterActionModel.fire_slot(hero_id, slot_index, target_id)
+			if legality(fire_action)["legal"]:
+				actions.append(fire_action)
+	var entity: Dictionary = board.get_entity(hero_id)
+	if not hand.is_empty() and not entity.is_empty():
+		for destination in BoardQueryModel.neighbors(board.hexes, entity.get("coords")):
+			var move_action = EncounterActionModel.move_hero(hero_id, destination, hand[0])
+			if legality(move_action)["legal"]:
+				actions.append(move_action)
+	return actions
 
 func get_hero(hero_id: StringName) -> Dictionary:
 	return heroes.get(hero_id, {})
 
-func put_hero(hero_id: StringName, hero: Dictionary) -> void:
+func _put_hero(hero_id: StringName, hero: Dictionary) -> void:
 	heroes[hero_id] = hero
 	if board.has_entity(hero_id):
 		board.get_entity(hero_id)["health"] = hero["health"]
@@ -207,7 +261,7 @@ func get_status(entity_id: StringName, status_id: StringName):
 			return effect
 	return null
 
-func remove_status(entity_id: StringName, status_id: StringName) -> bool:
+func _remove_status(entity_id: StringName, status_id: StringName) -> bool:
 	var effects: Array = status_effects.get(entity_id, [])
 	for index in effects.size():
 		if effects[index].id == status_id:
@@ -216,7 +270,7 @@ func remove_status(entity_id: StringName, status_id: StringName) -> bool:
 			return true
 	return false
 
-func evaluate_damage_status(action, resolution_fact: Dictionary) -> void:
+func _evaluate_damage_status(action, resolution_fact: Dictionary) -> void:
 	if action.source_id != boss_id or action.payload.get("target_id", &"") != primary_hero_id:
 		return
 	if resolution_fact.get("damage_classification", &"") != TANK_HIT:
@@ -247,7 +301,7 @@ func evaluate_damage_status(action, resolution_fact: Dictionary) -> void:
 		resolution_fact["status_event"] = _status_event(effect, &"granted", effect.trigger_reason)
 	resolution_fact["status_evaluation"] = evaluation
 
-func consume_statuses_for_slot(entity_id: StringName, card) -> Dictionary:
+func _consume_statuses_for_slot(entity_id: StringName, card) -> Dictionary:
 	var result := {"bonus_boss_damage": 0, "events": []}
 	if card == null:
 		return result
@@ -267,7 +321,7 @@ func consume_statuses_for_slot(entity_id: StringName, card) -> Dictionary:
 	status_effects[entity_id] = remaining
 	return result
 
-func status_actions(trigger: StringName, entity_id: StringName, context: Dictionary = {}) -> Array:
+func _status_actions(trigger: StringName, entity_id: StringName, context: Dictionary = {}) -> Array:
 	var actions: Array = []
 	for effect in status_effects.get(entity_id, []):
 		if effect.consume_on_card_id != &"":
@@ -277,7 +331,7 @@ func status_actions(trigger: StringName, entity_id: StringName, context: Diction
 			actions.append(EncounterActionModel.damage(entity_id, boss_id, outcome_data["bonus_boss_damage"], effect.id))
 	return actions
 
-func hazard_actions(entity_id: StringName, coords: Vector2i) -> Array:
+func _hazard_actions(entity_id: StringName, coords: Vector2i) -> Array:
 	var actions: Array = []
 	for hazard in board.get_hazards(coords):
 		var outcome_data: Dictionary = hazard.outcome_for(StatusEffectModel.ON_ENTER_HEX)
@@ -285,7 +339,7 @@ func hazard_actions(entity_id: StringName, coords: Vector2i) -> Array:
 			actions.append(EncounterActionModel.damage(&"hazard", entity_id, outcome_data["damage"], hazard.id))
 	return actions
 
-func apply_damage(target_id: StringName, amount: int) -> Dictionary:
+func _apply_damage(target_id: StringName, amount: int) -> Dictionary:
 	var requested: int = max(amount, 0)
 	var adjusted: int = requested
 	var prevented: int = 0
@@ -316,7 +370,7 @@ func apply_damage(target_id: StringName, amount: int) -> Dictionary:
 		resolution_fact["target_removed"] = true
 	return resolution_fact
 
-func next_minion_id() -> StringName:
+func _next_minion_id() -> StringName:
 	minion_sequence += 1
 	return StringName("whelp_%d" % minion_sequence)
 
@@ -343,7 +397,7 @@ func _refresh_telegraphs() -> void:
 						telegraphed_spawn_hexes.append(coords)
 						telegraphs[coords] = &"brood"
 
-func check_resolution() -> void:
+func _check_resolution() -> void:
 	if not active:
 		return
 	if boss_id == &"" or not board.has_entity(boss_id) or board.get_entity(boss_id).get("health", 0) <= 0:
@@ -461,3 +515,275 @@ func _status_event(effect, event: StringName, reason: StringName) -> Dictionary:
 		"trigger_round": effect.trigger_round,
 		"trigger_phase": effect.trigger_phase,
 	}
+
+# --- Action resolution (implementation behind `apply` and `legality`) ---
+
+func _resolve(action) -> Array:
+	var verdict := legality(action)
+	if verdict.has("target_range"):
+		action.payload["target_range"] = verdict["target_range"]
+	if not verdict["legal"]:
+		action.resolve_failure(verdict["reason"])
+		return []
+	match action.kind:
+		EncounterActionModel.Kind.LOAD_SLOT:
+			_load_slot(action)
+		EncounterActionModel.Kind.CHARGE_SLOT:
+			_charge_slot(action)
+		EncounterActionModel.Kind.FIRE_SLOT:
+			return _fire_slot(action)
+		EncounterActionModel.Kind.MOVE_HERO:
+			return _move_hero(action)
+		EncounterActionModel.Kind.RESOLVE_BOSS:
+			return _resolve_boss(action)
+		EncounterActionModel.Kind.APPLY_HAZARD:
+			_apply_hazard(action)
+		EncounterActionModel.Kind.SPAWN_MINION:
+			_spawn_minion(action)
+		EncounterActionModel.Kind.DAMAGE:
+			return _damage(action)
+		EncounterActionModel.Kind.DISCARD_FOR_STAMINA:
+			_discard_for_stamina(action)
+		EncounterActionModel.Kind.EXPIRE_STATUS:
+			_expire_status(action)
+	return []
+
+func _load_slot_legality(action) -> Dictionary:
+	var hero: Dictionary = get_hero(action.source_id)
+	var slot_index: int = action.payload.get("slot_index", -1)
+	var card = action.payload.get("card")
+	if hero.is_empty() or card == null or not hero["hand"].has(card):
+		return _illegal("The chosen hand card is unavailable.")
+	if slot_index < 0 or slot_index >= hero["action_bar"].size() or phase != &"loadout" and phase != &"quick" and phase != &"slow":
+		return _illegal("Loading a Slot requires a legal Slot during Loadout, Quick, or Slow.")
+	if hero["action_bar"][slot_index]["top_card"] != null and phase != &"loadout":
+		return _illegal("Replacing a Slot is only allowed during Loadout.")
+	return _legal()
+
+func _charge_slot_legality(action) -> Dictionary:
+	var hero: Dictionary = get_hero(action.source_id)
+	var slot_index: int = action.payload.get("slot_index", -1)
+	var card = action.payload.get("card")
+	if hero.is_empty() or card == null or not hero["hand"].has(card):
+		return _illegal("The chosen hand card is unavailable.")
+	if slot_index < 0 or slot_index >= hero["action_bar"].size() or phase != &"quick" and phase != &"slow":
+		return _illegal("Charging requires a legal Slot during Quick or Slow.")
+	var slot: Dictionary = hero["action_bar"][slot_index]
+	if slot["top_card"] == null or slot["activated_window"] == phase or slot["charges"].size() >= slot["top_card"].get_charge_cap():
+		return _illegal("That Slot cannot accept another charge.")
+	return _legal()
+
+func _fire_slot_legality(action) -> Dictionary:
+	var hero: Dictionary = get_hero(action.source_id)
+	var slot_index: int = action.payload.get("slot_index", -1)
+	if hero.is_empty() or slot_index < 0 or slot_index >= hero["action_bar"].size():
+		return _illegal("Select a legal Slot.")
+	var slot: Dictionary = hero["action_bar"][slot_index]
+	var card = slot["top_card"]
+	if card == null or slot["charges"].is_empty():
+		return _illegal("A loaded Slot needs at least one charged card.")
+	if slot["activated_window"] == phase:
+		return _illegal("A Slot may fire only once in its matching window.")
+	if card.get_window_speed() != phase:
+		return _illegal("The Top Card cannot fire in this window.")
+	if card.damage > 0:
+		var target_id: StringName = action.payload.get("target_id", &"")
+		var target: Dictionary = board.get_entity(target_id)
+		var source: Dictionary = board.get_entity(action.source_id)
+		if target.is_empty() or target.get("kind") != &"minion":
+			return _illegal("The Top Card needs a Minion target.")
+		var target_range := BoardQueryModel.hex_distance(source.get("coords"), target.get("coords"))
+		if target_range > card.range_tiles:
+			var verdict := _illegal("The chosen Minion is outside the Top Card's range.")
+			verdict["target_range"] = target_range
+			return verdict
+		var legal_verdict := _legal()
+		legal_verdict["target_range"] = target_range
+		return legal_verdict
+	return _legal()
+
+func _move_hero_legality(action) -> Dictionary:
+	var hero: Dictionary = get_hero(action.source_id)
+	var destination: Vector2i = action.payload.get("destination", Vector2i(999, 999))
+	var card = action.payload.get("card")
+	if hero.is_empty() or phase != &"quick" or card == null or not hero["hand"].has(card):
+		return _illegal("Hero movement requires the Quick Window and a hand card for Stamina.")
+	if not BoardQueryModel.is_legal_move(board, action.source_id, destination):
+		return _illegal("That hex is not a legal move destination.")
+	return _legal()
+
+func _discard_for_stamina_legality(action) -> Dictionary:
+	var hero: Dictionary = get_hero(action.source_id)
+	var card = action.payload.get("card")
+	if hero.is_empty() or card == null or not hero["hand"].has(card):
+		return _illegal("The chosen hand card is unavailable.")
+	return _legal()
+
+func _resolve_boss_legality(action) -> Dictionary:
+	if action.payload.get("beat") == null:
+		return _illegal("Boss resolution needs an authored beat.")
+	return _legal()
+
+func _expire_status_legality(action) -> Dictionary:
+	var target_id: StringName = action.payload.get("target_id", &"")
+	var status_id: StringName = action.payload.get("status_id", &"")
+	var window: StringName = action.payload.get("window", &"")
+	var effect = get_status(target_id, status_id)
+	if effect == null or effect.expires_at_window_end != window or phase != window:
+		return _illegal("The Status Effect is not eligible to expire at this boundary.")
+	return _legal()
+
+func _fire_target_candidates(slot: Dictionary) -> Array:
+	var card = slot.get("top_card")
+	if card == null:
+		return []
+	if card.damage <= 0:
+		return [&""]
+	var targets: Array = []
+	for entity_id in board.entities:
+		if board.entities[entity_id].get("kind") == &"minion":
+			targets.append(entity_id)
+	return targets
+
+func _legal() -> Dictionary:
+	return {"legal": true, "reason": ""}
+
+func _illegal(reason: String) -> Dictionary:
+	return {"legal": false, "reason": reason}
+
+func _load_slot(action) -> void:
+	var hero: Dictionary = get_hero(action.source_id)
+	var slot_index: int = action.payload.get("slot_index", -1)
+	var card = action.payload.get("card")
+	var slot: Dictionary = hero["action_bar"][slot_index]
+	hero["hand"].erase(card)
+	if slot["top_card"] != null:
+		hero["discard"].append(slot["top_card"])
+		for charged_card in slot["charges"]:
+			hero["discard"].append(charged_card)
+	slot["top_card"] = card
+	slot["charges"] = []
+	slot["activated_window"] = &""
+	hero["action_bar"][slot_index] = slot
+	_put_hero(action.source_id, hero)
+	action.resolve_success()
+
+func _charge_slot(action) -> void:
+	var hero: Dictionary = get_hero(action.source_id)
+	var slot_index: int = action.payload.get("slot_index", -1)
+	var card = action.payload.get("card")
+	var slot: Dictionary = hero["action_bar"][slot_index]
+	hero["hand"].erase(card)
+	slot["charges"].append(card)
+	hero["action_bar"][slot_index] = slot
+	_put_hero(action.source_id, hero)
+	action.resolve_success()
+
+func _fire_slot(action) -> Array:
+	var hero: Dictionary = get_hero(action.source_id)
+	var slot_index: int = action.payload.get("slot_index", -1)
+	var slot: Dictionary = hero["action_bar"][slot_index]
+	var card = slot["top_card"]
+	var effects := _card_resolver.resolve_fire(card, slot["charges"])
+	var base_boss_damage: int = int(effects["boss_damage"])
+	hero["armor"] += effects["armor"]
+	hero["health"] = min(hero["max_health"], hero["health"] + effects["healing"])
+	hero["presence"] += effects["presence"]
+	slot["activated_window"] = phase
+	hero["action_bar"][slot_index] = slot
+	_put_hero(action.source_id, hero)
+	var consumed: Dictionary = _consume_statuses_for_slot(action.source_id, card)
+	var status_bonus: int = int(consumed.get("bonus_boss_damage", 0))
+	effects["boss_damage"] += status_bonus
+	if not consumed.get("events", []).is_empty():
+		action.payload["resolution_fact"] = {"status_event": consumed["events"][0]}
+	action.resolve_success()
+	var followups: Array = []
+	if effects["boss_damage"] > 0:
+		var fact_context: Dictionary = {}
+		if status_bonus > 0:
+			fact_context = {
+				"base_amount": base_boss_damage,
+				"status_bonus": status_bonus,
+				"status_id": consumed["events"][0]["status_id"],
+				"payoff_card_id": card.id,
+			}
+		followups.append(EncounterActionModel.damage(action.source_id, boss_id, effects["boss_damage"], card.title, fact_context))
+	if effects["target_damage"] > 0:
+		var effect_target_id: StringName = action.payload.get("target_id", &"")
+		followups.append(EncounterActionModel.damage(action.source_id, effect_target_id, effects["target_damage"], card.title))
+	followups.append_array(_status_actions(StatusEffectModel.ON_SLOT_FIRED, action.source_id, {"card": card}))
+	return followups
+
+func _move_hero(action) -> Array:
+	var hero: Dictionary = get_hero(action.source_id)
+	var destination: Vector2i = action.payload.get("destination", Vector2i(999, 999))
+	var card = action.payload.get("card")
+	var from_coords: Vector2i = board.get_entity(action.source_id).get("coords")
+	hero["hand"].erase(card)
+	hero["discard"].append(card)
+	_put_hero(action.source_id, hero)
+	board.move_entity(action.source_id, destination)
+	board.set_entity_facing(action.source_id, FacingDirections.direction_for_axial_delta(destination - from_coords))
+	action.resolve_success()
+	return _hazard_actions(action.source_id, destination)
+
+func _resolve_boss(action) -> Array:
+	var beat = action.payload.get("beat")
+	var followups: Array = _timeline_resolver.resolve_boss_beat(self, action.source_id, beat, action.payload.get("track", &""))
+	action.resolve_success()
+	return followups
+
+func _apply_hazard(action) -> void:
+	var coords: Vector2i = action.payload.get("coords", Vector2i(999, 999))
+	var hazard = action.payload.get("hazard")
+	if not board.add_hazard(coords, hazard.copy() if hazard != null else null):
+		action.resolve_failure("The hazard could not be applied to that hex.")
+		return
+	action.resolve_success()
+
+func _spawn_minion(action) -> void:
+	var minion_id: StringName = action.payload.get("minion_id", &"")
+	var coords: Vector2i = action.payload.get("coords", Vector2i(999, 999))
+	var minion = action.payload.get("minion")
+	var health: int = minion.max_health if minion != null else 2
+	if not board.add_entity(minion_id, &"minion", coords, health, FacingDirections.Direction.NORTH_WEST, &"enemy"):
+		action.resolve_failure("The Minion spawn hex is unavailable.")
+		return
+	if minion != null:
+		board.get_entity(minion_id)["content_id"] = minion.id
+		board.get_entity(minion_id)["title"] = minion.title
+	action.resolve_success()
+
+func _damage(action) -> Array:
+	var target_id: StringName = action.payload.get("target_id", &"")
+	var amount: int = action.payload.get("amount", 0)
+	var resolution_fact: Dictionary = _apply_damage(target_id, amount)
+	for key in action.payload.get("fact_context", {}):
+		if not resolution_fact.has(key):
+			resolution_fact[key] = action.payload["fact_context"][key]
+	action.payload.erase("fact_context")
+	var dealt: int = int(resolution_fact.get("health_loss", 0))
+	if not bool(resolution_fact.get("target_available", false)):
+		action.resolve_failure("The damage target is unavailable.")
+		return []
+	action.payload["dealt"] = dealt
+	_evaluate_damage_status(action, resolution_fact)
+	action.payload["resolution_fact"] = resolution_fact
+	action.resolve_success()
+	return _status_actions(StatusEffectModel.ON_DAMAGE_TAKEN, target_id, {"amount": dealt, "source_id": action.source_id})
+
+func _discard_for_stamina(action) -> void:
+	var hero: Dictionary = get_hero(action.source_id)
+	var card = action.payload.get("card")
+	hero["hand"].erase(card)
+	hero["discard"].append(card)
+	_put_hero(action.source_id, hero)
+	action.resolve_success()
+
+func _expire_status(action) -> void:
+	var target_id: StringName = action.payload.get("target_id", &"")
+	var status_id: StringName = action.payload.get("status_id", &"")
+	_remove_status(target_id, status_id)
+	action.payload["resolution_fact"] = {"status_event": action.payload.get("status_event", {}).duplicate(true)}
+	action.resolve_success()

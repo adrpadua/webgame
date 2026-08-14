@@ -16,6 +16,7 @@ The default suite is intentionally named and stable. The runner gives each Probe
 | `content` | Every designer-authored Resource loads and satisfies the content contract, with actionable path-based failures. |
 | `rules` | Scene-free **Encounter** rules, action records, Slots, Status Effects, Hazards, and Boss Timeline execution. |
 | `legality` | The `EncounterEngine.legality` / `legal_actions` seam: the player-action legality matrix, target-aware fire enumeration, and the invariant that `apply` succeeds if and only if `legality` agrees, with matching rejection reasons. |
+| `engine_seam` | The Encounter Engine module surface: the documented seam and read projections are callable, the action-resolution callback surface is not, no resolver collaborator is exposed, no separate resolver module exists, and the load/charge/fire flow resolves through `apply` alone. |
 | `parity` | Visible direct-manipulation flows project the same rules state and outcomes owned by `EncounterEngine`. |
 | `resolver` | Spatial resolution of authored Boss Timeline beats from an `EncounterSnapshot`. |
 | `target_patterns` | BoardQuery-owned reusable Target Pattern catalog results for all nine core patterns, six legal facings where applicable, stable ordering, and edge clipping. |

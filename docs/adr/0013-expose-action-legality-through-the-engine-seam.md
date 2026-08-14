@@ -1,5 +1,7 @@
 # Expose action legality through the Encounter Engine seam
 
+Status: the separate `ActionResolver` module named below was folded into `EncounterEngine` by ADR 0014; the predicate, its routing guarantee, and the seam are unchanged.
+
 `EncounterEngine.legality(action)` answers whether a candidate `EncounterAction` would resolve, with the engine-authored rejection reason, without mutating state; `EncounterEngine.legal_actions(hero_id)` enumerates the candidate player actions that predicate accepts. `ActionResolver.resolve` routes through the same predicate before mutating, so an action is applied if and only if `legality` calls it legal and both report the same reason.
 
 Before this seam existed, the resolver only answered "did this succeed" after the fact, so every consumer that needed to grey a Slot, drive a prompt, or record evidence restated the rule: Slot legality appeared at nine sites across `Main`, `ActionBarSlot`, `ActionBarView`, `PlayerState`, and `EncounterRecord`, five of them verbatim. Those copies are deleted. Presentation now consumes projected flags (`ready_action`, `project_intent`) computed through the seam, and the Encounter Record's legal-useful-action evidence maps the engine enumeration instead of re-deriving it — which also made fire evidence target-aware: a Minion-damage Top Card with no reachable Minion no longer counts as a useful fire.
