@@ -67,7 +67,7 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if data.get("kind") != "hand_card":
 		_set_drop_hover(false)
 		return false
-	if data.get("card") == null:
+	if data.get("card") == null or data.get("card") != context_card:
 		_set_drop_hover(false)
 		return false
 	if not _can_accept_hand_card():
@@ -163,11 +163,13 @@ func _draw_empty_slot_affordance(font: Font) -> void:
 	draw_string(font, copy.position + Vector2(0.0, 13.0), "DROP", HORIZONTAL_ALIGNMENT_CENTER, copy.size.x, 10, Color(1.0, 0.83, 0.46))
 
 func _get_drop_intent_label() -> String:
-	if loaded_card == null:
-		return "LOAD"
-	if interaction_window == &"loadout":
-		return "REPLACE"
-	return "CHARGE"
+	match slot_data.get("project_intent", &""):
+		&"replace":
+			return "REPLACE"
+		&"charge":
+			return "CHARGE"
+		_:
+			return "LOAD"
 
 func _get_drop_intent_icon() -> String:
 	match _get_drop_intent_label():
@@ -179,13 +181,8 @@ func _get_drop_intent_icon() -> String:
 			return "▣"
 
 func _can_accept_hand_card() -> bool:
-	if loaded_card == null:
-		return interaction_window in [&"loadout", &"quick", &"slow"]
-	if interaction_window == &"loadout":
-		return true
-	if interaction_window not in [&"quick", &"slow"]:
-		return false
-	return slot_data.get("activated_window", &"") != interaction_window and loaded_charges.size() < loaded_card.get_charge_cap()
+	# Engine-owned legality, projected in by ActionBarView as `project_intent`.
+	return slot_data.get("project_intent", &"") != &""
 
 func get_visual_state() -> StringName:
 	if loaded_card == null:

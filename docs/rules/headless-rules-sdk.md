@@ -6,9 +6,13 @@
 engine.start(encounter_resource)
 engine.apply(encounter_action)
 engine.advance_phase()
+engine.legality(encounter_action)
+engine.legal_actions(hero_id)
 ```
 
 `start` creates the board, combatants, deck, Hand, Action Bar, and Boss Timeline from an authored Encounter Resource. Dictionary setup remains available to focused engine probes. `apply` validates and records one `EncounterAction`, including generated damage, Hazard, Status Effect, and Minion actions. `advance_phase` owns Loadout, Boss rows, player windows, Full-Charge Cleanup, hand refill, the Encounter Clock, and terminal outcomes.
+
+`legality` answers whether a candidate action would resolve — `{"legal": bool, "reason": String}` with the engine-authored rejection reason — without mutating state, and `legal_actions` enumerates the candidate player actions that predicate accepts. `apply` routes through the same predicate, so an action succeeds if and only if `legality` calls it legal (generated Hazard, Minion, and damage actions keep their resolution-time failure modes). Consumers ask instead of restating rules: the HUD's slot acceptance, drop-intent cues, ready states, and prompts, and the Encounter Record's legal-useful-action evidence all derive from this seam (ADR 0013).
 
 ## Runtime Flow
 

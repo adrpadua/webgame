@@ -60,28 +60,26 @@ func _initialize() -> void:
 	_assert(_slot_state(quick_card, [charge_card], &"quick", &"quick", false) == &"activated", "Used Slot should be Activated.")
 	_assert(_slot_state(quick_card, [], &"", &"slow", false) == &"locked", "Wrong-window Slot should be Locked.")
 
-	var destination_counts := {"LOAD": 0, "REPLACE": 0, "CHARGE": 0}
-	for label: String in destination_counts:
+	# Drop intent is engine-owned legality projected into slot_data by
+	# ActionBarView; the widget must render each projected intent as its cue.
+	var intent_labels := {&"load": "LOAD", &"replace": "REPLACE", &"charge": "CHARGE"}
+	for intent: StringName in intent_labels:
 		var slot := ACTION_SLOT.new()
 		root.add_child(slot)
-		if label == "LOAD":
-			slot.bind(0, {"top_card": null, "charges": [], "activated_window": &""}, false, true, &"quick", charge_card)
-		elif label == "REPLACE":
-			slot.bind(0, {"top_card": quick_card, "charges": [], "activated_window": &""}, false, true, &"loadout", charge_card)
-		else:
-			slot.bind(0, {"top_card": quick_card, "charges": [], "activated_window": &""}, false, true, &"quick", charge_card)
-		_assert(slot._get_drop_intent_label() == label, "%s destination cue should mirror resolver semantics." % label)
-		destination_counts[label] = 1
+		var slot_card: Resource = null if intent == &"load" else quick_card
+		slot.bind(0, {"top_card": slot_card, "charges": [], "activated_window": &"", "project_intent": intent}, false, true, &"quick", charge_card)
+		_assert(slot._get_drop_intent_label() == intent_labels[intent], "%s destination cue should mirror the projected intent." % intent_labels[intent])
 		slot.queue_free()
 	var blocked_slot := ACTION_SLOT.new()
 	root.add_child(blocked_slot)
-	blocked_slot.bind(0, {"top_card": quick_card, "charges": full_stack, "activated_window": &""}, false, true, &"quick", charge_card)
-	_assert(not blocked_slot._can_accept_hand_card(), "A full Slot must not expose CHARGE.")
-	blocked_slot.bind(0, {"top_card": quick_card, "charges": [], "activated_window": &"quick"}, false, true, &"quick", charge_card)
-	_assert(not blocked_slot._can_accept_hand_card(), "An Activated Slot must not expose CHARGE.")
-	blocked_slot.bind(0, {"top_card": quick_card, "charges": [], "activated_window": &""}, false, true, &"none", charge_card)
-	_assert(not blocked_slot._can_accept_hand_card(), "A non-player window must not expose CHARGE.")
+	blocked_slot.bind(0, {"top_card": quick_card, "charges": full_stack, "activated_window": &"", "project_intent": &""}, false, true, &"quick", charge_card)
+	_assert(not blocked_slot._can_accept_hand_card(), "A Slot without a projected intent must not accept a drop.")
 	blocked_slot.queue_free()
+	# The projection source is engine legality (full legality matrix is owned
+	# by the scene-free legality probe); prove the live wiring end to end here.
+	var engine = main.engine
+	var live_hand: Array = engine.get_hero(engine.primary_hero_id)["hand"]
+	_assert(main.player.project_intent(0, live_hand[0]) != &"", "The live empty Slot should project a legal intent from the engine.")
 
 	main.player.current_window = &"quick"
 	main._refresh_card_destination_context()
@@ -98,7 +96,7 @@ func _initialize() -> void:
 	var legal_tile: Node = main.hex_grid.tiles.values().filter(func(tile: Node) -> bool: return tile.hand_card_move_legal)[0]
 	_assert(not legal_tile._can_drop_data(Vector2.ZERO, {"kind": "hand_card", "card": quick_card}), "MOVE must reject a different card payload than the projected Hand card.")
 	_assert(legal_tile._can_drop_data(Vector2.ZERO, {"kind": "hand_card", "card": first_card.card}), "MOVE should accept the currently projected dragged Hand card.")
-	_assert(main._can_project_card_to_slot({"top_card": null, "charges": [], "activated_window": &""}), "Tap fallback should recognize a legal empty Slot.")
+	_assert(main._can_project_card_to_slot(0, first_card.card), "Tap fallback should recognize a legal empty Slot.")
 
 	first_card._finish_drag()
 	main._on_hand_card_drag_ended(first_card.card)

@@ -176,6 +176,12 @@ func advance_phase() -> Array:
 	check_resolution()
 	return actions
 
+func legality(action) -> Dictionary:
+	return action_resolver.legality(self, action)
+
+func legal_actions(hero_id: StringName) -> Array:
+	return action_resolver.legal_actions(self, hero_id)
+
 func get_hero(hero_id: StringName) -> Dictionary:
 	return heroes.get(hero_id, {})
 

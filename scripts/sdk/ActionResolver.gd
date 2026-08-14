@@ -1,6 +1,10 @@
 class_name ActionResolver
 extends RefCounted
 
+# Action legality and state transitions. `legality` is the single statement of
+# every pre-resolution rule; `resolve` routes through it before mutating, so an
+# action is applied if and only if the same predicate calls it legal.
+
 const BoardQueryModel := preload("res://scripts/hex/BoardQuery.gd")
 const CardResolverModel := preload("res://scripts/sdk/CardResolver.gd")
 const EncounterActionModel := preload("res://scripts/sdk/EncounterAction.gd")
@@ -9,9 +13,64 @@ const StatusEffectModel := preload("res://scripts/sdk/StatusEffect.gd")
 
 var card_resolver := CardResolverModel.new()
 
-func resolve(engine, action) -> Array:
+func legality(engine, action) -> Dictionary:
 	if not engine.active:
-		action.resolve_failure("The Encounter has already ended.")
+		return _illegal("The Encounter has already ended.")
+	match action.kind:
+		EncounterActionModel.Kind.LOAD_SLOT:
+			return _load_slot_legality(engine, action)
+		EncounterActionModel.Kind.CHARGE_SLOT:
+			return _charge_slot_legality(engine, action)
+		EncounterActionModel.Kind.FIRE_SLOT:
+			return _fire_slot_legality(engine, action)
+		EncounterActionModel.Kind.MOVE_HERO:
+			return _move_hero_legality(engine, action)
+		EncounterActionModel.Kind.DISCARD_FOR_STAMINA:
+			return _discard_for_stamina_legality(engine, action)
+		EncounterActionModel.Kind.RESOLVE_BOSS:
+			return _resolve_boss_legality(action)
+		EncounterActionModel.Kind.EXPIRE_STATUS:
+			return _expire_status_legality(engine, action)
+	# APPLY_HAZARD, SPAWN_MINION, and DAMAGE are generated actions whose only
+	# failure modes are resolution-time outcomes (an occupied spawn hex, an
+	# already-removed target); they carry no pre-resolution legality rule.
+	return _legal()
+
+func legal_actions(engine, hero_id: StringName) -> Array:
+	var actions: Array = []
+	if not engine.active:
+		return actions
+	var hero: Dictionary = engine.get_hero(hero_id)
+	if hero.is_empty():
+		return actions
+	var hand: Array = hero.get("hand", [])
+	var slots: Array = hero.get("action_bar", [])
+	for slot_index in slots.size():
+		for card in hand:
+			var load_action = EncounterActionModel.load_slot(hero_id, slot_index, card)
+			if legality(engine, load_action)["legal"]:
+				actions.append(load_action)
+			var charge_action = EncounterActionModel.charge_slot(hero_id, slot_index, card)
+			if legality(engine, charge_action)["legal"]:
+				actions.append(charge_action)
+		for target_id in _fire_target_candidates(engine, slots[slot_index]):
+			var fire_action = EncounterActionModel.fire_slot(hero_id, slot_index, target_id)
+			if legality(engine, fire_action)["legal"]:
+				actions.append(fire_action)
+	var entity: Dictionary = engine.board.get_entity(hero_id)
+	if not hand.is_empty() and not entity.is_empty():
+		for destination in BoardQueryModel.neighbors(engine.board.hexes, entity.get("coords")):
+			var move_action = EncounterActionModel.move_hero(hero_id, destination, hand[0])
+			if legality(engine, move_action)["legal"]:
+				actions.append(move_action)
+	return actions
+
+func resolve(engine, action) -> Array:
+	var verdict := legality(engine, action)
+	if verdict.has("target_range"):
+		action.payload["target_range"] = verdict["target_range"]
+	if not verdict["legal"]:
+		action.resolve_failure(verdict["reason"])
 		return []
 	match action.kind:
 		EncounterActionModel.Kind.LOAD_SLOT:
@@ -36,20 +95,114 @@ func resolve(engine, action) -> Array:
 			_expire_status(engine, action)
 	return []
 
-func _load_slot(engine, action) -> void:
+func _load_slot_legality(engine, action) -> Dictionary:
 	var hero: Dictionary = engine.get_hero(action.source_id)
 	var slot_index: int = action.payload.get("slot_index", -1)
 	var card = action.payload.get("card")
 	if hero.is_empty() or card == null or not hero["hand"].has(card):
-		action.resolve_failure("The chosen hand card is unavailable.")
-		return
+		return _illegal("The chosen hand card is unavailable.")
 	if slot_index < 0 or slot_index >= hero["action_bar"].size() or engine.phase != &"loadout" and engine.phase != &"quick" and engine.phase != &"slow":
-		action.resolve_failure("Loading a Slot requires a legal Slot during Loadout, Quick, or Slow.")
-		return
+		return _illegal("Loading a Slot requires a legal Slot during Loadout, Quick, or Slow.")
+	if hero["action_bar"][slot_index]["top_card"] != null and engine.phase != &"loadout":
+		return _illegal("Replacing a Slot is only allowed during Loadout.")
+	return _legal()
+
+func _charge_slot_legality(engine, action) -> Dictionary:
+	var hero: Dictionary = engine.get_hero(action.source_id)
+	var slot_index: int = action.payload.get("slot_index", -1)
+	var card = action.payload.get("card")
+	if hero.is_empty() or card == null or not hero["hand"].has(card):
+		return _illegal("The chosen hand card is unavailable.")
+	if slot_index < 0 or slot_index >= hero["action_bar"].size() or engine.phase != &"quick" and engine.phase != &"slow":
+		return _illegal("Charging requires a legal Slot during Quick or Slow.")
 	var slot: Dictionary = hero["action_bar"][slot_index]
-	if slot["top_card"] != null and engine.phase != &"loadout":
-		action.resolve_failure("Replacing a Slot is only allowed during Loadout.")
-		return
+	if slot["top_card"] == null or slot["activated_window"] == engine.phase or slot["charges"].size() >= slot["top_card"].get_charge_cap():
+		return _illegal("That Slot cannot accept another charge.")
+	return _legal()
+
+func _fire_slot_legality(engine, action) -> Dictionary:
+	var hero: Dictionary = engine.get_hero(action.source_id)
+	var slot_index: int = action.payload.get("slot_index", -1)
+	if hero.is_empty() or slot_index < 0 or slot_index >= hero["action_bar"].size():
+		return _illegal("Select a legal Slot.")
+	var slot: Dictionary = hero["action_bar"][slot_index]
+	var card = slot["top_card"]
+	if card == null or slot["charges"].is_empty():
+		return _illegal("A loaded Slot needs at least one charged card.")
+	if slot["activated_window"] == engine.phase:
+		return _illegal("A Slot may fire only once in its matching window.")
+	if card.get_window_speed() != engine.phase:
+		return _illegal("The Top Card cannot fire in this window.")
+	if card.damage > 0:
+		var target_id: StringName = action.payload.get("target_id", &"")
+		var target: Dictionary = engine.board.get_entity(target_id)
+		var source: Dictionary = engine.board.get_entity(action.source_id)
+		if target.is_empty() or target.get("kind") != &"minion":
+			return _illegal("The Top Card needs a Minion target.")
+		var target_range := BoardQueryModel.hex_distance(source.get("coords"), target.get("coords"))
+		if target_range > card.range_tiles:
+			var verdict := _illegal("The chosen Minion is outside the Top Card's range.")
+			verdict["target_range"] = target_range
+			return verdict
+		var legal_verdict := _legal()
+		legal_verdict["target_range"] = target_range
+		return legal_verdict
+	return _legal()
+
+func _move_hero_legality(engine, action) -> Dictionary:
+	var hero: Dictionary = engine.get_hero(action.source_id)
+	var destination: Vector2i = action.payload.get("destination", Vector2i(999, 999))
+	var card = action.payload.get("card")
+	if hero.is_empty() or engine.phase != &"quick" or card == null or not hero["hand"].has(card):
+		return _illegal("Hero movement requires the Quick Window and a hand card for Stamina.")
+	if not BoardQueryModel.is_legal_move(engine.board, action.source_id, destination):
+		return _illegal("That hex is not a legal move destination.")
+	return _legal()
+
+func _discard_for_stamina_legality(engine, action) -> Dictionary:
+	var hero: Dictionary = engine.get_hero(action.source_id)
+	var card = action.payload.get("card")
+	if hero.is_empty() or card == null or not hero["hand"].has(card):
+		return _illegal("The chosen hand card is unavailable.")
+	return _legal()
+
+func _resolve_boss_legality(action) -> Dictionary:
+	if action.payload.get("beat") == null:
+		return _illegal("Boss resolution needs an authored beat.")
+	return _legal()
+
+func _expire_status_legality(engine, action) -> Dictionary:
+	var target_id: StringName = action.payload.get("target_id", &"")
+	var status_id: StringName = action.payload.get("status_id", &"")
+	var window: StringName = action.payload.get("window", &"")
+	var effect = engine.get_status(target_id, status_id)
+	if effect == null or effect.expires_at_window_end != window or engine.phase != window:
+		return _illegal("The Status Effect is not eligible to expire at this boundary.")
+	return _legal()
+
+func _fire_target_candidates(engine, slot: Dictionary) -> Array:
+	var card = slot.get("top_card")
+	if card == null:
+		return []
+	if card.damage <= 0:
+		return [&""]
+	var targets: Array = []
+	for entity_id in engine.board.entities:
+		if engine.board.entities[entity_id].get("kind") == &"minion":
+			targets.append(entity_id)
+	return targets
+
+func _legal() -> Dictionary:
+	return {"legal": true, "reason": ""}
+
+func _illegal(reason: String) -> Dictionary:
+	return {"legal": false, "reason": reason}
+
+func _load_slot(engine, action) -> void:
+	var hero: Dictionary = engine.get_hero(action.source_id)
+	var slot_index: int = action.payload.get("slot_index", -1)
+	var card = action.payload.get("card")
+	var slot: Dictionary = hero["action_bar"][slot_index]
 	hero["hand"].erase(card)
 	if slot["top_card"] != null:
 		hero["discard"].append(slot["top_card"])
@@ -66,16 +219,7 @@ func _charge_slot(engine, action) -> void:
 	var hero: Dictionary = engine.get_hero(action.source_id)
 	var slot_index: int = action.payload.get("slot_index", -1)
 	var card = action.payload.get("card")
-	if hero.is_empty() or card == null or not hero["hand"].has(card):
-		action.resolve_failure("The chosen hand card is unavailable.")
-		return
-	if slot_index < 0 or slot_index >= hero["action_bar"].size() or engine.phase != &"quick" and engine.phase != &"slow":
-		action.resolve_failure("Charging requires a legal Slot during Quick or Slow.")
-		return
 	var slot: Dictionary = hero["action_bar"][slot_index]
-	if slot["top_card"] == null or slot["activated_window"] == engine.phase or slot["charges"].size() >= slot["top_card"].get_charge_cap():
-		action.resolve_failure("That Slot cannot accept another charge.")
-		return
 	hero["hand"].erase(card)
 	slot["charges"].append(card)
 	hero["action_bar"][slot_index] = slot
@@ -85,32 +229,8 @@ func _charge_slot(engine, action) -> void:
 func _fire_slot(engine, action) -> Array:
 	var hero: Dictionary = engine.get_hero(action.source_id)
 	var slot_index: int = action.payload.get("slot_index", -1)
-	if hero.is_empty() or slot_index < 0 or slot_index >= hero["action_bar"].size():
-		action.resolve_failure("Select a legal Slot.")
-		return []
 	var slot: Dictionary = hero["action_bar"][slot_index]
 	var card = slot["top_card"]
-	if card == null or slot["charges"].is_empty():
-		action.resolve_failure("A loaded Slot needs at least one charged card.")
-		return []
-	if slot["activated_window"] == engine.phase:
-		action.resolve_failure("A Slot may fire only once in its matching window.")
-		return []
-	if card.get_window_speed() != engine.phase:
-		action.resolve_failure("The Top Card cannot fire in this window.")
-		return []
-	if card.damage > 0:
-		var target_id: StringName = action.payload.get("target_id", &"")
-		var target: Dictionary = engine.board.get_entity(target_id)
-		var source: Dictionary = engine.board.get_entity(action.source_id)
-		if target.is_empty() or target.get("kind") != &"minion":
-			action.resolve_failure("The Top Card needs a Minion target.")
-			return []
-		var target_range := BoardQueryModel.hex_distance(source.get("coords"), target.get("coords"))
-		action.payload["target_range"] = target_range
-		if target_range > card.range_tiles:
-			action.resolve_failure("The chosen Minion is outside the Top Card's range.")
-			return []
 	var effects := card_resolver.resolve_fire(card, slot["charges"])
 	var base_boss_damage: int = int(effects["boss_damage"])
 	hero["armor"] += effects["armor"]
@@ -146,12 +266,6 @@ func _move_hero(engine, action) -> Array:
 	var hero: Dictionary = engine.get_hero(action.source_id)
 	var destination: Vector2i = action.payload.get("destination", Vector2i(999, 999))
 	var card = action.payload.get("card")
-	if hero.is_empty() or engine.phase != &"quick" or card == null or not hero["hand"].has(card):
-		action.resolve_failure("Hero movement requires the Quick Window and a hand card for Stamina.")
-		return []
-	if not BoardQueryModel.is_legal_move(engine.board, action.source_id, destination):
-		action.resolve_failure("That hex is not a legal move destination.")
-		return []
 	var from_coords: Vector2i = engine.board.get_entity(action.source_id).get("coords")
 	hero["hand"].erase(card)
 	hero["discard"].append(card)
@@ -163,9 +277,6 @@ func _move_hero(engine, action) -> Array:
 
 func _resolve_boss(engine, action) -> Array:
 	var beat = action.payload.get("beat")
-	if beat == null:
-		action.resolve_failure("Boss resolution needs an authored beat.")
-		return []
 	var followups: Array = engine.timeline_resolver.resolve_boss_beat(engine, action.source_id, beat, action.payload.get("track", &""))
 	action.resolve_success()
 	return followups
@@ -212,9 +323,6 @@ func _damage(engine, action) -> Array:
 func _discard_for_stamina(engine, action) -> void:
 	var hero: Dictionary = engine.get_hero(action.source_id)
 	var card = action.payload.get("card")
-	if hero.is_empty() or card == null or not hero["hand"].has(card):
-		action.resolve_failure("The chosen hand card is unavailable.")
-		return
 	hero["hand"].erase(card)
 	hero["discard"].append(card)
 	engine.put_hero(action.source_id, hero)
@@ -223,11 +331,6 @@ func _discard_for_stamina(engine, action) -> void:
 func _expire_status(engine, action) -> void:
 	var target_id: StringName = action.payload.get("target_id", &"")
 	var status_id: StringName = action.payload.get("status_id", &"")
-	var window: StringName = action.payload.get("window", &"")
-	var effect = engine.get_status(target_id, status_id)
-	if effect == null or effect.expires_at_window_end != window or engine.phase != window:
-		action.resolve_failure("The Status Effect is not eligible to expire at this boundary.")
-		return
 	engine.remove_status(target_id, status_id)
 	action.payload["resolution_fact"] = {"status_event": action.payload.get("status_event", {}).duplicate(true)}
 	action.resolve_success()

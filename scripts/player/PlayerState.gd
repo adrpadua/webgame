@@ -78,20 +78,26 @@ func activate_slot(slot_index: int, context: Dictionary = {}) -> bool:
 		target_id = target.get("piece_id") if target.get("piece_id") != null else &""
 	return _submit(EncounterActionModel.fire_slot(_hero_id, slot_index, target_id))
 
-func get_activation_error(slot_index: int, context: Dictionary = {}) -> String:
-	if slot_index < 0 or slot_index >= action_bar.size():
-		return "Select an action-bar slot."
-	var slot: Dictionary = action_bar[slot_index]
-	var top_card: Resource = slot.get("top_card")
-	if top_card == null:
-		return "That action-bar slot is empty."
-	if slot.get("charges", []).is_empty():
-		return "Charge %s with a hand card before activating it." % top_card.title
-	if top_card.get_window_speed() != current_window:
-		return "%s is a %s card." % [top_card.title, top_card.get_window_speed().capitalize()]
-	if slot.get("activated_window", &"") == current_window:
-		return "%s has already activated this window." % top_card.title
-	return top_card.get_target_error(context)
+# Legality delegations ask the authoritative engine; no rules are restated here.
+func project_intent(slot_index: int, card: Resource) -> StringName:
+	if _engine == null or card == null:
+		return &""
+	if _engine.legality(EncounterActionModel.load_slot(_hero_id, slot_index, card))["legal"]:
+		return &"replace" if get_slot(slot_index).get("top_card") != null else &"load"
+	if _engine.legality(EncounterActionModel.charge_slot(_hero_id, slot_index, card))["legal"]:
+		return &"charge"
+	return &""
+
+func can_project_card(slot_index: int, card: Resource) -> bool:
+	return project_intent(slot_index, card) != &""
+
+func has_legal_fire(slot_index: int) -> bool:
+	if _engine == null:
+		return false
+	for action in _engine.legal_actions(_hero_id):
+		if action.kind == EncounterActionModel.Kind.FIRE_SLOT and int(action.payload.get("slot_index", -1)) == slot_index:
+			return true
+	return false
 
 func get_slot(slot_index: int) -> Dictionary:
 	if slot_index < 0 or slot_index >= action_bar.size():

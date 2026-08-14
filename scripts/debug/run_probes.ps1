@@ -27,6 +27,7 @@ if ([string]::IsNullOrWhiteSpace($Godot) -or -not (Test-Path $Godot -PathType Le
 $catalog = [ordered]@{
 	content = "res://scripts/debug/content_validation_probe.gd"
 	rules = "res://scripts/debug/sdk_encounter_harness.gd"
+	legality = "res://scripts/debug/legality_probe.gd"
 	parity = "res://scripts/debug/live_sdk_parity_probe.gd"
 	resolver = "res://scripts/debug/encounter_resolver_probe.gd"
 	target_patterns = "res://scripts/debug/target_pattern_resolver_probe.gd"

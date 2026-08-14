@@ -46,8 +46,8 @@ func refresh() -> void:
 
 	for i in range(player.action_bar.size()):
 		var slot: Dictionary = player.action_bar[i].duplicate()
-		var top_card: Resource = slot.get("top_card")
-		slot["ready_action"] = top_card != null and not slot["charges"].is_empty() and top_card.get_window_speed() == player.current_window and slot.get("activated_window", &"") != player.current_window
+		slot["ready_action"] = player.has_legal_fire(i)
+		slot["project_intent"] = player.project_intent(i, context_card) if context_card != null else &""
 		var button := ActionBarSlotScene.new()
 		var transition := _transition_for(previous_slots[i] if i < previous_slots.size() else {}, slot, player.current_window)
 		button.bind(i, slot, i == selected_slot, compact, player.current_window, context_card, transition)

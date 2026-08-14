@@ -296,21 +296,14 @@ func _refresh_card_destination_context() -> void:
 	action_bar_view.set_card_context(selected_card if has_current_card and player.current_window in [&"loadout", &"quick", &"slow"] else null)
 	hex_grid.set_hand_card_move_context(selected_card if has_current_card and player.current_window == &"quick" else null)
 
-func _can_project_card_to_slot(slot: Dictionary) -> bool:
-	var top_card: Resource = slot.get("top_card")
-	if top_card == null:
-		return player.current_window in [&"loadout", &"quick", &"slow"]
-	if player.current_window == &"loadout":
-		return true
-	if player.current_window not in [&"quick", &"slow"]:
-		return false
-	return slot.get("activated_window", &"") != player.current_window and slot.get("charges", []).size() < top_card.get_charge_cap()
+func _can_project_card_to_slot(index: int, card: Resource) -> bool:
+	return player.can_project_card(index, card)
 
 func _on_slot_pressed(index: int) -> void:
 	selected_slot_index = index
 	var slot: Dictionary = player.get_slot(index)
 	var top_card: Resource = slot.get("top_card")
-	if encounter.active and selected_card != null and player.hand.has(selected_card) and _can_project_card_to_slot(slot):
+	if encounter.active and selected_card != null and player.hand.has(selected_card) and _can_project_card_to_slot(index, selected_card):
 		_on_card_dropped_to_slot(index, selected_card)
 		return
 	if top_card != null and encounter.active:
@@ -328,7 +321,8 @@ func _on_card_dropped_to_slot(index: int, card: Resource) -> void:
 	selected_card = card
 	var slot: Dictionary = player.get_slot(index)
 	var top_card: Resource = slot.get("top_card")
-	var action = EncounterActionModel.load_slot(engine.primary_hero_id, index, card) if top_card == null or engine.phase == &"loadout" else EncounterActionModel.charge_slot(engine.primary_hero_id, index, card)
+	var load_action = EncounterActionModel.load_slot(engine.primary_hero_id, index, card)
+	var action = load_action if top_card == null or engine.legality(load_action)["legal"] else EncounterActionModel.charge_slot(engine.primary_hero_id, index, card)
 	var resolved = engine.apply(action)
 	_sync_from_engine()
 	if resolved.succeeded:
@@ -338,7 +332,7 @@ func _on_card_dropped_to_slot(index: int, card: Resource) -> void:
 	_refresh_status()
 
 func _on_tile_selected(tile: Node) -> void:
-	if encounter.active and player.current_window == &"quick" and selected_card != null and player.hand.has(selected_card) and hex_grid.can_move_piece_to(hex_grid.player_piece, tile.axial):
+	if encounter.active and selected_card != null and player.hand.has(selected_card) and engine.legality(EncounterActionModel.move_hero(engine.primary_hero_id, tile.axial, selected_card))["legal"]:
 		_on_hand_card_dropped_to_tile(selected_card, tile)
 		return
 	selected_tile = tile
@@ -419,7 +413,7 @@ func _on_activate_slot_pressed() -> void:
 	if top_card == null:
 		_set_feedback("That action-bar slot is empty.")
 		return
-	var target_id: StringName = selected_piece.piece_id if selected_piece != null and top_card.target_type == 3 else &""
+	var target_id: StringName = selected_piece.piece_id if selected_piece != null and top_card.target_type == CardData.TargetType.PIECE else &""
 	var resolved = engine.apply(EncounterActionModel.fire_slot(engine.primary_hero_id, selected_slot_index, target_id))
 	_sync_from_engine()
 	if not resolved.succeeded:
@@ -993,12 +987,18 @@ func _get_action_guide_text() -> String:
 		return "Guide: Prepare empty Slots or Charge any eligible Slot. Tap a charged Slow Slot to fire once. Hold cards or tap hexes to inspect, then Tap Play to move on."
 	return "Guide: The boss is resolving. Read its timeline, then prepare your next response."
 
-func _has_ready_action_bar_slot() -> bool:
-	for slot in player.action_bar:
-		var top_card: Resource = slot.get("top_card")
-		if top_card != null and not slot.get("charges", []).is_empty() and top_card.get_window_speed() == player.current_window and slot.get("activated_window", &"") != player.current_window:
+# Prompt predicates ask the engine's legal-action enumeration; no rules live here.
+func _legal_player_actions() -> Array:
+	return engine.legal_actions(engine.primary_hero_id) if engine != null else []
+
+func _has_legal_action_of_kind(kinds: Array) -> bool:
+	for action in _legal_player_actions():
+		if action.kind in kinds:
 			return true
 	return false
+
+func _has_ready_action_bar_slot() -> bool:
+	return _has_legal_action_of_kind([EncounterActionModel.Kind.FIRE_SLOT])
 
 func _get_loaded_future_window() -> String:
 	for slot in player.action_bar:
@@ -1010,35 +1010,18 @@ func _get_loaded_future_window() -> String:
 	return ""
 
 func _has_hand_slot_action() -> bool:
-	if player.hand.is_empty():
-		return false
-	for slot in player.action_bar:
-		var top_card: Resource = slot.get("top_card")
-		if top_card == null:
-			return true
-		if player.current_window == &"loadout":
-			return true
-		if slot.get("activated_window", &"") != player.current_window and slot.get("charges", []).size() < top_card.get_charge_cap():
-			return true
-	return false
+	return _has_legal_action_of_kind([EncounterActionModel.Kind.LOAD_SLOT, EncounterActionModel.Kind.CHARGE_SLOT])
 
 func _has_player_window_action() -> bool:
-	for slot in player.action_bar:
-		var top_card: Resource = slot.get("top_card")
-		if top_card != null and not slot.get("charges", []).is_empty() and top_card.get_window_speed() == player.current_window and slot.get("activated_window", &"") != player.current_window:
-			return true
-	if _has_legal_basic_move():
-		return true
-	return _has_hand_slot_action()
+	return _has_legal_action_of_kind([
+		EncounterActionModel.Kind.FIRE_SLOT,
+		EncounterActionModel.Kind.LOAD_SLOT,
+		EncounterActionModel.Kind.CHARGE_SLOT,
+		EncounterActionModel.Kind.MOVE_HERO,
+	])
 
 func _has_legal_basic_move() -> bool:
-	if player.current_window != &"quick" or player.hand.is_empty() or hex_grid.player_piece == null:
-		return false
-	var current_coords: Vector2i = hex_grid.get_piece_coords(hex_grid.player_piece)
-	for coords in hex_grid.get_neighbors(current_coords):
-		if hex_grid.can_move_piece_to(hex_grid.player_piece, coords):
-			return true
-	return false
+	return _has_legal_action_of_kind([EncounterActionModel.Kind.MOVE_HERO])
 
 func _can_prime_player_move() -> bool:
 	return false
@@ -1079,13 +1062,12 @@ func _can_basic_move() -> bool:
 	return _can_basic_move_to(selected_tile)
 
 func _can_basic_move_to(tile: Node) -> bool:
-	if tile == null:
+	if tile == null or engine == null:
 		return false
-	if player.current_window != &"quick":
+	var card: Resource = selected_card if selected_card != null and player.hand.has(selected_card) else (player.hand[0] if not player.hand.is_empty() else null)
+	if card == null:
 		return false
-	if player.hand.is_empty():
-		return false
-	return hex_grid.can_move_piece_to(hex_grid.player_piece, tile.axial)
+	return engine.legality(EncounterActionModel.move_hero(engine.primary_hero_id, tile.axial, card))["legal"]
 
 func _apply_skin() -> void:
 	queue_redraw()

@@ -2,6 +2,7 @@ class_name EncounterRecord
 extends RefCounted
 
 const ContentIdentity := preload("res://scripts/records/EncounterContentIdentity.gd")
+const EncounterActionModel := preload("res://scripts/sdk/EncounterAction.gd")
 const Serializer := preload("res://scripts/debug/EncounterProbeSerializer.gd")
 
 const SCHEMA_VERSION := 1
@@ -118,37 +119,32 @@ func _slot_observations(slots: Array) -> Array:
 	return result
 
 func _legal_useful_action_proxy(engine, hero: Dictionary) -> Array:
+	# The engine's legal-action enumeration is the authority; this only maps it
+	# into the record's serialized evidence shape.
 	var actions: Array = []
-	if hero.is_empty() or not engine.active:
+	if hero.is_empty():
 		return actions
-	var hand: Array = hero.get("hand", [])
+	var hero_id: StringName = hero.get("id", engine.primary_hero_id)
 	var slots: Array = hero.get("action_bar", [])
-	if engine.phase in [&"loadout", &"quick", &"slow"]:
-		for slot_index in slots.size():
-			var slot: Dictionary = slots[slot_index]
-			var top_card = slot.get("top_card")
-			if top_card == null:
-				for card in hand:
-					actions.append({"kind": "load_slot", "slot_index": slot_index, "card_id": str(card.id)})
-			elif engine.phase == &"loadout":
-				for card in hand:
-					actions.append({"kind": "replace_slot", "slot_index": slot_index, "card_id": str(card.id), "top_card_id": str(top_card.id)})
-	if engine.phase in [&"quick", &"slow"]:
-		for slot_index in slots.size():
-			var slot: Dictionary = slots[slot_index]
-			var top_card = slot.get("top_card")
-			if top_card == null:
-				continue
-			if slot.get("activated_window", &"") != engine.phase and slot.get("charges", []).size() < top_card.get_charge_cap():
-				for card in hand:
-					actions.append({"kind": "charge_slot", "slot_index": slot_index, "card_id": str(card.id), "top_card_id": str(top_card.id)})
-			if slot.get("activated_window", &"") != engine.phase and not slot.get("charges", []).is_empty() and top_card.get_window_speed() == engine.phase:
+	var fire_slots_seen: Dictionary = {}
+	for action in engine.legal_actions(hero_id):
+		var slot_index: int = int(action.payload.get("slot_index", -1))
+		var top_card = slots[slot_index].get("top_card") if slot_index >= 0 and slot_index < slots.size() else null
+		match action.kind:
+			EncounterActionModel.Kind.LOAD_SLOT:
+				if top_card == null:
+					actions.append({"kind": "load_slot", "slot_index": slot_index, "card_id": str(action.payload["card"].id)})
+				else:
+					actions.append({"kind": "replace_slot", "slot_index": slot_index, "card_id": str(action.payload["card"].id), "top_card_id": str(top_card.id)})
+			EncounterActionModel.Kind.CHARGE_SLOT:
+				actions.append({"kind": "charge_slot", "slot_index": slot_index, "card_id": str(action.payload["card"].id), "top_card_id": str(top_card.id)})
+			EncounterActionModel.Kind.FIRE_SLOT:
+				if fire_slots_seen.has(slot_index):
+					continue
+				fire_slots_seen[slot_index] = true
 				actions.append({"kind": "fire_slot", "slot_index": slot_index, "top_card_id": str(top_card.id)})
-	if engine.phase == &"quick" and not hand.is_empty():
-		var source: Dictionary = engine.board.get_entity(engine.primary_hero_id)
-		for coords in engine.board.hexes:
-			if not engine.board.is_occupied(coords) and _hex_distance(source.get("coords", Vector2i.ZERO), coords) == 1:
-				actions.append({"kind": "move_hero", "destination": Serializer.value(coords), "stamina_card_count": hand.size()})
+			EncounterActionModel.Kind.MOVE_HERO:
+				actions.append({"kind": "move_hero", "destination": Serializer.value(action.payload.get("destination")), "stamina_card_count": hero.get("hand", []).size()})
 	return actions
 
 func _selected_actions_between(start_cursor: int, end_cursor: int) -> Array:
@@ -178,9 +174,6 @@ func _card_ids(cards: Array) -> Array:
 	for card in cards:
 		result.append(str(card.id))
 	return result
-
-func _hex_distance(first: Vector2i, second: Vector2i) -> int:
-	return int((abs(first.x - second.x) + abs(first.x + first.y - second.x - second.y) + abs(first.y - second.y)) / 2)
 
 func _is_generated(engine, candidate) -> bool:
 	for action in engine.history:
