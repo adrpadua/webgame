@@ -133,53 +133,39 @@ func apply(action):
 	_check_resolution()
 	return action
 
+# Advances one phase boundary and returns the complete ordered slice of
+# actions it produced (ADR 0015); every mutation it causes rides an action.
 func advance_phase() -> Array:
 	if not active:
 		return []
 	var actions: Array = []
 	match phase:
 		&"loadout":
-			phase = &"instant"
+			actions.append(apply(EncounterActionModel.advance_phase(&"loadout", &"instant", round)))
 		&"instant":
-			actions = _timeline_resolver.actions_for_track(self, &"instant")
-			for action in actions:
-				apply(action)
-			phase = &"quick"
-			_start_window(&"quick")
+			for action in _timeline_resolver.actions_for_track(self, &"instant"):
+				actions.append(apply(action))
+			actions.append(apply(EncounterActionModel.advance_phase(&"instant", &"quick", round)))
 			_refresh_telegraphs()
 		&"quick":
-			var expiry_actions := _status_expiry_actions(&"quick")
-			for expiry_action in expiry_actions:
-				apply(expiry_action)
-			actions.append_array(expiry_actions)
-			_cleanup_slots(&"quick")
-			phase = &"incoming"
+			for expiry_action in _status_expiry_actions(&"quick"):
+				actions.append(apply(expiry_action))
+			actions.append_array(_cleanup_actions(&"quick"))
+			actions.append(apply(EncounterActionModel.advance_phase(&"quick", &"incoming", round)))
 		&"incoming":
 			_refresh_telegraphs()
-			actions = _timeline_resolver.actions_for_track(self, &"incoming")
-			for action in actions:
-				apply(action)
-			phase = &"slow"
-			_start_window(&"slow")
+			for action in _timeline_resolver.actions_for_track(self, &"incoming"):
+				actions.append(apply(action))
+			actions.append(apply(EncounterActionModel.advance_phase(&"incoming", &"slow", round)))
 		&"slow":
-			_cleanup_slots(&"slow")
-			round += 1
-			if round > round_limit:
-				active = false
-				outcome = &"defeat"
-				outcome_reason = enrage_text
+			actions.append_array(_cleanup_actions(&"slow"))
+			var next_round := round + 1
+			if next_round > round_limit:
+				actions.append(apply(EncounterActionModel.end_of_clock(next_round, enrage_text)))
 				return actions
-			_start_round()
-			if programs.is_empty():
-				program_index = 0
-				current_program = null
-			elif loop_programs:
-				program_index = (program_index + 1) % programs.size()
-				current_program = programs[program_index]
-			else:
-				program_index += 1
-				current_program = programs[program_index] if program_index < programs.size() else null
-			phase = &"loadout"
+			actions.append(apply(EncounterActionModel.round_start(next_round)))
+			actions.append_array(_refill_actions())
+			actions.append(apply(EncounterActionModel.advance_phase(&"slow", &"loadout", next_round)))
 			_refresh_telegraphs()
 	_check_resolution()
 	return actions
@@ -437,30 +423,55 @@ func _add_hero(config: Dictionary) -> void:
 		_shuffle(heroes[hero_id]["deck"], &"initial_deck_shuffle")
 	_draw_until_refill(hero_id)
 
-func _start_window(window: StringName) -> void:
+func _advance_phase_action(action) -> void:
+	var from_phase: StringName = action.payload.get("from_phase", phase)
+	_clear_window_flags(from_phase)
+	phase = action.payload.get("to_phase", phase)
+	round = int(action.payload.get("round", round))
+	action.resolve_success()
+
+func _end_of_clock(action) -> void:
+	round = int(action.payload.get("round", round))
+	active = false
+	outcome = &"defeat"
+	outcome_reason = str(action.payload.get("reason", enrage_text))
+	action.resolve_success()
+
+# A Slot's activation flag lives exactly as long as its window; it clears when
+# the ADVANCE_PHASE leaving that window resolves.
+func _clear_window_flags(window: StringName) -> void:
 	for hero_id in heroes:
 		var hero: Dictionary = heroes[hero_id]
 		for slot_index in hero["action_bar"].size():
 			var slot: Dictionary = hero["action_bar"][slot_index]
 			if slot["activated_window"] == window:
 				slot["activated_window"] = &""
-			hero["action_bar"][slot_index] = slot
+				hero["action_bar"][slot_index] = slot
 		heroes[hero_id] = hero
 
-func _start_round() -> void:
-	board.advance_round()
+# Emits the refill's SHUFFLE_DECK and DRAW_CARD actions; the mutations happen
+# in their resolutions via the action funnel.
+func _refill_actions() -> Array:
+	var actions: Array = []
 	for hero_id in heroes:
-		var hero: Dictionary = heroes[hero_id]
-		hero["armor"] = 0
-		for effect in status_effects.get(hero_id, []):
-			hero["armor"] += int(effect.outcome_for(StatusEffectModel.ON_ROUND_START).get("armor", 0))
-		heroes[hero_id] = hero
-		var remaining: Array = []
-		for effect in status_effects.get(hero_id, []):
-			if not effect.advance_round():
-				remaining.append(effect)
-		status_effects[hero_id] = remaining
-		_draw_until_refill(hero_id)
+		while heroes[hero_id]["hand"].size() < int(heroes[hero_id]["refill_target"]):
+			if heroes[hero_id]["deck"].is_empty():
+				if heroes[hero_id]["discard"].is_empty():
+					break
+				actions.append(apply(EncounterActionModel.shuffle_deck(hero_id, &"discard_shuffle")))
+			actions.append(apply(EncounterActionModel.draw_card(hero_id)))
+	return actions
+
+func _advance_program() -> void:
+	if programs.is_empty():
+		program_index = 0
+		current_program = null
+	elif loop_programs:
+		program_index = (program_index + 1) % programs.size()
+		current_program = programs[program_index]
+	else:
+		program_index += 1
+		current_program = programs[program_index] if program_index < programs.size() else null
 
 func _draw_until_refill(hero_id: StringName) -> void:
 	var hero: Dictionary = heroes.get(hero_id, {})
@@ -479,21 +490,18 @@ func _draw_until_refill(hero_id: StringName) -> void:
 func _shuffle(values: Array, label: StringName) -> void:
 	random_source.shuffle(values, label)
 
-func _cleanup_slots(window: StringName) -> void:
+# Emits Full-Charge Cleanup actions for every Slot matching the rule; the
+# mutation happens in `_full_charge_cleanup` via the action funnel.
+func _cleanup_actions(window: StringName) -> Array:
+	var actions: Array = []
 	for hero_id in heroes:
 		var hero: Dictionary = heroes[hero_id]
 		for slot_index in hero["action_bar"].size():
 			var slot: Dictionary = hero["action_bar"][slot_index]
 			var top_card = slot["top_card"]
 			if top_card != null and slot["activated_window"] == window and slot["charges"].size() == top_card.get_charge_cap():
-				hero["discard"].append(top_card)
-				for charged_card in slot["charges"]:
-					hero["discard"].append(charged_card)
-				slot = {"top_card": null, "charges": [], "activated_window": &""}
-			elif slot["activated_window"] == window:
-				slot["activated_window"] = &""
-			hero["action_bar"][slot_index] = slot
-		heroes[hero_id] = hero
+				actions.append(apply(EncounterActionModel.full_charge_cleanup(hero_id, slot_index, window)))
+	return actions
 
 func _status_expiry_actions(window: StringName) -> Array:
 	var actions: Array = []
@@ -546,6 +554,18 @@ func _resolve(action) -> Array:
 			_discard_for_stamina(action)
 		EncounterActionModel.Kind.EXPIRE_STATUS:
 			_expire_status(action)
+		EncounterActionModel.Kind.FULL_CHARGE_CLEANUP:
+			_full_charge_cleanup(action)
+		EncounterActionModel.Kind.ROUND_START:
+			_round_start(action)
+		EncounterActionModel.Kind.DRAW_CARD:
+			_draw_card(action)
+		EncounterActionModel.Kind.SHUFFLE_DECK:
+			_shuffle_deck(action)
+		EncounterActionModel.Kind.ADVANCE_PHASE:
+			_advance_phase_action(action)
+		EncounterActionModel.Kind.END_OF_CLOCK:
+			_end_of_clock(action)
 	return []
 
 func _load_slot_legality(action) -> Dictionary:
@@ -786,4 +806,59 @@ func _expire_status(action) -> void:
 	var status_id: StringName = action.payload.get("status_id", &"")
 	_remove_status(target_id, status_id)
 	action.payload["resolution_fact"] = {"status_event": action.payload.get("status_event", {}).duplicate(true)}
+	action.resolve_success()
+
+func _round_start(action) -> void:
+	round = int(action.payload.get("round", round + 1))
+	board.advance_round()
+	for hero_id in heroes:
+		var hero: Dictionary = heroes[hero_id]
+		hero["armor"] = 0
+		for effect in status_effects.get(hero_id, []):
+			hero["armor"] += int(effect.outcome_for(StatusEffectModel.ON_ROUND_START).get("armor", 0))
+		heroes[hero_id] = hero
+		var remaining: Array = []
+		for effect in status_effects.get(hero_id, []):
+			if not effect.advance_round():
+				remaining.append(effect)
+		status_effects[hero_id] = remaining
+	_advance_program()
+	action.resolve_success()
+
+func _draw_card(action) -> void:
+	var hero: Dictionary = get_hero(action.source_id)
+	if hero.is_empty() or hero["deck"].is_empty():
+		action.resolve_failure("The deck has no card to draw.")
+		return
+	var card = hero["deck"].pop_back()
+	hero["hand"].append(card)
+	action.payload["card"] = card
+	_put_hero(action.source_id, hero)
+	action.resolve_success()
+
+func _shuffle_deck(action) -> void:
+	var hero: Dictionary = get_hero(action.source_id)
+	if hero.is_empty() or not hero["deck"].is_empty() or hero["discard"].is_empty():
+		action.resolve_failure("Reshuffling requires an empty deck and a non-empty discard pile.")
+		return
+	hero["deck"] = hero["discard"].duplicate()
+	hero["discard"].clear()
+	_shuffle(hero["deck"], action.payload.get("label", &"discard_shuffle"))
+	_put_hero(action.source_id, hero)
+	action.resolve_success()
+
+func _full_charge_cleanup(action) -> void:
+	var hero: Dictionary = get_hero(action.source_id)
+	var slot_index: int = action.payload.get("slot_index", -1)
+	if hero.is_empty() or slot_index < 0 or slot_index >= hero["action_bar"].size() or hero["action_bar"][slot_index]["top_card"] == null:
+		action.resolve_failure("Full-Charge Cleanup requires an occupied Slot.")
+		return
+	var slot: Dictionary = hero["action_bar"][slot_index]
+	action.payload["top_card"] = slot["top_card"]
+	action.payload["charge_cards"] = slot["charges"].duplicate()
+	hero["discard"].append(slot["top_card"])
+	for charged_card in slot["charges"]:
+		hero["discard"].append(charged_card)
+	hero["action_bar"][slot_index] = {"top_card": null, "charges": [], "activated_window": &""}
+	_put_hero(action.source_id, hero)
 	action.resolve_success()

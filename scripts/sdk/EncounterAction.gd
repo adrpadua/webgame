@@ -12,7 +12,15 @@ enum Kind {
 	DAMAGE,
 	DISCARD_FOR_STAMINA,
 	EXPIRE_STATUS,
+	ADVANCE_PHASE,
+	ROUND_START,
+	FULL_CHARGE_CLEANUP,
+	DRAW_CARD,
+	SHUFFLE_DECK,
+	END_OF_CLOCK,
 }
+
+const ENCOUNTER_SOURCE: StringName = &"encounter"
 
 var kind: Kind
 var source_id: StringName = &""
@@ -53,6 +61,24 @@ static func discard_for_stamina(hero_id: StringName, card) -> EncounterAction:
 
 static func expire_status(entity_id: StringName, status_id: StringName, window: StringName, event: Dictionary) -> EncounterAction:
 	return _make(Kind.EXPIRE_STATUS, entity_id, {"target_id": entity_id, "status_id": status_id, "window": window, "status_event": event.duplicate(true)})
+
+static func advance_phase(from_phase: StringName, to_phase: StringName, round_number: int) -> EncounterAction:
+	return _make(Kind.ADVANCE_PHASE, ENCOUNTER_SOURCE, {"from_phase": from_phase, "to_phase": to_phase, "round": round_number})
+
+static func round_start(round_number: int) -> EncounterAction:
+	return _make(Kind.ROUND_START, ENCOUNTER_SOURCE, {"round": round_number})
+
+static func full_charge_cleanup(hero_id: StringName, slot_index: int, window: StringName) -> EncounterAction:
+	return _make(Kind.FULL_CHARGE_CLEANUP, hero_id, {"slot_index": slot_index, "window": window})
+
+static func draw_card(hero_id: StringName) -> EncounterAction:
+	return _make(Kind.DRAW_CARD, hero_id, {})
+
+static func shuffle_deck(hero_id: StringName, label: StringName) -> EncounterAction:
+	return _make(Kind.SHUFFLE_DECK, hero_id, {"label": label})
+
+static func end_of_clock(round_number: int, reason: String) -> EncounterAction:
+	return _make(Kind.END_OF_CLOCK, ENCOUNTER_SOURCE, {"round": round_number, "reason": reason})
 
 static func _make(new_kind: Kind, new_source_id: StringName, new_payload: Dictionary) -> EncounterAction:
 	var action = load("res://scripts/sdk/EncounterAction.gd").new()

@@ -21,7 +21,7 @@ func _initialize() -> void:
 	_assert(victory.succeeded, "Record probe needs a resolved damage action.")
 	recorder.sync(engine)
 	var record := recorder.seal(engine)
-	_assert(record["schema_version"] == 1, "Encounter Record schema version must be explicit.")
+	_assert(record["schema_version"] == 2, "Encounter Record schema version must be explicit.")
 	_assert(record["metadata"] == {"run_label": "", "evaluation_purpose": "", "scenario_id": ""}, "Encounter Record metadata defaults must preserve older callers.")
 	_assert(record["outcome"] == "victory", "Sealed Encounter Record must retain the terminal outcome.")
 	_assert(record["content"]["fingerprint"].length() == 64, "Content fingerprint must be a stable SHA-256 value.")
@@ -60,6 +60,14 @@ func _initialize() -> void:
 		clock_recorder.sync(clock_engine)
 	var clock_record := clock_recorder.seal(clock_engine)
 	_assert(clock_record["end_kind"] == "end_of_clock", "Encounter Clock resolution must be distinguishable from an ordinary defeat.")
+	var phase_kinds: Array = clock_record.get("phase_actions", []).map(func(action): return action["kind"])
+	_assert(phase_kinds.count("advance_phase") == 4 and phase_kinds.count("end_of_clock") == 1, "Phase-machine actions must be recorded in the phase_actions bucket (got %s)." % str(phase_kinds))
+	for action in clock_record["submitted_actions"]:
+		_assert(not action["kind"] in ["advance_phase", "round_start", "full_charge_cleanup", "draw_card", "shuffle_deck", "end_of_clock"], "Phase-machine actions must not pollute the submitted-actions bucket.")
+	var clock_boundaries: Array = clock_record["phase_boundaries"]
+	_assert(clock_boundaries.size() == 6, "Boundaries must derive from the stream: initial Loadout, four transitions, and the clock expiry (got %d)." % clock_boundaries.size())
+	_assert(clock_boundaries.back()["phase"] == "slow" and int(clock_boundaries.back()["round"]) == 2, "The terminal boundary must carry the END_OF_CLOCK round and phase.")
+	_assert(int(clock_boundaries.back()["history_cursor"]) == int(clock_record["phase_actions"].back()["history_index"]) + 1, "Each boundary cursor must point just past its transition action on the stream.")
 
 	var mixed: Dictionary = record.duplicate(true)
 	mixed["record_id"] = "mixed-fingerprint"

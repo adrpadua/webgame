@@ -5,13 +5,26 @@ const ContentIdentity := preload("res://scripts/records/EncounterContentIdentity
 const EncounterActionModel := preload("res://scripts/sdk/EncounterAction.gd")
 const Serializer := preload("res://scripts/debug/EncounterProbeSerializer.gd")
 
-const SCHEMA_VERSION := 1
+const SCHEMA_VERSION := 2
 const RECORD_ROOT := "res://tmp/encounter-records"
+
+const PHASE_ACTION_KINDS: Array = [
+	EncounterActionModel.Kind.ADVANCE_PHASE,
+	EncounterActionModel.Kind.ROUND_START,
+	EncounterActionModel.Kind.FULL_CHARGE_CLEANUP,
+	EncounterActionModel.Kind.DRAW_CARD,
+	EncounterActionModel.Kind.SHUFFLE_DECK,
+	EncounterActionModel.Kind.END_OF_CLOCK,
+]
+const BOUNDARY_ACTION_KINDS: Array = [
+	EncounterActionModel.Kind.ADVANCE_PHASE,
+	EncounterActionModel.Kind.END_OF_CLOCK,
+]
 
 var _record: Dictionary = {}
 var _history_cursor: int = 0
-var _last_round: int = -1
-var _last_phase: StringName = &""
+var _current_round: int = 1
+var _current_phase: String = "loadout"
 var _last_observation_index: int = -1
 var _sealed: bool = false
 
@@ -28,33 +41,46 @@ func begin(engine, encounter_resource: Resource, metadata: Dictionary = {}) -> v
 		"phase_observations": [],
 		"submitted_actions": [],
 		"generated_actions": [],
+		"phase_actions": [],
 		"rejected_actions": [],
 	}
 	_history_cursor = 0
-	_last_round = -1
-	_last_phase = &""
+	_current_round = engine.round
+	_current_phase = str(engine.phase)
 	_last_observation_index = -1
 	_sealed = false
 	sync(engine)
 	_record["initial_rules_snapshot"] = Serializer.snapshot(engine)
 
+# Folds the engine's action stream: buckets each action, and derives phase
+# boundaries from the stream's ADVANCE_PHASE / END_OF_CLOCK actions instead of
+# polling round and phase fields (ADR 0015).
 func sync(engine) -> void:
 	if _record.is_empty() or _sealed:
 		return
-	_append_boundary(engine)
+	if _record["phase_boundaries"].is_empty():
+		_open_boundary(engine, _current_round, _current_phase, _history_cursor)
 	while _history_cursor < engine.history.size():
 		var action = engine.history[_history_cursor]
-		var serialized := Serializer.action(action)
-		serialized["history_index"] = _history_cursor
+		var action_index := _history_cursor
 		_history_cursor += 1
-		serialized["round"] = engine.round
-		serialized["phase"] = str(engine.phase)
-		if _is_generated(engine, action):
+		var serialized := Serializer.action(action)
+		serialized["history_index"] = action_index
+		serialized["round"] = _current_round
+		serialized["phase"] = _current_phase
+		if action.kind in PHASE_ACTION_KINDS:
+			_record["phase_actions"].append(serialized)
+		elif _is_generated(engine, action):
 			_record["generated_actions"].append(serialized)
 		else:
 			_record["submitted_actions"].append(serialized)
 		if not action.succeeded:
 			_record["rejected_actions"].append(serialized)
+		if action.succeeded and action.kind in BOUNDARY_ACTION_KINDS:
+			_current_round = int(action.payload.get("round", _current_round))
+			_current_phase = str(action.payload.get("to_phase", _current_phase))
+			_close_observation(action_index + 1)
+			_open_boundary(engine, _current_round, _current_phase, action_index + 1)
 
 func seal(engine, forced_outcome: StringName = &"", forced_reason: String = "") -> Dictionary:
 	if _sealed:
@@ -74,15 +100,10 @@ func seal(engine, forced_outcome: StringName = &"", forced_reason: String = "") 
 func is_active() -> bool:
 	return not _record.is_empty() and not _sealed
 
-func _append_boundary(engine) -> void:
-	if engine.round == _last_round and engine.phase == _last_phase:
-		return
-	_close_observation(_history_cursor)
-	_record["phase_boundaries"].append({"round": engine.round, "phase": str(engine.phase), "history_cursor": _history_cursor})
-	_record["phase_observations"].append(_phase_observation(engine, _history_cursor))
+func _open_boundary(engine, round_number: int, phase_name: String, history_cursor: int) -> void:
+	_record["phase_boundaries"].append({"round": round_number, "phase": phase_name, "history_cursor": history_cursor})
+	_record["phase_observations"].append(_phase_observation(engine, round_number, phase_name, history_cursor))
 	_last_observation_index = _record["phase_observations"].size() - 1
-	_last_round = engine.round
-	_last_phase = engine.phase
 
 func _close_observation(next_history_cursor: int) -> void:
 	if _last_observation_index < 0 or not _record.has("phase_observations"):
@@ -94,11 +115,11 @@ func _close_observation(next_history_cursor: int) -> void:
 	observation["selected_rules_actions"] = _selected_actions_between(int(observation.get("history_cursor", 0)), next_history_cursor)
 	_record["phase_observations"][_last_observation_index] = observation
 
-func _phase_observation(engine, history_cursor: int) -> Dictionary:
+func _phase_observation(engine, round_number: int, phase_name: String, history_cursor: int) -> Dictionary:
 	var hero: Dictionary = engine.get_hero(engine.primary_hero_id)
 	return {
-		"round": engine.round,
-		"phase": str(engine.phase),
+		"round": round_number,
+		"phase": phase_name,
 		"history_cursor": history_cursor,
 		"hand_card_ids": _card_ids(hero.get("hand", [])),
 		"slots": _slot_observations(hero.get("action_bar", [])),

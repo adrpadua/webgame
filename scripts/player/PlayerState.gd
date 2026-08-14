@@ -30,10 +30,14 @@ var current_window: StringName = &"none"
 
 var _engine
 var _hero_id: StringName = &""
+var _stream_cursor: int = 0
+var _pending_slot_transitions: Dictionary = {}
 
 func bind_engine(engine, hero_id: StringName) -> void:
 	_engine = engine
 	_hero_id = hero_id
+	_stream_cursor = 0
+	_pending_slot_transitions.clear()
 	sync_from_engine()
 
 func sync_from_engine() -> void:
@@ -57,6 +61,7 @@ func sync_from_engine() -> void:
 	if not entity.is_empty():
 		hero_name = str(entity.get("title", hero_name))
 		facing = int(entity.get("facing", facing))
+	_fold_slot_transitions()
 	hand_changed.emit()
 	resources_changed.emit()
 	board_changed.emit()
@@ -77,6 +82,32 @@ func activate_slot(slot_index: int, context: Dictionary = {}) -> bool:
 	if target != null:
 		target_id = target.get("piece_id") if target.get("piece_id") != null else &""
 	return _submit(EncounterActionModel.fire_slot(_hero_id, slot_index, target_id))
+
+# Folds this Hero's Slot actions off the engine's stream into presentation
+# transition cues (ADR 0015). Consumed once per read by the Action Bar view.
+func _fold_slot_transitions() -> void:
+	while _stream_cursor < _engine.history.size():
+		var action = _engine.history[_stream_cursor]
+		_stream_cursor += 1
+		if not action.succeeded or action.source_id != _hero_id:
+			continue
+		var slot_index: int = int(action.payload.get("slot_index", -1))
+		if slot_index < 0:
+			continue
+		match action.kind:
+			EncounterActionModel.Kind.LOAD_SLOT:
+				_pending_slot_transitions[slot_index] = &"load"
+			EncounterActionModel.Kind.CHARGE_SLOT:
+				_pending_slot_transitions[slot_index] = &"charge"
+			EncounterActionModel.Kind.FIRE_SLOT:
+				_pending_slot_transitions[slot_index] = &"activate"
+			EncounterActionModel.Kind.FULL_CHARGE_CLEANUP:
+				_pending_slot_transitions[slot_index] = &"cleanup"
+
+func take_slot_transitions() -> Dictionary:
+	var transitions := _pending_slot_transitions.duplicate()
+	_pending_slot_transitions.clear()
+	return transitions
 
 # Legality delegations ask the authoritative engine; no rules are restated here.
 func project_intent(slot_index: int, card: Resource) -> StringName:
