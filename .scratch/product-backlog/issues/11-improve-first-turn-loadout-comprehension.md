@@ -34,7 +34,7 @@ The player-facing promise is: on first view of the loadout screen, a new player 
   - what is enemy danger or invalid state; and
   - what is secondary information.
 - Make the loadout slots read more clearly as card destinations.
-- Strengthen action hierarchy so `Play` is the primary progression action, `Undo` is a clear secondary control, and `Help` is tertiary.
+- Strengthen action hierarchy so `Play` is the primary progression action and `Help` is a clearly secondary support control in this slice.
 - Reduce or defer unexplained visual noise that does not help a newcomer complete the current loadout step.
 - Improve the readability of the current phase / round display so it supports orientation instead of encoding too much shorthand for a first glance.
 - Preserve the existing rules model: the player still loads cards into slots, then advances the phase with `Play`.
@@ -82,7 +82,8 @@ Before this intake can close as delivered, evidence must show that:
 ## Confirmed Product Decisions
 
 - The first-turn screen should communicate the current required action in plain language.
-- `Play` should read as the primary progression action, with `Undo` and `Help` clearly secondary.
+- `Play` should read as the primary progression action, with `Help` as the clearly secondary support control in this slice.
+- Any future `Undo` capability is out of scope for this issue and requires separate product approval with explicit gameplay, replay, and Encounter Record semantics.
 - Red should not do double duty as both danger/error and the default selected-card affordance.
 - This slice is distinct from contextual tutorial prompts and from mobile safe-bounds hardening, even if delivery reuses related findings.
 
@@ -100,3 +101,5 @@ Product intent is approved. Delivery may choose the smallest effective combinati
 ## Approval Record
 
 On Friday, August 14, 2026, the user reviewed the current loadout screen from a newcomer/gamer perspective and explicitly requested that the resulting comprehension problem be logged as a backlog issue and made `ready-for-agent`. The approved outcome is that a first-time player can look at this screen and understand what to do next without outside explanation. The Orchestrator must preserve that outcome and return any broader HUD redesign or onboarding-system expansion to PM and the user.
+
+Later on Friday, August 14, 2026, the user explicitly approved narrowing this slice to remove the unapproved mobile `Undo` requirement. Proposal 11 now preserves `Play` as the primary progression action and `Help` as the secondary support control in this slice. Any future `Undo` capability must return as a separate product/rules intake.

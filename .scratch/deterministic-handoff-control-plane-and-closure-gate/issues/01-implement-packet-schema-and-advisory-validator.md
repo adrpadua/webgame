@@ -1,6 +1,6 @@
 # Implement Packet Schema and Advisory Validator
 
-Status: completed-pending-qa-supersession-review
+Status: resolved
 Owner: Architecture
 
 ## Outcome

@@ -89,6 +89,7 @@ func _notification(what: int) -> void:
 
 func _draw() -> void:
 	if loaded_card == null:
+		_draw_empty_slot_affordance(get_theme_default_font())
 		if drop_hovered:
 			_draw_drop_intent()
 		elif context_card != null and _can_accept_hand_card():
@@ -151,6 +152,15 @@ func _draw_drop_intent() -> void:
 	draw_rect(overlay, accent, false, 3.0)
 	var cue := "%s  %s" % [_get_drop_intent_icon(), intent]
 	draw_string(font, Vector2(0.0, size.y * 0.56), cue, HORIZONTAL_ALIGNMENT_CENTER, size.x, 13 if compact else 17, accent)
+
+func _draw_empty_slot_affordance(font: Font) -> void:
+	var lane := Rect2(Vector2(8.0, size.y * 0.23), Vector2(size.x - 16.0, 20.0))
+	var copy := Rect2(Vector2(8.0, size.y * 0.50), Vector2(size.x - 16.0, 18.0))
+	draw_rect(lane, Color(0.02, 0.03, 0.04, 0.84), true)
+	draw_rect(lane, Color(0.72, 0.75, 0.80, 0.58), false, 1.5)
+	draw_rect(copy, Color(0.02, 0.03, 0.04, 0.68), true)
+	draw_string(font, lane.position + Vector2(0.0, 14.0), "CARD SLOT", HORIZONTAL_ALIGNMENT_CENTER, lane.size.x, 9, Color(0.90, 0.92, 0.96))
+	draw_string(font, copy.position + Vector2(0.0, 13.0), "DROP", HORIZONTAL_ALIGNMENT_CENTER, copy.size.x, 10, Color(1.0, 0.83, 0.46))
 
 func _get_drop_intent_label() -> String:
 	if loaded_card == null:
@@ -261,7 +271,7 @@ func _slot_text() -> String:
 	var top_card: Resource = slot_data.get("top_card")
 	if top_card == null:
 		if compact:
-			return "▣  LOAD\n↓"
+			return ""
 		return "Slot %d: Empty\nDrop Card to Load" % (slot_index + 1)
 
 	var charges: Array = slot_data.get("charges", [])

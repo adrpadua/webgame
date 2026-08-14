@@ -28,6 +28,8 @@ Implementation details, rules, UI behavior, and test contracts remain in their e
 
 When the enablement item is a delivery-control or handoff-validation seam, use `docs/artifacts/handoff-packets.md` as the canonical packet contract. Packet files under `docs/artifacts/handoff-packets/<handoff-id>/` are durable evidence; the coordination ledger remains an index and must not become the schema definition.
 
+Focused rules-Probe pilot reflection: when an enablement item is proving one narrow, existing Encounter rule, prefer the thinnest reusable evidence layer first. Add a scene-free focused Probe against public authority before proposing broader scenario/report/UI work or a new engine seam, and document that routing choice in the canonical harness rather than scattering it across issue comments.
+
 ## Closure Gate
 
 An Engineering Enablement handoff closes only when:

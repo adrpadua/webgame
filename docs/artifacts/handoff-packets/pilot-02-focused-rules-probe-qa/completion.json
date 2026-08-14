@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "pilot-02-focused-rules-probe-qa",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Test Automation",
+  "created_at": "2026-08-14T06:18:00-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": {
+    "status": "completed",
+    "non_goal_compliance": [
+      "No new test framework or production Encounter test helper",
+      "No replay or Encounter Record schema change unless a missing authoritative fact is demonstrated",
+      "No gameplay, balance, deck, encounter, or UI change",
+      "No duplication of broad replay, records, parity, production-resource, or presentation acceptance Probes"
+    ],
+    "summary": [
+      "Added three-layer Probe selection guidance to the canonical harness.",
+      "Reflected the layer-selection lesson in the Engineering Enablement doc without changing ownership or closure policy.",
+      "Implemented one deterministic scene-free focused Probe for the Encounter Clock end-of-clock defeat contract.",
+      "The Probe writes one stable JSON artifact and one stable success marker through the shared runner."
+    ]
+  },
+  "changed_paths": [
+    "scripts/debug/focused_end_of_clock_probe.gd",
+    "scripts/debug/run_probes.ps1",
+    "docs/artifacts/probe-harness.md",
+    "docs/agents/engineering-enablement.md"
+  ],
+  "validation": [
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\run_probes.ps1 -Probe focused_end_of_clock",
+      "result": [
+        "FOCUSED_END_OF_CLOCK_PROBE_OK advances=40 artifact=res://tmp/probe-artifacts/focused_end_of_clock/end_of_clock_trace.json",
+        "PROBE_SUITE_OK count=1"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "marker",
+      "value": "FOCUSED_END_OF_CLOCK_PROBE_OK"
+    },
+    {
+      "kind": "artifact",
+      "value": "tmp/probe-artifacts/focused_end_of_clock/end_of_clock_trace.json"
+    }
+  ],
+  "next_owner": "Coordinator",
+  "requested_action": "Route the bounded proof-of-value seam to Architecture for independent scene-free seam review before the pilot counts."
+}

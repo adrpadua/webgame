@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "pilot-02-focused-rules-probe-qa",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "Test Automation",
+  "created_at": "2026-08-14T06:12:00-07:00",
+  "assignment_revision": 1,
+  "owner": "Test Automation",
+  "scope_confirmed": "Accepted the advisory pilot 2 proof-of-value scope: exactly one focused, deterministic scene-free Encounter rules Probe for an existing defeat/attrition or end-of-clock contract, plus the bounded canonical guidance updates only.",
+  "planned_paths": [
+    "scripts/debug/focused_end_of_clock_probe.gd",
+    "scripts/debug/run_probes.ps1",
+    "docs/artifacts/probe-harness.md",
+    "docs/agents/engineering-enablement.md"
+  ],
+  "first_validation": "Focused Probe will run scene-free through run_probes with a stable marker and a deterministic artifact path.",
+  "next_owner": "Test Automation"
+}

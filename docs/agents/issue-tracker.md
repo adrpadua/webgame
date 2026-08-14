@@ -29,7 +29,7 @@ Product proposals enter through `.scratch/product-backlog/`:
 
 After a `ready-for-agent` handoff, the orchestrator owns delivery decomposition, sequencing, dependencies, and closure. Preserve the confirmed product outcome; route any proposed outcome change back to PM and the user. Create implementation scope and tickets in a separate `.scratch/<feature>/` directory, leaving the product proposal as the intake record.
 
-When a delivery uses deterministic handoff packets, keep the issue file as the scope and status record and store durable assignment/acknowledgment/completion evidence under `docs/artifacts/handoff-packets/<handoff-id>/`. The packet schema and advisory validator live in `docs/artifacts/handoff-packets.md`; issue comments and task messages may link packet verdicts but are not the packet authority.
+When a delivery uses deterministic handoff packets, keep the issue file as the scope and status record and store durable assignment/acknowledgment/completion evidence under `docs/artifacts/handoff-packets/<handoff-id>/`. Proposal 12's approved Phase 0 packet contract uses immutable JSON packet files plus immutable superseding revisions; `docs/artifacts/handoff-packets.md` is the canonical schema and validator authority. Issue comments and task messages may link packet verdicts but are not the packet authority.
 
 ## Wayfinding operations
 

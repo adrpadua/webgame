@@ -1,8 +1,8 @@
 # Present First Loadout Action
 
-Status: blocked
+Status: completed-pending-newcomer-observation
 Owner: UI/UX
-Blocked by: active proposal-10 mobile safe-bounds implementation and shared `Main.gd` ownership release
+Blocked by: temporary Playtester newcomer-observation gate or an explicitly approved equivalent; canonical wording and Architecture/Test Automation evidence are complete
 
 ## Outcome
 

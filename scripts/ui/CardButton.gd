@@ -51,6 +51,7 @@ func _draw() -> void:
 	var title_band := Rect2(Vector2(art_rect.position.x, art_rect.end.y - 34.0), Vector2(art_rect.size.x, 34.0))
 	var timing_badge := Rect2(art_rect.position + Vector2(5.0, 5.0), Vector2(28.0, 20.0))
 	var type_badge := Rect2(Vector2(art_rect.end.x - 39.0, art_rect.position.y + 5.0), Vector2(34.0, 20.0))
+	var selected_badge := Rect2(Vector2(art_rect.position.x + 38.0, art_rect.position.y + 5.0), Vector2(34.0, 20.0))
 	var font := get_theme_default_font()
 	var artwork: Texture2D = card.get_artwork() if card.has_method("get_artwork") else null
 	if artwork != null:
@@ -62,6 +63,10 @@ func _draw() -> void:
 	draw_rect(timing_badge, Color(0.06, 0.07, 0.09, 0.92), true)
 	draw_rect(timing_badge, Color(1.0, 0.78, 0.33), false, 1.5)
 	draw_string(font, timing_badge.position + Vector2(0.0, 15.0), _get_timing_badge(), HORIZONTAL_ALIGNMENT_CENTER, timing_badge.size.x, 11, Color(1.0, 0.90, 0.67))
+	if selected:
+		draw_rect(selected_badge, Color(0.06, 0.07, 0.09, 0.94), true)
+		draw_rect(selected_badge, Color(1.0, 0.92, 0.50), false, 1.5)
+		draw_string(font, selected_badge.position + Vector2(0.0, 15.0), "SEL", HORIZONTAL_ALIGNMENT_CENTER, selected_badge.size.x, 10, Color(1.0, 0.96, 0.80))
 	draw_rect(type_badge, _border_color_for_card(), true)
 	draw_string(font, type_badge.position + Vector2(0.0, 15.0), _get_type_icon(), HORIZONTAL_ALIGNMENT_CENTER, type_badge.size.x, 12, Color.WHITE)
 	var display_title: String = card.title if selected else _short_title(card.title, 16)

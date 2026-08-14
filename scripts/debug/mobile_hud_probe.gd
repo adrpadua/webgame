@@ -76,6 +76,7 @@ func _assert_mobile_viewport(viewport_size: Vector2) -> void:
 	assert(mobile_help_pane.visible and mobile_help_label.text.contains("Guide:"), "The help button should toggle the full guide pane.")
 	assert(mobile_help_label.size.x > 0.0 and mobile_help_label.size.y > 0.0, "The open help pane must lay out visible guide text.")
 	assert(Rect2(Vector2.ZERO, viewport_size).encloses(mobile_help_label.get_global_rect()), "Guide text must remain inside the physical viewport.")
+	_assert_label_text_fits(mobile_help_label, "Guide")
 	assert(mobile_help_pane.get_global_rect().end.y <= mobile_controls_row.get_global_rect().position.y, "Controls must sit below the open help pane.")
 	assert(not mobile_help_pane.get_global_rect().intersects(mobile_continue_button.get_global_rect()), "The open help pane must not overlap Play.")
 	await _save_screenshot(HELP_OPEN_SCREENSHOT_PATH)

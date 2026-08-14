@@ -36,6 +36,7 @@ $catalog = [ordered]@{
 	mobile = "res://scripts/debug/mobile_hud_probe.gd"
 	accessibility = "res://scripts/debug/accessibility_probe.gd"
 	replay = "res://scripts/debug/full_charge_cleanup_probe.gd"
+	focused_end_of_clock = "res://scripts/debug/focused_end_of_clock_probe.gd"
 	records = "res://scripts/debug/encounter_record_probe.gd"
 	record_scene = "res://scripts/debug/encounter_record_scene_probe.gd"
 	presentation = "res://scripts/debug/card_action_board_presentation_probe.gd"

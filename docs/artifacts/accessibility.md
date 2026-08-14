@@ -11,6 +11,7 @@ This prototype follows a practical WCAG-oriented interaction baseline for its pl
 - Hexes are validated after their responsive board scaling, not merely at their authored size.
 - Controlled Hand overlap never shrinks the underlying Compact Card targets; selection raises one card and keeps adjacent cards partially visible.
 - Every drag destination also has a tap path: select a Compact Card, then tap a labeled legal Slot or `MOVE` hex.
+- First-Loadout comprehension uses explicit copy instead of color-only discovery: the prompt names the sequence, empty compact Slots read as `CARD SLOT` and `DROP`, selected cards show `SEL`, legal Slot outcomes show `LOAD`, and telegraphed enemy hexes expose `DANGER` text and tooltip copy.
 - Board navigation does not replace tactical input: the initial fitted view exposes the complete board, while optional one-finger pan and two-finger pinch support closer visual inspection. Touches beginning on units remain reserved for their existing tap and drag controls.
 - Riposte Ready uses a non-interactive Status Effect pane instead of a meter. Its visible text names the status, qualifying Tank Hit, Quick expiry, Shield Slam consumption, and `+2` payoff; its tooltip adds the Guarded Front and `0` Health-loss trigger details from the authoritative snapshot.
 
@@ -20,7 +21,9 @@ This prototype follows a practical WCAG-oriented interaction baseline for its pl
 - Hex tiles render the same focus treatment when reached by keyboard navigation.
 - Normal, hover, disabled, and focus states use light text on dark fills with distinct borders. State is communicated by more than color through borders, focus thickness, and disabled appearance.
 - Compact Cards pair timing and type icons with tooltips and inspection text. Slot and board destinations use explicit `LOAD`, `REPLACE`, `CHARGE`, and `MOVE` labels in addition to color.
+- The selected-card state is not color-only: lift, dimming of unrelated cards, border treatment, and the `SEL` badge all persist together.
 - Empty, Loaded, Ready, Primed, Activated, and Locked Slot states use text/icon markers and border treatment. Motion reinforces state but is not the only carrier of meaning.
+- Enemy danger tiles are not color-only: telegraphs keep their existing tinting while also exposing `DANGER` text in the tile and `Danger: ...` in tooltip copy.
 - Riposte Ready is not communicated by color alone. The status pane uses text, border treatment, and a tooltip, then clears only when the authoritative status projection clears. The payoff confirmation uses the existing feedback text and is derived from action facts rather than animation or Encounter Record output.
 - With `accessibility/reduced_motion` enabled, selection and Slot transitions resolve directly to the same static end state.
 - Selected card titles dynamically reduce within a bounded readable range so the complete title fits rather than clipping.

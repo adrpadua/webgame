@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "pilot-03-first-loadout-ui",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T06:20:00-07:00",
+  "owner": "UI/UX",
+  "canonical_issue": ".scratch/improve-first-turn-loadout-comprehension/issues/01-present-first-loadout-action.md",
+  "objective": "Make the first Loadout screen self-explanatory: a newcomer can see that they put a card into a Slot and then press Play, with authoritative legal-state presentation and readable portrait interaction.",
+  "non_goals": [
+    "No broad combat HUD redesign",
+    "No tutorial prompt system",
+    "No gameplay, timing, input-authority, or legal-action change",
+    "No merger with mobile safe-bounds implementation"
+  ],
+  "expected_writers": {
+    "assignment": "Coordinator",
+    "acknowledgment": "UI/UX",
+    "completion": "UI/UX"
+  },
+  "dependencies": [
+    {
+      "id": "proposal-10-safe-bounds",
+      "state": "satisfied"
+    },
+    {
+      "id": "proposal-12-pilot-02",
+      "state": "satisfied"
+    }
+  ],
+  "required_evidence": [
+    "First-view player-language instruction and source-of-truth UI behavior update",
+    "Focused presentation probe for selected, legal, invalid, danger, Slot-destination, and Play/Undo/Help hierarchy states",
+    "Portrait 390x844 readability/accessibility evidence",
+    "Architecture boundary and Test Automation independent validation before UI ownership release"
+  ],
+  "next_owner": "UI/UX"
+}

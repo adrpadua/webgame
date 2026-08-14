@@ -1,6 +1,6 @@
 # Focused Encounter Rules Probes
 
-Status: active
+Status: resolved
 
 ## Problem Statement
 

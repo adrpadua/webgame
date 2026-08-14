@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "pilot-03-first-loadout-playtester",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T07:35:00-07:00",
+  "owner": "Playtester",
+  "canonical_issue": ".scratch/improve-first-turn-loadout-comprehension/issues/04-newcomer-observation.md",
+  "objective": "Independently observe the current portrait first-Loadout screen as a newcomer and determine whether it communicates, without verbal coaching, that the player should put a card into a Slot and then tap Play.",
+  "non_goals": [
+    "No repository, game, documentation, or probe edits",
+    "No gameplay, rules, timing, input-authority, or Encounter Record assessment beyond the bounded player-facing claim",
+    "No approval of a mobile Undo capability",
+    "No broad HUD redesign or tutorial-system assessment"
+  ],
+  "expected_writers": {
+    "assignment": "Coordinator",
+    "acknowledgment": "Coordinator",
+    "completion": "Coordinator"
+  },
+  "dependencies": [
+    {
+      "id": "pilot-03-first-loadout-ui",
+      "state": "satisfied"
+    },
+    {
+      "id": "proposal-11-architecture-boundary",
+      "state": "satisfied"
+    },
+    {
+      "id": "proposal-11-qa-presentation",
+      "state": "satisfied"
+    }
+  ],
+  "required_evidence": [
+    "Ordered hands-on portrait/newcomer observation flow using the current default non-headless presentation or repository-owned capture artifacts",
+    "Viewport, input method, build identity, verdict, canonical expectation, concerns, recommended route, and retest condition returned first to the Coordinator",
+    "Verification of the claim only: load a card into a Slot, then tap Play, without verbal coaching"
+  ],
+  "next_owner": "Playtester"
+}

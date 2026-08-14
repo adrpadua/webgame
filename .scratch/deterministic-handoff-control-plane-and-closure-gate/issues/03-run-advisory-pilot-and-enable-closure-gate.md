@@ -1,8 +1,8 @@
 # Run Advisory Pilot and Enable Closure Gate
 
-Status: active; advisory pilot 1 of 5 blocked on invalid packet correction path
+Status: active; advisory pilots 1-2 of 5 completed, pilot 3 awaits newcomer-observation gate
 Owner: Coordinator
-Blocked by: pilot 1 has 11 schema/revision/evidence failures; Architecture must define the immutable packet correction path before the pilot can advance
+Blocked by: pilot 3 cannot count until the proposal 11 newcomer-observation acceptance gate is satisfied or explicitly waived; canonical wording and Architecture/QA evidence already passed
 
 ## Outcome
 

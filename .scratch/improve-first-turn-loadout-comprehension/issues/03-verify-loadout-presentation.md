@@ -1,8 +1,8 @@
 # Verify Loadout Presentation
 
-Status: blocked
+Status: scoped-QA-PASS; awaiting PM/user decision
 Owner: Test Automation
-Blocked by: 01, 02
+Blocked by: PM/user Undo-scope decision; scoped portrait/accessibility evidence and Architecture boundary PASS both passed
 
 ## Outcome
 

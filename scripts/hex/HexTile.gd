@@ -29,7 +29,6 @@ func _ready() -> void:
 func setup(q: int, r: int) -> void:
 	axial = Vector2i(q, r)
 	custom_minimum_size = SIZE
-	tooltip_text = "Hex %d,%d" % [q, r]
 	update_coordinate_text()
 	queue_redraw()
 
@@ -56,10 +55,12 @@ func set_outline_color(value: Color) -> void:
 
 func set_telegraph(value: StringName) -> void:
 	telegraph_id = value
+	_refresh_tooltip()
 	queue_redraw()
 
 func set_terrain(value: StringName) -> void:
 	terrain_id = value
+	_refresh_tooltip()
 	queue_redraw()
 
 func set_hand_card_move_legal(value: bool, card: Resource = null) -> void:
@@ -90,6 +91,7 @@ func update_coordinate_text() -> void:
 	text = "%d,%d" % [axial.x, axial.y] if show_coordinates else ""
 	add_theme_color_override("font_color", Color(0.90, 0.89, 0.86))
 	add_theme_font_size_override("font_size", 18)
+	_refresh_tooltip()
 
 func _pressed() -> void:
 	selected.emit(self)
@@ -118,6 +120,8 @@ func _draw() -> void:
 	elif telegraph_id == &"brood":
 		draw_colored_polygon(_top_hex_points(7.0), Color(0.78, 0.66, 0.30, 0.32))
 		draw_texture_rect(DuelystTargetTile, Rect2(Vector2(17, 12), Vector2(42, 42)), false, Color(0.94, 0.78, 0.72))
+	if telegraph_id != &"":
+		_draw_danger_cue()
 	var grid_color := Color(0.32, 0.67, 0.66, 0.46) if outline == DEFAULT_OUTLINE else outline
 	draw_polyline(PackedVector2Array([outer_hex[0], outer_hex[1], outer_hex[2], outer_hex[3], outer_hex[4], outer_hex[5], outer_hex[0]]), grid_color, 1.25, true)
 	if drop_hovered:
@@ -156,6 +160,20 @@ func _draw_ground_texture() -> void:
 		draw_line(Vector2(x, y), Vector2(x + length, y - 1.5), dust_color, 1.0, true)
 		if index % 2 == 0:
 			draw_circle(Vector2(x + 4.0, y + 5.0), 1.4, rock_color)
+
+func _draw_danger_cue() -> void:
+	var cue := Rect2(Vector2(13, 8), Vector2(50, 18))
+	draw_rect(cue, Color(0.05, 0.03, 0.03, 0.90), true)
+	draw_rect(cue, Color(1.0, 0.66, 0.40), false, 1.5)
+	draw_string(get_theme_default_font(), cue.position + Vector2(0.0, 13.0), "DANGER", HORIZONTAL_ALIGNMENT_CENTER, cue.size.x, 8, Color(1.0, 0.90, 0.74))
+
+func _refresh_tooltip() -> void:
+	var parts: Array[String] = ["Hex %d,%d" % [axial.x, axial.y]]
+	if terrain_id != &"":
+		parts.append("Terrain: %s" % String(terrain_id).capitalize())
+	if telegraph_id != &"":
+		parts.append("Danger: %s" % String(telegraph_id).capitalize())
+	tooltip_text = "\n".join(parts)
 
 func _set_drop_hover(value: bool) -> void:
 	if drop_hovered == value:

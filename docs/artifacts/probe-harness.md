@@ -23,6 +23,7 @@ The default suite is intentionally named and stable. The runner gives each Probe
 | `layout` | Desktop responsive-layout bounds. |
 | `mobile` | Portrait HUD hierarchy and mobile interaction contract. |
 | `accessibility` | Touch target, focus, and command contrast contract. |
+| `focused_end_of_clock` | Scene-free Encounter Clock end-of-clock defeat using the authored round limit and enrage text, with a stable trace artifact. |
 | `replay` | Seeded, replayable Full-Charge Cleanup scenario and JSON failure-artifact schema. |
 | `records` | Encounter Record schema, content fingerprint, explicit damage facts, invalid-record diagnostics, aggregate grouping, and timestamped/latest report artifact emission. |
 | `record_scene` | Playable-scene record lifecycle for completion, restart abandonment, manual abort, and application exit. |
@@ -44,6 +45,16 @@ A **Probe** protects a decided, observable contract. Put it in `scripts/debug/` 
 When a Spike answers its question, either delete it or promote the durable assertion into a Probe. Record an enduring rule in `docs/rules/` and an architectural choice in `docs/adr/`; keep evidence and playtest observations in `notes/` or `docs/artifacts/`.
 
 Encounter scenarios use setup-only fixtures, then `EncounterAction` records with explicit expected rejections where needed. The runner can execute one named scenario with `-Scenario <id>`. Probe failures write normalized JSON evidence beneath Git-ignored `tmp/probe-artifacts/<scenario-id>/`; retain those artifacts until diagnosis is complete, then clean them with `Remove-Item -Recurse -Force ./tmp/probe-artifacts`.
+
+## Choosing The Thinnest Useful Probe Layer
+
+Choose the smallest layer that proves the contract without inventing a second gameplay path:
+
+1. Use a focused scene-free rules Probe when one authoritative `EncounterEngine` or `BoardQuery` contract can be asserted directly through public state, phase advancement, or action results. This is the first choice for defeat/end-of-clock behavior, invalid-action matrices, and narrow Slot/Status lifecycle checks.
+2. Use a scenario, report, or serializer Probe when deterministic setup, normalized failure artifacts, or report output is the contract under test. Keep fixtures and evidence in `scripts/debug/` adapters rather than broadening production rules seams.
+3. Use a broad acceptance or presentation Probe only when the contract genuinely crosses layers, such as scene adaptation, player-visible hierarchy, production-resource reachability, or replay/record integration.
+
+If a focused rules Probe cannot prove the contract through existing public authority, demonstrate the missing fact explicitly before proposing a new engine, replay, or record seam.
 
 ## Scenario Fixture And Outcome Interface
 
@@ -76,6 +87,18 @@ powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Scenari
 Expected markers are `WHELP_CLEAR_PROBE_OK` and `SLOW_TOP_CARD_CLEANUP_PROBE_OK`. Test Automation is the independent verifier.
 
 This interface does not add production-engine fixture methods, generalized scenario authoring, HUD behavior, auto-targeting, live-deck changes, or Whelp AI. Lethal Minion removal is an authoritative damage rule, not probe behavior: `EncounterEngine.apply_damage` removes the defeated Minion and its owned status state, frees the hex, and records `target_removed = true` without a separate cleanup action.
+
+## Focused Rules Probe Interface
+
+The pilot proof-of-value focused rules Probe is:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe focused_end_of_clock
+```
+
+Expected marker is `FOCUSED_END_OF_CLOCK_PROBE_OK advances=40 artifact=res://tmp/probe-artifacts/focused_end_of_clock/end_of_clock_trace.json`. The Probe starts a scene-free `EncounterEngine` with the live Encounter's authored round limit and enrage text, removes unrelated Boss programs, advances the public phase loop deterministically, and asserts that the Encounter Clock ends in defeat from the terminal Slow advance with no rules-history mutation or extra top-level actions. It writes a stable JSON trace artifact at `tmp/probe-artifacts/focused_end_of_clock/end_of_clock_trace.json`.
+
+This focused layer does not add a production test helper, UI behavior, replay schema, Encounter Record schema, or a broader acceptance Probe. It exists to prove one external rules contract cheaply before a slice needs parity, records, or presentation evidence.
 
 ## Target Pattern Resolver Interface
 

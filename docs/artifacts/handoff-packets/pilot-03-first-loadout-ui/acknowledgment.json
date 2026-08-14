@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "pilot-03-first-loadout-ui",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "UI/UX",
+  "created_at": "2026-08-14T06:07:36-07:00",
+  "assignment_revision": 1,
+  "owner": "UI/UX",
+  "scope_confirmed": "Accepted the first-turn Loadout comprehension slice as a presentation-only improvement: plain player language, legal-state clarity, Slot destination affordance, and Play/Undo/Help hierarchy without changing rules, timing, input authority, or broad HUD structure.",
+  "planned_paths": [
+    "scripts/Main.gd",
+    "scripts/debug/mobile_hud_probe.gd",
+    "docs/artifacts/embermaw-vertical-slice.md",
+    "docs/artifacts/accessibility.md"
+  ],
+  "first_validation": "Focused portrait probe will cover first-view instruction, selected/legal/invalid/danger clarity, Slot destination readability, Play primary/Undo secondary/Help tertiary hierarchy, and 390x844 readability.",
+  "next_owner": "UI/UX"
+}

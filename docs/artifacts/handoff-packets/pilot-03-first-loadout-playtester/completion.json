@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "pilot-03-first-loadout-playtester",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T07:39:00-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": "PASS WITH CONCERNS. The primary newcomer claim passes: the opening portrait view communicates Hand card to CARD SLOT/DROP to Play without coaching. The independent Playtester found a moderate secondary-support concern: the expected ? Help affordance is absent from the Help-hidden non-headless capture although the probe can open Help programmatically.",
+  "changed_paths": [],
+  "validation": [
+    "Temporary Playtester hands-on non-headless portrait observation: PASS WITH CONCERNS",
+    "Observed supported presentation 488x1056 over the 390x844 logical canvas using mouse-equivalent touch/click interpretation",
+    "Prior deterministic prerequisites remain: FIRST_LOADOUT_UI_PROBE_OK viewports=2; MOBILE_HUD_PROBE_OK; ACCESSIBILITY_PROBE_OK controls=29"
+  ],
+  "evidence": [
+    "Opening capture showed exact prompt 'Put a card in a Slot, then tap Play.', illustrated Hand cards, CARD SLOT/DROP destinations, and a prominent Play action.",
+    "Help-open capture contained the expected plain-language guidance, but tmp/mobile-help-hidden.png did not visibly show the ? Help affordance.",
+    "Canonical expectation checked: docs/artifacts/embermaw-vertical-slice.md and docs/artifacts/accessibility.md require visible secondary Help and readable safe lanes."
+  ],
+  "next_owner": "UI/UX",
+  "requested_action": "Make the default portrait ? Help affordance visibly rendered and discoverable without weakening Play; Test Automation must add a presentation-level rendered-affordance assertion, then return Architecture and QA rechecks before the Playtester retest."
+}

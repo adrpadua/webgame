@@ -53,6 +53,10 @@ Mobile reading order:
 4. Hand: a shallow centered fan of illustrated portrait Compact Cards; the selected card lifts and enlarges while adjacent cards remain visible, with drag, tap selection, and hold-to-inspect intact
 5. Turn tracker and contextual Continue affordance when progression is available
 
+First-Loadout guidance is intentionally terse and action-first. On the opening portrait view, the prompt says `Put a card in a Slot, then tap Play.` Empty compact Slots read as `CARD SLOT` with `DROP`, and the full Help pane explains the visible vocabulary in player language: a lifted card is selected, `LOAD` marks a legal destination, and enemy danger hexes are called out as `DANGER`. This slice is presentation-only and keeps the current approved interaction authority: `Play` remains the primary mobile action, Help remains the secondary support control, and no separate mobile Undo control is introduced in this slice.
+
+Rationale: the first decision should be legible without reading a long guide or inferring meaning from color. Follow-up: any future mobile Undo or phase-reset control must come through a separate approved intake instead of being inferred or bundled into this first-Loadout presentation slice.
+
 The desktop status panels and detailed right-side inspector are hidden on mobile so they do not compete with the board. The former command grid is not rendered; direct card and Slot interactions drive the player flow. Full instructions live in the toggleable `?` help pane. Portrait mobile now applies explicit safe bounds to every prompt-adjacent required control across both the logical `390x844` design viewport and the default `488x1056` non-headless presentation.
 
 Status: confirmed. Owner: UI/UX.
@@ -102,6 +106,12 @@ The texture is deliberately subdued so tactical tile outlines, character facings
 ## Card Presentation
 
 The Hand and Action Bar use an art-first presentation. Compact Cards show timing and type icons, card art, a narrow title band, and visual Charge Value; resting cards contain no rules paragraph. Selecting or dragging one current Hand card dims unrelated cards and labels legal outcomes as `LOAD`, `REPLACE`, `CHARGE`, or `MOVE`. When duplicate Card resources exist in Hand, selection belongs to the tapped visual Compact Card instance so exactly one card lifts; `Main` still receives only the Card resource used by the existing action contract. Selected titles render in full with dynamic fitting inside the fixed title band.
+
+Status: confirmed for first-Loadout comprehension. Owner: UI/UX.
+
+The selected Compact Card now carries an explicit `SEL` badge in addition to lift, border, and dimming. Empty compact Slots present as destinations before selection, using `CARD SLOT` plus `DROP`, and still promote `LOAD` once a selected Hand card can legally land there. Enemy telegraph hexes add an explicit `DANGER` cue and tooltip copy so threat tiles are not distinguished by color alone.
+
+Rationale: newcomers should be able to identify the selected card, the place a card can go, and the boss-threat surface at a glance. Follow-up: QA should validate the new cues at portrait scale, while Architecture should confirm the new copy remains a projection of existing Slot and board state rather than a new rules seam.
 
 The player may drag a Compact Card to a legal destination or tap the card and then tap a labeled legal Slot or `MOVE` hex. Both paths call the same existing load, charge, or movement handlers. Slot and board cues are projections of current Encounter, Hand, phase, Slot, and movement-legality state; previewing them submits no actions and never enters Encounter Records. Full rules remain in Card Inspection, which dismisses on release or outside tap.
 

@@ -1,8 +1,10 @@
 # Handoff Packets
 
-Status: schema v1 advisory contract for Proposal 12.
+Status: approved v1 packet contract for Proposal 12. Rollout remains advisory until five valid pilot handoffs close and the coordinator records mandatory-gate activation.
 
 Handoff packets are immutable repository evidence for assignment, acknowledgment, and completion. Task messages notify people; packet files are the durable authority that recovery, QA, and the coordinator can validate later.
+
+Phase 0 authoritative format decision: packet v1 uses immutable JSON files plus immutable superseding revisions. A previously discussed Markdown-plus-YAML-front-matter shape is not the live Phase 0 contract. It is deferred as a possible future-format migration only after Proposal 12 closes and only through a separate approved change.
 
 ## Canonical Layout
 
@@ -15,6 +17,13 @@ docs/artifacts/handoff-packets/<handoff-id>/completion.json
 ```
 
 The coordination ledger indexes packet verdicts and links. It does not replace the packet files or duplicate their contents. Proposal-06 archive work must not move, rewrite, or compact this packet root.
+
+This JSON contract is considered semantically equivalent to the approved append-only return intent for Phase 0 because:
+
+- each packet file is immutable evidence;
+- terminal return state is captured in `completion.json` rather than rewritten status prose;
+- malformed packets are corrected through immutable superseding revisions rather than in-place edits; and
+- the validator can deterministically enforce structure, writer, dependency, and retention rules.
 
 ## Superseding A Malformed Packet
 
@@ -41,6 +50,8 @@ docs/artifacts/handoff-packets/<handoff-id>/revisions/<revision-id>/completion.j
 - `reason`
 
 When `superseded_by.json` exists, the validator follows `active_revision` and validates that packet set as the handoff authority. The malformed root files remain retained for audit and are not rewritten. The active revision must still satisfy schema v1 without relaxed fields or alternate states.
+
+This supersession model is the approved append-only correction path for Phase 0. Do not replace it with in-place edits or alternate sidecar formats during the current rollout.
 
 ## Schema V1
 
@@ -101,7 +112,13 @@ Run:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\debug\validate_handoff_packets.ps1 -Root .\docs\artifacts\handoff-packets
 ```
 
-The validator is read-only and advisory. It emits concise human output plus one `HANDOFF_PACKET_VALIDATION_JSON` line, exits `0` when every packet is valid, and exits `1` when it finds any error. It never sends messages, reassigns owners, mutates issue status, edits the ledger, moves archives, backfills history, or blocks commits.
+The validator is read-only during advisory rollout. It emits concise human output plus one `HANDOFF_PACKET_VALIDATION_JSON` line, exits `0` when every packet is valid, and exits `1` when it finds any error. It never sends messages, reassigns owners, mutates issue status, edits the ledger, moves archives, backfills history, or blocks commits.
+
+The mandatory dependency/closure gate activates only after:
+
+1. five valid advisory pilot handoffs are recorded;
+2. Test Automation has independent PASS evidence for validator behavior and the counted rollout state; and
+3. recovery and issue-tracker authority docs still match this approved v1 contract.
 
 Error codes are stable for QA and recovery:
 

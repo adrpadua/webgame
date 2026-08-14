@@ -136,7 +136,7 @@ The sender remains accountable until the acknowledgment return is received. The 
 
 ### Durable packet evidence
 
-For handoffs covered by the deterministic control-plane contract, preserve immutable packet files at `docs/artifacts/handoff-packets/<handoff-id>/assignment.json`, `acknowledgment.json`, and `completion.json`. The schema and advisory validator are defined in [handoff-packets.md](../artifacts/handoff-packets.md). Packet files are evidence authority; the ledger indexes their verdict and current routing. Proposal-06 archive work must not move or rewrite packet files.
+For handoffs covered by the deterministic control-plane contract, preserve immutable packet files at `docs/artifacts/handoff-packets/<handoff-id>/assignment.json`, `acknowledgment.json`, and `completion.json`. When correction is necessary, preserve the original root files and use `superseded_by.json` plus `revisions/<revision-id>/...` as defined in [handoff-packets.md](../artifacts/handoff-packets.md). Packet files are evidence authority; the ledger indexes their verdict and current routing. Proposal-06 archive work must not move or rewrite packet files.
 
 ## Escalation map
 

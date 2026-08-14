@@ -11,6 +11,7 @@ const MOBILE_ACTION_CONTROL_PADDING := 8.0
 const MOBILE_CONTROLS_ROW_HEIGHT := 48.0
 const MOBILE_CONTROLS_ROW_WRAP_HEIGHT := 96.0
 const MOBILE_CONTROL_ROW_GAP := 12.0
+const MOBILE_BOARD_HEIGHT_RATIO := 0.42
 
 @onready var player: Node = $PlayerState
 @onready var boss: Node = $BossState
@@ -137,6 +138,7 @@ func _apply_responsive_layout() -> void:
 	var layout_size := size
 	var mobile := layout_size.x < 820 or layout_size.x < layout_size.y
 	main_area.vertical = mobile
+	main_area.size_flags_vertical = Control.SIZE_SHRINK_CENTER if mobile else Control.SIZE_EXPAND_FILL
 	top_bar.visible = not mobile
 	mobile_status.visible = mobile
 	mobile_status_top.visible = not mobile
@@ -147,11 +149,11 @@ func _apply_responsive_layout() -> void:
 	board_title.visible = not mobile
 	root_container.add_theme_constant_override("separation", 6 if mobile else 8)
 	hand_scroll.custom_minimum_size.y = 128.0 if mobile else 120.0
-	hex_grid.custom_minimum_size = Vector2(0, 230) if mobile else Vector2(320, 260)
+	hex_grid.custom_minimum_size = Vector2(0, clampf(layout_size.y * MOBILE_BOARD_HEIGHT_RATIO, 300.0, 430.0)) if mobile else Vector2(320, 260)
 	left_panel.custom_minimum_size = Vector2.ZERO if mobile else Vector2(150, 0)
 	left_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER if mobile else Control.SIZE_EXPAND_FILL
 	left_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER if mobile else Control.SIZE_EXPAND_FILL
-	hex_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	hex_grid.size_flags_vertical = Control.SIZE_SHRINK_CENTER if mobile else Control.SIZE_EXPAND_FILL
 	action_bar_view.set_compact(mobile)
 	action_bar_view.custom_minimum_size.x = 0.0
 	action_bar_view.size_flags_horizontal = Control.SIZE_SHRINK_CENTER if mobile else Control.SIZE_EXPAND_FILL
@@ -681,7 +683,7 @@ func _build_mobile_continue_button() -> void:
 	mobile_continue_button.visible = false
 	mobile_continue_button.custom_minimum_size = Vector2(74, 48)
 	mobile_continue_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	mobile_continue_button.tooltip_text = "Advance to the next window."
+	mobile_continue_button.tooltip_text = "Play: advance to the next window."
 	mobile_controls_row.add_child(mobile_continue_button)
 
 func _build_mobile_help_controls() -> void:
@@ -691,7 +693,7 @@ func _build_mobile_help_controls() -> void:
 	mobile_help_button.visible = false
 	mobile_help_button.custom_minimum_size = Vector2(48, 48)
 	mobile_help_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	mobile_help_button.tooltip_text = "Show guide."
+	mobile_help_button.tooltip_text = "Help: show guide."
 	mobile_controls_row.add_child(mobile_help_button)
 
 	mobile_help_pane = Panel.new()
@@ -713,7 +715,7 @@ func _build_mobile_help_controls() -> void:
 	mobile_help_label.offset_top = 10.0
 	mobile_help_label.offset_right = -12.0
 	mobile_help_label.offset_bottom = -10.0
-	mobile_help_label.add_theme_font_size_override("font_size", 12)
+	mobile_help_label.add_theme_font_size_override("font_size", 10)
 	mobile_help_label.add_theme_color_override("font_color", Color(0.98, 0.91, 0.74))
 	mobile_help_pane.add_child(mobile_help_label)
 
@@ -962,7 +964,7 @@ func _get_mobile_prompt_text() -> String:
 	if not encounter.active:
 		return ""
 	if turn_manager.phase == turn_manager.Phase.LOADOUT:
-		return "Load cards, then Tap Play to move on."
+		return "Put a card in a Slot, then tap Play."
 	if turn_manager.phase != turn_manager.Phase.QUICK and turn_manager.phase != turn_manager.Phase.SLOW:
 		return ""
 	if _has_ready_action_bar_slot():
@@ -984,7 +986,7 @@ func _get_action_guide_text() -> String:
 	if not encounter.active:
 		return "Guide: Restart to begin a new encounter."
 	if turn_manager.phase == turn_manager.Phase.LOADOUT:
-		return "Guide: Drag a hand card to an empty Slot to prepare it. During Loadout, drag onto a loaded Slot to replace its whole bundle. Hold a card to inspect it. Tap Play to move on."
+		return "Guide: Put a hand card into a Slot.\nThen tap Play.\nDROP marks an empty Slot.\nLOAD means the lifted card can go there.\nHold a card to inspect it.\nDropping onto a loaded Slot replaces that stack."
 	if turn_manager.phase == turn_manager.Phase.QUICK:
 		return "Guide: Charge a Slot with a hand card; tap a charged Quick Slot to fire. Drag a hand card to an adjacent hex to move, or drag the hero to preview routes. Tap a hex to inspect. Tap Play when done."
 	if turn_manager.phase == turn_manager.Phase.SLOW:

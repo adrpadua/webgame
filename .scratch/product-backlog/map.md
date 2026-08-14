@@ -17,7 +17,9 @@ This map orders user-approved or pending product proposals. Each proposal has on
 9. [09-target-bound-boss-patterns-through-tank.md](issues/09-target-bound-boss-patterns-through-tank.md) - `ready-for-agent` - Add target-bound boss patterns through the Tank for future raid mechanics.
 10. [10-harden-mobile-layout-safe-bounds.md](issues/10-harden-mobile-layout-safe-bounds.md) - `ready-for-agent` - Harden the mobile HUD so required controls never render off-screen.
 11. [11-improve-first-turn-loadout-comprehension.md](issues/11-improve-first-turn-loadout-comprehension.md) - `ready-for-agent` - Make the first loadout screen understandable at a glance for a newcomer.
-12. [12-deterministic-handoff-control-plane-and-closure-gate.md](issues/12-deterministic-handoff-control-plane-and-closure-gate.md) - `ready-for-agent` - Make delivery handoffs repo-backed, deterministic, and closure-gated.
+12. [12-deterministic-handoff-control-plane-and-closure-gate.md](issues/12-deterministic-handoff-control-plane-and-closure-gate.md) - `ready-for-agent` - Make delivery handoffs repo-backed, deterministic, closure-gated, and backed by immutable v1 packet artifacts.
+13. [13-reusable-ui-popup-modal-surface.md](issues/13-reusable-ui-popup-modal-surface.md) - `needs-triage` - Add one reusable popup modal surface for focused UI explanation and confirmation moments.
+14. [14-mobile-demo-readiness-ui-review-and-polish-loop.md](issues/14-mobile-demo-readiness-ui-review-and-polish-loop.md) - `needs-triage` - Run repeatable newcomer-perspective UI review and polish passes after proposal 12 to make the mobile demo presentable.
 
 ## Workflow
 

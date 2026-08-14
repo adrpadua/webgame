@@ -72,10 +72,10 @@ These decisions are already approved and are not open for PM re-tradeoff:
 2. The primary seam is a versioned handoff-packet contract plus one validator/summary command.
 3. The solution must not depend on Codex APIs and must not require gameplay-code changes.
 4. Durable handoff directories live under the coordination handoff area in the repository.
-5. Packets use Markdown bodies with YAML front matter.
+5. Phase 0 authoritative packets use immutable JSON files. A later Markdown-plus-YAML-front-matter preference is treated as a deferred future-format option rather than the live v1 rollout format.
 6. The Orchestrator writes the assignment packet.
 7. The receiving worker writes the acknowledgment and append-only return packets.
-8. Standard return packet names include append-only terminal progression such as `001-blocked` and `002-completed`.
+8. In Phase 0, append-only return behavior is modeled by immutable `assignment.json`, `acknowledgment.json`, and terminal `completion.json` files, plus immutable superseding revisions when correction is necessary.
 9. Stable handoff IDs are composed from feature, issue, sender, receiver, and sequence.
 10. The first contract version is `schema_version: 1`.
 11. Packets must record base revision, verified revision where applicable, and a dirty-worktree summary.
@@ -91,6 +91,7 @@ These decisions are already approved and are not open for PM re-tradeoff:
 21. The workflow applies to new handoffs immediately and to active work at its next state change; it does not backfill already closed history.
 22. Terminal packets are retained and may be archived only through the approved coordination-history process.
 23. Override is allowed only for explicit user-directed emergency work with recorded exception fields.
+24. The implemented JSON-plus-supersession model is approved as the authoritative v1 packet shape for Phase 0 because it already satisfies the durable control-plane goals, is machine-validatable, and is backed by live QA evidence and active advisory pilots. A Markdown/YAML migration is out of scope for this rollout and may only return later as a separate format change after Phase 0 closes.
 
 ## Testing Decisions
 
@@ -173,7 +174,16 @@ Delivery-only choice for the Orchestrator: select the smallest durable directory
 - The approved sender/receiver communication contract stays in force; this work makes that contract durable and validator-checkable.
 - The validator is a gate on coordination integrity, not a new gameplay test runner.
 - Historical chat can help operators, but repository artifacts must remain sufficient for recovery.
+- Authoritative v1 packet shape for Phase 0:
+  - root: `docs/artifacts/handoff-packets/<handoff-id>/`
+  - immutable packet files: `assignment.json`, `acknowledgment.json`, `completion.json`
+  - optional immutable correction pointer: `superseded_by.json`
+  - optional immutable corrected packet set: `revisions/<revision-id>/assignment.json`, `acknowledgment.json`, `completion.json`
+  - separate implementation and independent-verification work always use separate `handoff_id` packet roots
+- This preserves the approved append-only intent semantically: terminal evidence is never rewritten in place, and malformed packets are corrected through superseding immutable revisions rather than mutation.
 
 ## Approval Record
 
 User approval was explicit in the attached request on Friday, August 14, 2026. The user directed PM to create and publish this proposal as `ready-for-agent` without reopening product decisions, then hand the exact path to the Orchestrator for delivery planning.
+
+Later on Friday, August 14, 2026, the user granted standing approval for PM to resolve every remaining process decision required to finish Phase 0. PM therefore confirms that the implemented JSON-plus-supersession packet model is the authoritative v1 rollout contract for Proposal 12, and that the earlier Markdown/YAML preference does not supersede the live Phase 0 format.

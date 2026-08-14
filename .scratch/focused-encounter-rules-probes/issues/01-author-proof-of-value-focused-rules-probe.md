@@ -1,8 +1,8 @@
 # Author Proof-of-Value Focused Rules Probe
 
-Status: queued
+Status: resolved
 Owner: Test Automation
-Blocked by: current Proposal 12 supersession verification return
+Blocked by: none; Architecture PASS confirmed canonical/probe/packet/artifact alignment at 40 advances
 
 ## Outcome
 

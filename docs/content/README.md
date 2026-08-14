@@ -19,6 +19,12 @@ Recommended layout:
 Current starter docs:
 
 - [design-team-handoff.md](D:/dev/webgame/docs/content/design-team-handoff.md)
+- [world/README.md](D:/dev/webgame/docs/content/world/README.md)
+- [world/world-history.md](D:/dev/webgame/docs/content/world/world-history.md)
+- [world/gazetteer.md](D:/dev/webgame/docs/content/world/gazetteer.md)
+- [world/laws-and-institutions.md](D:/dev/webgame/docs/content/world/laws-and-institutions.md)
+- [world/lore-dictionary.md](D:/dev/webgame/docs/content/world/lore-dictionary.md)
+- [world/myths-and-stories.md](D:/dev/webgame/docs/content/world/myths-and-stories.md)
 - [world-style-bible.md](D:/dev/webgame/docs/content/world-style-bible.md)
 - [hand-drawn-character-art-style.md](D:/dev/webgame/docs/content/hand-drawn-character-art-style.md)
 - [../artifacts/encounter-records.md](D:/dev/webgame/docs/artifacts/encounter-records.md)
