@@ -2,7 +2,9 @@ name: Deploy Encounter Workbench
 
 # Builds the Encounter Workbench (web/) and publishes it to GitHub Pages so
 # it is playable from any device, including an iPad on mobile connectivity.
-# One-time setup: repository Settings -> Pages -> Source: "GitHub Actions".
+# One-time setup: repository Settings -> Pages -> Source: "GitHub Actions",
+# and the auto-created github-pages environment must allow this branch under
+# Settings -> Environments -> github-pages -> Deployment branches.
 
 on:
   push:
