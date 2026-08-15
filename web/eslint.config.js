@@ -14,6 +14,8 @@ export default tseslint.config(
         fetch: 'readonly',
         setTimeout: 'readonly',
         URL: 'readonly',
+        // Inside page.evaluate callbacks, code runs in the browser.
+        window: 'readonly',
       },
     },
   },

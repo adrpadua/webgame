@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { loadCatalog } from '@/content'
 import {
   advancePhase,
+  buildEncounterRecord,
+  contentIdentity,
   createEncounterState,
   hexKey,
   legality,
+  replayRecord,
   resolve,
   runScenario,
   type EncounterState,
@@ -520,6 +523,114 @@ describe('Scenarios', () => {
     expect(second.state).toEqual(first.state)
     expect(second.facts).toEqual(first.facts)
     expect(first.entries).toHaveLength(scenario.steps.length + 1)
+  })
+})
+
+describe('Encounter Records (schema_version 2)', () => {
+  const meta = { recordId: 'rec_test', startedAt: '2026-08-15T00:00:00Z', endedAt: '2026-08-15T00:10:00Z' }
+
+  it('seals a completed Scenario run and replays it to an identical final state', async () => {
+    const scenario = catalog.scenarios.embermaw_victory_line
+    const replay = runScenario(catalog, scenario)
+    const record = await buildEncounterRecord(catalog, {
+      encounterId: scenario.encounter,
+      steps: scenario.steps,
+      facts: replay.facts,
+      initialState: replay.entries[0].state,
+      finalState: replay.state,
+      meta,
+    })
+    expect(record.schema_version).toBe(2)
+    expect(record.seed).toBe(scenario.seed)
+    expect(record.outcome).toBe('victory')
+    expect(record.end_kind).toBe('victory')
+    expect(record.abandon_reason).toBe('')
+    expect(record.content_identity.fingerprint).toMatch(/^[0-9a-f]{64}$/)
+    expect(record.content_identity.ids).toContain('encounter:embermaw_prototype')
+    expect(record.content_identity.ids).toContain('boss_program:embermaw_brood')
+    expect(record.rng_audit.length).toBeGreaterThan(0)
+
+    const verification = await replayRecord(catalog, record)
+    expect(verification.finalStateMatches).toBe(true)
+    expect(verification.fingerprintMatches).toBe(true)
+  })
+
+  it('classifies submitted, generated, and rejected actions', async () => {
+    let state = start()
+    const facts: ResolvedActionFact[] = []
+    const initialState = state
+    // A rejected submission: charging during Loadout is illegal.
+    const heroCard = hero(state).hand[0]
+    const rejected = resolve(catalog, state, {
+      kind: 'charge_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      cardInstanceId: heroCard.instanceId,
+    })
+    state = rejected.state
+    facts.push(...rejected.facts)
+    // Two advances resolve the Boss Instant row (generated actions).
+    for (let step = 0; step < 2; step += 1) {
+      const result = advancePhase(catalog, state)
+      state = result.state
+      facts.push(...result.facts)
+    }
+    const record = await buildEncounterRecord(catalog, {
+      encounterId: 'embermaw_prototype',
+      steps: [{ advance: true }, { advance: true }],
+      facts,
+      initialState,
+      finalState: state,
+      meta: { ...meta, abandonReason: 'exported_mid_encounter' },
+    })
+    expect(record.outcome).toBe('abandoned')
+    expect(record.end_kind).toBe('abandoned')
+    expect(record.abandon_reason).toBe('exported_mid_encounter')
+    expect(record.actions.some((action) => !action.succeeded && action.reason !== '')).toBe(true)
+    expect(record.actions.some((action) => action.depth > 0 && action.kind === 'damage')).toBe(true)
+    expect(record.actions.some((action) => action.resolution_fact?.damage_classification === 'tank_hit')).toBe(true)
+  })
+
+  it('marks Encounter Clock expiry as end_kind end_of_clock', async () => {
+    const state = start()
+    state.round = state.roundLimit
+    state.phase = 'slow'
+    const wrap = advancePhase(catalog, state)
+    const record = await buildEncounterRecord(catalog, {
+      encounterId: 'embermaw_prototype',
+      steps: [{ advance: true }],
+      facts: wrap.facts,
+      initialState: state,
+      finalState: wrap.state,
+      meta,
+    })
+    expect(record.outcome).toBe('defeat')
+    expect(record.end_kind).toBe('end_of_clock')
+  })
+
+  it('detects a tampered record on replay', async () => {
+    const scenario = catalog.scenarios.embermaw_enrage_defeat
+    const replay = runScenario(catalog, scenario)
+    const record = await buildEncounterRecord(catalog, {
+      encounterId: scenario.encounter,
+      steps: scenario.steps,
+      facts: replay.facts,
+      initialState: replay.entries[0].state,
+      finalState: replay.state,
+      meta,
+    })
+    const tampered = structuredClone(record)
+    tampered.final_state.heroes[tampered.final_state.primaryHeroId].health = 99
+    const verification = await replayRecord(catalog, tampered)
+    expect(verification.finalStateMatches).toBe(false)
+    expect(verification.fingerprintMatches).toBe(true)
+  })
+
+  it('computes a stable content identity fingerprint', async () => {
+    const first = await contentIdentity(catalog, 'embermaw_prototype')
+    const second = await contentIdentity(catalog, 'embermaw_prototype')
+    expect(second.fingerprint).toBe(first.fingerprint)
+    expect(first.ids.length).toBeGreaterThanOrEqual(10)
   })
 })
 

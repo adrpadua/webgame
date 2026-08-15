@@ -14,7 +14,10 @@ npm run dev      # Workbench at http://localhost:5173 with HMR
 npm test         # Encounter Engine Vitest suite
 npm run lint     # includes the engine-purity boundary rule
 npm run build
-node scripts/smoke.mjs   # after build: browser-driven full Round loop
+node scripts/smoke.mjs   # after build: browser round loop, Scenario replay,
+                         # time travel, and headless record verification
+npm run headless -- --scenario embermaw_victory_line   # headless Scenario run
+npm run headless -- --replay <record.json>             # verify a v2 record
 ```
 
 ## Layout
@@ -34,3 +37,6 @@ node scripts/smoke.mjs   # after build: browser-driven full Round loop
 - `scripts/generateScenarios.ts` — policy search over the engine that
   authors the committed victory/defeat Scenarios in `data/scenarios/`
   (run with `npx vite-node scripts/generateScenarios.ts`).
+- `scripts/runHeadless.ts` — headless Node runner: plays Scenarios and
+  verifies Encounter Records (`schema_version: 2`, see
+  `docs/artifacts/encounter-records.md`) by deterministic replay.

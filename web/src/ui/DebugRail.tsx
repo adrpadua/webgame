@@ -111,7 +111,32 @@ function ScenarioPicker() {
       >
         {copied ? 'Copied to clipboard' : 'Copy session as Scenario JSON'}
       </button>
+      <RecordExportButton />
     </div>
+  )
+}
+
+// Encounter Record schema_version 2: seals the viewed session line with
+// content identity and final-state fingerprints for headless replay.
+function RecordExportButton() {
+  const exportRecord = useWorkbench((store) => store.exportRecord)
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      type="button"
+      data-testid="copy-record"
+      onClick={() => {
+        void exportRecord()
+          .then((json) => navigator.clipboard.writeText(json))
+          .then(() => {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+          })
+      }}
+      className="mt-2 min-h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm font-semibold text-zinc-300 transition hover:bg-zinc-800"
+    >
+      {copied ? 'Copied to clipboard' : 'Copy Encounter Record (v2) JSON'}
+    </button>
   )
 }
 

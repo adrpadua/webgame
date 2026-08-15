@@ -1,8 +1,12 @@
-// Browser smoke run for the M1 exit criterion: play a full Round loop in the
-// Encounter Workbench — Loadout -> Boss Instant -> Quick Window (prepare,
-// charge, fire, Stamina move) -> Boss Incoming -> Slow Window -> next Round.
+// Browser smoke run for the milestone exit criteria: play a full Round loop
+// in the Encounter Workbench (M1), drive Scenario replay and time travel
+// (M2), and export the played session as an Encounter Record that the
+// headless runner replays to an identical final state (M3).
 // Usage: npm run build && node scripts/smoke.mjs
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
+import { writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { chromium } from 'playwright'
 
 const PORT = 4173
@@ -113,6 +117,17 @@ try {
   assert(round?.includes('Round 2'), `the Boss Timeline rolled forward (${round?.trim()})`)
   assert((await page.locator('[data-testid="hand-card"]').count()) === 4, 'end-of-Round draw refilled the Hand to 4')
 
+  // M3 exit criterion: export the session just played as an Encounter Record
+  // (schema_version 2); the headless runner replays it after the browser
+  // closes and must reach an identical final state.
+  const recordJson = await page.evaluate(() => window.__workbench.exportRecord())
+  const record = JSON.parse(recordJson)
+  assert(record.schema_version === 2, 'the exported Encounter Record is schema_version 2')
+  assert(record.outcome === 'abandoned' && record.abandon_reason === 'exported_mid_encounter', 'a live session exports as an Abandoned Encounter')
+  assert(/^[0-9a-f]{64}$/.test(record.content_identity.fingerprint), 'the record carries a content identity fingerprint')
+  const recordPath = join(tmpdir(), `workbench-smoke-record-${process.pid}.json`)
+  writeFileSync(recordPath, recordJson)
+
   // M2 debug tooling: load the committed victory Scenario and walk its line
   // with time travel.
   await page.selectOption('[data-testid="scenario-select"]', 'embermaw_victory_line')
@@ -133,7 +148,17 @@ try {
 
   await page.screenshot({ path: process.env.SMOKE_SHOT ?? 'smoke.png', fullPage: false })
   await browser.close()
-  console.log('\nSMOKE PASSED: full Round loop, Scenario replay, and time travel verified in the browser.')
+
+  const replay = spawnSync('npx', ['vite-node', 'scripts/runHeadless.ts', '--', '--replay', recordPath], {
+    cwd: new URL('..', import.meta.url).pathname,
+    encoding: 'utf8',
+  })
+  assert(
+    replay.status === 0 && replay.stdout.includes('REPLAY MATCH'),
+    `the browser session's record replays headlessly to an identical final state\n${replay.stdout}${replay.stderr}`,
+  )
+
+  console.log('\nSMOKE PASSED: round loop, Scenario replay, time travel, and headless record replay all verified.')
 } finally {
   server.kill()
 }

@@ -8,6 +8,19 @@ export { advancePhase } from './advancePhase'
 export { legality } from './legality'
 export { legalActions } from './legalActions'
 export { runScenario, type ScenarioReplayEntry, type ScenarioReplayResult } from './scenario'
+export {
+  buildEncounterRecord,
+  contentIdentity,
+  replayRecord,
+  stateFingerprint,
+  type ContentIdentity,
+  type EncounterRecordV2,
+  type RecordInput,
+  type RecordMeta,
+  type RecordReplayResult,
+  type RecordedAction,
+} from './record'
+export { canonicalStringify, sha256Hex } from './canonical'
 export { buildCatalog, cardChargeCap, cardWindowSpeed, type ContentCatalog, type RawContent } from './content/catalog'
 export * from './content/schemas'
 export type * from './types'

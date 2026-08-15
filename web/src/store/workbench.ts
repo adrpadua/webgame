@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { loadCatalog } from '@/content'
 import {
   advancePhase,
+  buildEncounterRecord,
   cardWindowSpeed,
   createEncounterState,
   resolve,
@@ -36,6 +37,7 @@ interface WorkbenchStore {
   entries: HistoryEntry[]
   index: number
   activeScenarioId: string | null
+  sessionStartedAt: string
   targetingSlotIndex: number | null
   draggingCardId: string | null
   lastRejection: string | null
@@ -45,6 +47,7 @@ interface WorkbenchStore {
   loadScenario: (scenarioId: string) => void
   timeTravelTo: (index: number) => void
   exportScenario: () => string
+  exportRecord: () => Promise<string>
   fireSlot: (slotIndex: number) => void
   hexClicked: (coords: Axial) => void
   cardDroppedOnHex: (cardInstanceId: string, coords: Axial) => void
@@ -89,6 +92,7 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
     entries: [initialEntry(catalog.encounters[ENCOUNTER_ID].random_seed)],
     index: 0,
     activeScenarioId: null,
+    sessionStartedAt: new Date().toISOString(),
     targetingSlotIndex: null,
     draggingCardId: null,
     lastRejection: null,
@@ -116,6 +120,7 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
         entries: [initialEntry(nextSeed)],
         index: 0,
         activeScenarioId: null,
+        sessionStartedAt: new Date().toISOString(),
         targetingSlotIndex: null,
         draggingCardId: null,
         lastRejection: null,
@@ -148,6 +153,7 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
         entries,
         index: entries.length - 1,
         activeScenarioId: scenarioId,
+        sessionStartedAt: new Date().toISOString(),
         targetingSlotIndex: null,
         draggingCardId: null,
         lastRejection: null,
@@ -178,6 +184,32 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
         steps,
       }
       return JSON.stringify(scenario, null, 2)
+    },
+
+    // Encounter Record schema_version 2: the session timeline up to the
+    // viewed position, sealed with content identity and state fingerprints.
+    exportRecord: async () => {
+      const { entries, index, sessionStartedAt } = get()
+      const steps = entries
+        .slice(1, index + 1)
+        .map((entry) => entry.step)
+        .filter((step): step is ScenarioStep => step !== null)
+      const facts = entries.slice(0, index + 1).flatMap((entry) => entry.facts)
+      const finalState = entries[index].state
+      const record = await buildEncounterRecord(catalog, {
+        encounterId: ENCOUNTER_ID,
+        steps,
+        facts,
+        initialState: entries[0].state,
+        finalState,
+        meta: {
+          recordId: `rec_${Date.now().toString(36)}`,
+          startedAt: sessionStartedAt,
+          endedAt: new Date().toISOString(),
+          abandonReason: finalState.active ? 'exported_mid_encounter' : undefined,
+        },
+      })
+      return JSON.stringify(record, null, 2)
     },
 
     // Tapping a prepared Slot: a piece-targeting Top Card first needs a Minion
@@ -235,6 +267,20 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
 
 export function slotWindowLabel(cardId: string): 'Quick' | 'Slow' {
   return cardWindowSpeed(catalog.cards[cardId]) === 'quick' ? 'Quick' : 'Slow'
+}
+
+// Automation hook: the browser smoke and other tools export the live
+// session's Scenario and Encounter Record through the window object.
+declare global {
+  interface Window {
+    __workbench?: { exportRecord: () => Promise<string>; exportScenario: () => string }
+  }
+}
+if (typeof window !== 'undefined') {
+  window.__workbench = {
+    exportRecord: () => useWorkbench.getState().exportRecord(),
+    exportScenario: () => useWorkbench.getState().exportScenario(),
+  }
 }
 
 // Keep the running Encounter alive across hot updates: rules and UI edits

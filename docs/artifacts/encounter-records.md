@@ -2,6 +2,8 @@
 
 **Encounter Records** are the local evidence trail for design playtests. They are not an in-game combat log and do not change player-facing HUD behavior. The scene starts one when an Encounter starts, observes `EncounterEngine` through its public action history and state, and seals it once on victory, defeat, End-of-Clock Behavior, restart, manual abort, or application exit.
 
+Schema version `1` below documents the frozen Godot implementation and remains readable history. The TypeScript Encounter Engine emits **schema version 2**, documented in [Schema Version 2](#schema-version-2) at the end of this file; version 1 is not a compatibility target for it (ADR 0019).
+
 ## Location And Schema
 
 Generated output is Git-ignored at `tmp/encounter-records/`:
@@ -61,3 +63,20 @@ Non-grant reasons are `health_lost`, `not_guarded_front`, or `already_active`; `
 A legal Shield Slam that consumes Riposte Ready adds `resolution_fact.status_event` to the successful `fire_slot` action with `event: "consumed"`, `reason: "matching_card_fired"`, `card_id: "shield_slam"`, and `bonus_boss_damage: 2`, plus the shared lifecycle fields above. Its single generated Boss damage fact records `base_amount: 3`, `status_bonus: 2`, `status_id: "riposte_ready"`, and `payoff_card_id: "shield_slam"` alongside `requested: 5` and the ordinary damage result.
 
 Leaving the first following Quick Window submits one engine-owned `expire_status` action when the effect remains active. Its Resolution Fact contains the shared lifecycle event with `event: "expired"` and `reason: "expiry_window_ended"`. The final/phase snapshots expose each active Status Effect's ID/title, triggers, trigger reason and Round/phase, source/Beat IDs, `expires_at_window_end`, and `consume_on_card_id` for UI and QA projection. Encounter Records remain off-HUD and passive observers of `EncounterEngine` history.
+
+## Schema Version 2
+
+The TypeScript Encounter Engine (`web/src/engine/record.ts`) emits `schema_version: 2`. The envelope concepts of version 1 survive — record ID, start/end time, seed, content identity with a SHA-256 fingerprint, submitted/generated/rejected actions, explicit Resolution Facts, terminal outcome with a distinguished `end_kind`, initial/final snapshots, and axial `{ "q": number, "r": number }` hexes — while every field shape follows the TS state model.
+
+One JSON document per record:
+
+- `record_id`, `started_at`, `ended_at`: caller-supplied identity and ISO timestamps (the engine itself is clock-free).
+- `encounter`, `seed`: the authored encounter ID and the RNG seed of the run.
+- `content_identity`: the encounter plus every authored definition reachable from it (cards, keywords, charge modifiers, boss programs, hazards, minions) as sorted `kind:id` entries, and a SHA-256 `fingerprint` over the canonical JSON of those definitions. Unlike version 1, the fingerprint hashes content shapes, not only IDs, so any content edit starts a new evidence cohort.
+- `outcome` / `end_kind` / `end_reason`: `victory`, `defeat`, or `abandoned`; `end_kind` distinguishes `end_of_clock` from an ordinary defeat, and an export taken mid-Encounter seals as an Abandoned Encounter with `abandon_reason`.
+- `steps`: the replayable submitted-action prefix — the same shape as a Scenario's steps. Generated actions are never stored here; a replay re-derives them.
+- `actions`: every resolved action, submitted and generated, in resolution order with `sequence`, `depth`, `succeeded`, `reason`, and its `resolution_fact` (damage facts keep `requested` / `prevented` / `health_loss` / `target_removed`, and the Riposte Ready lifecycle fields carry over unchanged).
+- `rng_audit`: the seeded generator's per-call choice trail.
+- `initial_state` / `final_state` / `final_state_fingerprint`: full engine snapshots plus a SHA-256 over the canonical final snapshot.
+
+Deterministic replay is the contract's proof: `replayRecord` folds `steps` from `seed` through the reducer and compares the reached state against `final_state` and its fingerprint. The Workbench exports records from the debug rail (or `window.__workbench.exportRecord()`), and the headless runner verifies them: `npm run headless -- --replay <record.json>` from `web/`, exiting non-zero on mismatch. `npm run headless -- --scenario <id> --record <out.json>` produces a sealed record from a committed Scenario without a browser.
