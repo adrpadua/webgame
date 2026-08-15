@@ -1,0 +1,4 @@
+# Runner adapter self-test manifest. `no_marker` must FAIL under a correct
+# adapter (exit 0 without the declared marker is not a pass).
+default|marker_fixture|res://scripts/debug/fixtures/marker_probe.gd|MARKER_FIXTURE_PROBE_OK
+default|no_marker|res://scripts/debug/fixtures/no_marker_probe.gd|NO_MARKER_FIXTURE_PROBE_OK

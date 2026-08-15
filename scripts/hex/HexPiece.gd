@@ -4,7 +4,6 @@ extends Control
 const FacingDirections := preload("res://scripts/combat/Facing.gd")
 const DuelystBossCrest := preload("res://assets/art/open-duelyst/boss_neutral_crest_hex@2x.png")
 
-signal died(piece)
 signal facing_changed(piece)
 signal piece_drag_started(piece)
 signal piece_drag_ended(piece)
@@ -46,14 +45,6 @@ func setup(
 	max_health = hp
 	facing = new_facing
 	queue_redraw()
-
-func take_damage(amount: int) -> void:
-	health -= amount
-	if health <= 0:
-		died.emit(self)
-		queue_free()
-	else:
-		queue_redraw()
 
 func rotate_facing(steps: int) -> void:
 	facing = facing + steps

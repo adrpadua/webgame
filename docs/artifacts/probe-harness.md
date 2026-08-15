@@ -2,21 +2,37 @@
 
 The harness keeps the **Encounter** rules and player-facing presentation independently verifiable while the prototype evolves. It is a runner over existing Godot headless scripts, not a competing test framework.
 
+Registration lives in one manifest — `scripts/debug/probes.manifest` (`lane|name|script|marker`, ADR 0018) — read by two adapters:
+
+```bash
+scripts/debug/run_probes.sh                    # POSIX / CI
+scripts/debug/run_probes.sh rules boss_beats   # named probes
+GODOT=/path/to/godot scripts/debug/run_probes.sh
+```
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1
-powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe rules,resolver
-powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Scenario full_charge_cleanup
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe rules,boss_beats
 powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Godot 'C:\path\to\Godot_console.exe'
 ```
 
-The default suite is intentionally named and stable. The runner gives each Probe a 15-second ceiling and fails on a non-zero Godot exit, engine error, or failed assertion:
+A full run executes the `default` and `scenario` lanes and reports the skipped `manual` (needs a real window) and `tool` lanes — nothing is silently dropped. A Probe passes only when Godot exits `0`, its output contains the manifest's declared `*_OK` marker, and no engine error or failed assertion appears; an exit code alone is not a pass — verify an adapter change by hand with the self-test manifest (`scripts/debug/run_probes.sh -m scripts/debug/fixtures/selftest.manifest` must fail on the markerless fixture). The `suite_manifest` Probe keeps the manifest complete: every executable probe script must be registered, pointing at an existing file whose source declares its marker.
+
+New Probes extend `scripts/debug/ProbeCase.gd` (accumulating `_assert`, one marker/exit contract via `probe_marker()`/`run_probe()`, `wait_frames`, and the `standard_engine` scene-free Encounter fixture) and add one manifest line.
+
+Probe contracts in the default suite:
 
 | Probe | Contract |
 | --- | --- |
+| `suite_manifest` | `probes.manifest` is the single, complete registration source: every executable probe script is manifested once, with an existing file, a legal lane, and its declared success marker present in source. |
 | `content` | Every designer-authored Resource loads and satisfies the content contract, with actionable path-based failures. |
 | `rules` | Scene-free **Encounter** rules, action records, Slots, Status Effects, Hazards, and Boss Timeline execution. |
+| `legality` | The `EncounterEngine.legality` / `legal_actions` seam: the player-action legality matrix, target-aware fire enumeration, and the invariant that `apply` succeeds if and only if `legality` agrees, with matching rejection reasons. |
+| `engine_seam` | The Encounter Engine module surface: the documented seam and read projections are callable, the action-resolution callback surface is not, no resolver collaborator is exposed, no separate resolver module exists, and the load/charge/fire flow resolves through `apply` alone. |
+| `action_stream` | ADR 0015's stream contract: Full-Charge Cleanup, Round rollover (with draws and reshuffles), every phase transition, and Encounter Clock expiry ride history as first-class actions; `advance_phase` returns its complete ordered slice; and `PlayerState` folds the stream into consumed-once Slot transition cues. |
+| `board_authority` | ADR 0017's single-board contract: HexGrid owns no second BoardState, terrain rule, movement fallback, or mutation surface; the orphaned scene combat path is gone; one front-cone geometry serves the live rules and the Target Pattern catalog; tile terrain renders rules Hazards; and hand-card movement cues exactly match the engine's legal moves. |
 | `parity` | Visible direct-manipulation flows project the same rules state and outcomes owned by `EncounterEngine`. |
-| `resolver` | Spatial resolution of authored Boss Timeline beats from an `EncounterSnapshot`. |
+| `boss_beats` | Authored Boss Timeline Beat contracts through the engine seam — targeted Tank Hits on and off the former arc, scorching, cone hit/miss, facing snap, spawn selection — and the collapsed-chain shape (no resolver, snapshot, or resolution module beside `TimelineResolver`). |
 | `target_patterns` | BoardQuery-owned reusable Target Pattern catalog results for all nine core patterns, six legal facings where applicable, stable ordering, and edge clipping. |
 | `target_bound_patterns` | BoardQuery-owned Target-Bound Pattern resolution: Tank selector first, source-to-target Facing snap, selected-versus-affected Piece identity, inclusion, continuation, and clipping. |
 | `encounter` | New-player direct-manipulation flow through several complete Rounds. |
@@ -40,11 +56,11 @@ The report writer returns failure if either documented Markdown artifact cannot 
 
 A **Spike** is a short-lived, decision-seeking experiment. Put it in `scripts/debug/` with a descriptive `_spike.gd` name, state its question and exit condition at the top, and do not add it to the default suite.
 
-A **Probe** protects a decided, observable contract. Put it in `scripts/debug/` with a descriptive `_probe.gd` name; run it headlessly; give success output a stable `*_OK` marker; use explicit assertion messages in the project vocabulary; and add it to `run_probes.ps1` only when it is deterministic and worth retaining.
+A **Probe** protects a decided, observable contract. Put it in `scripts/debug/` with a descriptive `_probe.gd` name; run it headlessly; give success output a stable `*_OK` marker; use explicit assertion messages in the project vocabulary; and register it in `scripts/debug/probes.manifest` (with its lane and marker) only when it is deterministic and worth retaining.
 
 When a Spike answers its question, either delete it or promote the durable assertion into a Probe. Record an enduring rule in `docs/rules/` and an architectural choice in `docs/adr/`; keep evidence and playtest observations in `notes/` or `docs/artifacts/`.
 
-Encounter scenarios use setup-only fixtures, then `EncounterAction` records with explicit expected rejections where needed. The runner can execute one named scenario with `-Scenario <id>`. Probe failures write normalized JSON evidence beneath Git-ignored `tmp/probe-artifacts/<scenario-id>/`; retain those artifacts until diagnosis is complete, then clean them with `Remove-Item -Recurse -Force ./tmp/probe-artifacts`.
+Encounter scenarios use setup-only fixtures, then `EncounterAction` records with explicit expected rejections where needed. Scenario tapes are ordinary manifest entries in the `scenario` lane; run one by name with `-Probe <id>` (or `run_probes.sh <id>`). Probe failures write normalized JSON evidence beneath Git-ignored `tmp/probe-artifacts/<scenario-id>/`; retain those artifacts until diagnosis is complete, then clean them with `Remove-Item -Recurse -Force ./tmp/probe-artifacts`.
 
 ## Choosing The Thinnest Useful Probe Layer
 
@@ -81,7 +97,7 @@ Implementation lives in `scripts/debug/EncounterProbeScenario.gd` and `scripts/d
 The two bounded scenarios are registered in the shared scenario catalog:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Scenario whelp_clear,slow_top_card_cleanup
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe whelp_clear,slow_top_card_cleanup
 ```
 
 Expected markers are `WHELP_CLEAR_PROBE_OK` and `SLOW_TOP_CARD_CLEANUP_PROBE_OK`. Test Automation is the independent verifier.
@@ -126,7 +142,7 @@ Expected marker is `TARGET_BOUND_PATTERN_PROBE_OK facings=6`. The Probe covers s
 
 ## Combat Postures Interface
 
-The `riposte` Probe exercises the production rules path directly. `BossProgramBeat.target_selector` carries authored Target Selector identity for targeted Boss hits, `BossProgramBeat.damage_classification` carries authored Tank Hit identity into `TimelineResolver`; `BoardQuery.is_guarded_front` owns the positional predicate; `EncounterEngine` owns post-damage grant evaluation, matching-Card consumption, and end-of-Quick expiry. `ActionResolver` attaches the resulting additive facts to the already-authoritative Damage, Fire Slot, and Expire Status actions. The probe serializer observes those actions and active Status Effects without implementing trigger rules.
+The `riposte` Probe exercises the production rules path directly. `BossProgramBeat.target_selector` carries authored Target Selector identity for targeted Boss hits, `BossProgramBeat.damage_classification` carries authored Tank Hit identity into `TimelineResolver`; `BoardQuery.is_guarded_front` owns the positional predicate; `EncounterEngine` owns post-damage grant evaluation, matching-Card consumption, and end-of-Quick expiry. The engine's action resolution attaches the resulting additive facts to the already-authoritative Damage, Fire Slot, and Expire Status actions (the separate `ActionResolver` module was folded into `EncounterEngine` by ADR 0014). The probe serializer observes those actions and active Status Effects without implementing trigger rules.
 
 Run the focused engine and record boundary:
 
@@ -157,7 +173,7 @@ Expected marker is `RIPOSTE_STATUS_UI_PROBE_OK`. The probe mounts the portrait s
 The fixed-seed baseline scenario is:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Scenario deck_eval_baseline
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe deck_eval_baseline
 ```
 
 Expected marker is `DECK_EVAL_BASELINE_PROBE_OK labels=baseline-a,baseline-b,baseline-c`. The scenario uses the live `embermaw_prototype` Encounter and live starter deck with probe-local seeds `1337`, `7331`, and `20260813`. It writes three Encounter Records with metadata `{ run_label, evaluation_purpose: "combat_postures_issue_05", scenario_id: "deck_eval_baseline" }` and does not edit live content, deck, seed, starting hand, or teaching pacing.
@@ -175,7 +191,7 @@ This interface is an Evidence Cohort handoff for QA and Design. It does not add 
 The controlled Elian test-deck scenario is:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Scenario controlled_deck_eval
+powershell -ExecutionPolicy Bypass -File ./scripts/debug/run_probes.ps1 -Probe controlled_deck_eval
 ```
 
 Expected marker is `CONTROLLED_DECK_EVAL_PROBE_OK labels=controlled-a,controlled-b,controlled-c`. The scenario uses `resources/decks/evaluation/aegis_controlled_test_deck.tres`, an evaluation-only historical/repro configuration that remains distinct from the live/default Encounter resource. It wraps the live Embermaw prototype Encounter plus the approved proposal-03 20-card candidate list: `8x steady_strike`, `6x iron_guard`, `2x sweeping_blow`, `2x fortify`, and `2x shield_slam`. Proposal 04 separately promoted the same card list to the live/default starter deck, so the controlled probe must not assert or imply the old `10x steady_strike` / `10x iron_guard` default. The scenario uses the same fixed seeds `1337`, `7331`, and `20260813` with labels `controlled-a`, `controlled-b`, and `controlled-c`; those labels must remain separate from historical `baseline-a/b/c` and post-promotion `starter-promotion-a/b/c`.

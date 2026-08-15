@@ -10,7 +10,6 @@ var player: Node
 var selected_slot: int = -1
 var compact: bool = false
 var context_card: Resource
-var previous_slots: Array = []
 
 func set_compact(value: bool) -> void:
 	if compact == value:
@@ -44,29 +43,13 @@ func refresh() -> void:
 	if player == null:
 		return
 
+	var transitions: Dictionary = player.take_slot_transitions()
 	for i in range(player.action_bar.size()):
 		var slot: Dictionary = player.action_bar[i].duplicate()
-		var top_card: Resource = slot.get("top_card")
-		slot["ready_action"] = top_card != null and not slot["charges"].is_empty() and top_card.get_window_speed() == player.current_window and slot.get("activated_window", &"") != player.current_window
+		slot["ready_action"] = player.has_legal_fire(i)
+		slot["project_intent"] = player.project_intent(i, context_card) if context_card != null else &""
 		var button := ActionBarSlotScene.new()
-		var transition := _transition_for(previous_slots[i] if i < previous_slots.size() else {}, slot, player.current_window)
-		button.bind(i, slot, i == selected_slot, compact, player.current_window, context_card, transition)
+		button.bind(i, slot, i == selected_slot, compact, player.current_window, context_card, transitions.get(i, &""))
 		button.slot_pressed.connect(func(index: int) -> void: slot_pressed.emit(index))
 		button.card_dropped.connect(func(index: int, card: Resource) -> void: card_dropped.emit(index, card))
 		add_child(button)
-	previous_slots = player.action_bar.duplicate(true)
-
-func _transition_for(previous: Dictionary, current: Dictionary, window: StringName) -> StringName:
-	if previous.is_empty():
-		return &""
-	var previous_card: Resource = previous.get("top_card")
-	var current_card: Resource = current.get("top_card")
-	if previous_card != null and current_card == null:
-		return &"cleanup"
-	if previous_card == null and current_card != null:
-		return &"load"
-	if previous_card == current_card and current.get("charges", []).size() > previous.get("charges", []).size():
-		return &"charge"
-	if previous.get("activated_window", &"") != window and current.get("activated_window", &"") == window:
-		return &"activate"
-	return &""

@@ -58,16 +58,3 @@ func get_artwork() -> Texture2D:
 
 func get_keyword_ids() -> Array[StringName]:
 	return tags.duplicate()
-
-func get_target_error(context: Dictionary) -> String:
-	match target_type:
-		TargetType.HEX:
-			if context.get("tile") == null:
-				return "Select a hex for %s." % title
-		TargetType.PIECE:
-			var target = context.get("target")
-			if target == null:
-				return "Select a minion target for %s." % title
-			if target.get("piece_owner") != &"enemy":
-				return "%s must target a minion." % title
-	return ""

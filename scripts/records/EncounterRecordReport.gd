@@ -1,7 +1,7 @@
 class_name EncounterRecordReport
 extends RefCounted
 
-const SUPPORTED_SCHEMA_VERSION := 1
+const SUPPORTED_SCHEMA_VERSION := 2
 
 static func aggregate_directory(root: String) -> Dictionary:
 	var records: Array = []

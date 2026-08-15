@@ -4,7 +4,6 @@ extends Control
 const HexTileScene := preload("res://scripts/hex/HexTile.gd")
 const HexPieceScene := preload("res://scripts/hex/HexPiece.gd")
 const FacingDirections := preload("res://scripts/combat/Facing.gd")
-const BoardStateModel := preload("res://scripts/hex/BoardState.gd")
 const BoardQueryModel := preload("res://scripts/hex/BoardQuery.gd")
 const DuelystBackdrop := preload("res://assets/art/open-duelyst/magaari_ember_highlands_background.jpg")
 const MovementPathPreviewScene := preload("res://scripts/hex/MovementPathPreview.gd")
@@ -28,7 +27,6 @@ var board_max := Vector2.ZERO
 var player_piece: Node
 var boss_piece: Node
 var combatants_bound: bool = false
-var board_state := BoardStateModel.new()
 var movement_path_preview: Control
 var movement_preview_enabled: bool = false
 var rules_board
@@ -82,7 +80,6 @@ func build_grid() -> void:
 	for child in get_children():
 		child.queue_free()
 	tiles.clear()
-	board_state.clear()
 	_create_movement_path_preview()
 
 	for q in range(-radius, radius + 1):
@@ -98,8 +95,8 @@ func build_grid() -> void:
 			add_child(tile)
 			tiles[Vector2i(q, r)] = tile
 
-	player_piece = spawn_piece(Vector2i(0, 0), "P", &"player", 3, FacingDirections.Direction.NORTH_EAST, "Player")
-	boss_piece = spawn_piece(Vector2i(1, -1), "B", &"boss", 12, FacingDirections.Direction.SOUTH_WEST, "Ember")
+	player_piece = null
+	boss_piece = null
 	_measure_board()
 	_refresh_tile_outlines()
 	_layout_tiles()
@@ -288,7 +285,6 @@ func spawn_piece(
 		return null
 	var piece := HexPieceScene.new()
 	piece.setup(label, owner, hp, facing, display_name)
-	piece.died.connect(_on_piece_died)
 	if owner == &"player":
 		piece.piece_drag_started.connect(_on_player_drag_started)
 		piece.piece_drag_ended.connect(_on_player_drag_ended)
@@ -355,107 +351,6 @@ func _clear_rendered_pieces() -> void:
 	player_piece = null
 	boss_piece = null
 
-func spawn_enemy_wave(count: int) -> int:
-	var spawn_points: Array[Vector2i] = [
-		Vector2i(2, -2),
-		Vector2i(2, -1),
-		Vector2i(1, -2),
-		Vector2i(-2, 2),
-		Vector2i(-1, 2),
-	]
-	var spawned := 0
-	for coords in spawn_points:
-		if spawned >= count:
-			break
-		var tile = tiles.get(coords)
-		if tile == null:
-			continue
-		var occupied := false
-		for piece in tile.pieces:
-			if piece.piece_owner == &"enemy":
-				occupied = true
-				break
-		if occupied:
-			continue
-		spawn_piece(coords, "W", &"enemy", 2, FacingDirections.Direction.NORTH_WEST, "Whelp")
-		spawned += 1
-	return spawned
-
-func spawn_whelps_at(coords_list: Array[Vector2i]) -> int:
-	var spawned := 0
-	for coords in coords_list:
-		var tile = tiles.get(coords)
-		if tile == null or not tile.pieces.is_empty():
-			continue
-		spawn_piece(coords, "W", &"enemy", 2, FacingDirections.Direction.NORTH_WEST, "Whelp")
-		spawned += 1
-	return spawned
-
-func get_brood_spawn_hexes(count: int) -> Array[Vector2i]:
-	var candidates := get_brood_spawn_candidates()
-	var result: Array[Vector2i] = []
-	for coords in candidates:
-		var tile = tiles.get(coords)
-		if tile != null and tile.pieces.is_empty():
-			result.append(coords)
-			if result.size() >= count:
-				break
-	return result
-
-func get_brood_spawn_candidates() -> Array[Vector2i]:
-	return [Vector2i(-2, 1), Vector2i(-1, 2), Vector2i(0, 2), Vector2i(2, -2), Vector2i(2, -1)]
-
-func get_front_arc(origin: Vector2i, facing: int) -> Array[Vector2i]:
-	return BoardQueryModel.front_arc(tiles, origin, facing)
-
-func get_forward_cone(origin: Vector2i, facing: int, maximum_range: int = 2) -> Array[Vector2i]:
-	return BoardQueryModel.forward_cone(tiles, origin, facing, maximum_range)
-
-func telegraph_hexes(coords_list: Array[Vector2i], telegraph_id: StringName) -> void:
-	for coords in coords_list:
-		var tile: HexTile = tiles.get(coords)
-		if tile != null:
-			tile.set_telegraph(telegraph_id)
-
-func clear_telegraphs() -> void:
-	for tile: HexTile in tiles.values():
-		tile.set_telegraph(&"")
-
-func set_scorched(coords_list: Array[Vector2i], duration_rounds: int = 1) -> void:
-	for coords in coords_list:
-		if not tiles.has(coords):
-			continue
-		board_state.set_state(coords, &"scorched", duration_rounds)
-		var tile: HexTile = tiles[coords]
-		tile.set_terrain(&"scorched")
-
-func advance_board_state() -> Array[Vector2i]:
-	var expired := board_state.advance_round()
-	for coords in expired:
-		var tile: HexTile = tiles.get(coords)
-		if tile != null:
-			tile.set_terrain(&"")
-	return expired
-
-func is_scorched(coords: Vector2i) -> bool:
-	return board_state.has_state(coords, &"scorched")
-
-func get_player_in(coords_list: Array[Vector2i]):
-	return player_piece if player_piece != null and coords_list.has(get_piece_coords(player_piece)) else null
-
-func damage_enemy_front(amount: int) -> int:
-	var hits := 0
-	for coords in [Vector2i(1, -1), Vector2i(-1, 1), Vector2i(2, -2), Vector2i(-2, 2)]:
-		var tile = tiles.get(coords)
-		if tile == null:
-			continue
-		for piece in tile.pieces:
-			if piece.piece_owner == &"enemy":
-				piece.take_damage(amount)
-				hits += 1
-				break
-	return hits
-
 func get_piece_tile(piece: Node) -> Node:
 	if piece == null:
 		return null
@@ -473,49 +368,12 @@ func get_piece_coords(piece: Node) -> Vector2i:
 func hex_distance(from_coords: Vector2i, to_coords: Vector2i) -> int:
 	return BoardQueryModel.hex_distance(from_coords, to_coords)
 
+# A read-only view query: movement legality is answered by BoardQuery over the
+# rules board — the view restates no rules and has no non-engine fallback.
 func can_move_piece_to(piece: Node, destination: Vector2i, max_distance: int = 1) -> bool:
-	if rules_board != null and piece != null and rules_board.has_entity(piece.piece_id):
-		return max_distance >= 1 and BoardQueryModel.is_legal_move(rules_board, piece.piece_id, destination)
-	var from_tile := get_piece_tile(piece)
-	var to_tile = tiles.get(destination)
-	if piece == null or from_tile == null or to_tile == null:
+	if rules_board == null or piece == null or not rules_board.has_entity(piece.piece_id):
 		return false
-	if from_tile == to_tile:
-		return false
-	if hex_distance(from_tile.axial, destination) > max_distance:
-		return false
-	if piece == player_piece and is_scorched(destination):
-		return false
-	for occupant in to_tile.pieces:
-		if occupant != piece:
-			return false
-	return true
-
-func move_piece_to(piece: Node, destination: Vector2i) -> bool:
-	if not can_move_piece_to(piece, destination):
-		return false
-	var from_tile := get_piece_tile(piece)
-	var to_tile = tiles.get(destination)
-	if from_tile == null or to_tile == null:
-		return false
-	from_tile.remove_piece(piece)
-	piece.facing = FacingDirections.direction_for_axial_delta(destination - from_tile.axial)
-	to_tile.add_piece(piece)
-	_refresh_tile_outline(from_tile)
-	_refresh_tile_outline(to_tile)
-	return true
-
-func sync_combatant_health(player, boss) -> void:
-	if player_piece != null:
-		player_piece.health = player.health
-		player_piece.max_health = player.max_health
-		player_piece.armor = player.armor
-		player_piece.queue_redraw()
-	if boss_piece != null:
-		boss_piece.health = boss.health
-		boss_piece.max_health = boss.max_health
-		boss_piece.armor = 0
-		boss_piece.queue_redraw()
+	return BoardQueryModel.is_legal_move(rules_board, piece.piece_id, destination, max_distance)
 
 func get_neighbors(coords: Vector2i) -> Array[Vector2i]:
 	return [
@@ -548,16 +406,6 @@ func _on_tile_data_dropped(tile, data: Dictionary) -> void:
 			var card: Resource = data.get("card")
 			if card != null:
 				hand_card_dropped_to_tile.emit(card, tile)
-
-func _on_piece_died(piece) -> void:
-	for tile in tiles.values():
-		if tile.pieces.has(piece):
-			tile.remove_piece(piece)
-			_refresh_tile_outline(tile)
-	if piece == player_piece:
-		player_piece = null
-	if piece == boss_piece:
-		boss_piece = null
 
 func _create_movement_path_preview() -> void:
 	movement_path_preview = MovementPathPreviewScene.new()

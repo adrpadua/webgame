@@ -1,5 +1,6 @@
 extends SceneTree
 
+const EncounterActionModel := preload("res://scripts/sdk/EncounterAction.gd")
 const EncounterEngineModel := preload("res://scripts/sdk/EncounterEngine.gd")
 const ENCOUNTER := preload("res://resources/encounters/embermaw_prototype.tres")
 const ARTIFACT_PATH := "res://tmp/probe-artifacts/focused_end_of_clock/end_of_clock_trace.json"
@@ -51,11 +52,13 @@ func _initialize() -> void:
 	_assert(engine.outcome == &"defeat", "Encounter Clock expiry must end in defeat.")
 	_assert(engine.outcome_reason == ENCOUNTER.enrage_text, "Encounter Clock expiry must use the authored enrage text.")
 	_assert(engine.round == ENCOUNTER.round_limit + 1, "Encounter Clock expiry must advance the Round past the authored limit.")
-	_assert(engine.history.is_empty(), "The focused clock-only rules Probe must not require authored boss actions or action history.")
+	for action in engine.history:
+		_assert(action.kind in [EncounterActionModel.Kind.ADVANCE_PHASE, EncounterActionModel.Kind.ROUND_START, EncounterActionModel.Kind.END_OF_CLOCK], "The focused clock-only rules Probe must need no authored boss actions or player actions; only phase-machine actions may appear on the stream.")
 	var terminal: Dictionary = trace.back() if not trace.is_empty() else {}
 	_assert(terminal.get("phase_before", "") == "slow", "Encounter Clock expiry must terminate from Slow.")
-	_assert(terminal.get("actions_count", -1) == 0, "Encounter Clock expiry must not append top-level rules actions on the terminal Slow advance.")
-	_assert(terminal.get("history_before", -1) == terminal.get("history_after", -2), "Encounter Clock expiry must not mutate rules history on the terminal Slow advance.")
+	_assert(terminal.get("actions_count", -1) == 1, "The terminal Slow advance must stream exactly its END_OF_CLOCK action.")
+	_assert(terminal.get("history_after", -1) == terminal.get("history_before", -2) + 1, "Encounter Clock expiry must be recorded on the history stream.")
+	_assert(engine.history.back().kind == EncounterActionModel.Kind.END_OF_CLOCK, "The final streamed action must be END_OF_CLOCK.")
 	_assert(_phase_prefix(trace, 8) == [
 		"loadout->instant",
 		"instant->quick",

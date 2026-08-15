@@ -86,7 +86,11 @@ static func value(source):
 	return source
 
 static func _action_kind(kind: int) -> String:
-	return ["load_slot", "charge_slot", "fire_slot", "move_hero", "resolve_boss", "apply_hazard", "spawn_minion", "damage", "discard_for_stamina", "expire_status"][kind]
+	return [
+		"load_slot", "charge_slot", "fire_slot", "move_hero", "resolve_boss",
+		"apply_hazard", "spawn_minion", "damage", "discard_for_stamina", "expire_status",
+		"advance_phase", "round_start", "full_charge_cleanup", "draw_card", "shuffle_deck", "end_of_clock",
+	][kind]
 
 static func _resource_id(resource) -> String:
 	if resource == null:

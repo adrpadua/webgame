@@ -3,7 +3,6 @@
 [ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/player/PlayerState.gd" id="2_player"]
 [ext_resource type="Script" path="res://scripts/turns/TurnManager.gd" id="3_turn"]
-[ext_resource type="Script" path="res://scripts/board/PlayerBoard.gd" id="4_board"]
 [ext_resource type="Script" path="res://scripts/hex/HexGrid.gd" id="5_grid"]
 [ext_resource type="Script" path="res://scripts/ui/HandView.gd" id="6_hand"]
 [ext_resource type="Script" path="res://scripts/boss/BossState.gd" id="7_boss"]
