@@ -1,6 +1,6 @@
 # Deterministic Handoff Control Plane and Closure Gate
 
-Status: ready-for-agent
+Status: resolved
 
 ## Player Problem
 

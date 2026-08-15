@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "tutorial-prompts-playtester",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-15T02:54:00-07:00",
+  "owner": "Playtester",
+  "canonical_issue": ".scratch/contextual-mobile-tutorial-prompts-embermaw/issues/04-verify-tutorial-prompt-contracts.md",
+  "objective": "Independently hands-on test the newcomer-facing portrait tutorial prompt flow: whether a player can read the single contextual card without it blocking play, dismiss it, find shown guidance in Help, and reopen it as a contextual card while preserving the board/cards and the existing first-Loadout hierarchy.",
+  "non_goals": [
+    "No repository, documentation, packet, probe, game, UI, rule, content, or Encounter Record edits",
+    "No gameplay evaluation, balance/deck/content recommendation, target-pattern UI, protected gesture, or broad HUD critique",
+    "No closure authority; return a verdict only to the Coordinator"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Coordinator", "completion": "Coordinator" },
+  "dependencies": [
+    { "id": "tutorial-prompts-authoritative-projection-qa", "state": "satisfied" },
+    { "id": "tutorial-prompts-portrait-history-ui", "state": "satisfied" },
+    { "id": "tutorial-prompts-portrait-history-qa", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Ordered non-headless portrait player observation on the default 488x1056 presentation of the 390x844 logical canvas, using touch-style direct manipulation or mouse-equivalent input",
+    "Player-facing claim: a newcomer understands and can dismiss the short Boss Timeline guidance without modal fatigue/board or hand obstruction, then finds it in the Help text-first list and reopens its contextual card through Review",
+    "Canonical expectation: docs/artifacts/embermaw-vertical-slice.md, docs/artifacts/accessibility.md, docs/content/encounters/embermaw-prototype.md, and docs/agents/playtesting.md",
+    "Owner self-check: UI packet `tutorial-prompts-portrait-history-ui`; QA evidence: `TUTORIAL_PROMPT_UI_PROBE_OK viewports=2`, `MOBILE_HUD_PROBE_OK presentations=2`, `ACCESSIBILITY_PROBE_OK controls=30`, parity/records/record_scene PASS, and direct non-headless captures",
+    "Return directly to caller /root with verdict, ordered flow, environment/build identity, observed evidence, canonical expectation, concerns, recommended route, and exact retest condition"
+  ],
+  "next_owner": "Playtester"
+}

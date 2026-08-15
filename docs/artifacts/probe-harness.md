@@ -37,7 +37,7 @@ Probe contracts in the default suite:
 | `target_bound_patterns` | BoardQuery-owned Target-Bound Pattern resolution: Tank selector first, source-to-target Facing snap, selected-versus-affected Piece identity, inclusion, continuation, and clipping. |
 | `encounter` | New-player direct-manipulation flow through several complete Rounds. |
 | `layout` | Desktop responsive-layout bounds. |
-| `mobile` | Portrait HUD hierarchy and mobile interaction contract. |
+| `mobile` | Portrait HUD hierarchy and mobile interaction contract, including the Help-hidden `?` affordance projected from the `390x844` logical canvas into the default `488x1056` presentation. |
 | `accessibility` | Touch target, focus, and command contrast contract. |
 | `focused_end_of_clock` | Scene-free Encounter Clock end-of-clock defeat using the authored round limit and enrage text, with a stable trace artifact. |
 | `replay` | Seeded, replayable Full-Charge Cleanup scenario and JSON failure-artifact schema. |
@@ -49,6 +49,8 @@ Probe contracts in the default suite:
 | `deck_eval_report` | Fixed-seed deck-evaluation cohort report grouping, raw viability totals, and per-Round Hand/Slot/legal-useful-action/selected-action evidence. |
 | `controlled_deck_eval_report` | Evaluation-only Elian controlled test-deck cohort report grouping, stable fingerprint, raw viability totals, and per-Round evidence. |
 | `starter_deck_promotion` | Live/default Elian starter-deck composition, distinct historical evaluation fixture, and post-promotion record/report labels. |
+| `tutorial_prompt_projection` | Scene-free authoritative relevance, priority, policy, accessible fallback, legal opportunity, and explicit Whelp route-blocking facts for the seven Embermaw teaching contracts. |
+| `tutorial_prompt_ui` | Portrait presentation adapter for the engine-owned tutorial projection: one dismissible card at a time, accessible full text, caller-owned history, Help text-first scanning, contextual-card reopening, and preserved action-bar/hand visibility. |
 
 The report writer returns failure if either documented Markdown artifact cannot be written. The `records` Probe verifies both paths, while `report_encounter_records.ps1` uses the same writer. Test Automation re-review evidence is the focused run of `-Probe records,record_scene`, followed by `report_encounter_records.ps1` and inspection of `tmp/encounter-records/report-*.md` plus `latest-report.md`.
 

@@ -2,7 +2,7 @@
 
 Historical artifact: this records the earlier Energy/Tempo build. Current rules and controls are authoritative in `docs/rules/prototype-rules.md` and `docs/content/design-team-handoff.md`.
 
-The planned contextual tutorial prompt surface is a presentation consumer of authored contracts in [embermaw-prototype.md](../content/encounters/embermaw-prototype.md#contextual-teaching-contracts). It is not implemented by this historical artifact and must not infer gameplay from HUD state.
+The contextual tutorial prompt surface is a presentation consumer of authored contracts in [embermaw-prototype.md](../content/encounters/embermaw-prototype.md#contextual-teaching-contracts). It consumes the authoritative `EncounterEngine` projection only and must not infer gameplay from HUD state.
 
 This document records the completed first playable encounter delivered in the current prototype.
 
@@ -59,6 +59,8 @@ Rationale: the first decision should be legible without reading a long guide or 
 
 The desktop status panels and detailed right-side inspector are hidden on mobile so they do not compete with the board. The former command grid is not rendered; direct card and Slot interactions drive the player flow. Full instructions live in the toggleable `?` help pane. Portrait mobile now applies explicit safe bounds to every prompt-adjacent required control across both the logical `390x844` design viewport and the default `488x1056` non-headless presentation.
 
+Tutorial guidance is one short, non-blocking contextual card at a time. Its Dismiss control changes caller-owned presentation progress only; it never advances an encounter phase, creates an action, or protects a required gesture. The card remains inside the same physical safe lane as the prompt text and leaves the board, Action Bar, and hand visible. Help supplements the normal guide with a text-first history of shown tips; selecting an entry and tapping Review reopens that item as its contextual card. This history is presentation-only and is neither an Encounter Record nor a gameplay fact.
+
 Status: confirmed. Owner: UI/UX.
 
 Owned safe lanes:
@@ -90,7 +92,7 @@ The pane is presentation-only: it does not create trigger, expiry, consumption, 
 
 Rationale: the player needs to know why the opening exists, what closes it, and what card spends it without confusing Riposte Ready for a new resource. A compact Status Effect pane keeps the decision visible near the prompt while preserving the Bottom Interaction Zone for cards and Slots. Follow-up: QA should verify legibility and overlap in portrait, while Architecture should verify the UI remains an adapter over status projections and action facts.
 
-The portrait regression probe at [scripts/debug/mobile_hud_probe.gd](D:/dev/webgame/scripts/debug/mobile_hud_probe.gd) checks both the `390x844` logical design viewport and the `488x1056` default presentation viewport, mobile visibility rules, board-before-action-bar ordering, required-control safe padding, unclipped button labels, and the absence of a player-facing combat log. The default live display override may be larger, but it must preserve this logical portrait canvas without aspect distortion.
+The portrait regression probe at [scripts/debug/mobile_hud_probe.gd](D:/dev/webgame/scripts/debug/mobile_hud_probe.gd) lays out once at the `390x844` logical design viewport, then checks that the rendered Help rectangle remains readable, tappable, distinct from Play, and fully inside both the logical canvas and the `488x1056` default presentation. It also checks mobile visibility rules, board-before-action-bar ordering, required-control safe padding, unclipped button labels, and the absence of a player-facing combat log. A non-headless run captures the Help-hidden and Help-open default-presentation images without reapplying the physical display size as a layout breakpoint.
 
 ## Visual Skin
 

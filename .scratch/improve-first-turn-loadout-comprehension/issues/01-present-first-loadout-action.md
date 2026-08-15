@@ -1,8 +1,8 @@
 # Present First Loadout Action
 
-Status: completed-pending-newcomer-observation
+Status: resolved
 Owner: UI/UX
-Blocked by: temporary Playtester newcomer-observation gate or an explicitly approved equivalent; canonical wording and Architecture/Test Automation evidence are complete
+Blocked by: none
 
 ## Outcome
 

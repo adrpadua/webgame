@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "phase0-mandatory-gate-activation",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T18:22:00-07:00",
+  "assignment_revision": 1,
+  "owner": "Coordinator",
+  "scope_confirmed": "All Phase 0 prerequisites are independently verified. Activation records a manual Coordinator gate over the existing read-only validator and does not add automation.",
+  "planned_paths": [
+    "docs/artifacts/handoff-packets.md",
+    "docs/agents/recovery-kit.md",
+    "docs/agents/issue-tracker.md",
+    "docs/artifacts/project-coordination.md",
+    ".scratch/deterministic-handoff-control-plane-and-closure-gate/"
+  ],
+  "first_validation": "Run current-root packet validation after retaining the activation assignment/acknowledgment, then complete activation evidence.",
+  "next_owner": "Coordinator"
+}

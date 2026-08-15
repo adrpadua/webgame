@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "tutorial-prompts-playtester",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-15T02:54:00-07:00",
+  "assignment_revision": 1,
+  "owner": "Playtester",
+  "scope_confirmed": "One temporary, read-only hands-on portrait tutorial flow. The player verdict cannot alter implementation, gameplay, rules, approved product scope, or closure authority.",
+  "planned_paths": [
+    "docs/agents/playtesting.md",
+    "docs/artifacts/embermaw-vertical-slice.md",
+    "docs/artifacts/accessibility.md",
+    "docs/content/encounters/embermaw-prototype.md",
+    "tmp/mobile-help-hidden.png",
+    "tmp/mobile-help-open.png"
+  ],
+  "first_validation": "Non-headless default portrait observation of the Boss Timeline card, Dismiss, Help text-first history, and Review reopening at 488x1056 physical presentation / 390x844 logical canvas.",
+  "next_owner": "Playtester"
+}

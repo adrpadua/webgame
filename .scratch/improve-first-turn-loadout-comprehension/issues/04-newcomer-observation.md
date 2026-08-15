@@ -1,8 +1,8 @@
 # Newcomer Observation
 
-Status: blocked
-Owner: UI/UX
-Blocked by: the temporary Playtester found the default portrait `?` Help affordance absent from the Help-hidden non-headless capture; the primary newcomer flow passes, but secondary support is not discoverable
+Status: resolved
+Owner: Coordinator
+Blocked by: none
 
 ## Outcome
 

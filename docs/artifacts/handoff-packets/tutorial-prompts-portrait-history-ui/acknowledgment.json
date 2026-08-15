@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "tutorial-prompts-portrait-history-ui",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "UI/UX",
+  "created_at": "2026-08-15T01:56:00-07:00",
+  "assignment_revision": 1,
+  "owner": "UI/UX",
+  "scope_confirmed": "Implement portrait-only presentation and caller-owned prompt progress over the existing authoritative EncounterEngine tutorial projection. The HUD will consume projected facts only and will not create gameplay actions, phase progression, rule state, Encounter Record metadata, protected gestures, or a mandatory flow.",
+  "planned_paths": [
+    "scripts/Main.gd",
+    "scripts/debug/tutorial_prompt_ui_probe.gd",
+    "scripts/debug/run_probes.ps1",
+    "docs/artifacts/embermaw-vertical-slice.md",
+    "docs/artifacts/accessibility.md",
+    "docs/artifacts/probe-harness.md",
+    "docs/artifacts/handoff-packets/tutorial-prompts-portrait-history-ui/completion.json"
+  ],
+  "first_validation": "Run the packet validator, then inspect the tutorial projection contract and current portrait mobile layout before adding a focused UI probe.",
+  "next_owner": "UI/UX"
+}

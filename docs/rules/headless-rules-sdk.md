@@ -14,6 +14,8 @@ engine.legal_actions(hero_id)
 
 `legality` answers whether a candidate action would resolve — `{"legal": bool, "reason": String}` with the engine-authored rejection reason — without mutating state, and `legal_actions` enumerates the candidate player actions that predicate accepts. `apply` routes through the same predicate, so an action succeeds if and only if `legality` calls it legal (generated Hazard, Minion, and damage actions keep their resolution-time failure modes). Consumers ask instead of restating rules: the HUD's slot acceptance, drop-intent cues, ready states, and prompts, and the Encounter Record's legal-useful-action evidence all derive from this seam (ADR 0013).
 
+`get_tutorial_prompt_projection(presentation_state = {})` is the read-only teaching projection for the seven authored Embermaw prompt contracts. It derives named relevance facts from existing engine state, including Whelp route-blocking relevance, but never reads HUD state or changes rules. Its caller-owned presentation progress is not a gameplay or Encounter Record input; see [Tutorial Prompt Projection](tutorial-prompt-projection.md).
+
 ## Runtime Flow
 
 ```text

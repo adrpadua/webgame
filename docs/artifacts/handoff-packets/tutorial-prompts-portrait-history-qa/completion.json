@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "tutorial-prompts-portrait-history-qa",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Test Automation",
+  "created_at": "2026-08-14T19:25:00-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": {
+    "status": "PASS",
+    "non_goal_compliance": [
+      "QA added only immutable acknowledgment and completion evidence in its assigned packet root.",
+      "No prompt UI, copy, gameplay, content, deck, pacing, rules, analytics, or Encounter Record edit was made.",
+      "This deterministic QA result is not a Playtester verdict and does not close the full tutorial slice."
+    ],
+    "summary": [
+      "The portrait adapter passes the engine-selected one-at-a-time tutorial card, non-blocking Dismiss, accessible full-text tooltip, caller-owned history, Help text-first history list, selected-tip Review reopening, and preserved action-bar and hand visibility at both 390x844 and 488x1056 presentations.",
+      "Independent non-headless NVIDIA OpenGL capture inspection confirms the safe-lane Boss Timeline card and visible Dismiss control in tmp/mobile-help-hidden.png. tmp/mobile-help-open.png visibly shows Tutorial history, the selectable Boss Timeline entry, and the separate Review button; the non-headless tutorial UI probe confirms Review returns that entry to its original contextual-card surface as Close without mutating engine history.",
+      "Main.gd keeps tutorial_prompt_presentation_state, tutorial_prompt_history, and tutorial_prompt_review_id as local presentation state. Its update path calls only engine.get_tutorial_prompt_projection(presentation_state); dismiss/review handlers modify local state and refresh UI, not engine.apply, engine.advance_phase, engine history, or Encounter Record lifecycle.",
+      "The Playtesting activation gate is satisfied: this is a completed playable portrait player-flow with input, mobile/responsive, accessibility, visual-hierarchy, and teachability claims; UI/UX self-check is recorded and the applicable deterministic QA evidence now passes. Coordinator may assign one separate read-only Playtester with a complete sender packet, but deterministic QA does not supply that verdict or closure."
+    ]
+  },
+  "changed_paths": [
+    "docs/artifacts/handoff-packets/tutorial-prompts-portrait-history-qa/acknowledgment.json",
+    "docs/artifacts/handoff-packets/tutorial-prompts-portrait-history-qa/completion.json"
+  ],
+  "validation": [
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\run_probes.ps1 -Probe tutorial_prompt_projection,tutorial_prompt_ui,mobile,accessibility",
+      "result": [
+        "TUTORIAL_PROMPT_PROJECTION_PROBE_OK prompts=7",
+        "TUTORIAL_PROMPT_UI_PROBE_OK viewports=2",
+        "MOBILE_HUD_PROBE_OK presentations=2",
+        "ACCESSIBILITY_PROBE_OK controls=30",
+        "PROBE_SUITE_OK count=4"
+      ]
+    },
+    {
+      "command": "Godot_v4.7.1-stable_win64_console.exe --headless --path D:\\dev\\webgame --script res://scripts/debug/first_loadout_ui_probe.gd --quit-after 900; powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\run_probes.ps1 -Probe parity,records,record_scene",
+      "result": [
+        "FIRST_LOADOUT_UI_PROBE_OK viewports=2",
+        "LIVE_SDK_PARITY_OK",
+        "ENCOUNTER_RECORD_PROBE_OK",
+        "ENCOUNTER_RECORD_SCENE_PROBE_OK",
+        "PROBE_SUITE_OK count=3"
+      ]
+    },
+    {
+      "command": "Godot_v4.7.1-stable_win64_console.exe --path D:\\dev\\webgame --script res://scripts/debug/mobile_hud_probe.gd --quit-after 900; Godot_v4.7.1-stable_win64_console.exe --path D:\\dev\\webgame --script res://scripts/debug/tutorial_prompt_ui_probe.gd --quit-after 900",
+      "result": [
+        "OpenGL API 3.3.0 NVIDIA 592.00 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 4060 Laptop GPU",
+        "MOBILE_HUD_PROBE_OK presentations=2",
+        "TUTORIAL_PROMPT_UI_PROBE_OK viewports=2",
+        "Direct capture inspection: tmp/mobile-help-hidden.png visibly shows the safe-lane Boss Timeline card and Dismiss target; tmp/mobile-help-open.png visibly shows Tutorial history, the Boss Timeline selector entry, and Review."
+      ]
+    },
+    {
+      "command": "Source inspection of scripts/Main.gd and scripts/debug/tutorial_prompt_ui_probe.gd; powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\validate_handoff_packets.ps1 -Root .\\docs\\artifacts\\handoff-packets; git diff --check",
+      "result": [
+        "Tutorial update/dismiss/review handlers use only local presentation state plus engine.get_tutorial_prompt_projection; the probe asserts engine.history remains unchanged through dismiss and review.",
+        "Encounter Record regressions pass; no tutorial UI path calls record sync, seal, or begin.",
+        "Packet validation and diff check pass; exact final validator marker is recorded after this packet."
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "marker",
+      "value": "TUTORIAL_PROMPT_UI_PROBE_OK viewports=2"
+    },
+    {
+      "kind": "marker",
+      "value": "MOBILE_HUD_PROBE_OK presentations=2"
+    },
+    {
+      "kind": "marker",
+      "value": "ACCESSIBILITY_PROBE_OK controls=30"
+    },
+    {
+      "kind": "artifact",
+      "value": "tmp/mobile-help-hidden.png and tmp/mobile-help-open.png; non-headless captures directly inspected for tutorial card/Dismiss and Help history/Review."
+    },
+    {
+      "kind": "boundary",
+      "value": "Dismiss and Review are local presentation-state operations; engine action/phase/history and Encounter Record lifecycle remain unchanged."
+    }
+  ],
+  "next_owner": "Coordinator",
+  "requested_action": "Record deterministic QA PASS and open the separate read-only Playtester assignment through the documented activation gate. The sender packet must name the portrait player-flow, viewport/input, canonical UX/accessibility sources, UI/UX self-check, this QA evidence, and the required verdict. Do not treat this QA packet as the Playtester verdict or full tutorial-slice closure."
+}

@@ -138,6 +138,14 @@ The sender remains accountable until the acknowledgment return is received. The 
 
 For handoffs covered by the deterministic control-plane contract, preserve immutable packet files at `docs/artifacts/handoff-packets/<handoff-id>/assignment.json`, `acknowledgment.json`, and `completion.json`. When correction is necessary, preserve the original root files and use `superseded_by.json` plus `revisions/<revision-id>/...` as defined in [handoff-packets.md](../artifacts/handoff-packets.md). Packet files are evidence authority; the ledger indexes their verdict and current routing. Proposal-06 archive work must not move or rewrite packet files.
 
+From a recovered repository, validate the active packet root before advancing a dependent or closing a milestone:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\debug\validate_handoff_packets.ps1 -Root .\docs\artifacts\handoff-packets
+```
+
+The Phase 0 validator is read-only and the mandatory dependency/closure gate is active. Before advancing a packet-dependent item or recording a milestone closure, the Coordinator must obtain an exit-`0` current-root result. An exit-`1` result blocks the step until the responsible owner supplies valid immutable packet evidence (using supersession where necessary). Its concise human result and JSON line never automate messaging, reassignment, or issue-status mutation.
+
 ## Escalation map
 
 | Condition | Route |

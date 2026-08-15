@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "pilot-03-first-loadout-help-affordance-ui",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "UI/UX",
+  "created_at": "2026-08-14T18:06:00-07:00",
+  "assignment_revision": 1,
+  "owner": "UI/UX",
+  "scope_confirmed": "Restore the Help-hidden first-Loadout portrait Help affordance as a visibly rendered, readable, tappable secondary control while preserving Play as primary and leaving gameplay, action authority, engine, and Encounter Record behavior unchanged.",
+  "planned_paths": [
+    "scenes/Main.gd",
+    "scripts/debug/mobile_hud_probe.gd",
+    "docs/artifacts/embermaw-vertical-slice.md",
+    "docs/artifacts/accessibility.md",
+    "docs/artifacts/probe-harness.md",
+    "docs/artifacts/handoff-packets/pilot-03-first-loadout-help-affordance-ui/completion.json"
+  ],
+  "first_validation": "Run the non-headless mobile_hud_probe capture at the default 488x1056 presentation and inspect the Help-hidden image for a rendered, readable ? control; run the deterministic mobile HUD probe assertion and handoff-packet validator afterward.",
+  "next_owner": "UI/UX"
+}

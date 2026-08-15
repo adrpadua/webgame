@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "pilot-04-phase0-docs-alignment-qa",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T18:13:00-07:00",
+  "owner": "Test Automation",
+  "canonical_issue": ".scratch/deterministic-handoff-control-plane-and-closure-gate/issues/03-run-advisory-pilot-and-enable-closure-gate.md",
+  "objective": "Independently verify that the Pilot 4 Phase 0 documentation reconciliation accurately directs a fresh role to the approved immutable JSON-plus-supersession packet contract and read-only advisory validator command.",
+  "non_goals": [
+    "No game/UI/rules/content change",
+    "No mandatory-gate activation",
+    "No packet format migration or process authority rewrite",
+    "No automated issue status or routing behavior"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Test Automation", "completion": "Test Automation" },
+  "dependencies": [ { "id": "pilot-04-phase0-docs-alignment-coordinator", "state": "satisfied" } ],
+  "required_evidence": [
+    "Direct documentation comparison against docs/artifacts/handoff-packets.md",
+    "Independent current packet-root validator run with concise/JSON output and correct exit status",
+    "Explicit verification that guidance calls the result advisory until activation"
+  ],
+  "next_owner": "Test Automation"
+}

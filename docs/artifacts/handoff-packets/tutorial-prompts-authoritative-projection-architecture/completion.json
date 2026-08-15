@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "tutorial-prompts-authoritative-projection-architecture",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Architecture",
+  "created_at": "2026-08-14T18:28:53-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": "Added the scene-free EncounterEngine tutorial-prompt projection for the seven approved Embermaw contracts. It exposes stable identity, authoritative basis, priority, surface/anchor, mixed show-once policy, caller-owned dismissal/completion state, and accessible full text. Whelp route-blocking is an explicit BoardQuery-backed relevance fact; no HUD inference is required.",
+  "changed_paths": [
+    "scripts/sdk/EncounterEngine.gd",
+    "scripts/tutorial/TutorialPromptProjection.gd",
+    "scripts/hex/BoardQuery.gd",
+    "scripts/debug/tutorial_prompt_projection_probe.gd",
+    "scripts/debug/run_probes.ps1",
+    "docs/rules/tutorial-prompt-projection.md",
+    "docs/rules/headless-rules-sdk.md",
+    "docs/artifacts/probe-harness.md",
+    "docs/artifacts/handoff-packets/tutorial-prompts-authoritative-projection-architecture/acknowledgment.json",
+    "docs/artifacts/handoff-packets/tutorial-prompts-authoritative-projection-architecture/completion.json"
+  ],
+  "validation": [
+    {
+      "command": "powershell -ExecutionPolicy Bypass -File .\\scripts\\debug\\run_probes.ps1 -Probe tutorial_prompt_projection",
+      "result": "exit 0; TUTORIAL_PROMPT_PROJECTION_PROBE_OK prompts=7; PROBE_SUITE_OK count=1"
+    },
+    {
+      "command": "powershell -ExecutionPolicy Bypass -File .\\scripts\\debug\\run_probes.ps1 -Probe rules,riposte,tutorial_prompt_projection",
+      "result": "exit 0; SDK_ENCOUNTER_HARNESS_OK; RIPOSTE_READY_PROBE_OK; TUTORIAL_PROMPT_PROJECTION_PROBE_OK prompts=7; PROBE_SUITE_OK count=3"
+    },
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\validate_handoff_packets.ps1 -Root .\\docs\\artifacts\\handoff-packets",
+      "result": "exit 0; HANDOFF_PACKET_VALIDATION_OK handoffs=14 errors=0"
+    }
+  ],
+  "evidence": [
+    "Focused scene-free probe covers intended and invalid or irrelevant state for every authored trigger.",
+    "Projection includes explicit route_blocking_relevance facts and legal_sweeping_blow_target_ids; a Whelp on a voluntarily blocked destination is not route pressure.",
+    "No UI scene, gameplay action, timing, legal-state, content, deck, encounter, pacing, target-pattern, protected-input, analytics, or Encounter Record path changed."
+  ],
+  "next_owner": "Test Automation",
+  "requested_action": "Independently run and inspect the focused tutorial_prompt_projection probe and the existing rules/riposte regression probes. Report deterministic verification to the Coordinator; do not release UI/UX presentation work from this packet alone."
+}

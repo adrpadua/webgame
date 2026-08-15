@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "pilot-05-advisory-rollout-coordinator",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T18:17:00-07:00",
+  "owner": "Coordinator",
+  "canonical_issue": ".scratch/deterministic-handoff-control-plane-and-closure-gate/issues/03-run-advisory-pilot-and-enable-closure-gate.md",
+  "objective": "Perform the fifth and final advisory control-plane handoff: inventory the four completed advisory pilots, confirm valid packet retention and safe dependency/closure behavior, and prepare the bounded rollout-state packet for independent Test Automation verification.",
+  "non_goals": [
+    "No mandatory-gate activation before independent Test Automation PASS",
+    "No gameplay, UI, rules, content, or product-scope change",
+    "No packet-format migration, archive/backfill, automatic messaging, reassignment, or issue-status mutation",
+    "No retroactive relabeling of unrelated history"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Coordinator", "completion": "Coordinator" },
+  "dependencies": [
+    { "id": "pilot-01-mobile-safe-bounds-ui", "state": "satisfied" },
+    { "id": "pilot-02-focused-rules-probe-qa", "state": "satisfied" },
+    { "id": "pilot-03-first-loadout-playtester-retest", "state": "satisfied" },
+    { "id": "pilot-04-phase0-docs-alignment-qa", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Inventory of all five advisory pilot evidence paths and their separate implementation/verifier handoffs where applicable",
+    "Current canonical packet-root validation showing zero errors and retained evidence",
+    "Documented confirmation that no dependency/milestone advanced unsafely and the gate remains inactive until Test Automation independent PASS"
+  ],
+  "next_owner": "Coordinator"
+}

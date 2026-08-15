@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "tutorial-prompts-portrait-history-qa",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-15T02:10:00-07:00",
+  "owner": "Test Automation",
+  "canonical_issue": ".scratch/contextual-mobile-tutorial-prompts-embermaw/issues/04-verify-tutorial-prompt-contracts.md",
+  "objective": "Independently verify the portrait tutorial-prompt/Help-history presentation: one non-blocking prompt at a time, dismissal and Review reopening, accessible full text, safe `390x844` board/card visibility, and strict HUD-as-presentation-adapter behavior. Determine whether the separate hands-on Playtesting activation gate is satisfied; do not close it from deterministic evidence alone.",
+  "non_goals": [
+    "No prompt UI, copy, gameplay, content, deck, pacing, rules, analytics, or Encounter Record edit",
+    "No protected gesture, mandatory tutorial, target-pattern UI, combat log, or inferred HUD trigger",
+    "No full tutorial closure or Playtester verdict from Test Automation alone"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Test Automation", "completion": "Test Automation" },
+  "dependencies": [
+    { "id": "tutorial-prompts-authoritative-projection-qa", "state": "satisfied" },
+    { "id": "tutorial-prompts-portrait-history-ui", "state": "satisfied" },
+    { "id": "phase0-mandatory-gate-activation", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Independent tutorial prompt projection/UI/mobile/accessibility probe execution and first-loadout/parity/records regression as warranted",
+    "Independent default non-headless capture inspection showing safe-lane card, Dismiss, text-first Help history, and Review reopening",
+    "Source inspection proving presentation state does not mutate EncounterEngine action/phase/history or Encounter Record lifecycle",
+    "Completion packet with exact PASS/blocker and explicit Playtesting-gate assessment"
+  ],
+  "next_owner": "Test Automation"
+}

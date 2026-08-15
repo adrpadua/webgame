@@ -31,6 +31,14 @@ After a `ready-for-agent` handoff, the orchestrator owns delivery decomposition,
 
 When a delivery uses deterministic handoff packets, keep the issue file as the scope and status record and store durable assignment/acknowledgment/completion evidence under `docs/artifacts/handoff-packets/<handoff-id>/`. Proposal 12's approved Phase 0 packet contract uses immutable JSON packet files plus immutable superseding revisions; `docs/artifacts/handoff-packets.md` is the canonical schema and validator authority. Issue comments and task messages may link packet verdicts but are not the packet authority.
 
+For a current packet-root verdict, run the canonical read-only validator from the repository root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\debug\validate_handoff_packets.ps1 -Root .\docs\artifacts\handoff-packets
+```
+
+The mandatory dependency/closure gate is active. The Coordinator must obtain an exit-`0` current-root result before advancing a packet-dependent issue or recording a milestone closure; an exit-`1` result keeps the item open until valid immutable packet evidence is supplied. The validator itself remains read-only and never edits issue status or routes work automatically.
+
 ## Wayfinding operations
 
 Used by `/wayfinder`. The map is a file with one child file per ticket.

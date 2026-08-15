@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "tutorial-prompts-authoritative-projection-qa",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-15T01:33:00-07:00",
+  "owner": "Test Automation",
+  "canonical_issue": ".scratch/contextual-mobile-tutorial-prompts-embermaw/issues/04-verify-tutorial-prompt-contracts.md",
+  "objective": "Independently verify the authoritative, scene-free seven-contract tutorial-prompt projection and its existing rules/Riposte regression boundary. This is the deterministic projection stage only; it does not close the later portrait presentation/history or hands-on requirements.",
+  "non_goals": [
+    "No prompt UI, Help history, copy, gameplay, action/timing, content, deck, pacing, analytics, or Encounter Record edit",
+    "No HUD-inferred trigger or relevance rule",
+    "No full tutorial-slice closure or UI/UX ownership release from this projection-only verification"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Test Automation", "completion": "Test Automation" },
+  "dependencies": [
+    { "id": "tutorial-prompts-authoritative-projection-architecture", "state": "satisfied" },
+    { "id": "phase0-mandatory-gate-activation", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Independent `tutorial_prompt_projection` deterministic probe result for all seven contracts, intended states, invalid/irrelevant states, one-at-a-time selection, and presentation-state-only completion/dismissal behavior",
+    "Independent `rules,riposte,tutorial_prompt_projection` regression result",
+    "Source/contract inspection confirming Whelp route-blocking and legal Sweeping Blow relevance are authoritative projections rather than HUD inference",
+    "Completion packet with PASS or exact blocker and explicit next owner"
+  ],
+  "next_owner": "Test Automation"
+}

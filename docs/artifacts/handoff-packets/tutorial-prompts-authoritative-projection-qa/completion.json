@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "tutorial-prompts-authoritative-projection-qa",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Test Automation",
+  "created_at": "2026-08-14T18:45:00-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": {
+    "status": "PASS",
+    "non_goal_compliance": [
+      "QA added only immutable acknowledgment and completion evidence in its assigned packet root.",
+      "No prompt UI, Help history, copy, gameplay, action/timing, content, deck, pacing, analytics, or Encounter Record behavior was edited.",
+      "This deterministic projection PASS does not close the full tutorial slice or release UI/UX presentation/history ownership."
+    ],
+    "summary": [
+      "The scene-free projection passes all seven authored contracts, intended states, invalid or irrelevant states, priority-based one-at-a-time selection, accessible full text, and caller-owned dismissal/completion behavior.",
+      "Whelp route pressure is authoritative: the projection uses BoardQuery.is_legal_route_blocker to return route_blocking_relevance only for a living Whelp occupying an adjacent destination that would otherwise be a legal voluntary move. The focused probe rejects distant Whelps and Whelps on hazard-blocked voluntary destinations.",
+      "Legal Sweeping Blow relevance is authoritative: the projection exposes legal_sweeping_blow_target_ids from current engine/slot/window legality, and the focused probe asserts the exact legal Whelp ID rather than deriving relevance from HUD state, artwork, enemy count, or board rendering.",
+      "EncounterEngine.get_tutorial_prompt_projection(presentation_state = {}) delegates to the projection and performs no action application, phase advancement, prompt-progress storage, or Encounter Record mutation."
+    ]
+  },
+  "changed_paths": [
+    "docs/artifacts/handoff-packets/tutorial-prompts-authoritative-projection-qa/acknowledgment.json",
+    "docs/artifacts/handoff-packets/tutorial-prompts-authoritative-projection-qa/completion.json"
+  ],
+  "validation": [
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\run_probes.ps1 -Probe tutorial_prompt_projection",
+      "result": [
+        "TUTORIAL_PROMPT_PROJECTION_PROBE_OK prompts=7",
+        "PROBE_SUITE_OK count=1"
+      ]
+    },
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\run_probes.ps1 -Probe rules,riposte,tutorial_prompt_projection",
+      "result": [
+        "SDK_ENCOUNTER_HARNESS_OK",
+        "RIPOSTE_READY_PROBE_OK",
+        "TUTORIAL_PROMPT_PROJECTION_PROBE_OK prompts=7",
+        "PROBE_SUITE_OK count=3"
+      ]
+    },
+    {
+      "command": "Source and canonical-contract inspection of scripts/tutorial/TutorialPromptProjection.gd, scripts/sdk/EncounterEngine.gd, scripts/hex/BoardQuery.gd, scripts/debug/tutorial_prompt_projection_probe.gd, docs/rules/tutorial-prompt-projection.md, docs/rules/headless-rules-sdk.md, and docs/content/encounters/embermaw-prototype.md",
+      "result": [
+        "Route-blocking relevance is supplied by BoardQuery.is_legal_route_blocker and carries reason adjacent_legal_move_occupied; HUD inference is prohibited.",
+        "Legal Sweeping Blow target IDs are projected from engine facts and tested as target_whelp; distant and hazard-blocked Whelp cases remain irrelevant.",
+        "The public EncounterEngine seam only returns TutorialPromptProjection.project(self, presentation_state); presentation progress is caller-owned and not an Encounter Record or rules input."
+      ]
+    },
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\validate_handoff_packets.ps1 -Root .\\docs\\artifacts\\handoff-packets; git diff --check",
+      "result": [
+        "HANDOFF_PACKET_VALIDATION_OK root=D:\\dev\\webgame\\.\\docs\\artifacts\\handoff-packets handoffs=15 errors=0",
+        "HANDOFF_PACKET_VALIDATION_JSON status=ok handoff_count=15 error_count=0",
+        "git diff --check passed; CRLF conversion warnings only"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "marker",
+      "value": "TUTORIAL_PROMPT_PROJECTION_PROBE_OK prompts=7"
+    },
+    {
+      "kind": "marker",
+      "value": "SDK_ENCOUNTER_HARNESS_OK"
+    },
+    {
+      "kind": "marker",
+      "value": "RIPOSTE_READY_PROBE_OK"
+    },
+    {
+      "kind": "contract",
+      "value": "Whelp route_blocking_relevance is BoardQuery-backed and legal_sweeping_blow_target_ids are engine-projected; neither is HUD-inferred."
+    }
+  ],
+  "next_owner": "Coordinator",
+  "requested_action": "Record the deterministic authoritative-projection PASS. Keep the full tutorial slice and issue 04 open: route or retain UI/UX portrait presentation/history work and any later hands-on evidence under their separate assignments; do not release UI/UX ownership from this packet."
+}

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "pilot-03-first-loadout-help-affordance-architecture",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Architecture",
+  "created_at": "2026-08-14T11:07:41-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": {
+    "status": "completed",
+    "non_goal_compliance": [
+      "No UI implementation, rules, content, deck, tutorial-system, Undo, reset, or replay behavior was added by this review.",
+      "The visible Help remediation remains a presentation-only affordance: the Help handler toggles only the existing pane visibility and tooltip, while Play remains the separate primary action.",
+      "The remediation diff contains no EncounterEngine, TurnManager, Encounter Record, scene-controller, or resource change; therefore it adds no gameplay, legal-action, phase/timing, input authority, engine-state, or record-lifecycle behavior."
+    ],
+    "summary": [
+      "Reviewed the UI/UX remediation packet, changed probe, affected documentation, Help signal path, headless-SDK boundary ADRs, and Encounter Record contract.",
+      "The changed probe only lays out the existing 390x844 logical portrait canvas, projects Help geometry to supported presentations, and asserts visual/input discoverability before emitting the existing Help button signal; it neither applies an action nor advances a phase.",
+      "Focused live-SDK parity and Encounter Record lifecycle regressions passed, corroborating the source-boundary inspection."
+    ]
+  },
+  "changed_paths": [
+    "docs/artifacts/handoff-packets/pilot-03-first-loadout-help-affordance-architecture/acknowledgment.json",
+    "docs/artifacts/handoff-packets/pilot-03-first-loadout-help-affordance-architecture/completion.json"
+  ],
+  "validation": [
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\run_probes.ps1 -Probe parity,records,record_scene",
+      "result": [
+        "LIVE_SDK_PARITY_OK",
+        "ENCOUNTER_RECORD_PROBE_OK",
+        "ENCOUNTER_RECORD_SCENE_PROBE_OK",
+        "PROBE_SUITE_OK count=3"
+      ]
+    },
+    {
+      "command": "git diff --name-only; git diff -- scripts/sdk/EncounterEngine.gd scripts/records/EncounterRecord.gd scripts/turns/TurnManager.gd scripts/Main.gd scenes; git diff --check",
+      "result": [
+        "Changed remediation implementation surface is scripts/debug/mobile_hud_probe.gd plus presentation documentation and captures; no diff exists for EncounterEngine, EncounterRecord, TurnManager, Main, scenes, resources, or project configuration.",
+        "git diff --check passed with no whitespace errors."
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "source-boundary",
+      "value": "scripts/Main.gd:_on_mobile_help_pressed toggles only mobile_help_pane.visible, Help tooltip text, and mobile Help layout."
+    },
+    {
+      "kind": "source-boundary",
+      "value": "scripts/debug/mobile_hud_probe.gd checks Help geometry, visibility, normal style, direct tap, glyph/name, and secondary placement; it contains no EncounterEngine, EncounterRecord, action, or phase call."
+    },
+    {
+      "kind": "marker",
+      "value": "LIVE_SDK_PARITY_OK"
+    },
+    {
+      "kind": "marker",
+      "value": "ENCOUNTER_RECORD_PROBE_OK"
+    },
+    {
+      "kind": "marker",
+      "value": "ENCOUNTER_RECORD_SCENE_PROBE_OK"
+    }
+  ],
+  "next_owner": "Coordinator",
+  "requested_action": "Record Architecture PASS. Route Test Automation's independent visible-Help/mobile/accessibility and first-loadout acceptance. Only if Test Automation also returns PASS may the Coordinator activate the focused read-only Playtester retest."
+}

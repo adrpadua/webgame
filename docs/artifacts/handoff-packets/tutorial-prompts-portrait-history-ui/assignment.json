@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "tutorial-prompts-portrait-history-ui",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-15T01:55:00-07:00",
+  "owner": "UI/UX",
+  "canonical_issue": ".scratch/contextual-mobile-tutorial-prompts-embermaw/issues/03-present-mobile-prompts-and-help-history.md",
+  "objective": "Present the approved non-blocking tutorial prompt projection in portrait: one short dismissible prompt at a time, accessible full text, preserved board/card visibility at 390x844, and Help/Rules history with both text-first scanning and reopenable contextual cards. Consume the authoritative projection only.",
+  "non_goals": [
+    "No HUD-derived gameplay trigger, legal action, phase advancement, or input authority",
+    "No protected next gesture, scripted mandatory flow, combat log, target-pattern UI, content/deck/pacing/rules change, or analytics backend",
+    "No Encounter Record prompt metadata unless separately necessary and presented as non-gameplay metadata"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "UI/UX", "completion": "UI/UX" },
+  "dependencies": [
+    { "id": "tutorial-prompts-authoritative-projection-architecture", "state": "satisfied" },
+    { "id": "tutorial-prompts-authoritative-projection-qa", "state": "satisfied" },
+    { "id": "phase0-mandatory-gate-activation", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "One-at-a-time non-blocking/dismissible portrait behavior driven by the engine projection, not HUD inference",
+    "Help/Rules text-first history and reopenable contextual cards for shown guidance",
+    "Focused probe evidence for 390x844 board/card visibility, dismissal/reopen, and accessible text; non-headless evidence if required for visual claims",
+    "Canonical updates to vertical-slice, accessibility, and probe-harness docs with UI/UX completion packet and QA handoff"
+  ],
+  "next_owner": "UI/UX"
+}

@@ -1,8 +1,8 @@
 # Present Mobile Prompts and Help History
 
-Status: blocked
+Status: completed-pending-qa
 Owner: UI/UX
-Blocked by: 02 and PM/user policy decisions
+Blocked by: independent Test Automation verification of the portrait presentation/history packet
 
 ## Outcome
 
@@ -15,3 +15,7 @@ No HUD gameplay inference, protected gesture unless specifically approved, rules
 ## Required return
 
 Return the mandatory packet with canonical UI/accessibility updates, focused visual/probe evidence, and the QA handoff.
+
+## Completion evidence
+
+UI/UX completed the presentation-only implementation in `docs/artifacts/handoff-packets/tutorial-prompts-portrait-history-ui/completion.json`. The next required owner is Test Automation: verify one-at-a-time/dismiss/reopen behavior, accessible full text, `390x844` visibility, and that the HUD remains an adapter over the authoritative tutorial projection.

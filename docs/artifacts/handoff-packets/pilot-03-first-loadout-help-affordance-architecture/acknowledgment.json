@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "pilot-03-first-loadout-help-affordance-architecture",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "Architecture",
+  "created_at": "2026-08-14T11:06:33-07:00",
+  "assignment_revision": 1,
+  "owner": "Architecture",
+  "scope_confirmed": "Independently inspect the visible Help remediation and its UI, probe, and documentation surfaces, then verify it remains presentation-only with no gameplay, action or timing authority, EncounterEngine state, or Encounter Record lifecycle change.",
+  "planned_paths": [
+    "scripts/debug/mobile_hud_probe.gd",
+    "scripts/Main.gd",
+    "scripts/sdk/EncounterEngine.gd",
+    "scripts/records/EncounterRecord.gd",
+    "docs/artifacts/embermaw-vertical-slice.md",
+    "docs/artifacts/accessibility.md",
+    "docs/artifacts/probe-harness.md",
+    "docs/artifacts/handoff-packets/pilot-03-first-loadout-help-affordance-architecture/completion.json"
+  ],
+  "first_validation": "Inspect the remediation diff and Help signal path, then run focused EncounterEngine parity and Encounter Record regression probes plus packet validation without modifying application, UI, probe, or canonical documentation code.",
+  "next_owner": "Architecture"
+}

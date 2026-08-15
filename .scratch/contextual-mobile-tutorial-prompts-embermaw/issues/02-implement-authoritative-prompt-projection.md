@@ -1,8 +1,8 @@
 # Implement Authoritative Prompt Projection
 
-Status: blocked
+Status: completed-pending-independent-verification
 Owner: Architecture
-Blocked by: 01 canonical recording of the now-approved PM/user policy decisions
+Blocked by: independent Test Automation verification of the authoritative projection handoff
 
 ## Outcome
 

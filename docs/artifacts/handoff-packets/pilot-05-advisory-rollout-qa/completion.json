@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "pilot-05-advisory-rollout-qa",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Test Automation",
+  "created_at": "2026-08-14T11:39:00-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": {
+    "status": "PASS",
+    "non_goal_compliance": [
+      "QA added only immutable acknowledgment and completion evidence in its assigned Pilot 5 packet root.",
+      "QA did not activate the mandatory gate, modify documentation or code, migrate/archive/backfill packets, send automatic messages, reassign work, or mutate issue status."
+    ],
+    "summary": [
+      "Five advisory pilot groups are valid and retained: Pilot 1 safe-bounds; Pilot 2 focused rules-Probe; Pilot 3 first-loadout remediation and retest chain; Pilot 4 documentation alignment; and Pilot 5 final rollout inventory plus this independent QA completion.",
+      "Pilot 1 preserves its original root evidence, revisions/0002, revisions/0003, and superseded_by.json. The supersession points to revisions/0003, whose assignment, acknowledgment, and completion packets are all present and valid; the preserved root files are not rewritten or removed.",
+      "Pilot 3 did not count after the initial Playtester PASS WITH CONCERNS. The retained chain shows visible-Help UI remediation, independently completed Architecture and Test Automation rechecks, then a focused Playtester retest assignment with all three remediation dependencies marked satisfied and a final PASS directing that Pilot 3 may count.",
+      "Current root validation emits one concise HANDOFF_PACKET_VALIDATION_OK line and one HANDOFF_PACKET_VALIDATION_JSON line, exits 0, and leaves the worktree unchanged. The packet contract, recovery kit, issue tracker, delivery issue, and ledger continue to name immutable JSON-plus-supersession v1 and advisory-before-activation operation."
+    ]
+  },
+  "changed_paths": [
+    "docs/artifacts/handoff-packets/pilot-05-advisory-rollout-qa/acknowledgment.json",
+    "docs/artifacts/handoff-packets/pilot-05-advisory-rollout-qa/completion.json"
+  ],
+  "validation": [
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\validate_handoff_packets.ps1 -Root .\\docs\\artifacts\\handoff-packets",
+      "result": [
+        "HANDOFF_PACKET_VALIDATION_OK root=D:\\dev\\webgame\\.\\docs\\artifacts\\handoff-packets handoffs=12 errors=0",
+        "HANDOFF_PACKET_VALIDATION_JSON {\"status\":\"ok\",\"root\":\"D:\\\\dev\\\\webgame\\\\.\\\\docs\\\\artifacts\\\\handoff-packets\",\"handoff_count\":12,\"error_count\":0,\"errors\":[]}",
+        "Exit code: 0",
+        "Worktree comparison before and after validator execution: unchanged"
+      ]
+    },
+    {
+      "command": "Direct retained-packet audit of Pilot 1, Pilot 2, Pilot 3, Pilot 4, and Pilot 5 groups",
+      "result": [
+        "Pilot 1: root assignment/acknowledgment/completion retained; superseded_by.json points to revisions/0003; revisions/0002 and revisions/0003 retained; active revision has an assigned Coordinator packet, acknowledged UI/UX packet, and completed UI/UX packet.",
+        "Pilot 2: assigned Coordinator, acknowledged Test Automation, and completed Test Automation packet are retained.",
+        "Pilot 3: original UI, initial Playtester concern, visible-Help UI remediation, Architecture PASS, Test Automation PASS, and dependency-gated Playtester retest PASS packet sets are retained.",
+        "Pilot 4: Coordinator and independent Test Automation assignment/acknowledgment/completion packet sets are retained.",
+        "Pilot 5: Coordinator inventory and Test Automation final-rollout packet sets are retained; this completion supplies its terminal QA evidence."
+      ]
+    },
+    {
+      "command": "Direct authority comparison of docs/artifacts/handoff-packets.md, docs/agents/recovery-kit.md, docs/agents/issue-tracker.md, .scratch/deterministic-handoff-control-plane-and-closure-gate/issues/03-run-advisory-pilot-and-enable-closure-gate.md, and docs/artifacts/project-coordination.md",
+      "result": [
+        "All sources retain immutable JSON-plus-immutable-supersession v1 as the live Phase 0 authority and defer Markdown/YAML migration.",
+        "The current root validator is documented as read-only advisory evidence before Coordinator-recorded mandatory-gate activation; no automatic message, reassignment, issue-status mutation, or routing follows from a pass.",
+        "The delivery issue explicitly states that five pilots are complete pending this Test Automation rollout-state PASS and that the gate remains inactive until it is recorded."
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "result": [
+        "Passed; CRLF conversion warnings only"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "marker",
+      "value": "HANDOFF_PACKET_VALIDATION_OK handoffs=12 errors=0"
+    },
+    {
+      "kind": "json",
+      "value": "HANDOFF_PACKET_VALIDATION_JSON status=ok handoff_count=12 error_count=0"
+    },
+    {
+      "kind": "supersession",
+      "value": "pilot-01-mobile-safe-bounds-ui/superseded_by.json retains root evidence and selects revisions/0003 as the active valid packet set."
+    },
+    {
+      "kind": "sequence",
+      "value": "pilot-03-first-loadout-playtester-retest assignment marks UI, Architecture, and QA remediation handoffs satisfied; its completion is PASS and directs Pilot 3 counting only after that retest."
+    },
+    {
+      "kind": "authority-comparison",
+      "value": "Contract, recovery, issue tracker, delivery issue, and ledger agree on JSON v1 and advisory-before-activation operation."
+    }
+  ],
+  "next_owner": "Coordinator",
+  "requested_action": "Record the final independent Test Automation PASS. The Coordinator may now perform the separately authorized mandatory dependency/closure gate activation and update the established canonical state."
+}

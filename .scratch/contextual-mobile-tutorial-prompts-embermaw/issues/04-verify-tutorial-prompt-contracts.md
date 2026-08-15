@@ -1,8 +1,8 @@
 # Verify Tutorial-Prompt Contracts
 
-Status: blocked
+Status: assigned-pending-acknowledgment
 Owner: Test Automation
-Blocked by: 02 and 03
+Blocked by: none; authoritative-projection verification passed and UI/UX portrait presentation/history completion is available for independent review
 
 ## Outcome
 

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "pilot-03-first-loadout-help-affordance-qa",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T18:02:00-07:00",
+  "owner": "Test Automation",
+  "canonical_issue": ".scratch/improve-first-turn-loadout-comprehension/issues/04-newcomer-observation.md",
+  "objective": "Independently verify the visible-Help remediation: rendered/discoverable ? Help in the default Help-hidden portrait capture, mobile/accessibility validity across the supported matrix, and no regression to the first-loadout action hierarchy.",
+  "non_goals": [
+    "No source or canonical-document edits unless a verified testability gap is found and routed",
+    "No UI redesign, Undo capability, gameplay/rules/action-authority, or record behavior work",
+    "No Playtester verdict; that remains a later independent retest"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Test Automation", "completion": "Test Automation" },
+  "dependencies": [ { "id": "pilot-03-first-loadout-help-affordance-ui", "state": "satisfied" } ],
+  "required_evidence": [
+    "Independent mobile,accessibility suite with exact markers",
+    "Independent default non-headless capture or equivalent direct artifact inspection that proves the ? is visibly rendered in Help-hidden state",
+    "Rendered-affordance assertion inspection—not Control.visible only—and focused first-loadout regression evidence",
+    "Explicit PASS or exact blocker returned to the Coordinator"
+  ],
+  "next_owner": "Test Automation"
+}

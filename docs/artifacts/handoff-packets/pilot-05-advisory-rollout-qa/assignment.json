@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "pilot-05-advisory-rollout-qa",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T18:18:00-07:00",
+  "owner": "Test Automation",
+  "canonical_issue": ".scratch/deterministic-handoff-control-plane-and-closure-gate/issues/03-run-advisory-pilot-and-enable-closure-gate.md",
+  "objective": "Independently verify the completed Phase 0 five-pilot advisory rollout state: immutable v1 packet retention/supersession, zero-error validator output, safe prerequisite sequencing, and consistent recovery/issue-tracker/ledger/contract guidance before mandatory-gate activation.",
+  "non_goals": [
+    "No gate activation by Test Automation",
+    "No game/UI/rules/content or product-scope change",
+    "No format migration, archive/backfill, automatic messaging, reassignment, or issue-status mutation",
+    "No retroactive changes to packet evidence"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Test Automation", "completion": "Test Automation" },
+  "dependencies": [ { "id": "pilot-05-advisory-rollout-coordinator", "state": "satisfied" } ],
+  "required_evidence": [
+    "Independent validator command/root output, concise and JSON result, correct exit code",
+    "Direct retained-packet inspection of all five pilot groups and the Pilot 1 immutable supersession evidence",
+    "Direct comparison of recovery kit, issue tracker, ledger, and packet contract for JSON v1/advisory-preactivation consistency",
+    "Explicit PASS or exact blocker; PASS is the only remaining prerequisite for Coordinator gate activation"
+  ],
+  "next_owner": "Test Automation"
+}

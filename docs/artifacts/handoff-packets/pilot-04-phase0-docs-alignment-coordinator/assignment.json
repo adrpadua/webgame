@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "pilot-04-phase0-docs-alignment-coordinator",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T18:12:00-07:00",
+  "owner": "Coordinator",
+  "canonical_issue": ".scratch/deterministic-handoff-control-plane-and-closure-gate/issues/03-run-advisory-pilot-and-enable-closure-gate.md",
+  "objective": "Reconcile the recovery kit, issue-tracker guidance, live ledger, and canonical packet contract around the approved Phase 0 JSON-plus-immutable-supersession format, including a fresh-role validation command path.",
+  "non_goals": [
+    "No gameplay, rules, content, UI, or product-scope change",
+    "No mandatory-gate activation",
+    "No alternate Markdown/YAML packet format or process-authority rewrite",
+    "No archival/backfill or automatic task/status behavior"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Coordinator", "completion": "Coordinator" },
+  "dependencies": [ { "id": "pilot-03-first-loadout-playtester-retest", "state": "satisfied" } ],
+  "required_evidence": [
+    "Recovery kit and issue tracker state the same JSON-plus-supersession authority as handoff-packets.md",
+    "A fresh role can locate and run the exact read-only validator command from repository guidance",
+    "Test Automation independently verifies the resulting documentation/validator alignment"
+  ],
+  "next_owner": "Coordinator"
+}

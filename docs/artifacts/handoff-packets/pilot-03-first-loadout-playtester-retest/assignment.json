@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "pilot-03-first-loadout-playtester-retest",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T18:09:00-07:00",
+  "owner": "Playtester",
+  "canonical_issue": ".scratch/improve-first-turn-loadout-comprehension/issues/04-newcomer-observation.md",
+  "objective": "Independently retest the bounded newcomer claim after remediation: on the Help-hidden portrait first-Loadout view, a newcomer can discover the secondary ? Help affordance while still recognizing Hand to Slot to Play as the uncoached primary flow.",
+  "non_goals": [
+    "No repository, documentation, packet, probe, game, or UI edits",
+    "No gameplay, rules, timing, input-authority, or Encounter Record evaluation beyond the player-facing claim",
+    "No approval or creation of a mobile Undo capability",
+    "No broad HUD or tutorial-system assessment"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Coordinator", "completion": "Coordinator" },
+  "dependencies": [
+    { "id": "pilot-03-first-loadout-help-affordance-ui", "state": "satisfied" },
+    { "id": "pilot-03-first-loadout-help-affordance-architecture", "state": "satisfied" },
+    { "id": "pilot-03-first-loadout-help-affordance-qa", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Ordered non-headless portrait player observation of the Help-hidden first-Loadout view using the current default presentation",
+    "Specific verdict on visible/discoverable ? Help and the still-primary Hand to Slot to Play progression hierarchy",
+    "Environment, build identity, canonical expectation, concerns, recommended route, and retest condition returned first to the Coordinator"
+  ],
+  "next_owner": "Playtester"
+}

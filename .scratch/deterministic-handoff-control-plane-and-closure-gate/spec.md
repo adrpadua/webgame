@@ -1,6 +1,6 @@
 # Deterministic Handoff Control Plane and Closure Gate
 
-Status: active
+Status: completed
 
 ## Approved outcome
 
@@ -16,23 +16,25 @@ Packet artifacts are the durable authority for handoff evidence; task messages n
 
 The packet root is repository-relative, readable from recovery, and independent of the compact live ledger. It retains terminal packet evidence; the ledger only indexes the current handoff/validator verdict. Proposal-06 archive movement does not relocate or rewrite packet artifacts.
 
-Authoritative v1 format decision: Phase 0 uses immutable JSON packet files plus superseding revisions as the approved live contract. The later Markdown/YAML preference is deferred rather than migrated into this rollout, because the JSON model is already implemented, QA-verified, and in active advisory use.
+Authoritative v1 format decision: Phase 0 uses immutable JSON packet files plus superseding revisions as the approved live contract. The later Markdown/YAML preference is deferred rather than migrated into this rollout, because the JSON model is implemented, QA-verified, and now used by the active mandatory gate.
 
 ## Sequence
 
-1. Architecture defines the versioned packet schema and implements an advisory validator with concise human and JSON output.
+1. Architecture defines the versioned packet schema and implements a read-only validator with concise human and JSON output.
 2. Test Automation independently verifies all required passing/failing cases.
-3. Coordinator records five advisory handoffs without unsafe advancement/closure, then switches the validator to mandatory mode only after QA PASS, recovery-doc review, and completion of all five valid pilots.
+3. Coordinator records five advisory handoffs without unsafe advancement/closure, then activates the mandatory dependency/closure gate only after QA PASS, recovery-doc review, and completion of all five valid pilots.
 
-## Remaining closure criteria
+## Closure evidence
 
-Phase 0 is not complete until all of the following are true:
+Phase 0 completed on 2026-08-14 after all of the following became true:
 
 1. Five valid advisory handoffs exist under the approved v1 JSON packet contract.
 2. Each counted pilot preserves separate implementation/verifier handoffs where applicable and shows no unsafe dependency advancement or milestone closure.
 3. Test Automation has independent PASS evidence for the validator behavior and the advisory rollout state used to activate the gate.
 4. Recovery and issue-tracker authority documents point to the same approved v1 packet contract and do not describe Markdown/YAML as the live Phase 0 format.
 5. Only after items 1 through 4 are complete may the Orchestrator activate the mandatory dependency/closure gate.
+
+The gate is active. Before the Coordinator advances a packet-dependent dependency or records a milestone closure, the current canonical packet root must validate with exit `0`. A failing result blocks the step; the validator remains read-only and does not automate routing or issue mutation.
 
 ## Non-goals
 

@@ -1,6 +1,6 @@
 # Improve First-Turn Loadout Screen Comprehension for New Players
 
-Status: ready-for-agent
+Status: resolved
 
 ## Player Problem
 

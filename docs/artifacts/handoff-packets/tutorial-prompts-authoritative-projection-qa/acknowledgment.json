@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "tutorial-prompts-authoritative-projection-qa",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "Test Automation",
+  "created_at": "2026-08-14T18:38:00-07:00",
+  "assignment_revision": 1,
+  "owner": "Test Automation",
+  "scope_confirmed": [
+    "Independently verify the scene-free seven-contract tutorial-prompt projection, including intended and irrelevant states, one-at-a-time selection, and presentation-state-only completion or dismissal.",
+    "Rerun tutorial_prompt_projection alone and with rules and riposte regressions.",
+    "Inspect the source and canonical contracts to confirm Whelp route-blocking and legal Sweeping Blow relevance are authoritative projections rather than HUD inference.",
+    "Do not edit prompt UI, Help history, copy, gameplay, action/timing, content, deck, pacing, analytics, Encounter Records, or close the full tutorial slice."
+  ],
+  "planned_paths": [
+    "scripts/debug/tutorial_prompt_projection_probe.gd",
+    "scripts/debug/run_probes.ps1",
+    "docs/artifacts/handoff-packets/tutorial-prompts-authoritative-projection-architecture/completion.json",
+    "docs/content/encounters/embermaw-prototype.md",
+    "docs/artifacts/handoff-packets/tutorial-prompts-authoritative-projection-qa/completion.json"
+  ],
+  "first_validation": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\run_probes.ps1 -Probe tutorial_prompt_projection",
+  "next_owner": "Test Automation"
+}

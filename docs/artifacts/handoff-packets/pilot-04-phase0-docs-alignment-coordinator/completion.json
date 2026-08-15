@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "pilot-04-phase0-docs-alignment-coordinator",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T18:13:00-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": "Completed the smallest Phase 0 guidance reconciliation: recovery and issue-tracker paths explicitly identify immutable JSON-plus-supersession packets, point to the canonical contract, and give a fresh role the exact advisory validator command. Mandatory mode remains inactive.",
+  "changed_paths": [
+    "docs/agents/recovery-kit.md",
+    "docs/agents/issue-tracker.md",
+    "docs/artifacts/project-coordination.md"
+  ],
+  "validation": [
+    "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\validate_handoff_packets.ps1 -Root .\\docs\\artifacts\\handoff-packets => HANDOFF_PACKET_VALIDATION_OK handoffs=9 errors=0",
+    "git diff --check on Pilot 4 packet and documentation paths => exit 0; CRLF warnings only"
+  ],
+  "evidence": [
+    "Recovery kit and issue tracker retain handoff-packets.md as schema authority and name the same JSON-plus-immutable-supersession v1 model.",
+    "Both guidance documents provide the exact repository-relative validator command and state that a passing Phase 0 result remains advisory until Coordinator activation.",
+    "No game, UI, rules, product, automatic routing, archive, or status-mutation behavior changed."
+  ],
+  "next_owner": "Test Automation",
+  "requested_action": "Independently verify the Phase 0 documentation/validator alignment and packet-root result; on PASS, count Pilot 4 and release Pilot 5 for final advisory rollout-state verification."
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "pilot-03-first-loadout-help-affordance-ui",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T17:57:00-07:00",
+  "owner": "UI/UX",
+  "canonical_issue": ".scratch/improve-first-turn-loadout-comprehension/issues/04-newcomer-observation.md",
+  "objective": "Restore a visibly rendered, readable, and tappable ? Help affordance on the Help-hidden default portrait first-Loadout view, preserving Play as the primary action and Help as secondary support.",
+  "non_goals": [
+    "No mobile Undo or reset/replay capability",
+    "No gameplay, timing, input-authority, legal-action, EncounterEngine, or Encounter Record change",
+    "No new utility control or broad HUD redesign",
+    "No tutorial-prompt system implementation"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "UI/UX", "completion": "UI/UX" },
+  "dependencies": [
+    { "id": "pilot-03-first-loadout-playtester", "state": "satisfied" },
+    { "id": "proposal-11-architecture-boundary", "state": "satisfied" },
+    { "id": "proposal-11-qa-presentation", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Focused owner mobile/accessibility validation across the supported portrait viewport matrix",
+    "Default non-headless mobile capture showing a visibly rendered ? Help affordance in the Help-hidden state at the 488x1056 presentation of the 390x844 logical canvas",
+    "Presentation-level deterministic assertion that verifies rendered/discoverable Help rather than only a visible Control node",
+    "Scoped Architecture and Test Automation rechecks before the focused Playtester retest"
+  ],
+  "next_owner": "UI/UX"
+}

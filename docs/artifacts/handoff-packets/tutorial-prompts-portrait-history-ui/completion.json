@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "tutorial-prompts-portrait-history-ui",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "UI/UX",
+  "created_at": "2026-08-14T19:05:00-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": {
+    "status": "PASS",
+    "summary": "Implemented the approved portrait tutorial-prompt presentation as a pure consumer of EncounterEngine.get_tutorial_prompt_projection. The mobile HUD shows one short card at a time inside the physical safe lane, uses a visible non-blocking Dismiss control, exposes the authoritative full text through its tooltip, and keeps caller-owned dismissal/review state outside rules and Encounter Records. Help adds a text-first list of shown tips plus a selector and Review action that reopens the selected tip as its contextual card.",
+    "non_goal_compliance": [
+      "No HUD-derived gameplay trigger, legal action, phase advancement, input authority, or protected next gesture was added.",
+      "No scripted mandatory tutorial, combat log, target-pattern UI, gameplay/content/deck/pacing/rules change, analytics backend, or Encounter Record prompt metadata was added.",
+      "The UI consumes the existing authoritative projection and stores dismissal/history only as local presentation state."
+    ]
+  },
+  "changed_paths": [
+    "scripts/Main.gd",
+    "scripts/debug/tutorial_prompt_ui_probe.gd",
+    "scripts/debug/run_probes.ps1",
+    "docs/artifacts/embermaw-vertical-slice.md",
+    "docs/artifacts/accessibility.md",
+    "docs/artifacts/probe-harness.md",
+    ".scratch/contextual-mobile-tutorial-prompts-embermaw/issues/03-present-mobile-prompts-and-help-history.md",
+    "docs/artifacts/handoff-packets/tutorial-prompts-portrait-history-ui/acknowledgment.json",
+    "docs/artifacts/handoff-packets/tutorial-prompts-portrait-history-ui/completion.json"
+  ],
+  "validation": [
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\run_probes.ps1 -Probe tutorial_prompt_projection,tutorial_prompt_ui,mobile,accessibility",
+      "result": "exit 0; TUTORIAL_PROMPT_PROJECTION_PROBE_OK prompts=7; TUTORIAL_PROMPT_UI_PROBE_OK viewports=2; MOBILE_HUD_PROBE_OK presentations=2; ACCESSIBILITY_PROBE_OK controls=30; PROBE_SUITE_OK count=4"
+    },
+    {
+      "command": "Godot_v4.7.1-stable_win64_console.exe --headless --path . --script res://scripts/debug/first_loadout_ui_probe.gd --quit-after 900; powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\run_probes.ps1 -Probe parity,records,record_scene",
+      "result": "exit 0; FIRST_LOADOUT_UI_PROBE_OK viewports=2; LIVE_SDK_PARITY_OK; ENCOUNTER_RECORD_PROBE_OK; ENCOUNTER_RECORD_SCENE_PROBE_OK; PROBE_SUITE_OK count=3"
+    },
+    {
+      "command": "Godot_v4.7.1-stable_win64_console.exe --path . --script res://scripts/debug/mobile_hud_probe.gd --quit-after 900",
+      "result": "exit 0; MOBILE_HUD_PROBE_OK presentations=2; refreshed tmp/mobile-help-hidden.png and tmp/mobile-help-open.png, manually inspected for the readable safe-lane tutorial card, Dismiss target, and Help history Review control."
+    },
+    {
+      "command": "git diff --check -- scripts/Main.gd scripts/debug/tutorial_prompt_ui_probe.gd scripts/debug/run_probes.ps1 docs/artifacts/embermaw-vertical-slice.md docs/artifacts/accessibility.md docs/artifacts/probe-harness.md docs/artifacts/handoff-packets/tutorial-prompts-portrait-history-ui .scratch/contextual-mobile-tutorial-prompts-embermaw/issues/03-present-mobile-prompts-and-help-history.md",
+      "result": "exit 0; CRLF normalization warnings only"
+    }
+  ],
+  "evidence": [
+    "The focused UI probe asserts projected Boss Timeline display, full-text tooltip fallback, a non-blocking dismiss, caller-owned history, Help text-first history, Review reopening, no EncounterEngine history mutation, and portrait action-bar/hand visibility in both 390x844 and 488x1056 presentations.",
+    "The non-headless mobile capture confirms the card itself is inside the physical safe lane, visually readable, and equipped with a visible Dismiss control; Help shows a selectable history item and Review button.",
+    "The authoritative seven-prompt projection and its independent Test Automation evidence remain in their separate Architecture and Test Automation packet roots."
+  ],
+  "next_owner": "Test Automation",
+  "requested_action": "Independently verify the tutorial_prompt_ui flow and applicable mobile/accessibility evidence, including non-headless capture inspection. Confirm the HUD does not infer gameplay or mutate engine/record state, then return a separate immutable QA packet. Do not close the full tutorial slice from this implementation handoff alone."
+}

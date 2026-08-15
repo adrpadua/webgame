@@ -1,6 +1,6 @@
 # Handoff Packets
 
-Status: approved v1 packet contract for Proposal 12. Rollout remains advisory until five valid pilot handoffs close and the coordinator records mandatory-gate activation.
+Status: approved v1 packet contract for Proposal 12. The mandatory dependency/closure gate became active on 2026-08-14 after five valid advisory pilots and independent Test Automation rollout-state PASS.
 
 Handoff packets are immutable repository evidence for assignment, acknowledgment, and completion. Task messages notify people; packet files are the durable authority that recovery, QA, and the coordinator can validate later.
 
@@ -104,7 +104,7 @@ Valid packet states are:
 
 Revision fields bind later packets to the exact assignment or acknowledgment being answered. A completion packet is terminal evidence, so `assignment.json` and `acknowledgment.json` must remain present after completion.
 
-## Advisory Validator
+## Validator and Mandatory Gate
 
 Run:
 
@@ -112,13 +112,15 @@ Run:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\debug\validate_handoff_packets.ps1 -Root .\docs\artifacts\handoff-packets
 ```
 
-The validator is read-only during advisory rollout. It emits concise human output plus one `HANDOFF_PACKET_VALIDATION_JSON` line, exits `0` when every packet is valid, and exits `1` when it finds any error. It never sends messages, reassigns owners, mutates issue status, edits the ledger, moves archives, backfills history, or blocks commits.
+The validator is read-only. It emits concise human output plus one `HANDOFF_PACKET_VALIDATION_JSON` line, exits `0` when every packet is valid, and exits `1` when it finds any error. It never sends messages, reassigns owners, mutates issue status, edits the ledger, moves archives, backfills history, or blocks commits.
 
-The mandatory dependency/closure gate activates only after:
+The mandatory dependency/closure gate was activated on 2026-08-14 after:
 
 1. five valid advisory pilot handoffs are recorded;
 2. Test Automation has independent PASS evidence for validator behavior and the counted rollout state; and
 3. recovery and issue-tracker authority docs still match this approved v1 contract.
+
+While active, the Coordinator must obtain an exit-`0` current-root validator result before advancing a packet-dependent item or recording a milestone closure. An exit-`1` result blocks that advancement or closure until the responsible owner corrects the packet through the immutable supersession path (if needed) and the validator passes. The validator remains read-only; the Coordinator, not the script, records routing and status.
 
 Error codes are stable for QA and recovery:
 

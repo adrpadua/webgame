@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "pilot-03-first-loadout-help-affordance-qa",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Test Automation",
+  "created_at": "2026-08-14T11:17:00-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": {
+    "status": "PASS",
+    "non_goal_compliance": [
+      "QA added only its immutable acknowledgment and completion evidence; no source, canonical UI/accessibility, gameplay, action-authority, Encounter Record, Undo, or Playtester changes were made.",
+      "The result is deterministic QA evidence only and is not a Playtester verdict or a declaration that Pilot 3 is counted."
+    ],
+    "summary": [
+      "The independent mobile probe reports MOBILE_HELP_RENDERED for both the 390x844 logical portrait canvas and the 488x1056 default presentation. Its rendered-affordance assertion requires in-tree rendering, a direct-tap mouse filter, normal styling, an in-bounds 44px-or-larger projected target, distinct secondary placement from Play, the visible ? glyph, and a Help tooltip/name.",
+      "The independent default non-headless mobile probe completed on the NVIDIA OpenGL renderer and regenerated tmp/mobile-help-hidden.png. Direct inspection of that 487x1056 capture shows the Help-hidden top control row with Play and a visibly rendered ? button beside it; the captured artifact hash is 240C25437F8C28469326C72BA7778FFAFE1E8B4E45888F62FC3375F7127153C1.",
+      "The accessibility and focused first-loadout regressions pass: target/focus/contrast evidence remains valid and the opening prompt, Play hierarchy, Slot destination affordance, Help toggle/copy, selected-card path, and Danger copy remain covered."
+    ]
+  },
+  "changed_paths": [
+    "docs/artifacts/handoff-packets/pilot-03-first-loadout-help-affordance-qa/acknowledgment.json",
+    "docs/artifacts/handoff-packets/pilot-03-first-loadout-help-affordance-qa/completion.json"
+  ],
+  "validation": [
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\run_probes.ps1 -Probe mobile,accessibility",
+      "result": [
+        "MOBILE_HELP_RENDERED presentation=(390.0, 844.0) rect=[P: (330.0, 30.0), S: (48.0, 48.0)]",
+        "MOBILE_HELP_RENDERED presentation=(488.0, 1056.0) rect=[P: (412.9231, 37.53555), S: (60.06154, 60.05687)]",
+        "MOBILE_HUD_PROBE_OK presentations=2",
+        "ACCESSIBILITY_PROBE_OK controls=29",
+        "PROBE_SUITE_OK count=2"
+      ]
+    },
+    {
+      "command": "& 'C:\\Users\\adrpa\\AppData\\Local\\Microsoft\\WinGet\\Packages\\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\\Godot_v4.7.1-stable_win64_console.exe' --headless --path 'D:\\dev\\webgame' --script res://scripts/debug/first_loadout_ui_probe.gd --quit-after 900",
+      "result": [
+        "FIRST_LOADOUT_UI_PROBE_OK viewports=2"
+      ]
+    },
+    {
+      "command": "& 'C:\\Users\\adrpa\\AppData\\Local\\Microsoft\\WinGet\\Packages\\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\\Godot_v4.7.1-stable_win64_console.exe' --path 'D:\\dev\\webgame' --script res://scripts/debug/mobile_hud_probe.gd --quit-after 900",
+      "result": [
+        "OpenGL API 3.3.0 NVIDIA 592.00 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 4060 Laptop GPU",
+        "MOBILE_HELP_RENDERED presentation=(488.0, 1056.0) rect=[P: (412.9231, 37.53555), S: (60.06154, 60.05687)]",
+        "MOBILE_HUD_PROBE_OK presentations=2",
+        "Rendered artifact inspection: tmp/mobile-help-hidden.png is 487x1056 and visibly shows the ? Help button beside Play while the Help pane is hidden."
+      ]
+    },
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\validate_handoff_packets.ps1 -Root .\\docs\\artifacts\\handoff-packets; git diff --check",
+      "result": [
+        "HANDOFF_PACKET_VALIDATION_OK root=D:\\dev\\webgame\\.\\docs\\artifacts\\handoff-packets handoffs=7 errors=0",
+        "git diff --check passed; CRLF conversion warnings only"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "marker",
+      "value": "MOBILE_HELP_RENDERED presentation=(390.0, 844.0)"
+    },
+    {
+      "kind": "marker",
+      "value": "MOBILE_HELP_RENDERED presentation=(488.0, 1056.0)"
+    },
+    {
+      "kind": "marker",
+      "value": "MOBILE_HUD_PROBE_OK presentations=2"
+    },
+    {
+      "kind": "marker",
+      "value": "ACCESSIBILITY_PROBE_OK controls=29"
+    },
+    {
+      "kind": "marker",
+      "value": "FIRST_LOADOUT_UI_PROBE_OK viewports=2"
+    },
+    {
+      "kind": "artifact",
+      "value": "tmp/mobile-help-hidden.png; non-headless regenerated capture, 487x1056, SHA-256 240C25437F8C28469326C72BA7778FFAFE1E8B4E45888F62FC3375F7127153C1; direct inspection confirms visible ? beside Play while Help is hidden"
+    }
+  ],
+  "next_owner": "Coordinator",
+  "requested_action": "Record the independent Test Automation PASS. When the separate Architecture presentation-boundary recheck also returns PASS, activate a focused read-only Playtester retest using the default non-headless Help-hidden capture. Do not count Pilot 3 or close the newcomer observation from this QA result."
+}

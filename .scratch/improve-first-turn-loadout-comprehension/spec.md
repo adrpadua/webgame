@@ -1,6 +1,6 @@
 # Improve First-Turn Loadout Comprehension
 
-Status: active
+Status: completed
 
 ## Approved outcome
 

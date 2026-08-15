@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "tutorial-prompts-authoritative-projection-architecture",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "Architecture",
+  "created_at": "2026-08-14T18:20:43-07:00",
+  "assignment_revision": 1,
+  "owner": "Architecture",
+  "scope_confirmed": "Implement only a reusable, scene-free authoritative tutorial-prompt projection from existing EncounterEngine facts for the seven approved Embermaw teaching contracts. The projection will carry the approved non-blocking, mixed show-once, lightly instructional, text-first/reopenable-card policy without creating gameplay or UI behavior.",
+  "planned_paths": [
+    "scripts/EncounterEngine.gd",
+    "scripts/tutorial/TutorialPromptProjection.gd",
+    "scripts/debug/tutorial_prompt_projection_probe.gd",
+    "scripts/debug/run_probes.ps1",
+    "docs/rules/tutorial-prompt-projection.md",
+    "docs/artifacts/handoff-packets/tutorial-prompts-authoritative-projection-architecture/"
+  ],
+  "first_validation": "Run the current-root handoff-packet validator, then the focused scene-free tutorial prompt projection probe through run_probes.ps1.",
+  "next_owner": "Architecture"
+}

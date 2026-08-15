@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "phase0-mandatory-gate-activation",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T18:22:00-07:00",
+  "owner": "Coordinator",
+  "canonical_issue": ".scratch/deterministic-handoff-control-plane-and-closure-gate/issues/03-run-advisory-pilot-and-enable-closure-gate.md",
+  "objective": "Activate the mandatory dependency/closure gate after the independently verified Phase 0 five-pilot rollout and record the active gate in the established canonical sources.",
+  "non_goals": [
+    "No game/UI/rules/content/product-scope change",
+    "No validator mutation, automatic messaging, reassignment, or issue-status action",
+    "No format migration, archive/backfill, or change to risk-tier independent-verification authority"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Coordinator", "completion": "Coordinator" },
+  "dependencies": [
+    { "id": "pilot-01-mobile-safe-bounds-ui", "state": "satisfied" },
+    { "id": "pilot-02-focused-rules-probe-qa", "state": "satisfied" },
+    { "id": "pilot-03-first-loadout-playtester-retest", "state": "satisfied" },
+    { "id": "pilot-04-phase0-docs-alignment-qa", "state": "satisfied" },
+    { "id": "pilot-05-advisory-rollout-qa", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Final current-root validator exit-0 output after activation packet retention",
+    "Pilot 5 Test Automation PASS packet proving the five-pilot rollout state",
+    "Canonical contract, recovery, issue tracker, ledger, spec, and delivery issue all record mandatory gate activation"
+  ],
+  "next_owner": "Coordinator"
+}

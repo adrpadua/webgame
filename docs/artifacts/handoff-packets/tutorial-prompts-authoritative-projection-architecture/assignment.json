@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "tutorial-prompts-authoritative-projection-architecture",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-15T01:18:00-07:00",
+  "owner": "Architecture",
+  "canonical_issue": ".scratch/contextual-mobile-tutorial-prompts-embermaw/issues/02-implement-authoritative-prompt-projection.md",
+  "objective": "Implement the smallest reusable authoritative tutorial-prompt model and EncounterEngine/projection seam for the seven completed Embermaw teaching contracts, using the approved non-blocking, mixed show-once, lightly instructional, text-list plus reopenable-card policy.",
+  "non_goals": [
+    "No tutorial UI layout or Help history implementation",
+    "No gameplay, action, timing, legal-state, encounter/deck/pacing, card, or content change",
+    "No HUD-inferred rules, generic analytics, or prompt exposure as a gameplay fact/outcome input",
+    "No target-pattern UI or protected next-gesture behavior"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Architecture", "completion": "Architecture" },
+  "dependencies": [
+    { "id": "tutorial-prompts-design-contracts", "state": "satisfied" },
+    { "id": "phase0-mandatory-gate-activation", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Public authoritative prompt model/projection contract with prompt identity, basis, priority, surface/anchor, show-once policy, dismissal/completion state, and accessible full-text fallback",
+    "Focused scene-free deterministic coverage for each authored trigger in intended and invalid/irrelevant states",
+    "Explicit treatment of the Whelp route-blocking relevance fact without HUD inference",
+    "Architecture completion packet plus independent Test Automation verification handoff before UI/UX presentation work"
+  ],
+  "next_owner": "Architecture"
+}
