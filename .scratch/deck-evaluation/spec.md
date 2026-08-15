@@ -1,6 +1,6 @@
 # Deck Evaluation Instrumentation And Rubric
 
-Status: accepted-planning
+Status: completed
 Owner: Design + QA Automation
 
 ## Goal
@@ -34,3 +34,7 @@ Create a lightweight, repeatable way to quantify whether a player **Starting Dec
 
 - 2026-08-13: Design approved the rubric and first-pass good-deck target after provisional metric wording was clarified.
 - 2026-08-13: QA approved the measurement plan after baseline seed labels and the human-note convention were made explicit.
+
+## Closure
+
+The planning objective is complete: the reviewed rubric, measurement plan, human-note convention, and minimal report-gap route are canonical. Subsequent baseline, controlled-evaluation, and promoted-default delivery evidence remains in its own feature tracking and must not be collapsed into this planning record.
