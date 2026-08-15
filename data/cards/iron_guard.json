@@ -1,0 +1,11 @@
+{
+  "id": "iron_guard",
+  "title": "Iron Guard",
+  "rules_text": "Gain 3 Armor. Gain +1 Armor for each charged Guard card.",
+  "speed": "quick",
+  "max_charge": 3,
+  "target_type": "none",
+  "armor_delta": 3,
+  "tags": ["tank", "guard"],
+  "charge_modifiers": ["guard_armor"]
+}

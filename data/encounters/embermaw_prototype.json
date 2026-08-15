@@ -1,0 +1,35 @@
+{
+  "id": "embermaw_prototype",
+  "title": "Embermaw: Ashen Trial",
+  "rules_text": "Defeat Embermaw before the Encounter Clock expires while managing Scorched hexes and Whelp spawns.",
+  "primary_hero_id": "guardian",
+  "primary_hero_title": "Elian Voss",
+  "boss_id": "embermaw",
+  "boss_title": "Embermaw",
+  "round_limit": 8,
+  "enrage_text": "Enrage: Embermaw overwhelms the party.",
+  "board_radius": 2,
+  "player_start": { "q": 0, "r": 0 },
+  "boss_start": { "q": 1, "r": -1 },
+  "player_health": 34,
+  "boss_health": 36,
+  "slot_count": 2,
+  "hand_refill_target": 4,
+  "player_deck": [
+    { "card": "steady_strike", "copies": 8 },
+    { "card": "iron_guard", "copies": 6 },
+    { "card": "sweeping_blow", "copies": 2 },
+    { "card": "fortify", "copies": 2 },
+    { "card": "shield_slam", "copies": 2 }
+  ],
+  "boss_programs": ["embermaw_hunt"],
+  "loop_boss_programs": true,
+  "random_seed": 1337,
+  "brood_spawn_candidates": [
+    { "q": -2, "r": 1 },
+    { "q": -1, "r": 2 },
+    { "q": 0, "r": 2 },
+    { "q": 2, "r": -2 },
+    { "q": 2, "r": -1 }
+  ]
+}

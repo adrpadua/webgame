@@ -1,0 +1,529 @@
+import { addEntity, addHazard, advanceBoardRound, damageEntity, getHazards, isGuardedFront, moveEntity } from './board'
+import { axialSubtract } from './hex'
+import { directionForAxialDelta, FACING_NW } from './facing'
+import type { ContentCatalog } from './content/catalog'
+import type { Card } from './content/schemas'
+import { resolveFire } from './cardResolver'
+import { legality } from './legality'
+import { resolveBossBeat, advanceProgram } from './timeline'
+import { shuffle } from './rng'
+import {
+  addStatus,
+  createRiposteReady,
+  getStatuses,
+  hasStatus,
+  removeStatus,
+  RIPOSTE_READY,
+  statusEvent,
+  statusExpiresOnRoundAdvance,
+  TANK_HIT,
+} from './statuses'
+import type { EncounterActionInput } from './actions'
+import type { CardInstance, EncounterState, HeroState, Phase, ResolveResult, ResolvedActionFact } from './types'
+
+// The reducer seam (ADR 0019): resolve(state, action) returns the next
+// immutable snapshot plus the facts produced. The draft is a structuredClone,
+// so resolution can mutate freely while callers keep every prior snapshot.
+export function resolve(catalog: ContentCatalog, state: EncounterState, action: EncounterActionInput): ResolveResult {
+  const draft = structuredClone(state)
+  const facts: ResolvedActionFact[] = []
+  applyAction(catalog, draft, action, facts, 0)
+  return { state: draft, facts }
+}
+
+// Depth-first resolution matching the reference apply(): resolve the action,
+// record it, then resolve everything it generated, then check resolution.
+export function applyAction(
+  catalog: ContentCatalog,
+  draft: EncounterState,
+  action: EncounterActionInput,
+  facts: ResolvedActionFact[],
+  depth: number,
+): void {
+  const generated: EncounterActionInput[] = []
+  const fact: ResolvedActionFact = {
+    sequence: facts.length,
+    depth,
+    round: draft.round,
+    phase: draft.phase,
+    kind: action.kind,
+    sourceId: action.sourceId,
+    succeeded: false,
+    reason: '',
+    title: describeAction(action),
+    detail: actionDetail(action),
+  }
+  resolveOne(catalog, draft, action, fact, generated)
+  facts.push(fact)
+  for (const followup of generated) {
+    applyAction(catalog, draft, followup, facts, depth + 1)
+  }
+  checkResolution(draft)
+}
+
+export function checkResolution(draft: EncounterState): void {
+  if (!draft.active) {
+    return
+  }
+  const boss = draft.board.entities[draft.bossId]
+  if (draft.bossId === '' || !boss || boss.health <= 0) {
+    draft.active = false
+    draft.outcome = 'victory'
+    draft.outcomeReason = 'The Boss is defeated.'
+    return
+  }
+  for (const hero of Object.values(draft.heroes)) {
+    if (hero.health <= 0) {
+      draft.active = false
+      draft.outcome = 'defeat'
+      draft.outcomeReason = 'A Hero has fallen.'
+      return
+    }
+  }
+}
+
+function resolveOne(
+  catalog: ContentCatalog,
+  draft: EncounterState,
+  action: EncounterActionInput,
+  fact: ResolvedActionFact,
+  generated: EncounterActionInput[],
+): void {
+  const verdict = legality(catalog, draft, action)
+  if (verdict.targetRange !== undefined) {
+    fact.detail.targetRange = verdict.targetRange
+  }
+  if (!verdict.legal) {
+    fact.succeeded = false
+    fact.reason = verdict.reason
+    return
+  }
+  switch (action.kind) {
+    case 'load_slot': {
+      const hero = draft.heroes[action.sourceId]
+      const card = takeFromHand(hero, action.cardInstanceId)
+      const slot = hero.actionBar[action.slotIndex]
+      if (slot.topCard !== null) {
+        hero.discard.push(slot.topCard, ...slot.charges)
+      }
+      slot.topCard = card
+      slot.charges = []
+      slot.activatedWindow = ''
+      succeed(fact)
+      break
+    }
+    case 'charge_slot': {
+      const hero = draft.heroes[action.sourceId]
+      const card = takeFromHand(hero, action.cardInstanceId)
+      hero.actionBar[action.slotIndex].charges.push(card)
+      succeed(fact)
+      break
+    }
+    case 'fire_slot': {
+      const hero = draft.heroes[action.sourceId]
+      const slot = hero.actionBar[action.slotIndex]
+      const topCard = slot.topCard as CardInstance
+      const card = catalog.cards[topCard.cardId]
+      const effects = resolveFire(catalog, card, slot.charges.map((charge) => catalog.cards[charge.cardId]))
+      const baseBossDamage = effects.bossDamage
+      hero.armor += effects.armor
+      hero.health = Math.min(hero.maxHealth, hero.health + effects.healing)
+      hero.presence += effects.presence
+      slot.activatedWindow = draft.phase
+      syncHeroEntity(draft, action.sourceId)
+      const consumed = consumeStatusesForSlot(draft, action.sourceId, card)
+      effects.bossDamage += consumed.bonusBossDamage
+      if (consumed.events.length > 0) {
+        fact.resolutionFact = { status_event: consumed.events[0] }
+      }
+      succeed(fact)
+      if (effects.bossDamage > 0) {
+        let factContext: Record<string, unknown> | undefined
+        if (consumed.bonusBossDamage > 0) {
+          factContext = {
+            base_amount: baseBossDamage,
+            status_bonus: consumed.bonusBossDamage,
+            status_id: (consumed.events[0] as { status_id: string }).status_id,
+            payoff_card_id: card.id,
+          }
+        }
+        generated.push({
+          kind: 'damage',
+          sourceId: action.sourceId,
+          targetId: draft.bossId,
+          amount: effects.bossDamage,
+          reasonText: card.title,
+          factContext,
+        })
+      }
+      if (effects.targetDamage > 0) {
+        generated.push({
+          kind: 'damage',
+          sourceId: action.sourceId,
+          targetId: action.targetId ?? '',
+          amount: effects.targetDamage,
+          reasonText: card.title,
+        })
+      }
+      generated.push(...slotFiredStatusActions(draft, action.sourceId))
+      break
+    }
+    case 'move_hero': {
+      const hero = draft.heroes[action.sourceId]
+      const fromCoords = draft.board.entities[action.sourceId].coords
+      const card = takeFromHand(hero, action.cardInstanceId)
+      hero.discard.push(card)
+      moveEntity(draft.board, action.sourceId, action.destination)
+      draft.board.entities[action.sourceId].facing = directionForAxialDelta(axialSubtract(action.destination, fromCoords))
+      succeed(fact)
+      for (const hazard of getHazards(draft.board, action.destination)) {
+        if (hazard.enterDamage > 0) {
+          generated.push({
+            kind: 'damage',
+            sourceId: 'hazard',
+            targetId: action.sourceId,
+            amount: hazard.enterDamage,
+            reasonText: hazard.id,
+          })
+        }
+      }
+      break
+    }
+    case 'resolve_boss': {
+      generated.push(...resolveBossBeat(draft, action.sourceId, action.beat, action.track))
+      succeed(fact)
+      break
+    }
+    case 'apply_hazard': {
+      const definition = action.hazardId === null ? null : catalog.hazards[action.hazardId]
+      const hazard = definition
+        ? {
+            id: definition.id,
+            title: definition.title,
+            remainingRounds: definition.duration_rounds,
+            enterDamage: definition.enter_damage,
+            blocksVoluntaryMovement: definition.blocks_voluntary_movement,
+          }
+        : {
+            id: 'scorched',
+            title: 'Scorched',
+            remainingRounds: Math.max(action.fallbackDurationRounds, 1),
+            enterDamage: 1,
+            blocksVoluntaryMovement: true,
+          }
+      if (!addHazard(draft.board, action.coords, hazard)) {
+        fail(fact, 'The hazard could not be applied to that hex.')
+        break
+      }
+      succeed(fact)
+      break
+    }
+    case 'spawn_minion': {
+      const minion = action.minionContentId ? catalog.minions[action.minionContentId] : undefined
+      const health = minion ? minion.max_health : 2
+      if (!addEntity(draft.board, action.minionId, 'minion', action.coords, health, FACING_NW, 'enemy', minion?.title ?? 'Minion')) {
+        fail(fact, 'The Minion spawn hex is unavailable.')
+        break
+      }
+      if (minion) {
+        draft.board.entities[action.minionId].contentId = minion.id
+      }
+      succeed(fact)
+      break
+    }
+    case 'damage': {
+      const resolutionFact = applyDamage(draft, action.targetId, action.amount)
+      for (const [key, value] of Object.entries(action.factContext ?? {})) {
+        if (!(key in resolutionFact)) {
+          resolutionFact[key] = value
+        }
+      }
+      if (!resolutionFact.target_available) {
+        fail(fact, 'The damage target is unavailable.')
+        break
+      }
+      fact.detail.dealt = resolutionFact.health_loss
+      evaluateDamageStatus(draft, action, resolutionFact)
+      fact.resolutionFact = resolutionFact
+      succeed(fact)
+      break
+    }
+    case 'discard_for_stamina': {
+      const hero = draft.heroes[action.sourceId]
+      const card = takeFromHand(hero, action.cardInstanceId)
+      hero.discard.push(card)
+      succeed(fact)
+      break
+    }
+    case 'expire_status': {
+      removeStatus(draft, action.targetId, action.statusId)
+      fact.resolutionFact = { status_event: structuredClone(action.statusEvent) }
+      succeed(fact)
+      break
+    }
+    case 'advance_phase': {
+      clearWindowFlags(draft, action.fromPhase)
+      draft.phase = action.toPhase
+      draft.round = action.round
+      succeed(fact)
+      break
+    }
+    case 'round_start': {
+      draft.round = action.round
+      advanceBoardRound(draft.board)
+      for (const heroId of Object.keys(draft.heroes)) {
+        const hero = draft.heroes[heroId]
+        hero.armor = 0
+        for (const effect of getStatuses(draft, heroId)) {
+          if (effect.triggers.includes('on_round_start')) {
+            hero.armor += effect.armorOnRoundStart
+          }
+        }
+        draft.statusEffects[heroId] = getStatuses(draft, heroId).filter((effect) => !statusExpiresOnRoundAdvance(effect))
+      }
+      advanceProgram(draft)
+      succeed(fact)
+      break
+    }
+    case 'full_charge_cleanup': {
+      const hero = draft.heroes[action.sourceId]
+      const slot = hero?.actionBar[action.slotIndex]
+      if (!hero || !slot || slot.topCard === null) {
+        fail(fact, 'Full-Charge Cleanup requires an occupied Slot.')
+        break
+      }
+      fact.detail.topCard = slot.topCard.cardId
+      fact.detail.chargeCards = slot.charges.map((charge) => charge.cardId)
+      hero.discard.push(slot.topCard, ...slot.charges)
+      hero.actionBar[action.slotIndex] = { topCard: null, charges: [], activatedWindow: '' }
+      succeed(fact)
+      break
+    }
+    case 'draw_card': {
+      const hero = draft.heroes[action.sourceId]
+      if (!hero || hero.deck.length === 0) {
+        fail(fact, 'The deck has no card to draw.')
+        break
+      }
+      const card = hero.deck.pop() as CardInstance
+      hero.hand.push(card)
+      fact.detail.cardId = card.cardId
+      fact.detail.cardInstanceId = card.instanceId
+      succeed(fact)
+      break
+    }
+    case 'shuffle_deck': {
+      const hero = draft.heroes[action.sourceId]
+      if (!hero || hero.deck.length > 0 || hero.discard.length === 0) {
+        fail(fact, 'Reshuffling requires an empty deck and a non-empty discard pile.')
+        break
+      }
+      hero.deck = hero.discard
+      hero.discard = []
+      shuffle(draft.rng, hero.deck, action.label)
+      succeed(fact)
+      break
+    }
+    case 'end_of_clock': {
+      draft.round = action.round
+      draft.active = false
+      draft.outcome = 'defeat'
+      draft.outcomeReason = action.reason
+      succeed(fact)
+      break
+    }
+  }
+}
+
+function succeed(fact: ResolvedActionFact): void {
+  fact.succeeded = true
+  fact.reason = ''
+}
+
+function fail(fact: ResolvedActionFact, reason: string): void {
+  fact.succeeded = false
+  fact.reason = reason
+}
+
+function takeFromHand(hero: HeroState, cardInstanceId: string): CardInstance {
+  const index = hero.hand.findIndex((card) => card.instanceId === cardInstanceId)
+  const [card] = hero.hand.splice(index, 1)
+  return card
+}
+
+function syncHeroEntity(draft: EncounterState, heroId: string): void {
+  const entity = draft.board.entities[heroId]
+  if (entity) {
+    entity.health = draft.heroes[heroId].health
+  }
+}
+
+// A Slot's activation flag lives exactly as long as its window.
+function clearWindowFlags(draft: EncounterState, window: Phase): void {
+  for (const hero of Object.values(draft.heroes)) {
+    for (const slot of hero.actionBar) {
+      if (slot.activatedWindow === window) {
+        slot.activatedWindow = ''
+      }
+    }
+  }
+}
+
+interface ConsumedStatuses {
+  bonusBossDamage: number
+  events: Record<string, unknown>[]
+}
+
+function consumeStatusesForSlot(draft: EncounterState, entityId: string, card: Card): ConsumedStatuses {
+  const result: ConsumedStatuses = { bonusBossDamage: 0, events: [] }
+  const remaining = []
+  for (const effect of getStatuses(draft, entityId)) {
+    const consumes = effect.consumeOnCardId !== '' && effect.consumeOnCardId === card.id && effect.triggers.includes('on_slot_fired')
+    if (!consumes) {
+      remaining.push(effect)
+      continue
+    }
+    const bonus = effect.bonusBossDamageOnSlotFired
+    result.bonusBossDamage += bonus
+    const event = statusEvent(effect, 'consumed', 'matching_card_fired')
+    event.card_id = card.id
+    event.bonus_boss_damage = bonus
+    result.events.push(event)
+  }
+  draft.statusEffects[entityId] = remaining
+  return result
+}
+
+// Non-consumed statuses that respond to a fired Slot with bonus Boss damage.
+function slotFiredStatusActions(draft: EncounterState, entityId: string): EncounterActionInput[] {
+  const actions: EncounterActionInput[] = []
+  for (const effect of getStatuses(draft, entityId)) {
+    if (effect.consumeOnCardId !== '') {
+      continue
+    }
+    if (effect.triggers.includes('on_slot_fired') && effect.bonusBossDamageOnSlotFired > 0 && draft.bossId !== entityId) {
+      actions.push({
+        kind: 'damage',
+        sourceId: entityId,
+        targetId: draft.bossId,
+        amount: effect.bonusBossDamageOnSlotFired,
+        reasonText: effect.id,
+      })
+    }
+  }
+  return actions
+}
+
+function applyDamage(draft: EncounterState, targetId: string, amount: number): Record<string, unknown> {
+  const requested = Math.max(amount, 0)
+  let adjusted = requested
+  let prevented = 0
+  for (const effect of getStatuses(draft, targetId)) {
+    const reduction = effect.triggers.includes('on_damage_taken') ? effect.damageReduction : 0
+    const beforeReduction = adjusted
+    adjusted = Math.max(adjusted - reduction, 0)
+    prevented += beforeReduction - adjusted
+  }
+  const hero = draft.heroes[targetId]
+  if (hero) {
+    const armorBlocked = Math.min(hero.armor, adjusted)
+    hero.armor -= armorBlocked
+    const remaining = adjusted - armorBlocked
+    const dealt = Math.min(remaining, hero.health)
+    hero.health = Math.max(hero.health - dealt, 0)
+    syncHeroEntity(draft, targetId)
+    return { requested, prevented: prevented + armorBlocked, health_loss: dealt, target_available: true }
+  }
+  const target = draft.board.entities[targetId]
+  const healthBefore = target?.health ?? 0
+  const dealt = damageEntity(draft.board, targetId, adjusted)
+  if (healthBefore <= 0) {
+    return { requested, prevented, health_loss: 0, target_available: false }
+  }
+  const resolutionFact: Record<string, unknown> = { requested, prevented, health_loss: dealt, target_available: true }
+  // Minion Defeat is part of damage resolution: the Minion leaves the board
+  // before the damage action completes, and the fact records target_removed.
+  if (target?.kind === 'minion' && dealt > 0 && dealt === healthBefore) {
+    delete draft.board.entities[targetId]
+    delete draft.statusEffects[targetId]
+    resolutionFact.target_removed = true
+  }
+  return resolutionFact
+}
+
+// Riposte Ready: a qualifying Tank Hit against the Guarded Front with zero
+// Health loss grants the status; the evaluation is always recorded.
+function evaluateDamageStatus(
+  draft: EncounterState,
+  action: Extract<EncounterActionInput, { kind: 'damage' }>,
+  resolutionFact: Record<string, unknown>,
+): void {
+  if (action.sourceId !== draft.bossId || action.targetId !== draft.primaryHeroId) {
+    return
+  }
+  if (resolutionFact.damage_classification !== TANK_HIT) {
+    return
+  }
+  const guardedFront = isGuardedFront(draft.board, draft.bossId, draft.primaryHeroId)
+  resolutionFact.guarded_front = guardedFront
+  const evaluation: Record<string, unknown> = { status_id: RIPOSTE_READY, result: 'not_granted', reason: '' }
+  if ((resolutionFact.health_loss as number) > 0) {
+    evaluation.reason = 'health_lost'
+  } else if (!guardedFront) {
+    evaluation.reason = 'not_guarded_front'
+  } else if (hasStatus(draft, draft.primaryHeroId, RIPOSTE_READY)) {
+    evaluation.reason = 'already_active'
+  } else {
+    const effect = createRiposteReady(action.sourceId, (resolutionFact.boss_beat_id as string) ?? '', draft.round, draft.phase)
+    addStatus(draft, draft.primaryHeroId, effect)
+    evaluation.result = 'granted'
+    evaluation.reason = effect.triggerReason
+    resolutionFact.status_event = statusEvent(effect, 'granted', effect.triggerReason)
+  }
+  resolutionFact.status_evaluation = evaluation
+}
+
+function describeAction(action: EncounterActionInput): string {
+  switch (action.kind) {
+    case 'load_slot':
+      return `Load Slot ${action.slotIndex + 1}`
+    case 'charge_slot':
+      return `Charge Slot ${action.slotIndex + 1}`
+    case 'fire_slot':
+      return `Fire Slot ${action.slotIndex + 1}`
+    case 'move_hero':
+      return `Move to (${action.destination.q}, ${action.destination.r})`
+    case 'resolve_boss':
+      return `Boss Beat: ${action.beat.title}`
+    case 'apply_hazard':
+      return `Hazard at (${action.coords.q}, ${action.coords.r})`
+    case 'spawn_minion':
+      return `Spawn ${action.minionId}`
+    case 'damage':
+      return `Damage ${action.amount} to ${action.targetId} (${action.reasonText})`
+    case 'discard_for_stamina':
+      return 'Discard for Stamina'
+    case 'expire_status':
+      return `Status expires: ${action.statusId}`
+    case 'advance_phase':
+      return `Phase: ${action.fromPhase} to ${action.toPhase}`
+    case 'round_start':
+      return `Round ${action.round} begins`
+    case 'full_charge_cleanup':
+      return `Full-Charge Cleanup: Slot ${action.slotIndex + 1}`
+    case 'draw_card':
+      return 'Draw a card'
+    case 'shuffle_deck':
+      return `Shuffle deck (${action.label})`
+    case 'end_of_clock':
+      return 'End of the Encounter Clock'
+  }
+}
+
+function actionDetail(action: EncounterActionInput): Record<string, unknown> {
+  if (action.kind === 'resolve_boss') {
+    return { beatId: action.beat.id, beatTitle: action.beat.title, track: action.track }
+  }
+  const { kind: _kind, sourceId: _sourceId, ...rest } = action
+  return structuredClone(rest) as Record<string, unknown>
+}

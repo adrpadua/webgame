@@ -1,0 +1,136 @@
+import type { Axial, HexKey } from './hex'
+import type { RngState } from './rng'
+
+export type Phase = 'loadout' | 'instant' | 'quick' | 'incoming' | 'slow'
+export type Outcome = 'ongoing' | 'victory' | 'defeat'
+export type EntityKind = 'boss' | 'hero' | 'minion'
+export type Team = 'party' | 'enemy'
+
+// One physical card copy. Duplicate Top Cards are distinct instances that
+// never share Slot state solely because they share a card id.
+export interface CardInstance {
+  instanceId: string
+  cardId: string
+}
+
+export interface SlotState {
+  topCard: CardInstance | null
+  charges: CardInstance[]
+  activatedWindow: Phase | ''
+}
+
+export interface HeroState {
+  id: string
+  health: number
+  maxHealth: number
+  armor: number
+  presence: number
+  deck: CardInstance[]
+  hand: CardInstance[]
+  discard: CardInstance[]
+  refillTarget: number
+  actionBar: SlotState[]
+}
+
+export interface BoardEntity {
+  id: string
+  kind: EntityKind
+  coords: Axial
+  health: number
+  maxHealth: number
+  facing: number
+  team: Team
+  title: string
+  contentId?: string
+}
+
+export interface HazardInstance {
+  id: string
+  title: string
+  remainingRounds: number
+  enterDamage: number
+  blocksVoluntaryMovement: boolean
+}
+
+export interface BoardState {
+  radius: number
+  hexes: Record<HexKey, true>
+  entities: Record<string, BoardEntity>
+  hazards: Record<HexKey, HazardInstance[]>
+}
+
+export type StatusTrigger = 'on_round_start' | 'on_enter_hex' | 'on_damage_taken' | 'on_slot_fired'
+
+export interface StatusInstance {
+  id: string
+  title: string
+  remainingRounds: number
+  triggers: StatusTrigger[]
+  armorOnRoundStart: number
+  damageReduction: number
+  bonusBossDamageOnSlotFired: number
+  triggerReason: string
+  expiresAtWindowEnd: Phase | ''
+  consumeOnCardId: string
+  sourceId: string
+  sourceBeatId: string
+  triggerRound: number
+  triggerPhase: Phase | ''
+}
+
+export type TelegraphKind = 'breath' | 'brood'
+
+export interface EncounterState {
+  encounterId: string
+  phase: Phase
+  round: number
+  roundLimit: number
+  active: boolean
+  outcome: Outcome
+  outcomeReason: string
+  enrageText: string
+  board: BoardState
+  heroes: Record<string, HeroState>
+  statusEffects: Record<string, StatusInstance[]>
+  bossId: string
+  primaryHeroId: string
+  programIds: string[]
+  loopPrograms: boolean
+  programIndex: number
+  currentProgramId: string | null
+  broodSpawnCandidates: Axial[]
+  telegraphedSpawnHexes: Axial[]
+  telegraphs: Record<HexKey, TelegraphKind>
+  previousImpactedHexes: Axial[]
+  lastPattern: Axial[]
+  minionSequence: number
+  cardInstanceSequence: number
+  rng: RngState
+}
+
+// One Resolution Fact stream entry: a resolved action record with its
+// pre-order position in the resolution tree.
+export interface ResolvedActionFact {
+  sequence: number
+  depth: number
+  round: number
+  phase: Phase
+  kind: string
+  sourceId: string
+  succeeded: boolean
+  reason: string
+  title: string
+  detail: Record<string, unknown>
+  resolutionFact?: Record<string, unknown>
+}
+
+export interface ResolveResult {
+  state: EncounterState
+  facts: ResolvedActionFact[]
+}
+
+export interface LegalityVerdict {
+  legal: boolean
+  reason: string
+  targetRange?: number
+}

@@ -1,0 +1,6 @@
+{
+  "id": "whelp",
+  "title": "Whelp",
+  "rules_text": "A fragile Minion that occupies a hex and constrains movement.",
+  "max_health": 2
+}
