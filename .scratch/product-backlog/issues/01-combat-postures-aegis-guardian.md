@@ -1,6 +1,6 @@
 # Combat Postures for Hero Roles: Elian Voss First Slice
 
-Status: ready-for-agent
+Status: resolved
 
 ## Player Problem
 

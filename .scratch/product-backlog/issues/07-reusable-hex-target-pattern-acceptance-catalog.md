@@ -1,6 +1,6 @@
 # Add Reusable Hex Target-Pattern Acceptance Catalog
 
-Status: ready-for-agent
+Status: resolved
 
 ## Player Problem
 

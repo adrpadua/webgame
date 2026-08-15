@@ -1,6 +1,6 @@
 # Controlled Elian Test-Deck Evaluation Cohort
 
-Status: ready-for-agent
+Status: resolved
 
 ## Player Problem
 

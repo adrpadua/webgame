@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "risk-tier-six-handoff-pilot-coordinator",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T22:05:00-07:00",
+  "owner": "Coordinator",
+  "canonical_issue": ".scratch/risk-tiered-validation-and-orchestrator-closure/issues/04-run-six-handoff-pilot-review.md",
+  "objective": "Review six completed post-activation handoffs and determine whether risk-tiered closure reduced unnecessary coordinator reruns without weakening closure quality.",
+  "non_goals": [
+    "No tier-policy rewrite",
+    "No retroactive relabeling of unrelated historical handoffs",
+    "No automatic routing, reassignment, or product-authority change"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Coordinator", "completion": "Coordinator" },
+  "dependencies": [
+    { "id": "phase0-mandatory-gate-activation", "state": "satisfied" },
+    { "id": "six-post-activation-handoff-packets", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Six valid post-activation handoff packets with ledger tier/reason/validator/evidence/rerun fields",
+    "Reruns avoided, closure reversals, escaped regressions, and elapsed-time review",
+    "Current-root packet validator exit 0 before closure"
+  ],
+  "next_owner": "Coordinator"
+}

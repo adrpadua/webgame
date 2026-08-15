@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "ledger-archive-contract-pm-review",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T21:43:19-07:00",
+  "owner": "Product Management",
+  "canonical_issue": ".scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md",
+  "objective": "Independently confirm the archive contract preserves the PM intake boundary and does not alter PM/user product-approval authority.",
+  "non_goals": [
+    "No archive movement or ledger compaction",
+    "No product-intake or workflow-authority redesign beyond review-packet evidence",
+    "No gameplay, rules, UI, or content change"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Product Management", "completion": "Product Management" },
+  "dependencies": [
+    { "id": "ledger-archive-contract-coordinator", "state": "satisfied" },
+    { "id": "ledger-archive-contract-qa-review", "state": "satisfied" },
+    { "id": "ledger-archive-contract-ui-review", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Read-only review of the approved product proposal, archive contract, delivery spec, issue tracker, and live ledger",
+    "PASS or exact blocker for PM-to-EM intake authority, user approval authority, and no second workflow source"
+  ],
+  "next_owner": "Product Management"
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "ledger-archive-migration-qa",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "Test Automation",
+  "created_at": "2026-08-14T21:57:25-07:00",
+  "assignment_revision": 1,
+  "owner": "Test Automation",
+  "scope_confirmed": "I will independently check the first coordination-history archive. I will not change the archive, ledger, contracts, or application.",
+  "planned_paths": [
+    "docs/artifacts/project-coordination.md",
+    "docs/artifacts/coordination-history/",
+    "docs/artifacts/handoff-packets/",
+    ".scratch/coordination-ledger-lifecycle-and-archive/"
+  ],
+  "first_validation": "Run the current-root handoff-packet validator. Then count live-ledger physical lines and bytes.",
+  "next_owner": "Test Automation"
+}

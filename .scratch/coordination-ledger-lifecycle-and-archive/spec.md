@@ -1,6 +1,6 @@
 # Coordination Ledger Lifecycle and Archive
 
-Status: active
+Status: completed
 
 ## Intake
 
@@ -35,3 +35,9 @@ No deletion, rules/probe/UI/architecture contract duplication, automatic archiva
 ## Closure Gate
 
 Close only after the live ledger is compact and usable for routine sweeps; closed detail is append-only archived and durably linked; no active work was archived; the documented threshold and safe-move boundary agree across the relevant process documents; and independent link/safety validation passes.
+
+## Closure Evidence
+
+The first manual archive is [2026-08-15 closed handoffs 01](../../docs/artifacts/coordination-history/2026-08-15-closed-handoffs-01.md). It moved terminal or superseded coordination detail only, retains relative issue/packet/canonical links, and leaves the live ledger at `191` physical lines and `74,417` bytes.
+
+Test Automation independently passed the post-migration verification: `LINK_CHECK_OK sources=2 relative_links=238 archive_markdown_links=46 failures=0`; `LIVE_SECTION_RETENTION_OK sections=6`; `ARCHIVED_STATUS_CHECK_OK linked_issue_sources=16 nonterminal=0`; and `APPEND_ONLY_CHECK_OK tracked_preserved=1 changed_tracked_archive=0 new_archive_files=1`. The current packet root validated with `handoffs=27 errors=0`.

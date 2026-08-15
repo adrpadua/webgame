@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "ledger-archive-contract-pm-review",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "Product Management",
+  "created_at": "2026-08-14T21:45:00-07:00",
+  "assignment_revision": 1,
+  "owner": "Product Management",
+  "scope_confirmed": "Read-only Product Management review of the approved Proposal 06, delivery archive contract, feature spec, issue-tracker intake boundary, and live coordination ledger. No archive movement, ledger compaction, product-intake redesign, or authority change.",
+  "planned_paths": [
+    ".scratch/product-backlog/issues/06-coordination-ledger-lifecycle-and-archive.md",
+    "docs/artifacts/coordination-history/README.md",
+    ".scratch/coordination-ledger-lifecycle-and-archive/spec.md",
+    ".scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md",
+    "docs/agents/issue-tracker.md",
+    "docs/artifacts/project-coordination.md"
+  ],
+  "first_validation": "Read-only comparison of Proposal 06 authority, the archive contract, and PM-to-EM routing; then run the current-root handoff-packet validator before issuing the completion verdict.",
+  "next_owner": "Product Management"
+}

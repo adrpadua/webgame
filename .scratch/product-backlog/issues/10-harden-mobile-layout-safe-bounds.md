@@ -1,6 +1,6 @@
 # Harden Mobile HUD Layout Safe Bounds So Controls Never Render Off-Screen
 
-Status: ready-for-agent
+Status: resolved
 
 ## Player Problem
 

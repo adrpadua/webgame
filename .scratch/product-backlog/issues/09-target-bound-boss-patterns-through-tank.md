@@ -1,6 +1,6 @@
 # Add Target-Bound Boss Patterns Through the Tank for Future Raid Mechanics
 
-Status: ready-for-agent
+Status: resolved
 
 ## Player Problem
 

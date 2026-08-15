@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "ledger-archive-migration-qa",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T22:00:00-07:00",
+  "owner": "Test Automation",
+  "canonical_issue": ".scratch/coordination-ledger-lifecycle-and-archive/issues/03-verify-archive-safety-and-live-sweep.md",
+  "objective": "Independently verify the first manual coordination-history archive for relative-link durability, append-only preservation, trigger accounting, active-work retention, and live-ledger sweep usability.",
+  "non_goals": [
+    "No archive movement, compaction, or repair edits",
+    "No rules, UI, probe, implementation, product, or workflow-authority change",
+    "No packet rewrite or gate activation"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Test Automation", "completion": "Test Automation" },
+  "dependencies": [
+    { "id": "ledger-archive-manual-migration", "state": "satisfied" },
+    { "id": "phase0-mandatory-gate-activation", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Current-root packet validator exit 0",
+    "Reproducible physical-line and byte counts with the archived file present",
+    "Resolution of every newly added archive/live relative link and anchor",
+    "Proof that active, blocked, assigned, queued, awaiting-verification, prerequisite, dependent, canonical, and packet-root work remains live",
+    "A routine-sweep conclusion using the live ledger alone"
+  ],
+  "next_owner": "Test Automation"
+}

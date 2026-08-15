@@ -1,6 +1,6 @@
 # Add Contextual Mobile Tutorial Prompt Infrastructure and Embermaw Teaching Tips
 
-Status: ready-for-agent
+Status: resolved
 
 ## Player Problem
 

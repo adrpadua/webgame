@@ -1,6 +1,6 @@
 # Focused Encounter Rules Probes
 
-Status: ready-for-agent
+Status: resolved
 
 ## Player Problem
 

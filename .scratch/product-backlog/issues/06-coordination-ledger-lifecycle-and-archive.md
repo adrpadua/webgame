@@ -1,6 +1,6 @@
 # Coordination Ledger Lifecycle and Archive
 
-Status: ready-for-agent
+Status: resolved
 
 ## Player Problem
 

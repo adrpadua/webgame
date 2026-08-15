@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "ledger-archive-contract-architecture-review",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Architecture",
+  "created_at": "2026-08-15T04:48:00-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": {
+    "status": "PASS",
+    "summary": "The archive contract is durable and recovery-safe for its bounded purpose: it keeps the live ledger as the first operational source, preserves archived coordination detail only as append-only historical evidence, requires repository-relative links, and explicitly excludes immutable handoff packet roots from archive movement. This review does not authorize the separate manual archive operation.",
+    "non_goal_compliance": [
+      "No archive file was moved or created, no ledger was compacted, and no rules, UI, content, implementation, or product-authority surface was changed.",
+      "The review packet is the only new evidence and retains the assigned Architecture boundary."
+    ]
+  },
+  "changed_paths": [
+    "docs/artifacts/handoff-packets/ledger-archive-contract-architecture-review/acknowledgment.json",
+    "docs/artifacts/handoff-packets/ledger-archive-contract-architecture-review/completion.json"
+  ],
+  "validation": [
+    {
+      "command": "Read-only review of docs/artifacts/coordination-history/README.md, .scratch/coordination-ledger-lifecycle-and-archive/spec.md, issue 01, docs/agents/recovery-kit.md, docs/agents/issue-tracker.md, docs/artifacts/handoff-packets.md, and docs/artifacts/project-coordination.md",
+      "result": "PASS: the live ledger remains the recovery-first operations source; archives are limited to historical coordination evidence; canonical rules, UI, probes, implementation contracts, active intake, non-terminal issues, and packet roots remain live."
+    },
+    {
+      "command": "PowerShell relative-link and retention inspection: resolve README ../project-coordination.md; count archive files excluding README; test architecture packet root and acknowledgment presence",
+      "result": "PASS: README link resolves to D:\\dev\\webgame\\docs\\artifacts\\project-coordination.md; archive has zero moved history files; the assigned immutable packet root and acknowledgment are present."
+    },
+    {
+      "command": "Read-only eligibility/recovery inspection of README and recovery kit",
+      "result": "PASS: movement requires terminal status, a recorded reverse-dependency sweep across every non-terminal feature issue and live row, fresh threshold counts, and a current validator result; active, blocked, assigned, queued, awaiting-verification, prerequisite/dependent work, and packet roots are ineligible."
+    },
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\validate_handoff_packets.ps1 -Root .\\docs\\artifacts\\handoff-packets",
+      "result": "HANDOFF_PACKET_VALIDATION_OK root=D:\\dev\\webgame\\.\\docs\\artifacts\\handoff-packets handoffs=24 errors=0; exit 0."
+    }
+  ],
+  "evidence": [
+    "README requires repository-relative archive filenames and relative archive/block links, forbids absolute paths and line-number-only locators, and preserves terminal status, owners, closure date, evidence, canonical links, and material baseline/controlled/promoted-default distinctions.",
+    "Recovery kit and issue tracker agree that packets are immutable durable evidence, the ledger is an index, recovery reads the live ledger first, and Proposal-06 archival never moves or rewrites packet roots.",
+    "The current ledger still exceeds the documented archive threshold and contains no archived detail; this establishes the trigger without authorizing movement before the remaining Design and PM reviews and later Issue 02 evidence."
+  ],
+  "next_owner": "Coordinator",
+  "requested_action": "Record Architecture PASS. Keep issue 01 open only for the independently assigned Design and PM reviews. After they pass, the Coordinator may separately route issue 02 with fresh threshold counts, current-root validation, and a recorded candidate-specific reverse-dependency sweep. Reconcile stale duplicate historical ledger rows during that movement rather than treating them as current routing."
+}

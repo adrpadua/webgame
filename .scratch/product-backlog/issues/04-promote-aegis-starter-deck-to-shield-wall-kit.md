@@ -1,6 +1,6 @@
 # Promote Elian starter Deck to the Shield Wall Kit
 
-Status: ready-for-agent
+Status: resolved
 
 ## Player Problem
 

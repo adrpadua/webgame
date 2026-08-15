@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "ledger-archive-manual-migration-coordinator",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T21:53:06-07:00",
+  "assignment_revision": 1,
+  "owner": "Coordinator",
+  "scope_confirmed": "Manual archive work is limited to terminal or superseded coordination history after the required independent reviews. Current delivery rows, canonical sources, product intake, and packet roots remain live.",
+  "planned_paths": [
+    "docs/artifacts/project-coordination.md",
+    "docs/artifacts/coordination-history/2026-08-15-closed-handoffs-01.md",
+    ".scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md",
+    ".scratch/coordination-ledger-lifecycle-and-archive/issues/02-archive-closed-handoff-history.md"
+  ],
+  "first_validation": "Count physical lines with Get-Content, measure bytes, run the current-root packet validator, and sweep all non-terminal issues plus live current-work rows before movement.",
+  "next_owner": "Coordinator"
+}

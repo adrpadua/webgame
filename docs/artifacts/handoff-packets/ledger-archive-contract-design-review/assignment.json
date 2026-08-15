@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "ledger-archive-contract-design-review",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T21:43:19-07:00",
+  "owner": "Game Design",
+  "canonical_issue": ".scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md",
+  "objective": "Independently review the archive contract for historical lookup, canonical-source boundaries, and preservation of distinct baseline, controlled, and promoted-default evidence.",
+  "non_goals": [
+    "No archive movement or ledger compaction",
+    "No design/content/rules change beyond review-packet evidence",
+    "No product-scope or approval-authority change"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Game Design", "completion": "Game Design" },
+  "dependencies": [
+    { "id": "ledger-archive-contract-coordinator", "state": "satisfied" },
+    { "id": "ledger-archive-contract-qa-review", "state": "satisfied" },
+    { "id": "ledger-archive-contract-ui-review", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Read-only review of the archive README, delivery spec, issue 01, and live ledger",
+    "PASS or exact blocker for historical distinctions, canonical-doc retention, and durable relative lookup"
+  ],
+  "next_owner": "Game Design"
+}

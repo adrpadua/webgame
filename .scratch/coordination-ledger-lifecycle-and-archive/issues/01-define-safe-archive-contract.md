@@ -1,6 +1,6 @@
 # Define Safe Ledger Archive Contract
 
-Status: completed-pending-independent-review
+Status: resolved
 Owner: Orchestrator
 
 ## Outcome
@@ -29,4 +29,14 @@ No content movement, auto-archival, rules/UI/probe contract duplication, or chan
 
 ## Coordinator completion
 
-The initial contract is in `docs/artifacts/coordination-history/README.md`. It defines the trigger, append-only filename and link shape, live/archive boundary, reverse-dependency sweep, recorded pre-move evidence, and independent reviewer roles. No archive content has moved. Test Automation and UI/UX independently passed their bounded review packets. Architecture, Design, and PM review remain required before this issue can resolve and release manual archive issue 02.
+The initial contract is in `docs/artifacts/coordination-history/README.md`. It defines the trigger, append-only filename and link shape, live/archive boundary, reverse-dependency sweep, recorded pre-move evidence, and independent reviewer roles.
+
+All required independent reviews passed without an authority, recovery, historical-lookup, or safety objection:
+
+- Test Automation: `docs/artifacts/handoff-packets/ledger-archive-contract-qa-review/`
+- UI/UX: `docs/artifacts/handoff-packets/ledger-archive-contract-ui-review/revisions/0002/`
+- Architecture: `docs/artifacts/handoff-packets/ledger-archive-contract-architecture-review/`
+- Game Design: `docs/artifacts/handoff-packets/ledger-archive-contract-design-review/`
+- Product Management: `docs/artifacts/handoff-packets/ledger-archive-contract-pm-review/`
+
+The manual archive operation is released to issue 02. It remains a separate, packet-backed change with fresh movement-time evidence and later independent Test Automation verification.

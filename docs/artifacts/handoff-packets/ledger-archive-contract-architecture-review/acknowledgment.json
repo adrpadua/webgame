@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "ledger-archive-contract-architecture-review",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "Architecture",
+  "created_at": "2026-08-15T04:40:00-07:00",
+  "assignment_revision": 1,
+  "owner": "Architecture",
+  "scope_confirmed": "I will perform only a read-only Architecture review of archive durability, repository-relative links, live/archive authority boundaries, recovery safety, and packet-root retention. I will not move or compact archive content or change workflow authority.",
+  "planned_paths": [
+    "docs/artifacts/coordination-history/README.md",
+    ".scratch/coordination-ledger-lifecycle-and-archive/spec.md",
+    ".scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md",
+    "docs/agents/recovery-kit.md",
+    "docs/agents/issue-tracker.md",
+    "docs/artifacts/handoff-packets.md",
+    "docs/artifacts/project-coordination.md"
+  ],
+  "first_validation": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\validate_handoff_packets.ps1 -Root .\\docs\\artifacts\\handoff-packets",
+  "next_owner": "Architecture"
+}

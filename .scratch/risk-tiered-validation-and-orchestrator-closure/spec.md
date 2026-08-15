@@ -1,6 +1,6 @@
 # Risk-Tiered Validation and Orchestrator Closure
 
-Status: active
+Status: completed
 
 ## Intake
 
@@ -34,3 +34,9 @@ Adopt a bounded risk-tiered closure policy where the Orchestrator primarily revi
 ## Closure Gate
 
 Close only when the canonical role contracts, ledger behavior, Playtester gate, and pilot evidence all agree with the approved proposal; Tier 2 and Tier 3 examples are durably recorded; non-eligible work does not create a Playtester task; and any coordinator rerun is explicitly justified in the ledger.
+
+## Closure Evidence
+
+Issue 04 completed the first six post-activation handoffs using the archive-contract review set. Each retained a valid immutable packet, tier/reason, validator verdict, evidence link, and rerun status in the live ledger. All six were Tier 2 cross-role contract checks and intentionally avoided routine Coordinator reruns after the applicable independent specialist evidence passed.
+
+The completed delivery also retains the prior Tier 3 new-probe example with its explicitly recorded Coordinator rerun and the eligible temporary Playtester activation/retest. The six-handoff review found zero post-closure reversals and zero escaped regressions; it caught one stale historical ledger link before closure and corrected it in the live ledger. Median assignment-to-completion time was 11 minutes; the 79-minute mean includes one 7-hour worker-availability interval and is not treated as a timeout policy. No process outcome or non-goal change is recommended.

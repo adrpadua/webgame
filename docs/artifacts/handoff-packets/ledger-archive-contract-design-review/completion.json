@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "ledger-archive-contract-design-review",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Game Design",
+  "created_at": "2026-08-14T21:45:05-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": {
+    "status": "PASS",
+    "summary": "The archive contract preserves Design historical lookup without merging distinct baseline, controlled evaluation/repro, and promoted-default evidence or displacing canonical Design, rules, or content sources. It is safe to advance to the remaining required independent reviews; it does not authorize archive movement by itself.",
+    "non_goal_compliance": [
+      "No archive movement, live-ledger compaction, Design/content/rules change, or product-scope/approval-authority change was made.",
+      "The archive remains historical coordination evidence only; current canonical documentation under CONTEXT.md, docs/content/, docs/rules/, active issue tracking, and packet evidence remain live."
+    ]
+  },
+  "changed_paths": [
+    "docs/artifacts/handoff-packets/ledger-archive-contract-design-review/acknowledgment.json",
+    "docs/artifacts/handoff-packets/ledger-archive-contract-design-review/completion.json"
+  ],
+  "validation": [
+    {
+      "command": "Read-only review of docs/artifacts/coordination-history/README.md, .scratch/coordination-ledger-lifecycle-and-archive/spec.md, .scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md, and docs/artifacts/project-coordination.md",
+      "result": "PASS: archive blocks retain terminal status, owners, closed date, evidence/artifact links, canonical-source links, original live subject, and the explicit baseline/controlled/promoted-default distinction; compact live summaries retain subject, terminal outcome, date, canonical-source pointers, and relative archive block links."
+    },
+    {
+      "command": "Get-ChildItem -File docs/artifacts/coordination-history; Test-Path CONTEXT.md, docs/content/deck-evaluation-rubric.md, docs/artifacts/deck-evaluation-measurement-plan.md, docs/artifacts/deck-eval-notes, docs/content/decks/elian-voss-starter.md, .scratch/deck-evaluation, docs/artifacts/project-coordination.md",
+      "result": "PASS: README.md is the only archive file, so no history has moved; every checked canonical Design/rules/content/evaluation source remains live and reachable."
+    },
+    {
+      "command": "(Get-Content docs/artifacts/project-coordination.md).Count; (Get-Item docs/artifacts/project-coordination.md).Length; powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\validate_handoff_packets.ps1 -Root .\\docs\\artifacts\\handoff-packets",
+      "result": "PASS: current physical ledger count is 224 lines and 92,648 bytes, above both archive triggers; current packet validation passed with HANDOFF_PACKET_VALIDATION_OK handoffs=24 errors=0. The contract requires fresh pre-move counts and validator evidence, so no historical snapshot is relied upon for a future move."
+    }
+  ],
+  "evidence": [
+    "The contract expressly forbids absolute paths and line-number-only locators, requiring repository-relative file and block links that survive checkout/worktree moves.",
+    "The contract requires a reverse-dependency sweep across non-terminal issues and live ledger rows before any manual move, preserving Design dependencies and historical distinctions rather than archiving by terminal status alone.",
+    "The live ledger currently keeps baseline, controlled evaluation/repro, and starter-promotion/default evidence separately discoverable, and the archive contract requires that distinction to remain material in every future historical block."
+  ],
+  "next_owner": "Coordinator",
+  "requested_action": "Record the Game Design PASS with the completed UI/UX and Test Automation reviews. Do not move or compact ledger content until Architecture and PM complete their required independent reviews and the Coordinator records fresh reverse-dependency, threshold, and current-root packet-validator evidence."
+}

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "ledger-archive-contract-architecture-review",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T21:43:19-07:00",
+  "owner": "Architecture",
+  "canonical_issue": ".scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md",
+  "objective": "Independently review the archive contract for durable recovery, repository-relative links, immutable packet retention, and live-source boundaries.",
+  "non_goals": [
+    "No archive movement or ledger compaction",
+    "No implementation, rules, UI, or product-scope edit beyond review-packet evidence",
+    "No workflow-authority redesign"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Architecture", "completion": "Architecture" },
+  "dependencies": [
+    { "id": "ledger-archive-contract-coordinator", "state": "satisfied" },
+    { "id": "ledger-archive-contract-qa-review", "state": "satisfied" },
+    { "id": "ledger-archive-contract-ui-review", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Read-only review of the archive README, delivery spec, issue 01, recovery kit, issue tracker, and live ledger",
+    "PASS or exact blocker for durable relative links, archive/live authority boundary, and packet-root retention"
+  ],
+  "next_owner": "Architecture"
+}

@@ -1,8 +1,8 @@
 # Run Six-Handoff Pilot Review
 
-Status: in-progress
+Status: resolved
 Owner: Coordinator
-Blocked by: six completed post-activation handoffs with the approved ledger fields
+Blocked by: none
 
 ## Pilot Start
 
@@ -29,3 +29,14 @@ No claim that the process is final before the six-handoff review exists. No broa
 ## Acceptance
 
 The pilot review exists, references six handoffs, and states whether the process remains within the approved outcome and non-goals or needs PM/user escalation.
+
+## Pilot Review
+
+Counted post-activation handoffs are the Coordinator, Test Automation, UI/UX, Architecture, Game Design, and Product Management archive-contract packets recorded in the live ledger's `Post-Activation Six-Handoff Pilot` table. Each is schema-valid, independently acknowledged/completed where applicable, and carries Tier 2 cross-role contract reason, required validators, evidence link, and `not required` Coordinator-rerun status.
+
+- Reruns avoided: six routine Coordinator reruns were avoided because the owner/reviewer evidence was complete and no recorded exception applied.
+- Closure reversals: zero. Two immutable pre-closure packet corrections remain visible through supersession revisions and were never treated as a closed milestone.
+- Escaped regressions: zero. A stale historical Combat Postures link was caught by the archive link check before closure and corrected; it did not escape into a closed archive block.
+- Elapsed handoff-to-closure: median 11 minutes; mean 79 minutes, driven by one 7-hour worker-availability interval. No wall-clock timeout policy is inferred.
+
+The process remains within the approved outcome and non-goals. No PM/user escalation or policy change is recommended.

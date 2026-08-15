@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "ledger-archive-manual-migration-coordinator",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T21:53:06-07:00",
+  "owner": "Coordinator",
+  "canonical_issue": ".scratch/coordination-ledger-lifecycle-and-archive/issues/02-archive-closed-handoff-history.md",
+  "objective": "Perform the first manual append-only archive of terminal coordination history while preserving current live work and durable relative links.",
+  "non_goals": [
+    "No deletion or rewriting of archived evidence",
+    "No movement or rewriting of immutable handoff packet roots",
+    "No archival of active, blocked, assigned, queued, awaiting-verification, prerequisite, or dependent work",
+    "No rules, UI, probe, implementation, product, or workflow-authority change"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Coordinator", "completion": "Coordinator" },
+  "dependencies": [
+    { "id": "ledger-archive-contract-reviews", "state": "satisfied" },
+    { "id": "phase0-mandatory-gate-activation", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Fresh physical-line and byte counts proving the documented trigger",
+    "Current-root packet validator exit 0 before movement",
+    "Recorded candidate-specific reverse-dependency sweep",
+    "Append-only archive file and compact repository-relative live links",
+    "Separate Test Automation safety verification after movement"
+  ],
+  "next_owner": "Coordinator"
+}

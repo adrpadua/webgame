@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "ledger-archive-manual-migration-coordinator",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T21:53:06-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": "The first manual archive completed under the approved contract. Terminal and superseded coordination detail moved append-only to a repository-relative history file; the live ledger retains current operations, active delivery rows, canonical-source index, ownership, open questions, and milestone gate.",
+  "changed_paths": [
+    "docs/artifacts/coordination-history/2026-08-15-closed-handoffs-01.md",
+    "docs/artifacts/project-coordination.md",
+    ".scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md",
+    ".scratch/coordination-ledger-lifecycle-and-archive/issues/02-archive-closed-handoff-history.md"
+  ],
+  "validation": [
+    "Pre-move trigger: 224 physical lines and 92,648 bytes, exceeding the 200-line and 75-KB thresholds.",
+    "Pre-move validator: HANDOFF_PACKET_VALIDATION_OK handoffs=24 errors=0; exit 0.",
+    "Reverse-dependency sweep of all non-terminal feature issues and live current-work rows found no candidate subject, delivery issue path, packet ID, or dependency name still active as a prerequisite or dependent.",
+    "Post-move live ledger: 192 physical lines and 73,801 bytes."
+  ],
+  "evidence": [
+    "docs/artifacts/coordination-history/2026-08-15-closed-handoffs-01.md preserves the terminal/superseded record blocks with relative issue, packet, and canonical-source links.",
+    "docs/artifacts/project-coordination.md links the three historical blocks from a compact archive index and retains all current archive, risk-tier, ownership, canonical, and open-work rows.",
+    "The archive contract reviews passed for Architecture, Test Automation, Game Design, UI/UX, and Product Management before the move."
+  ],
+  "next_owner": "Test Automation",
+  "requested_action": "Independently verify archive links, append-only retention, trigger accounting, active-work retention, and routine-sweep usability under issue 03. Do not close Proposal 06 or release archive ownership until that return is recorded."
+}
