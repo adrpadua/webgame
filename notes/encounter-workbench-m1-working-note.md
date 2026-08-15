@@ -53,7 +53,44 @@ dead schema. `resources/content_catalog.tres` is replaced structurally by
 the `data/` directory plus the engine's load-time validation. Both freeze
 with the Godot codebase as reference copies (ADR 0019/0020).
 
-## 6. Design finding: `boss_damage` has no range rule
+## 6. Charge lockout after activation: two docs disagree
+
+`docs/rules/prototype-rules.md` (Action Bar Rules): "A charged Slot activates
+once in its matching player window, then cannot receive more charges **until
+its next matching window**" — read literally, a Quick Slot fired in Quick
+cannot be charged during that round's Slow Window. `CONTEXT.md` ("Slot
+Activation Limit") states the narrower rule: "A Slot cannot receive
+additional charged cards **after activation in that window**", and the frozen
+Godot engine implements the narrow reading (the activation flag clears when
+the window ends).
+
+**Interim ruling**: the TS engine keeps the CONTEXT.md / reference behavior —
+charging a fired Quick Slot is legal again once Quick ends. A test pins this
+(`engine.test.ts`, "allows charging a fired Quick Slot again once that window
+has ended") so a future docs ruling changes it deliberately. The
+prototype-rules sentence needs a ruling: either reword it to match the Slot
+Activation Limit or ratify the stricter lockout and change the engine.
+
+## 7. `discard_for_stamina` is a translation artifact, held to Quick
+
+The frozen reference exposes a bare DISCARD_FOR_STAMINA action with no phase
+restriction and no effect beyond the discard; no documented rule defines it —
+Stamina exists only as the Quick Window movement payment. The TS engine keeps
+the action kind for one-to-one parity with the reference action catalog, but
+its legality now requires the Quick Window. If the docs never grow a use for
+a bare Stamina discard, the kind can be dropped in a later cleanup.
+
+## 8. Boss-specific vocabulary in the generic state model — deferred
+
+Embermaw's telegraph kinds (`breath`, `brood`) and `broodSpawnCandidates`
+live in the shared engine state model, and the Boss Beat kinds are a fixed
+enum resolved by one switch in `timeline.ts`. This mirrors the frozen
+reference (the port is a translation, not a redesign, per ADR 0019). The
+cost lands when a second Boss arrives: beat kinds, telegraph vocabulary, and
+spawn configuration should then generalize into authored Boss-level content
+rather than engine unions. Deliberately deferred until that Boss exists.
+
+## 9. Design finding: `boss_damage` has no range rule
 
 Per the frozen engine and the rules docs, only `damage` (piece-targeting)
 effects check `range_tiles`; a card's `boss_damage` resolves from anywhere

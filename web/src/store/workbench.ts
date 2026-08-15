@@ -1,8 +1,7 @@
 import { create } from 'zustand'
-import { loadCatalog } from '@/content'
+import { DEFAULT_ENCOUNTER_ID, loadCatalog } from '@/content'
 import {
   advancePhase,
-  buildEncounterRecord,
   cardWindowSpeed,
   createEncounterState,
   resolve,
@@ -13,8 +12,7 @@ import {
   type ResolvedActionFact,
   type ScenarioStep,
 } from '@/engine'
-
-const ENCOUNTER_ID = 'embermaw_prototype'
+import { buildRecordExport, buildScenarioExport } from './exports'
 
 export interface FactEntry extends ResolvedActionFact {
   id: number
@@ -40,6 +38,8 @@ interface WorkbenchStore {
   sessionStartedAt: string
   targetingSlotIndex: number | null
   draggingCardId: string | null
+  heroRoutePreview: boolean
+  showCoordinates: boolean
   lastRejection: string | null
   submit: (action: EncounterActionInput) => void
   advance: () => void
@@ -54,6 +54,8 @@ interface WorkbenchStore {
   cardDroppedOnSlot: (cardInstanceId: string, slotIndex: number) => void
   cancelTargeting: () => void
   setDraggingCard: (cardInstanceId: string | null) => void
+  setHeroRoutePreview: (previewing: boolean) => void
+  toggleCoordinates: () => void
   clearRejection: () => void
 }
 
@@ -63,38 +65,45 @@ export const selectState = (store: WorkbenchStore): EncounterState => store.entr
 
 const SCENARIO_STEP_KINDS = new Set(['load_slot', 'charge_slot', 'fire_slot', 'move_hero', 'discard_for_stamina'])
 
-function renumberFacts(entries: HistoryEntry[], index: number, produced: ResolvedActionFact[]): FactEntry[] {
-  let nextId = 1
-  for (let position = 0; position <= index; position += 1) {
+// Fact ids run globally across the timeline; both live play and Scenario
+// replay number through these two helpers.
+function numberFacts(firstId: number, produced: ResolvedActionFact[]): FactEntry[] {
+  return produced.map((fact, offset) => ({ ...fact, id: firstId + offset }))
+}
+
+function nextFactId(entries: HistoryEntry[], index: number): number {
+  for (let position = index; position >= 0; position -= 1) {
     const facts = entries[position].facts
     if (facts.length > 0) {
-      nextId = facts[facts.length - 1].id + 1
+      return facts[facts.length - 1].id + 1
     }
   }
-  return produced.map((fact) => ({ ...fact, id: nextId++ }))
+  return 1
 }
 
 function initialEntry(seed: number): HistoryEntry {
-  return { label: 'Encounter start', step: null, state: createEncounterState(catalog, ENCOUNTER_ID, seed), facts: [] }
+  return { label: 'Encounter start', step: null, state: createEncounterState(catalog, DEFAULT_ENCOUNTER_ID, seed), facts: [] }
 }
 
 export const useWorkbench = create<WorkbenchStore>((set, get) => {
   function pushEntry(label: string, step: ScenarioStep | null, state: EncounterState, produced: ResolvedActionFact[]): void {
     const { entries, index } = get()
     const kept = entries.slice(0, index + 1)
-    kept.push({ label, step, state, facts: renumberFacts(entries, index, produced) })
+    kept.push({ label, step, state, facts: numberFacts(nextFactId(entries, index), produced) })
     set({ entries: kept, index: kept.length - 1 })
   }
 
   return {
     catalog,
-    seed: catalog.encounters[ENCOUNTER_ID].random_seed,
-    entries: [initialEntry(catalog.encounters[ENCOUNTER_ID].random_seed)],
+    seed: catalog.encounters[DEFAULT_ENCOUNTER_ID].random_seed,
+    entries: [initialEntry(catalog.encounters[DEFAULT_ENCOUNTER_ID].random_seed)],
     index: 0,
     activeScenarioId: null,
     sessionStartedAt: new Date().toISOString(),
     targetingSlotIndex: null,
     draggingCardId: null,
+    heroRoutePreview: false,
+    showCoordinates: false,
     lastRejection: null,
 
     submit: (action) => {
@@ -137,16 +146,12 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
       }
       const replay = runScenario(catalog, scenario)
       const entries: HistoryEntry[] = []
-      let nextId = 1
+      let firstId = 1
       for (const entry of replay.entries) {
         const label =
           entry.step === null ? `Scenario: ${scenario.title}` : 'advance' in entry.step ? 'Advance' : entry.facts[0]?.title ?? 'Action'
-        entries.push({
-          label,
-          step: entry.step,
-          state: entry.state,
-          facts: entry.facts.map((fact) => ({ ...fact, id: nextId++ })),
-        })
+        entries.push({ label, step: entry.step, state: entry.state, facts: numberFacts(firstId, entry.facts) })
+        firstId += entry.facts.length
       }
       set({
         seed: scenario.seed,
@@ -170,46 +175,14 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
     // a named, versioned action-prefix plus the seed — never a snapshot.
     exportScenario: () => {
       const { entries, index, seed } = get()
-      const steps = entries
-        .slice(1, index + 1)
-        .map((entry) => entry.step)
-        .filter((step): step is ScenarioStep => step !== null)
-      const scenario = {
-        id: 'session-export',
-        title: 'Session export',
-        version: 1,
-        description: 'Exported from a live Workbench session.',
-        encounter: ENCOUNTER_ID,
-        seed,
-        steps,
-      }
-      return JSON.stringify(scenario, null, 2)
+      return buildScenarioExport(entries, index, DEFAULT_ENCOUNTER_ID, seed)
     },
 
     // Encounter Record schema_version 2: the session timeline up to the
     // viewed position, sealed with content identity and state fingerprints.
     exportRecord: async () => {
       const { entries, index, sessionStartedAt } = get()
-      const steps = entries
-        .slice(1, index + 1)
-        .map((entry) => entry.step)
-        .filter((step): step is ScenarioStep => step !== null)
-      const facts = entries.slice(0, index + 1).flatMap((entry) => entry.facts)
-      const finalState = entries[index].state
-      const record = await buildEncounterRecord(catalog, {
-        encounterId: ENCOUNTER_ID,
-        steps,
-        facts,
-        initialState: entries[0].state,
-        finalState,
-        meta: {
-          recordId: `rec_${Date.now().toString(36)}`,
-          startedAt: sessionStartedAt,
-          endedAt: new Date().toISOString(),
-          abandonReason: finalState.active ? 'exported_mid_encounter' : undefined,
-        },
-      })
-      return JSON.stringify(record, null, 2)
+      return buildRecordExport(catalog, entries, index, DEFAULT_ENCOUNTER_ID, sessionStartedAt)
     },
 
     // Tapping a prepared Slot: a piece-targeting Top Card first needs a Minion
@@ -261,6 +234,8 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
 
     cancelTargeting: () => set({ targetingSlotIndex: null }),
     setDraggingCard: (cardInstanceId) => set({ draggingCardId: cardInstanceId }),
+    setHeroRoutePreview: (previewing) => set({ heroRoutePreview: previewing }),
+    toggleCoordinates: () => set((store) => ({ showCoordinates: !store.showCoordinates })),
     clearRejection: () => set({ lastRejection: null }),
   }
 })

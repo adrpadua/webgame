@@ -104,9 +104,12 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       return legal()
     }
     case 'discard_for_stamina': {
+      // Stamina exists only as the Quick Window movement payment; a bare
+      // discard is retained for action-catalog parity with the frozen
+      // reference but is held to the same window (see the working note).
       const hero = state.heroes[action.sourceId]
-      if (!hero || !handCard(hero, action.cardInstanceId)) {
-        return illegal('The chosen hand card is unavailable.')
+      if (!hero || state.phase !== 'quick' || !handCard(hero, action.cardInstanceId)) {
+        return illegal('Discarding for Stamina requires the Quick Window and a hand card.')
       }
       return legal()
     }

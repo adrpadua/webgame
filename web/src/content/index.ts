@@ -1,5 +1,8 @@
 import { buildCatalog, type ContentCatalog } from '@/engine'
 
+// The encounter the Workbench and tooling open by default.
+export const DEFAULT_ENCOUNTER_ID = 'embermaw_prototype'
+
 // Loads every authored JSON payload from the repo-level data/ directory
 // (ADR 0020). Validation happens inside buildCatalog via the zod schemas.
 const modules = import.meta.glob('../../../data/{cards,keywords,charge_modifiers,hazards,minions,boss_programs,encounters,decks,scenarios}/*.json', {

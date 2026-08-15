@@ -53,7 +53,19 @@ function SeedControl() {
       <p className="mt-2 text-[11px] text-zinc-500">
         Seed {state.rng.seed} · {state.rng.choices.length} audited RNG calls
       </p>
+      <CoordinateToggle />
     </div>
+  )
+}
+
+function CoordinateToggle() {
+  const showCoordinates = useWorkbench((store) => store.showCoordinates)
+  const toggleCoordinates = useWorkbench((store) => store.toggleCoordinates)
+  return (
+    <label className="mt-2 flex min-h-11 items-center gap-2 text-xs text-zinc-300">
+      <input type="checkbox" checked={showCoordinates} onChange={toggleCoordinates} data-testid="coords-toggle" className="accent-emerald-500" />
+      Show hex coordinates
+    </label>
   )
 }
 

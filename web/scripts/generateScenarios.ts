@@ -6,7 +6,7 @@
 // Usage: npx vite-node scripts/generateScenarios.ts
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve as resolvePath } from 'node:path'
-import { loadCatalog } from '../src/content'
+import { DEFAULT_ENCOUNTER_ID, loadCatalog } from '../src/content'
 import {
   advancePhase,
   cardChargeCap,
@@ -23,7 +23,7 @@ import {
 } from '../src/engine'
 
 const catalog = loadCatalog()
-const ENCOUNTER_ID = 'embermaw_prototype'
+const ENCOUNTER_ID = DEFAULT_ENCOUNTER_ID
 
 interface PolicyKnobs {
   // Both Slots run Steady Strike, or Slot 1 runs Iron Guard for armor.

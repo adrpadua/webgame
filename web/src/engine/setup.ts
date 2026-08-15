@@ -60,7 +60,7 @@ export function createEncounterState(catalog: ContentCatalog, encounterId: strin
   }
   const actionBar: SlotState[] = []
   for (let index = 0; index < encounter.slot_count; index += 1) {
-    actionBar.push({ topCard: null, charges: [], activatedWindow: '' })
+    actionBar.push({ topCard: null, charges: [], activatedWindow: null })
   }
   const hero: HeroState = {
     id: encounter.primary_hero_id,

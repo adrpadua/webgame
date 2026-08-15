@@ -41,6 +41,7 @@ export function applyAction(
   depth: number,
 ): void {
   const generated: EncounterActionInput[] = []
+  const presentation = factPresentation(action)
   const fact: ResolvedActionFact = {
     sequence: facts.length,
     depth,
@@ -50,8 +51,8 @@ export function applyAction(
     sourceId: action.sourceId,
     succeeded: false,
     reason: '',
-    title: describeAction(action),
-    detail: actionDetail(action),
+    title: presentation.title,
+    detail: presentation.detail,
   }
   resolveOne(catalog, draft, action, fact, generated)
   facts.push(fact)
@@ -72,6 +73,9 @@ export function checkResolution(draft: EncounterState): void {
     draft.outcomeReason = 'The Boss is defeated.'
     return
   }
+  // One-player slice rule (docs/rules/prototype-rules.md): reducing Elian
+  // Voss to 0 health is defeat. CONTEXT.md's Downed/Revive states presuppose
+  // a multi-Hero Party and are deferred with it — see the working note.
   for (const hero of Object.values(draft.heroes)) {
     if (hero.health <= 0) {
       draft.active = false
@@ -108,7 +112,7 @@ function resolveOne(
       }
       slot.topCard = card
       slot.charges = []
-      slot.activatedWindow = ''
+      slot.activatedWindow = null
       succeed(fact)
       break
     }
@@ -295,7 +299,7 @@ function resolveOne(
       fact.detail.topCard = slot.topCard.cardId
       fact.detail.chargeCards = slot.charges.map((charge) => charge.cardId)
       hero.discard.push(slot.topCard, ...slot.charges)
-      hero.actionBar[action.slotIndex] = { topCard: null, charges: [], activatedWindow: '' }
+      hero.actionBar[action.slotIndex] = { topCard: null, charges: [], activatedWindow: null }
       succeed(fact)
       break
     }
@@ -363,7 +367,7 @@ function clearWindowFlags(draft: EncounterState, window: Phase): void {
   for (const hero of Object.values(draft.heroes)) {
     for (const slot of hero.actionBar) {
       if (slot.activatedWindow === window) {
-        slot.activatedWindow = ''
+        slot.activatedWindow = null
       }
     }
   }
@@ -483,49 +487,44 @@ function evaluateDamageStatus(
   resolutionFact.status_evaluation = evaluation
 }
 
-function describeAction(action: EncounterActionInput): string {
-  switch (action.kind) {
-    case 'load_slot':
-      return `Load Slot ${action.slotIndex + 1}`
-    case 'charge_slot':
-      return `Charge Slot ${action.slotIndex + 1}`
-    case 'fire_slot':
-      return `Fire Slot ${action.slotIndex + 1}`
-    case 'move_hero':
-      return `Move to (${action.destination.q}, ${action.destination.r})`
-    case 'resolve_boss':
-      return `Boss Beat: ${action.beat.title}`
-    case 'apply_hazard':
-      return `Hazard at (${action.coords.q}, ${action.coords.r})`
-    case 'spawn_minion':
-      return `Spawn ${action.minionId}`
-    case 'damage':
-      return `Damage ${action.amount} to ${action.targetId} (${action.reasonText})`
-    case 'discard_for_stamina':
-      return 'Discard for Stamina'
-    case 'expire_status':
-      return `Status expires: ${action.statusId}`
-    case 'advance_phase':
-      return `Phase: ${action.fromPhase} to ${action.toPhase}`
-    case 'round_start':
-      return `Round ${action.round} begins`
-    case 'full_charge_cleanup':
-      return `Full-Charge Cleanup: Slot ${action.slotIndex + 1}`
-    case 'draw_card':
-      return 'Draw a card'
-    case 'shuffle_deck':
-      return `Shuffle deck (${action.label})`
-    case 'end_of_clock':
-      return 'End of the Encounter Clock'
-  }
-}
-
-function actionDetail(action: EncounterActionInput): Record<string, unknown> {
-  if (action.kind === 'resolve_boss') {
-    return { beatId: action.beat.id, beatTitle: action.beat.title, track: action.track }
-  }
+// One per-kind mapping produces both the fact log title and the serializable
+// detail payload, so the two never drift apart.
+function factPresentation(action: EncounterActionInput): { title: string; detail: Record<string, unknown> } {
   const detail = structuredClone(action) as unknown as Record<string, unknown>
   delete detail.kind
   delete detail.sourceId
-  return detail
+  switch (action.kind) {
+    case 'load_slot':
+      return { title: `Load Slot ${action.slotIndex + 1}`, detail }
+    case 'charge_slot':
+      return { title: `Charge Slot ${action.slotIndex + 1}`, detail }
+    case 'fire_slot':
+      return { title: `Fire Slot ${action.slotIndex + 1}`, detail }
+    case 'move_hero':
+      return { title: `Move to (${action.destination.q}, ${action.destination.r})`, detail }
+    case 'resolve_boss':
+      return { title: `Boss Beat: ${action.beat.title}`, detail: { beatId: action.beat.id, beatTitle: action.beat.title, track: action.track } }
+    case 'apply_hazard':
+      return { title: `Hazard at (${action.coords.q}, ${action.coords.r})`, detail }
+    case 'spawn_minion':
+      return { title: `Spawn ${action.minionId}`, detail }
+    case 'damage':
+      return { title: `Damage ${action.amount} to ${action.targetId} (${action.reasonText})`, detail }
+    case 'discard_for_stamina':
+      return { title: 'Discard for Stamina', detail }
+    case 'expire_status':
+      return { title: `Status expires: ${action.statusId}`, detail }
+    case 'advance_phase':
+      return { title: `Phase: ${action.fromPhase} to ${action.toPhase}`, detail }
+    case 'round_start':
+      return { title: `Round ${action.round} begins`, detail }
+    case 'full_charge_cleanup':
+      return { title: `Full-Charge Cleanup: Slot ${action.slotIndex + 1}`, detail }
+    case 'draw_card':
+      return { title: 'Draw a card', detail }
+    case 'shuffle_deck':
+      return { title: `Shuffle deck (${action.label})`, detail }
+    case 'end_of_clock':
+      return { title: 'End of the Encounter Clock', detail }
+  }
 }

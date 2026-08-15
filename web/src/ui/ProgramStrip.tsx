@@ -1,9 +1,13 @@
+import { useState } from 'react'
 import { currentProgram } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
 
+// The boss-program strip: tap to expand or collapse its three-beat Instant
+// and Incoming tracks.
 export function ProgramStrip() {
   const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)
+  const [expanded, setExpanded] = useState(true)
   const program = currentProgram(catalog, state)
   if (!program) {
     return null
@@ -13,9 +17,19 @@ export function ProgramStrip() {
     { track: 'incoming', label: 'Incoming', active: state.phase === 'incoming' },
   ]
   return (
-    <div className="border-b border-zinc-800 bg-zinc-900/60 px-4 py-2 text-[11px]" data-testid="program-strip">
-      <div className="mb-1 text-[10px] uppercase tracking-widest text-zinc-500">{program.title}</div>
-      {rows.map((row) => (
+    <button
+      type="button"
+      onClick={() => setExpanded((current) => !current)}
+      className="w-full border-b border-zinc-800 bg-zinc-900/60 px-4 py-2 text-left text-[11px]"
+      data-testid="program-strip"
+      data-expanded={expanded}
+    >
+      <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-widest text-zinc-500">
+        <span>{program.title}</span>
+        <span>{expanded ? '▾' : '▸'}</span>
+      </div>
+      {expanded &&
+        rows.map((row) => (
         <div key={row.track} className="flex items-center gap-2 py-0.5">
           <span className={`w-16 shrink-0 font-semibold ${row.active ? 'text-amber-400' : 'text-zinc-500'}`}>{row.label}</span>
           <div className="flex flex-wrap gap-1">
@@ -30,7 +44,7 @@ export function ProgramStrip() {
             ))}
           </div>
         </div>
-      ))}
-    </div>
+        ))}
+    </button>
   )
 }

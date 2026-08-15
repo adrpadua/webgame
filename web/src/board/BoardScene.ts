@@ -8,6 +8,13 @@ export interface BoardSnapshot {
   state: EncounterState
   targeting: boolean
   legalMoveKeys: string[]
+  showCoordinates: boolean
+}
+
+export interface BoardSceneCallbacks {
+  onHexClicked: (coords: Axial) => void
+  // Pressing and holding the Hero previews legal routes; release ends it.
+  onHeroPressChange: (pressed: boolean) => void
 }
 
 const TILE_FILL = 0x272138
@@ -25,18 +32,25 @@ export class BoardScene extends Phaser.Scene {
   private snapshot: BoardSnapshot | null = null
   private graphicsLayer: Phaser.GameObjects.Graphics | null = null
   private labels: Phaser.GameObjects.Text[] = []
-  private readonly onHexClicked: (coords: Axial) => void
+  private readonly callbacks: BoardSceneCallbacks
 
-  constructor(onHexClicked: (coords: Axial) => void) {
+  constructor(callbacks: BoardSceneCallbacks) {
     super({ key: 'board' })
-    this.onHexClicked = onHexClicked
+    this.callbacks = callbacks
   }
 
   create(): void {
     this.graphicsLayer = this.add.graphics()
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.onHexClicked(pixelToAxial(pointer.x, pointer.y))
+      const coords = pixelToAxial(pointer.x, pointer.y)
+      this.callbacks.onHexClicked(coords)
+      const heroCoords = this.snapshot ? this.snapshot.state.board.entities[this.snapshot.state.primaryHeroId]?.coords : undefined
+      if (heroCoords && heroCoords.q === coords.q && heroCoords.r === coords.r) {
+        this.callbacks.onHeroPressChange(true)
+      }
     })
+    this.input.on('pointerup', () => this.callbacks.onHeroPressChange(false))
+    this.input.on('gameout', () => this.callbacks.onHeroPressChange(false))
     this.renderSnapshot()
   }
 
@@ -82,6 +96,17 @@ export class BoardScene extends Phaser.Scene {
       if (snapshot.targeting && minionKeys.has(key)) {
         graphics.lineStyle(3, TARGET_STROKE, 1)
         this.strokeHex(graphics, hexCorners(x, y, HEX_SIZE - 4))
+      }
+      if (snapshot.showCoordinates) {
+        this.labels.push(
+          this.add
+            .text(x, y + HEX_SIZE - 12, `${coords.q},${coords.r}`, {
+              fontFamily: 'monospace',
+              fontSize: '9px',
+              color: '#71717a',
+            })
+            .setOrigin(0.5, 0.5),
+        )
       }
     }
 

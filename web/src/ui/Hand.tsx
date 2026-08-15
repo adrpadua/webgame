@@ -1,46 +1,98 @@
-import { cardChargeCap, cardWindowSpeed } from '@/engine'
+import { useRef, useState } from 'react'
+import { cardChargeCap, cardWindowSpeed, type Card } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
 
+// Card Inspection: the temporary full-card view shown while a player holds a
+// Compact Card; it dismisses on release. Full art is the shared placeholder
+// until per-card art is authored.
+function CardInspection({ card }: { card: Card }) {
+  const window = cardWindowSpeed(card)
+  return (
+    <div className="pointer-events-none absolute inset-x-4 bottom-36 z-30" data-testid="card-inspection">
+      <div className="rounded-2xl border-2 border-zinc-500 bg-zinc-900 p-4 shadow-2xl">
+        <div className="flex items-baseline justify-between">
+          <span className="text-base font-bold text-zinc-50">{card.title}</span>
+          <span className={`text-[10px] font-semibold uppercase ${window === 'quick' ? 'text-emerald-400' : 'text-sky-400'}`}>
+            {window} · Charge {cardChargeCap(card)}
+          </span>
+        </div>
+        <div className="mt-2 flex h-24 items-center justify-center rounded-lg bg-linear-to-br from-zinc-700 via-zinc-800 to-zinc-900 text-[10px] tracking-widest text-zinc-500 uppercase">
+          Placeholder art
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-zinc-200">{card.rules_text}</p>
+        <div className="mt-2 flex gap-1">
+          {card.tags.map((tag) => (
+            <span key={tag} className="rounded bg-zinc-800 px-1.5 py-0.5 text-[9px] text-zinc-400 uppercase">
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // The Hand: four equal Compact Cards anchored to the bottom interaction zone.
-// A Compact Card shows its name, timing, and Charge Value.
+// A Compact Card shows its name, timing, and Charge Value; hold one to
+// inspect its full view.
 export function Hand() {
   const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)
   const setDraggingCard = useWorkbench((store) => store.setDraggingCard)
+  const [inspectingCardId, setInspectingCardId] = useState<string | null>(null)
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hero = state.heroes[state.primaryHeroId]
   if (!hero) {
     return null
   }
+
+  const beginHold = (cardId: string) => {
+    holdTimer.current = setTimeout(() => setInspectingCardId(cardId), 400)
+  }
+  const endHold = () => {
+    if (holdTimer.current !== null) {
+      clearTimeout(holdTimer.current)
+      holdTimer.current = null
+    }
+    setInspectingCardId(null)
+  }
+
   return (
-    <div className="flex gap-2 border-t border-zinc-800 bg-zinc-950/90 px-4 py-3" data-testid="hand">
-      {hero.hand.map((instance) => {
-        const card = catalog.cards[instance.cardId]
-        const window = cardWindowSpeed(card)
-        return (
-          <div
-            key={instance.instanceId}
-            draggable
-            data-testid="hand-card"
-            data-card-id={instance.cardId}
-            data-card-instance={instance.instanceId}
-            title={card.rules_text}
-            onDragStart={(event) => {
-              event.dataTransfer.setData('text/plain', instance.instanceId)
-              event.dataTransfer.effectAllowed = 'move'
-              setDraggingCard(instance.instanceId)
-            }}
-            onDragEnd={() => setDraggingCard(null)}
-            className="min-h-24 flex-1 cursor-grab rounded-xl border border-zinc-600 bg-linear-to-b from-zinc-700 to-zinc-800 p-2 shadow-md transition hover:-translate-y-1 hover:border-zinc-400 active:cursor-grabbing"
-          >
-            <div className="text-[11px] leading-tight font-bold text-zinc-50">{card.title}</div>
-            <div className={`mt-1 text-[9px] font-semibold uppercase ${window === 'quick' ? 'text-emerald-400' : 'text-sky-400'}`}>
-              {window}
+    <>
+      <div className="flex gap-2 border-t border-zinc-800 bg-zinc-950/90 px-4 py-3" data-testid="hand">
+        {hero.hand.map((instance) => {
+          const card = catalog.cards[instance.cardId]
+          const window = cardWindowSpeed(card)
+          return (
+            <div
+              key={instance.instanceId}
+              draggable
+              data-testid="hand-card"
+              data-card-id={instance.cardId}
+              data-card-instance={instance.instanceId}
+              onPointerDown={() => beginHold(instance.cardId)}
+              onPointerUp={endHold}
+              onPointerLeave={endHold}
+              onDragStart={(event) => {
+                endHold()
+                event.dataTransfer.setData('text/plain', instance.instanceId)
+                event.dataTransfer.effectAllowed = 'move'
+                setDraggingCard(instance.instanceId)
+              }}
+              onDragEnd={() => setDraggingCard(null)}
+              className="min-h-24 flex-1 cursor-grab rounded-xl border border-zinc-600 bg-linear-to-b from-zinc-700 to-zinc-800 p-2 shadow-md transition hover:-translate-y-1 hover:border-zinc-400 active:cursor-grabbing"
+            >
+              <div className="text-[11px] leading-tight font-bold text-zinc-50">{card.title}</div>
+              <div className={`mt-1 text-[9px] font-semibold uppercase ${window === 'quick' ? 'text-emerald-400' : 'text-sky-400'}`}>
+                {window}
+              </div>
+              <div className="mt-1 text-[9px] text-zinc-400">Charge {cardChargeCap(card)}</div>
             </div>
-            <div className="mt-1 text-[9px] text-zinc-400">Charge {cardChargeCap(card)}</div>
-          </div>
-        )
-      })}
-      {hero.hand.length === 0 && <div className="flex-1 py-4 text-center text-xs text-zinc-600">Hand is empty</div>}
-    </div>
+          )
+        })}
+        {hero.hand.length === 0 && <div className="flex-1 py-4 text-center text-xs text-zinc-600">Hand is empty</div>}
+      </div>
+      {inspectingCardId !== null && catalog.cards[inspectingCardId] && <CardInspection card={catalog.cards[inspectingCardId]} />}
+    </>
   )
 }

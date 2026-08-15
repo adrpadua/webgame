@@ -17,8 +17,8 @@ export function ActionBar() {
       {hero.actionBar.map((slot, slotIndex) => {
         const card = slot.topCard ? catalog.cards[slot.topCard.cardId] : null
         const chargeCap = card ? cardChargeCap(card) : 0
-        const primed = card !== null && slot.charges.length === chargeCap && slot.activatedWindow === ''
-        const fired = slot.activatedWindow !== ''
+        const primed = card !== null && slot.charges.length === chargeCap && slot.activatedWindow === null
+        const fired = slot.activatedWindow !== null
         const window = card ? cardWindowSpeed(card) : null
         const canFire = card !== null && slot.charges.length > 0 && !fired && window === state.phase && state.active
         return (

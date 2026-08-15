@@ -16,7 +16,8 @@ export interface CardInstance {
 export interface SlotState {
   topCard: CardInstance | null
   charges: CardInstance[]
-  activatedWindow: Phase | ''
+  // The window this Slot activated in, cleared when that window ends.
+  activatedWindow: Phase | null
 }
 
 export interface HeroState {

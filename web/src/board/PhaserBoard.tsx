@@ -5,9 +5,16 @@ import { selectState, useWorkbench } from '@/store/workbench'
 import { BoardScene, type BoardSnapshot } from './BoardScene'
 import { BOARD_HEIGHT, BOARD_WIDTH, pixelToAxial } from './layout'
 
-function buildSnapshot(state: EncounterState, targeting: boolean, draggingCardId: string | null): BoardSnapshot {
+function buildSnapshot(
+  state: EncounterState,
+  targeting: boolean,
+  previewingRoutes: boolean,
+  showCoordinates: boolean,
+): BoardSnapshot {
   const legalMoveKeys: string[] = []
-  if (draggingCardId !== null && state.phase === 'quick' && state.active) {
+  // Legal routes light up while dragging a hand card (the paid move) or
+  // holding the Hero (the free preview); movement is Quick Window only.
+  if (previewingRoutes && state.phase === 'quick' && state.active) {
     const heroEntity = state.board.entities[state.primaryHeroId]
     if (heroEntity) {
       for (const destination of neighbors(state.board.hexes, heroEntity.coords)) {
@@ -17,14 +24,17 @@ function buildSnapshot(state: EncounterState, targeting: boolean, draggingCardId
       }
     }
   }
-  return { state, targeting, legalMoveKeys }
+  return { state, targeting, legalMoveKeys, showCoordinates }
 }
 
 export function PhaserBoard() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const scene = new BoardScene((coords) => useWorkbench.getState().hexClicked(coords))
+    const scene = new BoardScene({
+      onHexClicked: (coords) => useWorkbench.getState().hexClicked(coords),
+      onHeroPressChange: (pressed) => useWorkbench.getState().setHeroRoutePreview(pressed),
+    })
     const game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: containerRef.current ?? undefined,
@@ -35,7 +45,14 @@ export function PhaserBoard() {
     })
     const pushSnapshot = () => {
       const store = useWorkbench.getState()
-      scene.updateSnapshot(buildSnapshot(selectState(store), store.targetingSlotIndex !== null, store.draggingCardId))
+      scene.updateSnapshot(
+        buildSnapshot(
+          selectState(store),
+          store.targetingSlotIndex !== null,
+          store.draggingCardId !== null || store.heroRoutePreview,
+          store.showCoordinates,
+        ),
+      )
     }
     const unsubscribe = useWorkbench.subscribe(pushSnapshot)
     pushSnapshot()

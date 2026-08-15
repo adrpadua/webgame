@@ -206,6 +206,36 @@ describe('Slot rules', () => {
     expect(chargeAfterFire).toMatchObject({ legal: false, reason: 'That Slot cannot accept another charge.' })
   })
 
+  // Interim ruling (working note): the Slot Activation Limit follows
+  // CONTEXT.md and the frozen reference — activation blocks further charges
+  // only within that same window. prototype-rules.md line 58 reads broader
+  // ("until its next matching window") and needs a docs ruling; this test
+  // pins the current behavior so a future ruling changes it deliberately.
+  it('allows charging a fired Quick Slot again once that window has ended', () => {
+    let state = start()
+    hero(state).hand = [card('h1', 'steady_strike'), card('h2', 'iron_guard'), card('h3', 'iron_guard')]
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'h1' }).state
+    state = stepPhases(state, 2).state
+    state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'h2' }).state
+    state = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 }).state
+    const sameWindow = legality(catalog, state, {
+      kind: 'charge_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      cardInstanceId: 'h3',
+    })
+    expect(sameWindow.legal).toBe(false)
+    state = stepPhases(state, 2).state
+    expect(state.phase).toBe('slow')
+    const nextWindow = legality(catalog, state, {
+      kind: 'charge_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      cardInstanceId: 'h3',
+    })
+    expect(nextWindow.legal).toBe(true)
+  })
+
   it('only allows Slot Replacement during Loadout', () => {
     let state = start()
     hero(state).hand = [card('h1', 'steady_strike'), card('h2', 'iron_guard')]
@@ -294,6 +324,18 @@ describe('Stamina movement', () => {
     expect(hero(state).discard.map((entry) => entry.instanceId)).toContain('h1')
   })
 
+  it('holds a bare discard-for-Stamina to the Quick Window', () => {
+    let state = start()
+    hero(state).hand = [card('h1', 'steady_strike')]
+    const inLoadout = legality(catalog, state, { kind: 'discard_for_stamina', sourceId: state.primaryHeroId, cardInstanceId: 'h1' })
+    expect(inLoadout).toMatchObject({ legal: false, reason: 'Discarding for Stamina requires the Quick Window and a hand card.' })
+    state = stepPhases(state, 2).state
+    expect(state.phase).toBe('quick')
+    const discard = resolve(catalog, state, { kind: 'discard_for_stamina', sourceId: state.primaryHeroId, cardInstanceId: 'h1' })
+    expect(discard.facts[0].succeeded).toBe(true)
+    expect(discard.state.heroes[state.primaryHeroId].discard.map((entry) => entry.instanceId)).toContain('h1')
+  })
+
   it('blocks voluntary movement onto a Scorched hex', () => {
     let state = start()
     hero(state).hand = [card('h1', 'steady_strike')]
@@ -360,7 +402,7 @@ describe('damage and Resolution Facts', () => {
 
     // A legal Shield Slam consumes Riposte Ready for 2 bonus Boss damage.
     state.phase = 'quick'
-    hero(state).actionBar[0] = { topCard: card('s1', 'shield_slam'), charges: [card('s2', 'iron_guard')], activatedWindow: '' }
+    hero(state).actionBar[0] = { topCard: card('s1', 'shield_slam'), charges: [card('s2', 'iron_guard')], activatedWindow: null }
     const bossHealthBefore = boss(state).health
     const slam = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
     state = slam.state
@@ -417,7 +459,7 @@ describe('damage and Resolution Facts', () => {
 describe('legality edges', () => {
   it('requires a Minion target in range for a piece-targeting Top Card', () => {
     const state = start()
-    hero(state).actionBar[0] = { topCard: card('s1', 'sweeping_blow'), charges: [card('s2', 'iron_guard')], activatedWindow: '' }
+    hero(state).actionBar[0] = { topCard: card('s1', 'sweeping_blow'), charges: [card('s2', 'iron_guard')], activatedWindow: null }
     state.phase = 'quick'
     const noTarget = legality(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
     expect(noTarget).toMatchObject({ legal: false, reason: 'The Top Card needs a Minion target.' })
@@ -427,7 +469,7 @@ describe('legality edges', () => {
     played.heroes[played.primaryHeroId].actionBar[0] = {
       topCard: card('s1', 'sweeping_blow'),
       charges: [card('s2', 'iron_guard')],
-      activatedWindow: '',
+      activatedWindow: null,
     }
     played = stepPhases(played, 4).state
     played.phase = 'quick'
