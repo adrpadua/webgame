@@ -1,6 +1,6 @@
 # Define Safe Ledger Archive Contract
 
-Status: assigned
+Status: completed-pending-independent-review
 Owner: Orchestrator
 
 ## Outcome
@@ -26,3 +26,7 @@ The contract identifies exactly what remains live, what qualifies for archive, h
 ## Non-Goals
 
 No content movement, auto-archival, rules/UI/probe contract duplication, or change to approval authority.
+
+## Coordinator completion
+
+The initial contract is in `docs/artifacts/coordination-history/README.md`. It defines the trigger, append-only filename and link shape, live/archive boundary, reverse-dependency sweep, recorded pre-move evidence, and independent reviewer roles. No archive content has moved. Architecture, Test Automation, Design, UI/UX, and PM review remain required before this issue can resolve and release manual archive issue 02.

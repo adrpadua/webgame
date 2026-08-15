@@ -39,6 +39,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\debug\validate_han
 
 The mandatory dependency/closure gate is active. The Coordinator must obtain an exit-`0` current-root result before advancing a packet-dependent issue or recording a milestone closure; an exit-`1` result keeps the item open until valid immutable packet evidence is supplied. The validator itself remains read-only and never edits issue status or routes work automatically.
 
+When a completed delivery needs historical coordination lookup, the live [project coordination ledger](../artifacts/project-coordination.md) remains the first operational surface. Its compact closure summaries may link to append-only [coordination-history](../artifacts/coordination-history/README.md) blocks; do not move non-terminal issue records, current intake, or packet evidence into that archive.
+
 ## Wayfinding operations
 
 Used by `/wayfinder`. The map is a file with one child file per ticket.

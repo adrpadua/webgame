@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "ledger-archive-contract-coordinator",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T20:09:17-07:00",
+  "assignment_revision": 1,
+  "owner": "Coordinator",
+  "scope_confirmed": "This is contract-only work. The archive trigger is met, but movement remains blocked until the independent reviews named by the delivery issue complete.",
+  "planned_paths": [
+    "docs/artifacts/coordination-history/README.md",
+    "docs/agents/recovery-kit.md",
+    "docs/agents/issue-tracker.md",
+    "docs/artifacts/project-coordination.md",
+    ".scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md"
+  ],
+  "first_validation": "Measure the live ledger and run the current-root handoff-packet validator before recording the contract handoff.",
+  "next_owner": "Coordinator"
+}
