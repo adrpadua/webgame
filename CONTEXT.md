@@ -335,3 +335,15 @@ _Avoid_: Loot type, reward rarity
 **Boon**:
 A raid-long passive reward assigned to one Hero. A Boon may affect that Hero or support the whole party.
 _Avoid_: Relic, artifact
+
+**Encounter Engine**:
+The single authoritative rules authority that owns Encounter state and resolves every action. Every client, test, and tool submits actions to it and renders its projections; nothing else owns a rules path.
+_Avoid_: Game loop, simulation layer, rules helper
+
+**Encounter Workbench**:
+The browser surface for playing and inspecting Encounters during design iteration. It presents the portrait play surface with debug tooling around it and holds no rules authority.
+_Avoid_: Sandbox, playtest rig, game client, testing framework
+
+**Scenario**:
+A named, versioned sequence of Encounter actions replayed from a seeded initial state to reach a specific mid-Encounter situation. A Scenario is always rules-legal because the Encounter Engine resolves every step of the replay.
+_Avoid_: Save file, state snapshot, fixture blob
