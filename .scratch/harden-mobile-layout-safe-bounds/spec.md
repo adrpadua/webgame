@@ -1,6 +1,6 @@
 # Harden Mobile Layout Safe Bounds
 
-Status: active
+Status: completed
 
 ## Approved outcome
 
@@ -23,3 +23,7 @@ No overall HUD redesign, new arbitrary utilities, gameplay/action/input authorit
 ## Return protocol
 
 All assignments use the mandatory return packet in [the recovery kit](../../docs/agents/recovery-kit.md#mandatory-return-packet).
+
+## Closure
+
+All three delivery issues are resolved. Active revision `0003` passed Architecture boundary review and independent Test Automation verification, including the supported portrait matrix and a refreshed non-headless capture with prompt right inset restored. The feature remains presentation-only; future mobile changes must preserve the documented safe-bounds contract.

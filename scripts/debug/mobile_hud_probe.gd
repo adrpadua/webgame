@@ -5,20 +5,21 @@ const HELP_HIDDEN_SCREENSHOT_PATH := "res://tmp/mobile-help-hidden.png"
 const HELP_OPEN_SCREENSHOT_PATH := "res://tmp/mobile-help-open.png"
 const MOBILE_SAFE_EDGE_PADDING := 12.0
 const MOBILE_ACTION_CONTROL_PADDING := 8.0
-const SUPPORTED_VIEWPORTS: Array[Vector2] = [Vector2(390, 844), Vector2(488, 1056)]
+const LOGICAL_PORTRAIT_VIEWPORT := Vector2(390, 844)
+const SUPPORTED_PRESENTATIONS: Array[Vector2] = [Vector2(390, 844), Vector2(488, 1056)]
 
 func _initialize() -> void:
-	for viewport_size in SUPPORTED_VIEWPORTS:
-		await _assert_mobile_viewport(viewport_size)
-	print("MOBILE_HUD_PROBE_OK")
+	for presentation_size in SUPPORTED_PRESENTATIONS:
+		await _assert_mobile_presentation(presentation_size)
+	print("MOBILE_HUD_PROBE_OK presentations=%d" % SUPPORTED_PRESENTATIONS.size())
 	quit()
 
-func _assert_mobile_viewport(viewport_size: Vector2) -> void:
+func _assert_mobile_presentation(presentation_size: Vector2) -> void:
 	var main := MAIN_SCENE.instantiate()
 	root.add_child(main)
 	await process_frame
 	await process_frame
-	main._apply_viewport_size(viewport_size)
+	main._apply_viewport_size(LOGICAL_PORTRAIT_VIEWPORT)
 	await process_frame
 	await process_frame
 
@@ -40,18 +41,18 @@ func _assert_mobile_viewport(viewport_size: Vector2) -> void:
 	var hand_scroll: ScrollContainer = main.get_node("Root/HandScroll")
 	var top_bar: Control = main.get_node("Root/TopBar")
 	var right_panel: Control = main.get_node("Root/MainArea/RightPanelScroll")
-	var safe_rect := Rect2(Vector2(MOBILE_SAFE_EDGE_PADDING, 0.0), Vector2(viewport_size.x - MOBILE_SAFE_EDGE_PADDING * 2.0, viewport_size.y))
+	var safe_rect := Rect2(Vector2(MOBILE_SAFE_EDGE_PADDING, 0.0), Vector2(LOGICAL_PORTRAIT_VIEWPORT.x - MOBILE_SAFE_EDGE_PADDING * 2.0, LOGICAL_PORTRAIT_VIEWPORT.y))
 
-	print("MOBILE viewport=%s root=%s main_area=%s board=%s action_bar=%s" % [viewport_size, root_control.size, main_area.size, hex_grid.size, action_bar.size])
-	assert(main.size == viewport_size, "Mobile canvas must match the portrait viewport.")
-	assert(root_control.position.y >= 0.0 and root_control.position.y + root_control.size.y <= viewport_size.y, "Mobile root must fit inside the portrait viewport.")
+	print("MOBILE presentation=%s logical=%s root=%s main_area=%s board=%s action_bar=%s" % [presentation_size, LOGICAL_PORTRAIT_VIEWPORT, root_control.size, main_area.size, hex_grid.size, action_bar.size])
+	assert(main.size == LOGICAL_PORTRAIT_VIEWPORT, "Mobile layout must use the portrait logical canvas.")
+	assert(root_control.position.y >= 0.0 and root_control.position.y + root_control.size.y <= LOGICAL_PORTRAIT_VIEWPORT.y, "Mobile root must fit inside the portrait logical canvas.")
 	assert(main_area.vertical, "Mobile HUD must stack the board and action bar vertically.")
 	assert(mobile_status.visible, "Mobile status must be visible.")
 	assert(mobile_turn_tracker.visible, "Mobile turn tracker must be visible below the hand.")
 	assert(not mobile_hand_bar.visible, "Mobile Hand/Discard status must not duplicate above the action bar.")
 	assert(mobile_turn_tracker.text.contains("▣") and mobile_turn_tracker.text.contains("⌫"), "Mobile turn tracker must include icon-led hand and discard counts.")
 	assert(mobile_prompt.visible and not mobile_prompt.text.contains("Guide:"), "The normal mobile prompt should be short, not the full guide.")
-	print("MOBILE_PROMPT viewport=%s rect=%s text='%s'" % [viewport_size, mobile_prompt.get_global_rect(), mobile_prompt.text])
+	print("MOBILE_PROMPT presentation=%s rect=%s text='%s'" % [presentation_size, mobile_prompt.get_global_rect(), mobile_prompt.text])
 	_assert_rect_inside_safe_bounds(mobile_prompt.get_global_rect(), safe_rect, "Prompt")
 	_assert_label_text_fits(mobile_prompt, "Prompt")
 	assert(mobile_help_button.visible, "Mobile help should expose a button for the full guide.")
@@ -60,26 +61,29 @@ func _assert_mobile_viewport(viewport_size: Vector2) -> void:
 	assert(mobile_continue_button.text == "Play", "The advance control should be labeled Play on mobile.")
 	assert(mobile_controls_row.get_global_rect().encloses(mobile_continue_button.get_global_rect()), "Play must remain inside the dedicated controls row.")
 	assert(mobile_controls_row.get_global_rect().encloses(mobile_help_button.get_global_rect()), "Help must remain inside the dedicated controls row.")
-	print("MOBILE_CONTROLS viewport=%s row=%s continue=%s help=%s" % [viewport_size, mobile_controls_row.get_global_rect(), mobile_continue_button.get_global_rect(), mobile_help_button.get_global_rect()])
+	print("MOBILE_CONTROLS presentation=%s row=%s continue=%s help=%s" % [presentation_size, mobile_controls_row.get_global_rect(), mobile_continue_button.get_global_rect(), mobile_help_button.get_global_rect()])
 	assert(not mobile_continue_button.get_global_rect().intersects(mobile_help_button.get_global_rect()), "Play and Help must not overlap.")
 	_assert_rect_inside_safe_bounds(mobile_continue_button.get_global_rect(), safe_rect, "Play")
 	_assert_rect_inside_safe_bounds(mobile_help_button.get_global_rect(), safe_rect, "Help")
 	_assert_button_text_fits(mobile_continue_button, "Play")
 	_assert_button_text_fits(mobile_help_button, "Help")
 	assert(is_equal_approx(mobile_continue_button.get_global_rect().end.x, action_bar.get_global_rect().end.x - MOBILE_ACTION_CONTROL_PADDING), "Play must align to the right edge of the action bar.")
-	assert(mobile_help_button.get_global_rect().end.x <= viewport_size.x - MOBILE_SAFE_EDGE_PADDING, "Help must honor the right safe padding.")
+	assert(mobile_help_button.get_global_rect().end.x <= LOGICAL_PORTRAIT_VIEWPORT.x - MOBILE_SAFE_EDGE_PADDING, "Help must honor the right safe padding.")
+	_assert_help_affordance_renderable(mobile_help_button, mobile_continue_button, presentation_size)
 	assert(mobile_prompt.get_global_rect().end.y <= mobile_controls_row.get_global_rect().position.y, "Controls must sit below the prompt header.")
-	assert(mobile_status_effect_pane == null or not mobile_status_effect_pane.visible or Rect2(Vector2.ZERO, viewport_size).encloses(mobile_status_effect_label.get_global_rect()), "Visible status-effect text must remain inside the physical viewport.")
-	await _save_screenshot(HELP_HIDDEN_SCREENSHOT_PATH)
+	assert(mobile_status_effect_pane == null or not mobile_status_effect_pane.visible or Rect2(Vector2.ZERO, LOGICAL_PORTRAIT_VIEWPORT).encloses(mobile_status_effect_label.get_global_rect()), "Visible status-effect text must remain inside the portrait logical canvas.")
+	if presentation_size == SUPPORTED_PRESENTATIONS.back():
+		await _save_screenshot(HELP_HIDDEN_SCREENSHOT_PATH)
 	mobile_help_button.pressed.emit()
 	await process_frame
 	assert(mobile_help_pane.visible and mobile_help_label.text.contains("Guide:"), "The help button should toggle the full guide pane.")
 	assert(mobile_help_label.size.x > 0.0 and mobile_help_label.size.y > 0.0, "The open help pane must lay out visible guide text.")
-	assert(Rect2(Vector2.ZERO, viewport_size).encloses(mobile_help_label.get_global_rect()), "Guide text must remain inside the physical viewport.")
+	assert(Rect2(Vector2.ZERO, LOGICAL_PORTRAIT_VIEWPORT).encloses(mobile_help_label.get_global_rect()), "Guide text must remain inside the portrait logical canvas.")
 	_assert_label_text_fits(mobile_help_label, "Guide")
 	assert(mobile_help_pane.get_global_rect().end.y <= mobile_controls_row.get_global_rect().position.y, "Controls must sit below the open help pane.")
 	assert(not mobile_help_pane.get_global_rect().intersects(mobile_continue_button.get_global_rect()), "The open help pane must not overlap Play.")
-	await _save_screenshot(HELP_OPEN_SCREENSHOT_PATH)
+	if presentation_size == SUPPORTED_PRESENTATIONS.back():
+		await _save_screenshot(HELP_OPEN_SCREENSHOT_PATH)
 	assert(main.get_node_or_null("Root/MobileCommands") == null, "Mobile commands must be replaced by direct interactions.")
 	assert(not top_bar.visible and not right_panel.visible, "Desktop-only panels must not consume mobile space.")
 	assert(hex_grid.get_index() < action_bar.get_parent().get_index() or hex_grid.position.y <= action_bar.global_position.y, "Board must appear before the action bar in mobile reading order.")
@@ -109,6 +113,30 @@ func _assert_button_text_fits(button: Button, label: String) -> void:
 	var available_height: float = button.get_global_rect().size.y - 10.0
 	assert(text_size.x <= available_width, "%s label must fit within its button without clipping." % label)
 	assert(text_size.y <= available_height, "%s label must fit within its button height without clipping." % label)
+
+func _assert_help_affordance_renderable(help_button: Button, play_button: Button, presentation_size: Vector2) -> void:
+	var logical_help_rect := help_button.get_global_rect()
+	var logical_play_rect := play_button.get_global_rect()
+	var presentation_scale := presentation_size / LOGICAL_PORTRAIT_VIEWPORT
+	var rendered_help_rect := Rect2(
+		logical_help_rect.position * presentation_scale,
+		logical_help_rect.size * presentation_scale,
+	)
+	var rendered_play_rect := Rect2(
+		logical_play_rect.position * presentation_scale,
+		logical_play_rect.size * presentation_scale,
+	)
+	var presentation_rect := Rect2(Vector2.ZERO, presentation_size)
+	var normal_style := help_button.get_theme_stylebox("normal")
+	assert(help_button.is_visible_in_tree(), "Help must be rendered in the Help-hidden state, not merely retained as an inactive node.")
+	assert(help_button.mouse_filter == Control.MOUSE_FILTER_STOP, "Help must accept a direct tap in the Help-hidden state.")
+	assert(normal_style != null, "Help must retain a visible normal-state treatment in the Help-hidden state.")
+	assert(rendered_help_rect.size.x >= 44.0 and rendered_help_rect.size.y >= 44.0, "Rendered Help must retain the minimum tappable target at this presentation.")
+	assert(presentation_rect.encloses(rendered_help_rect), "Rendered Help must remain fully inside the physical portrait presentation.")
+	assert(rendered_help_rect.position.x > rendered_play_rect.position.x, "Rendered Help must remain secondary to, and visually distinct from, Play.")
+	assert(rendered_help_rect.position.y >= rendered_play_rect.position.y, "Rendered Help must remain in the prompt-adjacent control lane.")
+	assert(help_button.tooltip_text.contains("Help") and help_button.text == "?", "Rendered Help must expose both the ? glyph and Help name for discovery.")
+	print("MOBILE_HELP_RENDERED presentation=%s rect=%s" % [presentation_size, rendered_help_rect])
 
 func _assert_label_text_fits(label_node: Label, label: String) -> void:
 	var font: Font = label_node.get_theme_font("font")

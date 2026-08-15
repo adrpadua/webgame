@@ -1,8 +1,8 @@
 # Present Mobile Prompts and Help History
 
-Status: completed-pending-qa
+Status: resolved
 Owner: UI/UX
-Blocked by: independent Test Automation verification of the portrait presentation/history packet
+Blocked by: none; Test Automation and Playtester PASS recorded
 
 ## Outcome
 
@@ -18,4 +18,4 @@ Return the mandatory packet with canonical UI/accessibility updates, focused vis
 
 ## Completion evidence
 
-UI/UX completed the presentation-only implementation in `docs/artifacts/handoff-packets/tutorial-prompts-portrait-history-ui/completion.json`. The next required owner is Test Automation: verify one-at-a-time/dismiss/reopen behavior, accessible full text, `390x844` visibility, and that the HUD remains an adapter over the authoritative tutorial projection.
+UI/UX completed the presentation-only implementation in `docs/artifacts/handoff-packets/tutorial-prompts-portrait-history-ui/completion.json`. Test Automation independently passed one-at-a-time/dismiss/reopen behavior, accessible full text, `390x844` visibility, and the presentation-only engine boundary. The temporary Playtester then passed the default portrait card/dismiss/Help/Review flow. See `docs/artifacts/handoff-packets/tutorial-prompts-portrait-history-qa/` and `docs/artifacts/handoff-packets/tutorial-prompts-playtester/`.

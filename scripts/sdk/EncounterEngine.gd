@@ -16,6 +16,7 @@ const BossProgramBeatModel := preload("res://scripts/boss/BossProgramBeat.gd")
 const StatusEffectModel := preload("res://scripts/sdk/StatusEffect.gd")
 const RulesRandomModel := preload("res://scripts/sdk/RulesRandom.gd")
 const FacingDirections := preload("res://scripts/combat/Facing.gd")
+const TutorialPromptProjectionModel := preload("res://scripts/tutorial/TutorialPromptProjection.gd")
 
 const TANK_HIT: StringName = &"tank_hit"
 const RIPOSTE_READY: StringName = &"riposte_ready"
@@ -363,6 +364,9 @@ func _next_minion_id() -> StringName:
 func get_telegraphs() -> Dictionary:
 	_refresh_telegraphs()
 	return telegraphs.duplicate()
+
+func get_tutorial_prompt_projection(presentation_state: Dictionary = {}) -> Dictionary:
+	return TutorialPromptProjectionModel.project(self, presentation_state)
 
 func _refresh_telegraphs() -> void:
 	telegraphs.clear()

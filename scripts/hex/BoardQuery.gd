@@ -159,6 +159,21 @@ static func is_guarded_front(board, boss_id: StringName, hero_id: StringName) ->
 	var guarded_hex: Vector2i = boss.get("coords") + FacingDirections.axial_delta_for(int(boss.get("facing", 0)))
 	return hero.get("coords") == guarded_hex
 
+static func is_legal_route_blocker(board, entity_id: StringName, blocker_id: StringName, destination: Vector2i, maximum_distance: int = 1, voluntary: bool = true) -> bool:
+	if entity_id == blocker_id:
+		return false
+	var blocker: Dictionary = board.get_entity(blocker_id)
+	if blocker.is_empty() or blocker.get("coords") != destination or board.get_entity_id_at(destination) != blocker_id:
+		return false
+	var entity: Dictionary = board.get_entity(entity_id)
+	if entity.is_empty() or not board.is_on_board(destination) or hex_distance(entity.get("coords"), destination) > maximum_distance:
+		return false
+	if voluntary:
+		for hazard in board.get_hazards(destination):
+			if hazard.blocks_voluntary_movement:
+				return false
+	return true
+
 static func first_empty_hexes(candidates: Array[Vector2i], empty_hexes: Dictionary, count: int) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
 	for coords in candidates:

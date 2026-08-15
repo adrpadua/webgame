@@ -1,8 +1,8 @@
 # Verify Tutorial-Prompt Contracts
 
-Status: assigned-pending-acknowledgment
+Status: resolved
 Owner: Test Automation
-Blocked by: none; authoritative-projection verification passed and UI/UX portrait presentation/history completion is available for independent review
+Blocked by: none
 
 ## Outcome
 
@@ -15,3 +15,7 @@ No gameplay redesign, prompt-copy change to make tests pass, analytics expansion
 ## Required return
 
 Return the mandatory packet with exact commands/results, any remaining gap, and whether the Playtesting activation gate is satisfied.
+
+## Completion Evidence
+
+Test Automation independently passed the projection and portrait presentation routes. The temporary read-only Playtester then passed the default non-headless newcomer flow: read the short Boss Timeline card, dismiss it without advancing play, find it in Help's text-first history, and use Review to restore its contextual card. See `docs/artifacts/handoff-packets/tutorial-prompts-playtester/`.

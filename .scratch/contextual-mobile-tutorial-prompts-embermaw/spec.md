@@ -1,6 +1,6 @@
 # Contextual Mobile Tutorial Prompts — Embermaw
 
-Status: active
+Status: completed
 
 ## Approved outcome
 
@@ -18,12 +18,16 @@ Deliver a small, reusable, authoritative-projection tutorial-prompt model for th
 
 No linear or mandatory tutorial flow; gameplay, encounter, deck, pacing, target-pattern, player-facing, or analytics-system change; prompt exposure never becomes gameplay fact or outcome input.
 
-## Open policy decisions requiring PM/user confirmation
+## Confirmed policy decisions
 
-- Any protected next-gesture exception to the non-blocking default.
-- Show-once persistence scope by prompt family.
-- First-slice directive level for prompt copy.
-- Help/Rules history presentation.
+- The first slice is non-blocking and dismissible; no protected next-gesture behavior is included.
+- Show-once policy is mixed by concept: foundational orientation can be once per run; reactive tactical opportunities can be once per encounter.
+- Prompt copy is lightly instructional.
+- Help/Rules provides both a text-first list and reopenable contextual cards.
+
+## Completion
+
+Design teaching contracts, Architecture's authoritative projection, UI/UX portrait presentation/history, deterministic Test Automation evidence, and a temporary read-only Playtester newcomer PASS all agree. Future prompt families or protected interactions require a separate approved intake.
 
 ## Return protocol
 

@@ -40,6 +40,8 @@ default|card_tap_fallback|res://scripts/debug/card_tap_fallback_probe.gd|CARD_TA
 default|card_type|res://scripts/debug/card_type_probe.gd|CARD_TYPE_PROBE_OK
 default|charge_stack_render|res://scripts/debug/charge_stack_render_probe.gd|CHARGE_STACK_RENDER_PROBE_OK
 default|first_loadout_ui|res://scripts/debug/first_loadout_ui_probe.gd|FIRST_LOADOUT_UI_PROBE_OK
+default|tutorial_prompt_projection|res://scripts/debug/tutorial_prompt_projection_probe.gd|TUTORIAL_PROMPT_PROJECTION_PROBE_OK
+default|tutorial_prompt_ui|res://scripts/debug/tutorial_prompt_ui_probe.gd|TUTORIAL_PROMPT_UI_PROBE_OK
 default|movement_path_render|res://scripts/debug/movement_path_render_probe.gd|MOVEMENT_PATH_RENDER_PROBE_OK
 default|tile_info|res://scripts/debug/tile_info_probe.gd|TILE_INFO_PROBE_OK
 default|action_bar_art|res://scripts/debug/action_bar_art_probe.gd|ACTION_BAR_ART_PROBE_OK

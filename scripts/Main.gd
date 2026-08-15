@@ -68,14 +68,24 @@ var mobile_continue_button: Button
 var mobile_continue_tween: Tween
 var mobile_help_button: Button
 var mobile_prompt_lane: MarginContainer
+var mobile_tutorial_prompt_lane: MarginContainer
 var mobile_controls_row: Control
 var mobile_help_pane: Panel
 var mobile_help_label: Label
+var mobile_tutorial_prompt_pane: Panel
+var mobile_tutorial_prompt_label: Label
+var mobile_tutorial_prompt_dismiss_button: Button
+var mobile_tutorial_history_picker: OptionButton
+var mobile_tutorial_reopen_button: Button
 var mobile_status_effect_pane: Panel
 var mobile_status_effect_label: Label
 var mobile_prompt_layout_queued: bool = false
 var mobile_controls_layout_queued: bool = false
 var mobile_controls_wrapped: bool = false
+var tutorial_prompt_presentation_state: Dictionary = {}
+var tutorial_prompt_history: Array[Dictionary] = []
+var tutorial_prompt_review_id: StringName = &""
+var mobile_tutorial_prompt: Dictionary = {}
 var engine
 var encounter_record
 
@@ -85,6 +95,7 @@ func _ready() -> void:
 	_build_mobile_prompt_lane()
 	_build_mobile_continue_button()
 	_build_mobile_help_controls()
+	_build_mobile_tutorial_prompt_controls()
 	_build_mobile_status_effect_pane()
 	_raise_hud_above_board()
 	_fit_to_viewport()
@@ -101,6 +112,8 @@ func _ready() -> void:
 	mobile_round_label.gui_input.connect(_on_mobile_round_input)
 	mobile_continue_button.pressed.connect(_on_mobile_continue_pressed)
 	mobile_help_button.pressed.connect(_on_mobile_help_pressed)
+	mobile_tutorial_prompt_dismiss_button.pressed.connect(_on_mobile_tutorial_prompt_dismiss_pressed)
+	mobile_tutorial_reopen_button.pressed.connect(_on_mobile_tutorial_reopen_pressed)
 	action_bar_view.slot_pressed.connect(_on_slot_pressed)
 	action_bar_view.card_dropped.connect(_on_card_dropped_to_slot)
 	hex_grid.tile_selected.connect(_on_tile_selected)
@@ -245,6 +258,7 @@ func _refresh_status() -> void:
 	mobile_end_phase_prompt.text = mobile_prompt_text
 	mobile_end_phase_prompt.visible = not mobile_prompt_text.is_empty()
 	_layout_mobile_prompt()
+	_update_mobile_tutorial_prompt()
 	_update_mobile_status_effect_pane()
 	_update_mobile_continue_button()
 	_update_mobile_help_controls()
@@ -462,6 +476,10 @@ func _start_encounter() -> void:
 	selected_tile = null
 	selected_piece = null
 	selected_slot_index = -1
+	tutorial_prompt_presentation_state.clear()
+	tutorial_prompt_history.clear()
+	tutorial_prompt_review_id = &""
+	mobile_tutorial_prompt = {}
 	player_move_primed = false
 	_refresh_move_previews()
 	_set_feedback("Loadout: arrange Top Cards, then continue to the Boss Instant.")
@@ -713,6 +731,64 @@ func _build_mobile_help_controls() -> void:
 	mobile_help_label.add_theme_color_override("font_color", Color(0.98, 0.91, 0.74))
 	mobile_help_pane.add_child(mobile_help_label)
 
+	mobile_tutorial_history_picker = OptionButton.new()
+	mobile_tutorial_history_picker.name = "MobileTutorialHistoryPicker"
+	mobile_tutorial_history_picker.visible = false
+	mobile_tutorial_history_picker.mouse_filter = Control.MOUSE_FILTER_STOP
+	mobile_tutorial_history_picker.tooltip_text = "Tutorial history: choose shown guidance to review."
+	mobile_help_pane.add_child(mobile_tutorial_history_picker)
+
+	mobile_tutorial_reopen_button = Button.new()
+	mobile_tutorial_reopen_button.name = "MobileTutorialReopenButton"
+	mobile_tutorial_reopen_button.text = "Review"
+	mobile_tutorial_reopen_button.visible = false
+	mobile_tutorial_reopen_button.custom_minimum_size = Vector2(74, 48)
+	mobile_tutorial_reopen_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	mobile_tutorial_reopen_button.tooltip_text = "Review the selected tutorial tip."
+	mobile_help_pane.add_child(mobile_tutorial_reopen_button)
+
+func _build_mobile_tutorial_prompt_controls() -> void:
+	mobile_tutorial_prompt_lane = MarginContainer.new()
+	mobile_tutorial_prompt_lane.name = "MobileTutorialPromptLane"
+	mobile_tutorial_prompt_lane.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mobile_tutorial_prompt_lane.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mobile_status.add_child(mobile_tutorial_prompt_lane)
+	var prompt_index: int = mobile_prompt_lane.get_index() if mobile_prompt_lane != null else mobile_end_phase_prompt.get_index()
+	mobile_status.move_child(mobile_tutorial_prompt_lane, prompt_index + 1)
+
+	mobile_tutorial_prompt_pane = Panel.new()
+	mobile_tutorial_prompt_pane.name = "MobileTutorialPromptPane"
+	mobile_tutorial_prompt_pane.visible = false
+	mobile_tutorial_prompt_pane.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mobile_tutorial_prompt_pane.custom_minimum_size = Vector2(0, 58)
+	mobile_tutorial_prompt_pane.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mobile_tutorial_prompt_lane.add_child(mobile_tutorial_prompt_pane)
+
+	mobile_tutorial_prompt_label = Label.new()
+	mobile_tutorial_prompt_label.name = "MobileTutorialPromptLabel"
+	mobile_tutorial_prompt_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mobile_tutorial_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	mobile_tutorial_prompt_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	mobile_tutorial_prompt_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mobile_tutorial_prompt_label.offset_left = 12.0
+	mobile_tutorial_prompt_label.offset_top = 6.0
+	mobile_tutorial_prompt_label.offset_right = -66.0
+	mobile_tutorial_prompt_label.offset_bottom = -6.0
+	mobile_tutorial_prompt_pane.add_child(mobile_tutorial_prompt_label)
+
+	mobile_tutorial_prompt_dismiss_button = Button.new()
+	mobile_tutorial_prompt_dismiss_button.name = "MobileTutorialPromptDismissButton"
+	mobile_tutorial_prompt_dismiss_button.text = "Dismiss"
+	mobile_tutorial_prompt_dismiss_button.custom_minimum_size = Vector2(54, 48)
+	mobile_tutorial_prompt_dismiss_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	mobile_tutorial_prompt_dismiss_button.tooltip_text = "Dismiss this non-blocking tutorial tip."
+	mobile_tutorial_prompt_dismiss_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	mobile_tutorial_prompt_dismiss_button.offset_left = -66.0
+	mobile_tutorial_prompt_dismiss_button.offset_top = 5.0
+	mobile_tutorial_prompt_dismiss_button.offset_right = -12.0
+	mobile_tutorial_prompt_dismiss_button.offset_bottom = 53.0
+	mobile_tutorial_prompt_pane.add_child(mobile_tutorial_prompt_dismiss_button)
+
 func _build_mobile_prompt_lane() -> void:
 	mobile_prompt_lane = MarginContainer.new()
 	mobile_prompt_lane.name = "MobilePromptLane"
@@ -759,11 +835,127 @@ func _update_mobile_help_controls() -> void:
 	var mobile: bool = size.x < 820 or size.x < size.y
 	mobile_controls_row.visible = mobile
 	mobile_help_button.visible = mobile
-	mobile_help_label.text = _get_action_guide_text()
+	mobile_help_label.text = _get_mobile_help_text()
+	_update_mobile_tutorial_history_controls()
 	if not mobile:
 		mobile_help_pane.visible = false
 		return
 	_layout_mobile_help_controls()
+
+func _update_mobile_tutorial_prompt() -> void:
+	if mobile_tutorial_prompt_pane == null or mobile_tutorial_prompt_label == null or engine == null:
+		return
+	var mobile: bool = size.x < 820 or size.x < size.y
+	var projection: Dictionary = engine.get_tutorial_prompt_projection(tutorial_prompt_presentation_state)
+	var prompt: Dictionary = {}
+	if tutorial_prompt_review_id != &"":
+		prompt = _tutorial_history_entry(tutorial_prompt_review_id)
+	else:
+		var current_id: StringName = projection.get("current_prompt_id", &"")
+		prompt = _tutorial_projection_prompt(projection, current_id)
+		if not prompt.is_empty():
+			_record_tutorial_prompt_history(prompt)
+	mobile_tutorial_prompt = prompt
+	mobile_tutorial_prompt_pane.visible = mobile and not prompt.is_empty()
+	if prompt.is_empty():
+		return
+	var accessible: Dictionary = prompt.get("accessible_full_text", {})
+	var title: String = String(accessible.get("title", "Tutorial"))
+	var full_text: String = String(accessible.get("text", ""))
+	mobile_tutorial_prompt_label.text = "%s\n%s" % [title, _tutorial_prompt_summary(prompt.get("id", &""))]
+	mobile_tutorial_prompt_label.tooltip_text = "%s: %s" % [title, full_text]
+	mobile_tutorial_prompt_pane.tooltip_text = mobile_tutorial_prompt_label.tooltip_text
+	mobile_tutorial_prompt_dismiss_button.text = "Close" if tutorial_prompt_review_id != &"" else "Dismiss"
+	mobile_tutorial_prompt_dismiss_button.tooltip_text = "Close this reviewed tutorial tip." if tutorial_prompt_review_id != &"" else "Dismiss this non-blocking tutorial tip."
+	_layout_mobile_tutorial_prompt()
+
+func _tutorial_projection_prompt(projection: Dictionary, prompt_id: StringName) -> Dictionary:
+	if prompt_id == &"":
+		return {}
+	for prompt in projection.get("prompts", []):
+		if prompt.get("id", &"") == prompt_id:
+			return prompt
+	return {}
+
+func _tutorial_prompt_summary(prompt_id: StringName) -> String:
+	match prompt_id:
+		&"boss_timeline":
+			return "See the Boss's now and next moments."
+		&"guarded_front":
+			return "Hold directly in front of the Boss."
+		&"charge_a_slot":
+			return "Stack a hand card beneath a prepared Slot."
+		&"iron_guard_armor":
+			return "Armor blocks a Tank Hit before Health."
+		&"riposte_ready":
+			return "A perfectly blocked hit strengthens Shield Slam."
+		&"slow_fortify":
+			return "Fortify before the next problem arrives."
+		&"whelp_pressure":
+			return "Clear a Whelp blocking the Party's safe route."
+		_:
+			return "Read the full tip in Help."
+
+func _record_tutorial_prompt_history(prompt: Dictionary) -> void:
+	var prompt_id: StringName = prompt.get("id", &"")
+	if prompt_id == &"" or not _tutorial_history_entry(prompt_id).is_empty():
+		return
+	tutorial_prompt_history.append({
+		"id": prompt_id,
+		"priority": prompt.get("priority", 0),
+		"anchor": prompt.get("anchor", &""),
+		"accessible_full_text": prompt.get("accessible_full_text", {}),
+	})
+
+func _tutorial_history_entry(prompt_id: StringName) -> Dictionary:
+	for prompt in tutorial_prompt_history:
+		if prompt.get("id", &"") == prompt_id:
+			return prompt
+	return {}
+
+func _on_mobile_tutorial_prompt_dismiss_pressed() -> void:
+	var prompt_id: StringName = mobile_tutorial_prompt.get("id", &"")
+	if tutorial_prompt_review_id != &"":
+		tutorial_prompt_review_id = &""
+	elif prompt_id != &"":
+		tutorial_prompt_presentation_state[prompt_id] = {"dismissed": true}
+	_refresh_status()
+
+func _update_mobile_tutorial_history_controls() -> void:
+	if mobile_tutorial_history_picker == null or mobile_tutorial_reopen_button == null:
+		return
+	var show_history: bool = mobile_help_pane.visible and not tutorial_prompt_history.is_empty()
+	mobile_tutorial_history_picker.visible = show_history
+	mobile_tutorial_reopen_button.visible = show_history
+	if not show_history:
+		return
+	var selected_id: int = mobile_tutorial_history_picker.selected
+	mobile_tutorial_history_picker.clear()
+	for prompt in tutorial_prompt_history:
+		var accessible: Dictionary = prompt.get("accessible_full_text", {})
+		mobile_tutorial_history_picker.add_item(String(accessible.get("title", "Tutorial")))
+	if selected_id >= 0 and selected_id < mobile_tutorial_history_picker.item_count:
+		mobile_tutorial_history_picker.select(selected_id)
+	else:
+		mobile_tutorial_history_picker.select(mobile_tutorial_history_picker.item_count - 1)
+
+func _on_mobile_tutorial_reopen_pressed() -> void:
+	if mobile_tutorial_history_picker == null or mobile_tutorial_history_picker.selected < 0 or mobile_tutorial_history_picker.selected >= tutorial_prompt_history.size():
+		return
+	tutorial_prompt_review_id = tutorial_prompt_history[mobile_tutorial_history_picker.selected].get("id", &"")
+	mobile_help_pane.visible = false
+	mobile_help_button.tooltip_text = "Show guide."
+	_refresh_status()
+
+func _get_mobile_help_text() -> String:
+	var guide: String = _get_action_guide_text()
+	if tutorial_prompt_history.is_empty():
+		return guide
+	var titles: Array[String] = []
+	for prompt in tutorial_prompt_history:
+		var accessible: Dictionary = prompt.get("accessible_full_text", {})
+		titles.append("• %s" % String(accessible.get("title", "Tutorial")))
+	return "%s\n\nTutorial history (choose a tip to review):\n%s" % [guide, "\n".join(titles)]
 
 func _update_mobile_status_effect_pane() -> void:
 	if mobile_status_effect_pane == null or mobile_status_effect_label == null:
@@ -863,12 +1055,37 @@ func _latest_riposte_payoff_fact() -> Dictionary:
 	return {}
 
 func _layout_mobile_help_controls() -> void:
-	mobile_help_pane.custom_minimum_size.y = 164.0 if mobile_help_pane.visible else 0.0
+	var has_history_controls: bool = mobile_tutorial_history_picker != null and mobile_tutorial_history_picker.visible
+	var required_height: float = 220.0 if mobile_help_pane.visible and has_history_controls else 164.0 if mobile_help_pane.visible else 0.0
+	if not is_equal_approx(mobile_help_pane.custom_minimum_size.y, required_height):
+		mobile_help_pane.custom_minimum_size.y = required_height
+		call_deferred("_layout_mobile_help_controls")
+		return
 	var viewport_inset: float = _get_mobile_safe_inset()
 	mobile_help_label.offset_left = viewport_inset
 	mobile_help_label.offset_right = -viewport_inset
+	mobile_help_label.offset_bottom = -62.0 if has_history_controls else -10.0
+	if has_history_controls:
+		var reopen_width: float = mobile_tutorial_reopen_button.custom_minimum_size.x
+		var picker_width: float = maxf(mobile_help_pane.size.x - viewport_inset * 2.0 - reopen_width - 6.0, 120.0)
+		mobile_tutorial_history_picker.position = Vector2(viewport_inset, mobile_help_pane.size.y - 54.0)
+		mobile_tutorial_history_picker.size = Vector2(picker_width, 44.0)
+		mobile_tutorial_reopen_button.position = Vector2(viewport_inset + picker_width + 6.0, mobile_help_pane.size.y - 56.0)
+		mobile_tutorial_reopen_button.size = Vector2(reopen_width, 48.0)
 	_layout_mobile_status_effect_pane()
 	_layout_mobile_controls_row()
+
+func _layout_mobile_tutorial_prompt() -> void:
+	if mobile_tutorial_prompt_pane == null or mobile_tutorial_prompt_lane == null or mobile_tutorial_prompt_dismiss_button == null:
+		return
+	var viewport_inset: float = _get_mobile_safe_inset()
+	var parent_rect: Rect2 = mobile_status.get_global_rect()
+	var safe_left: int = int(round(maxf(-parent_rect.position.x + viewport_inset, 0.0)))
+	var safe_right: int = int(round(maxf(parent_rect.end.x - (size.x - viewport_inset), 0.0)))
+	mobile_tutorial_prompt_lane.add_theme_constant_override("margin_left", safe_left)
+	mobile_tutorial_prompt_lane.add_theme_constant_override("margin_right", safe_right)
+	mobile_tutorial_prompt_label.offset_left = viewport_inset
+	mobile_tutorial_prompt_label.offset_right = -(viewport_inset + mobile_tutorial_prompt_dismiss_button.custom_minimum_size.x + 6.0)
 
 func _layout_mobile_controls_row() -> void:
 	if mobile_controls_row == null or mobile_controls_layout_queued:
@@ -1092,6 +1309,9 @@ func _apply_skin() -> void:
 	action_guide_label.add_theme_font_size_override("font_size", 12)
 	action_guide_label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.54))
 	mobile_help_pane.add_theme_stylebox_override("panel", _make_info_pane_style(Color(0.08, 0.065, 0.05, 0.98), Color(0.76, 0.50, 0.30)))
+	mobile_tutorial_prompt_pane.add_theme_stylebox_override("panel", _make_info_pane_style(Color(0.10, 0.12, 0.17, 0.98), Color(0.44, 0.73, 0.88)))
+	mobile_tutorial_prompt_label.add_theme_font_size_override("font_size", 10)
+	mobile_tutorial_prompt_label.add_theme_color_override("font_color", Color(0.89, 0.96, 1.0))
 	tile_info_pane.mouse_filter = Control.MOUSE_FILTER_STOP
 	tile_info_pane.add_theme_stylebox_override("panel", _make_info_pane_style())
 	tile_info_badge.add_theme_font_size_override("font_size", 22)
@@ -1148,6 +1368,13 @@ func _apply_skin() -> void:
 	_apply_accessible_button_theme(mobile_help_button, phase_button, Color(0.38, 0.24, 0.19), Color(0.86, 0.57, 0.38))
 	mobile_help_button.custom_minimum_size = Vector2(48, 48)
 	mobile_help_button.add_theme_font_size_override("font_size", 18)
+	_apply_accessible_button_theme(mobile_tutorial_prompt_dismiss_button, _make_button_style(Color(0.16, 0.26, 0.33), Color(0.44, 0.73, 0.88)), Color(0.22, 0.35, 0.44), Color(0.66, 0.90, 1.0))
+	mobile_tutorial_prompt_dismiss_button.custom_minimum_size = Vector2(54, 48)
+	mobile_tutorial_prompt_dismiss_button.add_theme_font_size_override("font_size", 9)
+	_apply_accessible_button_theme(mobile_tutorial_reopen_button, phase_button, Color(0.38, 0.24, 0.19), Color(0.86, 0.57, 0.38))
+	mobile_tutorial_reopen_button.custom_minimum_size = Vector2(74, 48)
+	mobile_tutorial_reopen_button.add_theme_font_size_override("font_size", 10)
+	mobile_tutorial_history_picker.add_theme_font_size_override("font_size", 10)
 	_apply_accessible_button_theme(restart_button, _make_button_style(Color(0.30, 0.17, 0.14), Color(0.82, 0.47, 0.33)), Color(0.38, 0.22, 0.18), Color(0.94, 0.60, 0.42))
 	_apply_accessible_checkbox_theme(show_coordinates_checkbox)
 

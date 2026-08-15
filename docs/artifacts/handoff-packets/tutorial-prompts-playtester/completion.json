@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "tutorial-prompts-playtester",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-15T03:05:00-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": "PASS. The temporary Playtester independently completed the default non-headless newcomer flow: a short Boss Timeline card was readable without obstructing board, action bar, or hand; Dismiss removed it without advancing play; Help showed a text-first Boss Timeline entry and Review restored its contextual card.",
+  "changed_paths": [],
+  "validation": [
+    "Playtester verdict: PASS on non-headless Godot DEBUG at 488x1056 physical / 390x844 logical portrait presentation using mouse-equivalent direct manipulation.",
+    "Prerequisites: UI/UX self-check plus Test Automation projection, UI, mobile/accessibility, parity, records, and non-headless capture PASS."
+  ],
+  "evidence": [
+    "Observed ordered flow: card with Dismiss; Dismiss without gameplay advance; Help Tutorial history and Boss Timeline entry; Review restores card as Close.",
+    "Canonical expectation: docs/artifacts/embermaw-vertical-slice.md, docs/artifacts/accessibility.md, and docs/content/encounters/embermaw-prototype.md.",
+    "No concern and no retest condition unless the portrait tutorial-card, Help-history/Review flow, or responsive layout changes."
+  ],
+  "next_owner": "Coordinator",
+  "requested_action": "Record verified tutorial-prompt closure, release temporary UI/UX ownership, and archive the temporary Playtester task."
+}
