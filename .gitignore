@@ -19,3 +19,4 @@ tmp/encounter-records/
 # Encounter Workbench (web/) build tooling
 node_modules/
 web/dist/
+*.tsbuildinfo

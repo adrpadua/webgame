@@ -292,7 +292,7 @@ describe('Stamina movement', () => {
 
 describe('damage and Resolution Facts', () => {
   it('Armor blocks before Health and the fact records prevention', () => {
-    let state = start()
+    const state = start()
     hero(state).armor = 3
     const result = resolve(catalog, state, {
       kind: 'damage',
@@ -390,7 +390,7 @@ describe('damage and Resolution Facts', () => {
 
 describe('legality edges', () => {
   it('requires a Minion target in range for a piece-targeting Top Card', () => {
-    let state = start()
+    const state = start()
     hero(state).actionBar[0] = { topCard: card('s1', 'sweeping_blow'), charges: [card('s2', 'iron_guard')], activatedWindow: '' }
     state.phase = 'quick'
     const noTarget = legality(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
@@ -433,7 +433,7 @@ describe('legality edges', () => {
   })
 
   it('ends in Enrage Defeat when the Encounter Clock expires', () => {
-    let state = start()
+    const state = start()
     state.round = state.roundLimit
     state.phase = 'slow'
     const wrap = advancePhase(catalog, state)
@@ -446,7 +446,7 @@ describe('legality edges', () => {
   })
 
   it('ends in defeat when the Hero falls', () => {
-    let state = start()
+    const state = start()
     hero(state).health = 3
     const hit = resolve(catalog, state, {
       kind: 'damage',
@@ -461,7 +461,7 @@ describe('legality edges', () => {
 
 describe('hand refresh', () => {
   it('shuffles the discard back in only when the deck runs out', () => {
-    let state = start()
+    const state = start()
     const heroState = hero(state)
     // Empty the deck into the discard so the end-of-Round refill must reshuffle.
     heroState.discard = [...heroState.deck, ...heroState.hand]

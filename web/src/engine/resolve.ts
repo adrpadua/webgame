@@ -524,6 +524,8 @@ function actionDetail(action: EncounterActionInput): Record<string, unknown> {
   if (action.kind === 'resolve_boss') {
     return { beatId: action.beat.id, beatTitle: action.beat.title, track: action.track }
   }
-  const { kind: _kind, sourceId: _sourceId, ...rest } = action
-  return structuredClone(rest) as Record<string, unknown>
+  const detail = structuredClone(action) as unknown as Record<string, unknown>
+  delete detail.kind
+  delete detail.sourceId
+  return detail
 }
