@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "ledger-archive-contract-qa-review",
+  "revision": 1,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T20:20:00-07:00",
+  "owner": "Test Automation",
+  "canonical_issue": ".scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md",
+  "objective": "Independently review whether the archive contract gives Test Automation a reproducible threshold, link, append-only, and active-work-retention verification route.",
+  "non_goals": [
+    "No archive movement or live-ledger compaction",
+    "No probe/framework implementation beyond this review packet",
+    "No gameplay, rules, UI, or product-scope change"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Test Automation", "completion": "Test Automation" },
+  "dependencies": [
+    { "id": "ledger-archive-contract-coordinator", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Review of docs/artifacts/coordination-history/README.md against the archive issue and deterministic handoff gate",
+    "PASS or blocker covering threshold accounting, relative-link reproducibility, append-only retention, and reverse-dependency safety"
+  ],
+  "next_owner": "Test Automation"
+}

@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "packet_type": "completion",
+  "handoff_id": "ledger-archive-contract-qa-review",
+  "revision": 1,
+  "state": "completed",
+  "writer_role": "Test Automation",
+  "created_at": "2026-08-14T20:34:00-07:00",
+  "assignment_revision": 1,
+  "acknowledgment_revision": 1,
+  "outcome": {
+    "status": "PASS",
+    "non_goal_compliance": [
+      "QA added only immutable acknowledgment and completion evidence in its assigned packet root.",
+      "No archive file was moved or created, no live ledger was compacted, and no probe/framework, gameplay, rules, UI, or product-scope change was made."
+    ],
+    "summary": [
+      "The archive contract gives Test Automation a deterministic threshold route: archive after a milestone closes or when the live ledger exceeds 200 lines or 75 KB, whichever happens first, and record fresh pre-move line and byte counts. The current live ledger measures 224 lines and 92,598 bytes, so both thresholds are presently exceeded.",
+      "The contract gives a reproducible durable-link route: every archive file uses repository-relative naming, every moved block preserves canonical/evidence links, and each compact live closure summary links relatively to the archive file and block anchor. The README's current relative live-ledger link resolves; no archive blocks exist yet, so post-migration link/anchor verification remains correctly deferred to issue 03.",
+      "Append-only retention and active-work safety are explicit: archive files are append-only; terminal status, owners, date, evidence, canonical links, and material historical distinctions remain preserved; packets cannot move or be rewritten. A candidate stays live whenever it is active, blocked, awaiting verification, or named by any live prerequisite/dependent.",
+      "The reverse-dependency route is sufficiently bounded for a future repeatable check: before movement, sweep every non-terminal feature issue and every live ledger row for the exact candidate subject, issue path, packet ID, and dependency names; record that sweep plus current packet-validator output."
+    ]
+  },
+  "changed_paths": [
+    "docs/artifacts/handoff-packets/ledger-archive-contract-qa-review/acknowledgment.json",
+    "docs/artifacts/handoff-packets/ledger-archive-contract-qa-review/completion.json"
+  ],
+  "validation": [
+    {
+      "command": "PowerShell direct measurement: (Get-Content -LiteralPath docs/artifacts/project-coordination.md).Count; (Get-Item -LiteralPath docs/artifacts/project-coordination.md).Length",
+      "result": [
+        "Lines=224; Bytes=92598; exceeds 200-line trigger=true; exceeds 75-KB trigger=true; archival trigger=true."
+      ]
+    },
+    {
+      "command": "PowerShell README relative-link resolution from docs/artifacts/coordination-history/README.md",
+      "result": [
+        "../project-coordination.md resolves to D:\\dev\\webgame\\docs\\artifacts\\project-coordination.md.",
+        "coordination-history currently contains README.md only; no archive file or moved-block link exists to validate before issue 02."
+      ]
+    },
+    {
+      "command": "Direct comparison of docs/artifacts/coordination-history/README.md, .scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md, .scratch/coordination-ledger-lifecycle-and-archive/spec.md, and .scratch/deterministic-handoff-control-plane-and-closure-gate/spec.md",
+      "result": [
+        "Threshold, relative-link, append-only, terminal-only, reverse-dependency-sweep, and post-migration QA requirements agree.",
+        "The deterministic handoff contract prohibits archive movement or rewrite of packet artifacts and requires current root validation before packet-dependent advancement or milestone closure."
+      ]
+    },
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\debug\\validate_handoff_packets.ps1 -Root .\\docs\\artifacts\\handoff-packets",
+      "result": [
+        "HANDOFF_PACKET_VALIDATION_OK root=D:\\dev\\webgame\\.\\docs\\artifacts\\handoff-packets handoffs=21 errors=0",
+        "HANDOFF_PACKET_VALIDATION_JSON status=ok handoff_count=21 error_count=0",
+        "Exit code: 0"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "threshold",
+      "value": "project-coordination.md currently measures 224 lines / 92,598 bytes and exceeds both defined archive triggers."
+    },
+    {
+      "kind": "link",
+      "value": "README relative link ../project-coordination.md resolves; no archive blocks exist before manual issue 02 movement."
+    },
+    {
+      "kind": "safety",
+      "value": "Pre-move reverse-dependency sweep must search all non-terminal feature issues and live ledger rows for candidate subject, issue path, packet ID, and dependency names."
+    },
+    {
+      "kind": "retention",
+      "value": "Archive files are append-only and handoff packet roots remain immutable and outside archive movement."
+    }
+  ],
+  "next_owner": "Coordinator",
+  "requested_action": "Record Test Automation PASS for the archive contract. Await the remaining Architecture, Design, UI/UX, and PM reviews; only then may the Coordinator separately route issue 02 manual archival. At movement time, record fresh threshold counts, the exact reverse-dependency sweep, current packet-validator exit 0, and all resulting relative link/anchor checks for issue 03."
+}

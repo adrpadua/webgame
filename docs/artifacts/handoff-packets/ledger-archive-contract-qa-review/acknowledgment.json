@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "ledger-archive-contract-qa-review",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "Test Automation",
+  "created_at": "2026-08-14T20:25:00-07:00",
+  "assignment_revision": 1,
+  "owner": "Test Automation",
+  "scope_confirmed": [
+    "Independently review the proposed coordination-history archive contract against its canonical issue and spec.",
+    "Verify that threshold accounting, relative-link checks, append-only retention, and reverse-dependency safety have a reproducible Test Automation route.",
+    "Do not move archive files, compact the live ledger, implement probes/frameworks, or change gameplay, rules, UI, or product scope."
+  ],
+  "planned_paths": [
+    "docs/artifacts/coordination-history/README.md",
+    ".scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md",
+    ".scratch/coordination-ledger-lifecycle-and-archive/spec.md",
+    "docs/artifacts/handoff-packets/ledger-archive-contract-qa-review/completion.json"
+  ],
+  "first_validation": "Direct contract comparison of the archive README, archive issue, and lifecycle spec for a reproducible deterministic verification path.",
+  "next_owner": "Test Automation"
+}

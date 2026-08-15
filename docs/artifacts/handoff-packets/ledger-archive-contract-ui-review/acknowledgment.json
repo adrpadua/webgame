@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "packet_type": "acknowledgment",
+  "handoff_id": "ledger-archive-contract-ui-review",
+  "revision": 1,
+  "state": "acknowledged",
+  "writer_role": "UI/UX",
+  "created_at": "2026-08-14T20:22:00-07:00",
+  "assignment_revision": 1,
+  "owner": "UI/UX",
+  "scope_confirmed": "Review only the coordination-history archive contract for UI historical lookup, repository-relative durability, and protection of active UI work and canonical UI/accessibility sources. No archive movement or non-packet edit will be made.",
+  "planned_paths": [
+    "docs/artifacts/coordination-history/README.md",
+    ".scratch/coordination-ledger-lifecycle-and-archive/spec.md",
+    ".scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md",
+    "docs/artifacts/handoff-packets/ledger-archive-contract-ui-review/completion.json"
+  ],
+  "first_validation": "Inspect the archive README and live-ledger contract against the assigned issue, then validate the packet root before returning the review verdict.",
+  "next_owner": "UI/UX"
+}

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "ledger-archive-contract-coordinator",
+  "revision": 2,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T20:09:17-07:00",
+  "owner": "Coordinator",
+  "canonical_issue": ".scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md",
+  "objective": "Define the smallest safe append-only coordination-history archive contract without moving or compacting ledger content.",
+  "non_goals": [
+    "No archival or deletion of ledger content",
+    "No movement or rewriting of handoff packets",
+    "No replacement of canonical rules, UI, probe, implementation, intake, or approval sources",
+    "No automatic archival or workflow-authority change"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "Coordinator", "completion": "Coordinator" },
+  "dependencies": [
+    { "id": "phase0-mandatory-gate-activation", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Archive contract with trigger, live/archive boundary, durable-link shape, reverse-dependency sweep, and named independent reviewers",
+    "Current live-ledger physical-line and byte counts",
+    "Current-root handoff-packet validator exit-0 result"
+  ],
+  "next_owner": "Coordinator"
+}

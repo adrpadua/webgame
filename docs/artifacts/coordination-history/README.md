@@ -4,7 +4,7 @@ This directory preserves append-only historical coordination evidence. It is not
 
 ## Trigger and operator
 
-The Coordinator evaluates archival after a milestone closes and whenever the live ledger exceeds either `200` lines or `75 KB`, whichever happens first. The operation is manual: no script, dashboard, or validator moves entries automatically.
+The Coordinator evaluates archival after a milestone closes and whenever the live ledger exceeds either `200` physical lines or `75 KB`, whichever happens first. Count physical lines with `(Get-Content docs/artifacts/project-coordination.md).Count`; do not use `Measure-Object -Line`, which excludes blank lines. The operation is manual: no script, dashboard, or validator moves entries automatically.
 
 ## File shape and durable links
 

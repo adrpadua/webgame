@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "packet_type": "assignment",
+  "handoff_id": "ledger-archive-contract-ui-review",
+  "revision": 2,
+  "state": "assigned",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T20:20:00-07:00",
+  "owner": "UI/UX",
+  "canonical_issue": ".scratch/coordination-ledger-lifecycle-and-archive/issues/01-define-safe-archive-contract.md",
+  "objective": "Independently review whether the archive contract preserves player-facing historical lookup while keeping active UI ownership and current canonical UI/accessibility sources live.",
+  "non_goals": [
+    "No archive movement or live-ledger compaction",
+    "No UI implementation or documentation rewrite beyond this review packet",
+    "No gameplay, accessibility, or product-scope change"
+  ],
+  "expected_writers": { "assignment": "Coordinator", "acknowledgment": "UI/UX", "completion": "UI/UX" },
+  "dependencies": [
+    { "id": "ledger-archive-contract-coordinator", "state": "satisfied" }
+  ],
+  "required_evidence": [
+    "Review of docs/artifacts/coordination-history/README.md against the archive issue and live-ledger boundary",
+    "PASS or blocker covering relative links, preserved UI evidence lookup, and active-work retention"
+  ],
+  "next_owner": "UI/UX"
+}

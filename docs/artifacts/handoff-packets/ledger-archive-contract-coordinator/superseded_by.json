@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "packet_type": "supersession",
+  "handoff_id": "ledger-archive-contract-coordinator",
+  "revision": 1,
+  "state": "superseded",
+  "writer_role": "Coordinator",
+  "created_at": "2026-08-14T20:35:00-07:00",
+  "supersedes": ".",
+  "active_revision": "revisions/0002",
+  "reason": "The root packet used Measure-Object -Line and reported 187 nonblank lines. Revision 0002 preserves those immutable files while corrects the archive trigger to the ledger's 224 physical lines and records the explicit counting convention."
+}

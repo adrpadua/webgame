@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "packet_type": "supersession",
+  "handoff_id": "ledger-archive-contract-ui-review",
+  "revision": 1,
+  "state": "superseded",
+  "writer_role": "UI/UX",
+  "created_at": "2026-08-14T20:27:00-07:00",
+  "supersedes": ".",
+  "active_revision": "revisions/0002",
+  "reason": "The root completion recorded the final packet-validator command as pending before it ran. Revision 0002 retains the original packet evidence and records the executed exit-0 result."
+}
