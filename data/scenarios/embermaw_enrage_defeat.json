@@ -1,0 +1,67 @@
+{
+  "id": "embermaw_enrage_defeat",
+  "title": "Embermaw: passive defeat",
+  "version": 1,
+  "description": "Advancing every window without playing: the Boss Timeline alone defeats Elian Voss. Proves the encounter is losable.",
+  "encounter": "embermaw_prototype",
+  "seed": 1337,
+  "steps": [
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    }
+  ]
+}

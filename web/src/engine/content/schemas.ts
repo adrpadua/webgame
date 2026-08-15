@@ -109,6 +109,41 @@ export const encounterSchema = z.object({
   brood_spawn_candidates: z.array(axialSchema).default([]),
 })
 
+export const evaluationDeckSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  rules_text: z.string().default(''),
+  encounter: z.string().min(1),
+  player_deck: z.array(deckEntrySchema).min(1),
+})
+
+// The player-submitted action subset a Scenario may carry. Generated actions
+// (boss beats, damage, hazards, bookkeeping) are re-derived by the replay.
+export const scenarioActionSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('load_slot'), sourceId: z.string(), slotIndex: z.number().int().min(0), cardInstanceId: z.string() }),
+  z.object({ kind: z.literal('charge_slot'), sourceId: z.string(), slotIndex: z.number().int().min(0), cardInstanceId: z.string() }),
+  z.object({ kind: z.literal('fire_slot'), sourceId: z.string(), slotIndex: z.number().int().min(0), targetId: z.string().optional() }),
+  z.object({ kind: z.literal('move_hero'), sourceId: z.string(), destination: axialSchema, cardInstanceId: z.string() }),
+  z.object({ kind: z.literal('discard_for_stamina'), sourceId: z.string(), cardInstanceId: z.string() }),
+])
+
+export const scenarioStepSchema = z.union([
+  z.object({ advance: z.literal(true) }),
+  z.object({ action: scenarioActionSchema }),
+])
+
+// A Scenario is a named, versioned sequence of Encounter actions replayed
+// from a seeded initial state — never a state snapshot.
+export const scenarioSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  version: z.number().int().min(1),
+  description: z.string().default(''),
+  encounter: z.string().min(1),
+  seed: z.number().int(),
+  steps: z.array(scenarioStepSchema),
+})
+
 export type Keyword = z.infer<typeof keywordSchema>
 export type ChargeModifier = z.infer<typeof chargeModifierSchema>
 export type Card = z.infer<typeof cardSchema>
@@ -117,3 +152,7 @@ export type Minion = z.infer<typeof minionSchema>
 export type BossBeat = z.infer<typeof bossBeatSchema>
 export type BossProgram = z.infer<typeof bossProgramSchema>
 export type EncounterDefinition = z.infer<typeof encounterSchema>
+export type EvaluationDeck = z.infer<typeof evaluationDeckSchema>
+export type ScenarioAction = z.infer<typeof scenarioActionSchema>
+export type ScenarioStep = z.infer<typeof scenarioStepSchema>
+export type Scenario = z.infer<typeof scenarioSchema>

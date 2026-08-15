@@ -6,6 +6,7 @@ import {
   hexKey,
   legality,
   resolve,
+  runScenario,
   type EncounterState,
   type ResolvedActionFact,
 } from '@/engine'
@@ -42,15 +43,37 @@ function stepPhases(state: EncounterState, count: number): { state: EncounterSta
 }
 
 describe('content catalog', () => {
-  it('loads and validates the M1 payloads from data/', () => {
-    expect(Object.keys(catalog.cards).sort()).toEqual(['fortify', 'iron_guard', 'shield_slam', 'steady_strike', 'sweeping_blow'])
+  it('loads and validates the full content port from data/', () => {
+    expect(Object.keys(catalog.cards)).toHaveLength(14)
     expect(Object.keys(catalog.keywords)).toHaveLength(10)
+    expect(Object.keys(catalog.programs).sort()).toEqual(['embermaw_brood', 'embermaw_embers', 'embermaw_hunt'])
     expect(catalog.programs.embermaw_hunt.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',
       'raking_claw',
       'scorch_last_pattern',
     ])
+    expect(catalog.programs.embermaw_embers.instant_beats.map((beat) => beat.kind)).toEqual([
+      'turn_toward_player',
+      'cinder_breath',
+      'scorch_last_pattern',
+    ])
+    expect(catalog.encounters.embermaw_prototype.boss_programs).toEqual(['embermaw_hunt', 'embermaw_embers', 'embermaw_brood'])
     expect(catalog.encounters.embermaw_prototype.player_deck.reduce((total, entry) => total + entry.copies, 0)).toBe(20)
+    expect(catalog.decks.aegis_controlled_test_deck.encounter).toBe('embermaw_prototype')
+  })
+})
+
+describe('Boss Program rotation', () => {
+  it('loops Hunt, Ember, then Brood across Rounds', () => {
+    let state = start()
+    expect(state.currentProgramId).toBe('embermaw_hunt')
+    state = stepPhases(state, 5).state
+    expect(state.round).toBe(2)
+    expect(state.currentProgramId).toBe('embermaw_embers')
+    state = stepPhases(state, 5).state
+    expect(state.currentProgramId).toBe('embermaw_brood')
+    state = stepPhases(state, 5).state
+    expect(state.currentProgramId).toBe('embermaw_hunt')
   })
 })
 
@@ -456,6 +479,47 @@ describe('legality edges', () => {
       reasonText: 'Raking Claw',
     })
     expect(hit.state).toMatchObject({ active: false, outcome: 'defeat', outcomeReason: 'A Hero has fallen.' })
+  })
+})
+
+describe('Scenarios', () => {
+  it('replays the committed victory line to Victory', () => {
+    const scenario = catalog.scenarios.embermaw_victory_line
+    expect(scenario).toBeDefined()
+    const replay = runScenario(catalog, scenario)
+    expect(replay.state.outcome).toBe('victory')
+    expect(replay.state.active).toBe(false)
+    expect(replay.state.board.entities[replay.state.bossId].health).toBe(0)
+    // Every scenario step must have resolved legally.
+    const submitted = replay.facts.filter((fact) => fact.depth === 0)
+    expect(submitted.every((fact) => fact.succeeded)).toBe(true)
+  })
+
+  it('replays the committed passive line to Defeat', () => {
+    const scenario = catalog.scenarios.embermaw_enrage_defeat
+    expect(scenario).toBeDefined()
+    const replay = runScenario(catalog, scenario)
+    expect(replay.state.outcome).toBe('defeat')
+    expect(replay.state.active).toBe(false)
+  })
+
+  it('lands the Round 3 jump point mid-Encounter with Whelps on the board', () => {
+    const scenario = catalog.scenarios.embermaw_round3_brood
+    expect(scenario).toBeDefined()
+    const replay = runScenario(catalog, scenario)
+    expect(replay.state.active).toBe(true)
+    expect(replay.state.round).toBe(3)
+    expect(replay.state.currentProgramId).toBe('embermaw_brood')
+    expect(Object.values(replay.state.board.entities).filter((entity) => entity.kind === 'minion').length).toBeGreaterThan(0)
+  })
+
+  it('replays deterministically', () => {
+    const scenario = catalog.scenarios.embermaw_victory_line
+    const first = runScenario(catalog, scenario)
+    const second = runScenario(catalog, scenario)
+    expect(second.state).toEqual(first.state)
+    expect(second.facts).toEqual(first.facts)
+    expect(first.entries).toHaveLength(scenario.steps.length + 1)
   })
 })
 

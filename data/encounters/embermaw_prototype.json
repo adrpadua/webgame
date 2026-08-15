@@ -22,7 +22,7 @@
     { "card": "fortify", "copies": 2 },
     { "card": "shield_slam", "copies": 2 }
   ],
-  "boss_programs": ["embermaw_hunt"],
+  "boss_programs": ["embermaw_hunt", "embermaw_embers", "embermaw_brood"],
   "loop_boss_programs": true,
   "random_seed": 1337,
   "brood_spawn_candidates": [

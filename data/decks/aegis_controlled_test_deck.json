@@ -1,0 +1,13 @@
+{
+  "id": "aegis_controlled_test_deck",
+  "title": "Elian controlled Test Deck",
+  "rules_text": "Evaluation-only controlled Elian Voss test deck. This resource is not the default starter deck and exists only for fixed-seed deck evaluation cohorts.",
+  "encounter": "embermaw_prototype",
+  "player_deck": [
+    { "card": "steady_strike", "copies": 8 },
+    { "card": "iron_guard", "copies": 6 },
+    { "card": "sweeping_blow", "copies": 2 },
+    { "card": "fortify", "copies": 2 },
+    { "card": "shield_slam", "copies": 2 }
+  ]
+}

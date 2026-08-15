@@ -1,10 +1,10 @@
 import { cardChargeCap, cardWindowSpeed } from '@/engine'
-import { useWorkbench } from '@/store/workbench'
+import { selectState, useWorkbench } from '@/store/workbench'
 
 // The Hand: four equal Compact Cards anchored to the bottom interaction zone.
 // A Compact Card shows its name, timing, and Charge Value.
 export function Hand() {
-  const state = useWorkbench((store) => store.state)
+  const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)
   const setDraggingCard = useWorkbench((store) => store.setDraggingCard)
   const hero = state.heroes[state.primaryHeroId]

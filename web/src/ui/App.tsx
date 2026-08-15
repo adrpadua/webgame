@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { PhaserBoard } from '@/board/PhaserBoard'
-import { useWorkbench } from '@/store/workbench'
+import { selectState, useWorkbench } from '@/store/workbench'
 import { ActionBar } from './ActionBar'
 import { DebugRail } from './DebugRail'
 import { Hand } from './Hand'
@@ -50,7 +50,7 @@ function TargetingBanner() {
 }
 
 function OutcomeBanner() {
-  const state = useWorkbench((store) => store.state)
+  const state = useWorkbench(selectState)
   if (state.active) {
     return null
   }

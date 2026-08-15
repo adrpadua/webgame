@@ -1,0 +1,10 @@
+{
+  "id": "gather_strength",
+  "title": "Gather Strength",
+  "rules_text": "Gain 2 Armor.",
+  "speed": "quick",
+  "max_charge": 2,
+  "target_type": "none",
+  "armor_delta": 2,
+  "tags": ["growth"]
+}

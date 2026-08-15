@@ -1,7 +1,7 @@
-import { useWorkbench } from '@/store/workbench'
+import { selectState, useWorkbench } from '@/store/workbench'
 
 export function TopBar() {
-  const state = useWorkbench((store) => store.state)
+  const state = useWorkbench(selectState)
   const boss = state.board.entities[state.bossId]
   const healthPercent = boss ? Math.max(0, Math.round((boss.health / boss.maxHealth) * 100)) : 0
   return (

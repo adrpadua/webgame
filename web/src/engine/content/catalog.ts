@@ -3,16 +3,20 @@ import {
   cardSchema,
   chargeModifierSchema,
   encounterSchema,
+  evaluationDeckSchema,
   hazardSchema,
   keywordSchema,
   minionSchema,
+  scenarioSchema,
   type BossProgram,
   type Card,
   type ChargeModifier,
   type EncounterDefinition,
+  type EvaluationDeck,
   type Hazard,
   type Keyword,
   type Minion,
+  type Scenario,
 } from './schemas'
 
 export interface ContentCatalog {
@@ -23,6 +27,8 @@ export interface ContentCatalog {
   minions: Record<string, Minion>
   programs: Record<string, BossProgram>
   encounters: Record<string, EncounterDefinition>
+  decks: Record<string, EvaluationDeck>
+  scenarios: Record<string, Scenario>
 }
 
 export interface RawContent {
@@ -33,6 +39,8 @@ export interface RawContent {
   minions: unknown[]
   programs: unknown[]
   encounters: unknown[]
+  decks?: unknown[]
+  scenarios?: unknown[]
 }
 
 function indexById<T extends { id: string }>(entries: T[], label: string): Record<string, T> {
@@ -57,6 +65,8 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     minions: indexById(raw.minions.map((entry) => minionSchema.parse(entry)), 'minion'),
     programs: indexById(raw.programs.map((entry) => bossProgramSchema.parse(entry)), 'boss program'),
     encounters: indexById(raw.encounters.map((entry) => encounterSchema.parse(entry)), 'encounter'),
+    decks: indexById((raw.decks ?? []).map((entry) => evaluationDeckSchema.parse(entry)), 'deck'),
+    scenarios: indexById((raw.scenarios ?? []).map((entry) => scenarioSchema.parse(entry)), 'scenario'),
   }
 
   for (const card of Object.values(catalog.cards)) {
@@ -96,6 +106,21 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       if (!catalog.programs[programId]) {
         throw new Error(`Encounter ${encounter.id} references unknown Boss Program ${programId}`)
       }
+    }
+  }
+  for (const deck of Object.values(catalog.decks)) {
+    if (!catalog.encounters[deck.encounter]) {
+      throw new Error(`Deck ${deck.id} references unknown encounter ${deck.encounter}`)
+    }
+    for (const entry of deck.player_deck) {
+      if (!catalog.cards[entry.card]) {
+        throw new Error(`Deck ${deck.id} references unknown card ${entry.card}`)
+      }
+    }
+  }
+  for (const scenario of Object.values(catalog.scenarios)) {
+    if (!catalog.encounters[scenario.encounter]) {
+      throw new Error(`Scenario ${scenario.id} references unknown encounter ${scenario.encounter}`)
     }
   }
   return catalog

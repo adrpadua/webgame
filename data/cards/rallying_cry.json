@@ -1,0 +1,10 @@
+{
+  "id": "rallying_cry",
+  "title": "Rallying Cry",
+  "rules_text": "Heal 2.",
+  "speed": "quick",
+  "max_charge": 2,
+  "target_type": "none",
+  "healing": 2,
+  "tags": ["tank", "support"]
+}

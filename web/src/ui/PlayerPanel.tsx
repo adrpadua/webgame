@@ -1,8 +1,8 @@
 import { getStatuses } from '@/engine'
-import { useWorkbench } from '@/store/workbench'
+import { selectState, useWorkbench } from '@/store/workbench'
 
 export function PlayerPanel() {
-  const state = useWorkbench((store) => store.state)
+  const state = useWorkbench(selectState)
   const hero = state.heroes[state.primaryHeroId]
   const entity = state.board.entities[state.primaryHeroId]
   if (!hero) {

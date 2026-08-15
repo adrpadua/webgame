@@ -113,9 +113,27 @@ try {
   assert(round?.includes('Round 2'), `the Boss Timeline rolled forward (${round?.trim()})`)
   assert((await page.locator('[data-testid="hand-card"]').count()) === 4, 'end-of-Round draw refilled the Hand to 4')
 
+  // M2 debug tooling: load the committed victory Scenario and walk its line
+  // with time travel.
+  await page.selectOption('[data-testid="scenario-select"]', 'embermaw_victory_line')
+  await page.locator('[data-testid="load-scenario"]').click()
+  await page.waitForSelector('[data-testid="outcome-banner"][data-outcome="victory"]')
+  assert(true, 'the victory Scenario replays to the Victory banner')
+
+  const position = await page.locator('[data-testid="time-travel-position"]').textContent()
+  assert(/Step \d+ \/ \d+/.test(position ?? ''), `time travel shows the Scenario line (${position?.trim()})`)
+  await page.locator('[data-testid="tt-prev"]').click()
+  await page.waitForTimeout(100)
+  assert((await page.locator('[data-testid="outcome-banner"]').count()) === 0, 'stepping back leaves the terminal state')
+  await page.locator('[data-testid="time-travel-slider"]').fill('0')
+  await page.waitForTimeout(100)
+  assert((await phase()) === 'loadout', 'sliding to step 0 shows the seeded Loadout')
+  const roundAtStart = await page.locator('[data-testid="round-display"]').textContent()
+  assert(roundAtStart?.includes('Round 1'), 'step 0 is Round 1')
+
   await page.screenshot({ path: process.env.SMOKE_SHOT ?? 'smoke.png', fullPage: false })
   await browser.close()
-  console.log('\nSMOKE PASSED: full Round loop played in the browser.')
+  console.log('\nSMOKE PASSED: full Round loop, Scenario replay, and time travel verified in the browser.')
 } finally {
   server.kill()
 }

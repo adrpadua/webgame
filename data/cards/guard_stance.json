@@ -1,0 +1,10 @@
+{
+  "id": "guard_stance",
+  "title": "Guard Stance",
+  "rules_text": "Gain 4 armor.",
+  "speed": "quick",
+  "max_charge": 2,
+  "target_type": "none",
+  "armor_delta": 4,
+  "tags": ["tank", "guard"]
+}

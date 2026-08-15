@@ -2,7 +2,7 @@ import { buildCatalog, type ContentCatalog } from '@/engine'
 
 // Loads every authored JSON payload from the repo-level data/ directory
 // (ADR 0020). Validation happens inside buildCatalog via the zod schemas.
-const modules = import.meta.glob('../../../data/{cards,keywords,charge_modifiers,hazards,minions,boss_programs,encounters}/*.json', {
+const modules = import.meta.glob('../../../data/{cards,keywords,charge_modifiers,hazards,minions,boss_programs,encounters,decks,scenarios}/*.json', {
   eager: true,
   import: 'default',
 }) as Record<string, unknown>
@@ -25,6 +25,8 @@ export function loadCatalog(): ContentCatalog {
       minions: group('minions'),
       programs: group('boss_programs'),
       encounters: group('encounters'),
+      decks: group('decks'),
+      scenarios: group('scenarios'),
     })
   }
   return cachedCatalog

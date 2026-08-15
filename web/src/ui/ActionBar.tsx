@@ -1,10 +1,10 @@
 import { cardChargeCap, cardWindowSpeed } from '@/engine'
-import { useWorkbench } from '@/store/workbench'
+import { selectState, useWorkbench } from '@/store/workbench'
 
 // The persistent Action Bar: each Slot shows its Top Card, Charge Stack, and
 // window state. Tap a charged Slot in its matching window to activate it.
 export function ActionBar() {
-  const state = useWorkbench((store) => store.state)
+  const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)
   const fireSlot = useWorkbench((store) => store.fireSlot)
   const cardDroppedOnSlot = useWorkbench((store) => store.cardDroppedOnSlot)

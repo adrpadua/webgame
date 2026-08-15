@@ -1,8 +1,8 @@
 import { currentProgram } from '@/engine'
-import { useWorkbench } from '@/store/workbench'
+import { selectState, useWorkbench } from '@/store/workbench'
 
 export function ProgramStrip() {
-  const state = useWorkbench((store) => store.state)
+  const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)
   const program = currentProgram(catalog, state)
   if (!program) {

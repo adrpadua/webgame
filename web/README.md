@@ -24,9 +24,13 @@ node scripts/smoke.mjs   # after build: browser-driven full Round loop
   A lint rule keeps `react`/`phaser`/store imports out.
 - `src/content/` — loads and validates `data/*.json` through the engine's
   zod schemas.
-- `src/store/` — zustand wrapper that owns the current snapshot and the
-  Resolution Fact log; preserves the running Encounter across HMR.
+- `src/store/` — zustand wrapper that owns the session timeline (snapshot
+  history with time travel, Resolution Fact log, Scenario replay/export);
+  preserves the running Encounter across HMR.
 - `src/board/` — the Phaser hex board. It renders engine snapshots and
   reports hex-level intents; it owns no game state.
 - `src/ui/` — React: hand, Action Bar, phase control, HUD, debug rail
-  (fact log, seed control).
+  (Scenario picker, time travel, fact log, seed control).
+- `scripts/generateScenarios.ts` — policy search over the engine that
+  authors the committed victory/defeat Scenarios in `data/scenarios/`
+  (run with `npx vite-node scripts/generateScenarios.ts`).

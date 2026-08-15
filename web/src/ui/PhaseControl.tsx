@@ -1,4 +1,4 @@
-import { useWorkbench } from '@/store/workbench'
+import { selectState, useWorkbench } from '@/store/workbench'
 import type { Phase } from '@/engine'
 
 const PHASES: { phase: Phase; label: string }[] = [
@@ -10,7 +10,7 @@ const PHASES: { phase: Phase; label: string }[] = [
 ]
 
 export function PhaseControl() {
-  const state = useWorkbench((store) => store.state)
+  const state = useWorkbench(selectState)
   const advance = useWorkbench((store) => store.advance)
   const restart = useWorkbench((store) => store.restart)
   return (

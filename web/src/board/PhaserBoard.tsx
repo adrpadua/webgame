@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
 import { hexKey, isLegalMove, neighbors, type EncounterState } from '@/engine'
-import { useWorkbench } from '@/store/workbench'
+import { selectState, useWorkbench } from '@/store/workbench'
 import { BoardScene, type BoardSnapshot } from './BoardScene'
 import { BOARD_HEIGHT, BOARD_WIDTH, pixelToAxial } from './layout'
 
@@ -34,8 +34,8 @@ export function PhaserBoard() {
       scene,
     })
     const pushSnapshot = () => {
-      const { state, targetingSlotIndex, draggingCardId } = useWorkbench.getState()
-      scene.updateSnapshot(buildSnapshot(state, targetingSlotIndex !== null, draggingCardId))
+      const store = useWorkbench.getState()
+      scene.updateSnapshot(buildSnapshot(selectState(store), store.targetingSlotIndex !== null, store.draggingCardId))
     }
     const unsubscribe = useWorkbench.subscribe(pushSnapshot)
     pushSnapshot()
