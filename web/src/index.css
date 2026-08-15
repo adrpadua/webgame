@@ -5,3 +5,11 @@ body {
   margin: 0;
   background-color: #09090b;
 }
+
+/* iPadOS: suppress the long-press callout and text-selection loupe on the
+   play surface so hold-to-inspect and touch drags read as game gestures.
+   The debug rail stays selectable for copying facts and JSON. */
+[data-testid='play-surface'] {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+}

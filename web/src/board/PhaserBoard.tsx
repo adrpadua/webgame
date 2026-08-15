@@ -67,7 +67,9 @@ export function PhaserBoard() {
       ref={containerRef}
       data-testid="board"
       className="mx-auto"
-      style={{ width: BOARD_WIDTH, height: BOARD_HEIGHT }}
+      // touch-action none keeps hex taps and Hero route-preview presses from
+      // scrolling the page on touch devices.
+      style={{ width: BOARD_WIDTH, height: BOARD_HEIGHT, touchAction: 'none' }}
       onDragOver={(event) => {
         event.preventDefault()
         event.dataTransfer.dropEffect = 'move'

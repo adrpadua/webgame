@@ -20,6 +20,24 @@ npm run headless -- --scenario embermaw_victory_line   # headless Scenario run
 npm run headless -- --replay <record.json>             # verify a v2 record
 ```
 
+## Play on an iPad (or any device)
+
+The Workbench is a fully static build, so it deploys to GitHub Pages via
+`.github/workflows/deploy-workbench.yml` on every push to `main` (or the
+active workbench branch) that touches `web/` or `data/`.
+
+One-time setup: repository **Settings → Pages → Build and deployment →
+Source: "GitHub Actions"**. After the first deploy the Workbench is live at
+`https://<owner>.github.io/webgame/` — open it in Safari on the iPad and use
+**Share → Add to Home Screen** for a full-screen app. Note: on a private
+repository, GitHub Pages requires a paid GitHub plan; making the repo public
+or using any static host (Netlify, Cloudflare Pages) works the same way,
+with `VITE_BASE` set to the host's serving path.
+
+Touch is first-class on iPadOS Safari: drag Compact Cards with a finger to
+prepare, charge, or move; hold a card for Card Inspection; press the Hero to
+preview routes; tap the program strip to expand or collapse it.
+
 ## Layout
 
 - `src/engine/` — Encounter Engine: `resolve(state, action)`, legality,

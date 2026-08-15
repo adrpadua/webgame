@@ -7,6 +7,9 @@ import path from 'node:path'
 const rootDir = import.meta.dirname
 
 export default defineConfig({
+  // GitHub Pages serves the Workbench from /<repo>/; local dev and preview
+  // stay at the root. The deploy workflow sets VITE_BASE.
+  base: process.env.VITE_BASE ?? '/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

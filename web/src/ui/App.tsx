@@ -70,10 +70,12 @@ function OutcomeBanner() {
 }
 
 export default function App() {
+  // flex-wrap keeps the portrait frame and the debug rail side by side on
+  // wide screens and stacks the rail below on narrow ones (iPad portrait).
   return (
-    <div className="flex min-h-screen items-start justify-center gap-6 bg-zinc-950 p-6 font-sans text-zinc-100">
+    <div className="flex min-h-screen flex-wrap content-start items-start justify-center gap-6 bg-zinc-950 p-4 font-sans text-zinc-100 sm:p-6">
       <main
-        className="relative flex h-[840px] w-[420px] shrink-0 flex-col overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 shadow-2xl"
+        className="relative flex h-[840px] w-[420px] max-w-full shrink-0 touch-manipulation flex-col overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 shadow-2xl select-none"
         data-testid="play-surface"
       >
         <TopBar />
