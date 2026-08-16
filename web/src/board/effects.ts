@@ -234,6 +234,18 @@ export interface HealthPlayout {
   steps: HealthPlayoutStep[]
 }
 
+// How long a batch's feedback runs on screen: the last effect's start plus
+// the settle. Zero for a batch that shows nothing. A batch that ended the
+// Encounter holds its outcome reveal for this long, so the fatal blow — even
+// one landing in the very first beat slot, where no gauge step is staggered —
+// plays out before the banner gives the ending away.
+export function playoutDurationMs(effects: BoardEffect[]): number {
+  if (effects.length === 0) {
+    return 0
+  }
+  return Math.max(...effects.map((effect) => effect.delay ?? 0)) + EFFECT_SETTLE_MS
+}
+
 function valueBefore(state: EncounterState, entityId: string): HealthPlayoutValue {
   const hero = state.heroes[entityId]
   if (hero) {

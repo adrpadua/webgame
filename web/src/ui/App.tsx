@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { PhaserBoard } from '@/board/PhaserBoard'
+import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { BossEmblem, HeroEmblem } from './icons'
 import { ActionBar } from './ActionBar'
@@ -64,7 +65,10 @@ function TargetingBanner() {
 
 function OutcomeBanner() {
   const state = useWorkbench(selectState)
-  if (state.active) {
+  // The batch that ended the Encounter may still be replaying beat by beat;
+  // the reveal waits for the fatal blow to land on screen.
+  const outcomeHeld = usePlayout((store) => store.outcomeHeld)
+  if (state.active || outcomeHeld) {
     return null
   }
   const victory = state.outcome === 'victory'

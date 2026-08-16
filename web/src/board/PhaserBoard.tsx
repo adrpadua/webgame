@@ -6,7 +6,7 @@ import { useOnboarding } from '@/store/onboarding'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { BoardScene, type BoardSnapshot } from './BoardScene'
-import { deriveBoardEffects, deriveHealthPlayout } from './effects'
+import { deriveBoardEffects, deriveHealthPlayout, playoutDurationMs, type BoardEffect } from './effects'
 import { BOARD_HEIGHT, BOARD_WIDTH, pixelToAxial } from './layout'
 
 function buildSnapshot(
@@ -74,13 +74,20 @@ export function PhaserBoard() {
       // notifies subscribers — this function included — and the re-entrant
       // call must not read the step as still-forward and play it twice.
       lastEntry = entry
+      let effects: BoardEffect[] = []
       if (steppedForward) {
         // The HUD's gauges ride the same beat slots the board plays: begin
         // (or clear) their staggered timeline before this snapshot is built
-        // so held-back values apply from the first frame.
+        // so held-back values apply from the first frame. A batch that
+        // ended the Encounter also holds the outcome reveal for as long as
+        // its feedback plays — the fatal blow lands on screen before the
+        // banner names the ending.
+        effects = deriveBoardEffects(store.catalog, previous.state, entry.state, entry.facts)
         const playout = deriveHealthPlayout(previous.state, entry.state, entry.facts)
-        if (playout) {
-          usePlayout.getState().begin(playout)
+        const ended = previous.state.active && !entry.state.active
+        const outcomeHoldMs = ended ? playoutDurationMs(effects) : 0
+        if (playout || outcomeHoldMs > 0) {
+          usePlayout.getState().begin(playout, outcomeHoldMs)
         } else {
           usePlayout.getState().clear()
         }
@@ -99,8 +106,8 @@ export function PhaserBoard() {
           step?.safeHexKeys ?? [],
         ),
       )
-      if (steppedForward) {
-        scene.playEffects(deriveBoardEffects(store.catalog, previous.state, entry.state, entry.facts))
+      if (steppedForward && effects.length > 0) {
+        scene.playEffects(effects)
       }
     }
     const unsubscribe = useWorkbench.subscribe(pushSnapshot)

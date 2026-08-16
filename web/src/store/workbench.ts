@@ -151,6 +151,11 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
 
     advance: () => {
       const state = selectState(get())
+      // An ended Encounter has no phase to advance; recording the no-op
+      // would add an empty step to the timeline (and to exports).
+      if (!state.active) {
+        return
+      }
       const result = advancePhase(catalog, state)
       pushEntry(`Advance (${state.phase} ends)`, { advance: true }, result.state, result.facts)
       set(CLEARED_INTERACTION)

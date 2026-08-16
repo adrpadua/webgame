@@ -1,3 +1,4 @@
+import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import type { Phase } from '@/engine'
 import { blocksTarget } from './firstTurnScript'
@@ -31,6 +32,10 @@ export function PhaseControl() {
   const hold = useHold(phaseDetail(state.phase, true))
   const nextGated = blocksTarget(step, 'next')
   const nextSpotlit = step !== null && step.targets.includes('next')
+  // While a fatal batch is still replaying, the Restart control would give
+  // the ending away; Next stays up (and inert — advance no-ops on an ended
+  // Encounter) until the outcome reveal lands.
+  const outcomeHeld = usePlayout((store) => store.outcomeHeld)
 
   return (
     <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-900/60 px-3 py-1.5" data-phase={state.phase}>
@@ -52,7 +57,7 @@ export function PhaseControl() {
           </span>
         ))}
       </button>
-      {state.active ? (
+      {state.active || outcomeHeld ? (
         <button
           type="button"
           data-testid="next-phase"
