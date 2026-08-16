@@ -1,7 +1,12 @@
 // Shared presentation tokens for the portrait play surface and debug rail.
 
 // One frame height, one owner: the play surface and the rail beside it.
-export const FRAME_HEIGHT_CLASS = 'h-[840px]'
+// Phones fill the dynamic viewport — dvh tracks the browser chrome as it
+// collapses, so the Hand is on screen without scrolling. The min height is
+// the floor under the stacked HUD: on a shorter viewport (phone landscape)
+// the page scrolls rather than crushing the controls. From `sm` up the
+// frame is the fixed portrait canvas beside the debug rail, as before.
+export const FRAME_HEIGHT_CLASS = 'h-dvh min-h-[600px] sm:h-[840px] sm:min-h-0'
 
 // The color language for a Top Card's window speed, used wherever a card's
 // timing is shown (Compact Cards, Slots, Card Inspection).

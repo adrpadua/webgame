@@ -134,8 +134,11 @@ try {
   assert((await cueStep()) === 'boss-instant', 'the script narrates the Boss Instant')
   await next()
   assert((await phase()) === 'quick', 'Boss Instant resolves into the Quick Window')
+  // The claw's damage reaches the gauge at its beat's playout moment, not
+  // the instant the batch resolves: wait out the staggered replay.
+  await page.waitForFunction(() => document.querySelector('[data-testid="hero-health"]')?.textContent?.includes('30'), null, { timeout: 5000 })
   const heroHealth = await page.locator('[data-testid="hero-health"]').textContent()
-  assert(heroHealth?.includes('30'), `Raking Claw hit the tank for 4 (${heroHealth?.trim()})`)
+  assert(heroHealth?.includes('30'), `Raking Claw hit the tank for 4, on its beat (${heroHealth?.trim()})`)
 
   // Step 5-6: charge the quick Slot, then fire it in its matching window.
   assert((await cueStep()) === 'charge-quick', 'the Quick Window opens on the charge step')
@@ -232,6 +235,43 @@ try {
   assert((await slot0.getAttribute('data-charges')) === '0', 'the replacement loads at 0 Charge')
   const stepsAfterConfirm = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
   assert(stepsAfterConfirm === stepsBeforeConfirm + 1, 'a confirmed replacement records exactly one Scenario step')
+
+  // Outside the script, a boss track steps through beat by beat: the
+  // resolving beat lights its Boss Beat chip and a Continue prompt
+  // gates each next beat, so the player reads every part of the turn.
+  await next()
+  assert((await phase()) === 'instant', 'Round 2 Loadout advances into Boss Instant')
+  await next()
+  assert((await phase()) === 'quick', 'the Instant track resolves into the Quick Window')
+  await page.waitForSelector('[data-testid="playout-continue"]')
+  assert(
+    (await page.locator('[data-testid="beat-chip"][data-playing="true"]').count()) >= 1,
+    'the resolving beat lights its Boss Beat chip',
+  )
+  const promptText = await page.locator('[data-testid="playout-continue"]').textContent()
+  assert((promptText ?? '').includes('Continue'), `the playout pauses on a Continue prompt (${promptText?.trim()})`)
+  await page.locator('[data-testid="playout-continue"]').click()
+  await page.waitForSelector('[data-testid="playout-continue"]', { state: 'detached' })
+  await page.waitForSelector('[data-testid="playout-continue"]')
+  await page.locator('[data-testid="playout-continue"]').click()
+  await page.waitForSelector('[data-testid="playout-continue"]', { state: 'detached' })
+  // The last beat needs no prompt: give a wrongly-armed one time to appear.
+  await page.waitForTimeout(900)
+  assert((await page.locator('[data-testid="playout-continue"]').count()) === 0, 'the last beat needs no prompt and the playout settles')
+
+  // Skipping a window that still holds phase-appropriate actions warns
+  // first: nothing has been fired or charged this Quick Window.
+  await next()
+  await page.waitForSelector('[data-testid="phase-skip-confirm"]')
+  assert((await phase()) === 'quick', 'the warned Next has not advanced the phase')
+  await page.locator('[data-testid="cancel-skip"]').click()
+  await page.waitForSelector('[data-testid="phase-skip-confirm"]', { state: 'detached' })
+  assert((await phase()) === 'quick', 'staying keeps the Quick Window open')
+  await next()
+  await page.waitForSelector('[data-testid="phase-skip-confirm"]')
+  await page.locator('[data-testid="confirm-skip"]').click()
+  await page.waitForSelector('[data-testid="phase-skip-confirm"]', { state: 'detached' })
+  assert((await phase()) === 'incoming', 'confirming the skip advances into Boss Incoming')
 
   // M3 exit criterion: export the session just played as an Encounter Record
   // (schema_version 2); the headless runner replays it after the browser
@@ -338,6 +378,29 @@ try {
   assert(undersized.length === 0, `every enabled control meets the 44px target at 390x844 (${undersized.join(' | ') || 'all pass'})`)
   const scrolls = await phone.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
   assert(!scrolls, 'the portrait play surface never scrolls sideways')
+  // The whole HUD fits the phone's viewport: the frame spans it edge to
+  // edge and the Hand — the bottom interaction zone — is on screen without
+  // any vertical scrolling. (The debug rail below the fold is allowed to be
+  // the page's only overflow.)
+  const overflows = await phone.evaluate(() => {
+    const surface = document.querySelector('[data-testid="play-surface"]')?.getBoundingClientRect()
+    const hand = document.querySelector('[data-testid="hand"]')?.getBoundingClientRect()
+    if (!surface || !hand) {
+      return ['missing play surface or hand']
+    }
+    const problems = []
+    if (surface.top < 0 || surface.bottom > window.innerHeight + 1) {
+      problems.push(`frame spans ${Math.round(surface.top)}..${Math.round(surface.bottom)} in a ${window.innerHeight}px viewport`)
+    }
+    if (Math.round(surface.width) < window.innerWidth) {
+      problems.push(`frame is ${Math.round(surface.width)}px wide in a ${window.innerWidth}px viewport`)
+    }
+    if (hand.bottom > window.innerHeight + 1) {
+      problems.push(`the Hand ends at ${Math.round(hand.bottom)}px, below the ${window.innerHeight}px viewport`)
+    }
+    return problems
+  })
+  assert(overflows.length === 0, `the full HUD fits the phone viewport without scrolling (${overflows.join(' | ') || 'fits'})`)
   await phone.screenshot({ path: process.env.SMOKE_PHONE_SHOT ?? 'smoke-portrait.png', fullPage: false })
   await phone.close()
 

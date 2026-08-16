@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { facingName, hexKey, parseHexKey, type Axial, type EncounterState, type EntityKind } from '@/engine'
 import { axialToPixel, hexCorners, pixelToAxial, HEX_SIZE } from './layout'
 import { healthBarScale } from '@/ui/theme'
-import type { BoardEffect, EffectTone } from './effects'
+import type { BoardEffect, EffectTone, HealthPlayoutValue } from './effects'
 
 // The board snapshot the scene renders. Phaser owns no game state: it draws
 // what it is handed and reports hex-level intents upward (ADR 0019).
@@ -13,6 +13,16 @@ export interface BoardSnapshot {
   // Hexes the scripted first turn is pointing the player at.
   guidedMoveKeys: string[]
   showCoordinates: boolean
+  // Staggered gauge values while a boss track replays: a piece listed here
+  // draws this health/armor instead of the state's (already final) numbers.
+  healthOverrides: Record<string, HealthPlayoutValue>
+  // What the playout's unplayed moments will show. The snapshot state is
+  // the batch's final one, so until those moments fire the board holds
+  // back: these hazards stay undrawn, these pieces stay unseen, and these
+  // pieces keep their old facing.
+  pendingScorchKeys: string[]
+  pendingSpawnIds: string[]
+  pendingFacings: Record<string, number>
 }
 
 export interface BoardSceneCallbacks {
@@ -51,7 +61,8 @@ const TONE_TEXT: Record<EffectTone, string> = {
 
 // How long each beat of feedback stays on the board. Short enough that a
 // player tapping quickly is never waiting on the animation, long enough to
-// be read: nothing here gates input.
+// be read: nothing here gates input. The longest entry (blast) is mirrored
+// by EFFECT_SETTLE_MS in effects.ts — change them together.
 const EFFECT_DURATION: Record<BoardEffect['kind'], number> = {
   strike: 320,
   hit: 420,
@@ -62,11 +73,15 @@ const EFFECT_DURATION: Record<BoardEffect['kind'], number> = {
   defeat: 460,
   blast: 560,
   scorch: 320,
+  turn: 480,
 }
 
+// An effect whose `delay` has not elapsed yet holds negative `elapsed` and
+// stays invisible; `started` flips once, the moment it crosses zero.
 interface ActiveEffect extends BoardEffect {
   elapsed: number
   duration: number
+  started: boolean
 }
 
 interface Motion {
@@ -118,16 +133,37 @@ export class BoardScene extends Phaser.Scene {
     this.renderSnapshot()
   }
 
-  // Queues one resolved batch of feedback. Effects overlap freely — a strike
-  // and the hit it caused are meant to read as one blow.
+  // Queues one resolved batch of feedback. Effects within one moment overlap
+  // freely — a strike and the hit it caused are meant to read as one blow —
+  // while a `delay` holds an effect back so a batch of Boss Beats replays
+  // one beat at a time.
   playEffects(effects: BoardEffect[]): void {
+    // A new batch fast-forwards any stagger still pending from the last one:
+    // two batches never interleave their playout.
+    for (const effect of this.active) {
+      if (effect.elapsed < 0) {
+        effect.elapsed = 0
+      }
+    }
     for (const effect of effects) {
-      this.active.push({ ...effect, elapsed: 0, duration: EFFECT_DURATION[effect.kind] })
+      this.active.push({ ...effect, elapsed: -(effect.delay ?? 0), duration: EFFECT_DURATION[effect.kind], started: false })
+    }
+    this.startDueEffects()
+    this.renderSnapshot()
+  }
+
+  // One-shot feedback (the hit's camera shake) fires when the effect's
+  // moment arrives, not when its batch was queued.
+  private startDueEffects(): void {
+    for (const effect of this.active) {
+      if (effect.started || effect.elapsed < 0) {
+        continue
+      }
+      effect.started = true
       if (effect.kind === 'hit' && !this.reducedMotion) {
         this.cameras.main.shake(140, effect.tone === 'boss' ? 0.007 : 0.004)
       }
     }
-    this.renderSnapshot()
   }
 
   // Effects advance on the scene clock; every frame with live feedback
@@ -137,6 +173,7 @@ export class BoardScene extends Phaser.Scene {
       for (const effect of this.active) {
         effect.elapsed += delta
       }
+      this.startDueEffects()
       this.active = this.active.filter((effect) => effect.elapsed < effect.duration)
       this.renderSnapshot()
       return
@@ -156,7 +193,7 @@ export class BoardScene extends Phaser.Scene {
     }
     const motion: Motion = { ...NO_MOTION }
     for (const effect of this.active) {
-      if (effect.entityId !== entityId) {
+      if (effect.entityId !== entityId || effect.elapsed < 0) {
         continue
       }
       const t = Math.min(effect.elapsed / effect.duration, 1)
@@ -219,6 +256,9 @@ export class BoardScene extends Phaser.Scene {
 
   private drawEffectOverlays(graphics: Phaser.GameObjects.Graphics): void {
     for (const effect of this.active) {
+      if (effect.elapsed < 0) {
+        continue
+      }
       const t = Math.min(effect.elapsed / effect.duration, 1)
       const color = TONE_COLOR[effect.tone]
       switch (effect.kind) {
@@ -257,7 +297,7 @@ export class BoardScene extends Phaser.Scene {
 
   private drawFloaters(): void {
     for (const effect of this.active) {
-      if (effect.label === undefined) {
+      if (effect.label === undefined || effect.elapsed < 0) {
         continue
       }
       const t = Math.min(effect.elapsed / effect.duration, 1)
@@ -292,6 +332,24 @@ export class BoardScene extends Phaser.Scene {
     const { state } = snapshot
     const legalMoves = new Set(snapshot.legalMoveKeys)
     const guidedMoves = new Set(snapshot.guidedMoveKeys)
+    // The snapshot is the batch's final state, but a staggered playout means
+    // some of it has not "happened" on screen yet: ground scorched by a
+    // later moment stays clean and a Whelp a later moment spawns stays
+    // unseen until that moment's own effect fires. The playout director
+    // reports unplayed moments through the snapshot; still-delayed effects
+    // already queued here count too.
+    const pendingScorch = new Set<string>(snapshot.pendingScorchKeys)
+    const pendingSpawns = new Set<string>(snapshot.pendingSpawnIds)
+    for (const effect of this.active) {
+      if (effect.elapsed >= 0) {
+        continue
+      }
+      if (effect.kind === 'scorch') {
+        pendingScorch.add(hexKey(effect.at))
+      } else if (effect.kind === 'spawn') {
+        pendingSpawns.add(effect.entityId)
+      }
+    }
     const minionKeys = new Set(
       Object.values(state.board.entities)
         .filter((entity) => entity.kind === 'minion')
@@ -302,7 +360,7 @@ export class BoardScene extends Phaser.Scene {
       const coords = parseHexKey(key)
       const { x, y } = axialToPixel(coords)
       const corners = hexCorners(x, y, HEX_SIZE - 2)
-      const scorched = (state.board.hazards[key] ?? []).length > 0
+      const scorched = (state.board.hazards[key] ?? []).length > 0 && !pendingScorch.has(key)
       this.fillHex(graphics, corners, scorched ? SCORCHED_FILL : TILE_FILL, 1, TILE_STROKE)
       const telegraph = state.telegraphs[key]
       if (telegraph === 'breath') {
@@ -338,6 +396,9 @@ export class BoardScene extends Phaser.Scene {
     }
 
     for (const entity of Object.values(state.board.entities)) {
+      if (pendingSpawns.has(entity.id)) {
+        continue
+      }
       const base = axialToPixel(entity.coords)
       const motion = this.motionFor(entity.id)
       const x = base.x + motion.dx
@@ -355,9 +416,11 @@ export class BoardScene extends Phaser.Scene {
       }
       graphics.lineStyle(2, 0xf4f4f5, 0.9)
       graphics.strokeCircle(x, y, radius)
-      this.drawFacing(graphics, x, y, radius, entity.facing)
-      const armor = entity.kind === 'hero' ? (state.heroes[entity.id]?.armor ?? 0) : 0
-      this.drawHealthBar(graphics, x, y - radius - 13, entity.kind, entity.health, entity.maxHealth, armor)
+      this.drawFacing(graphics, x, y, radius, this.facingAngleFor(entity.id, entity.facing))
+      const override = snapshot.healthOverrides[entity.id]
+      const shownHealth = override?.health ?? entity.health
+      const shownArmor = entity.kind === 'hero' ? (override?.armor ?? state.heroes[entity.id]?.armor ?? 0) : 0
+      this.drawHealthBar(graphics, x, y - radius - 13, entity.kind, shownHealth, entity.maxHealth, shownArmor)
       if (entity.kind !== 'boss') {
         this.labels.push(
           this.add
@@ -440,10 +503,48 @@ export class BoardScene extends Phaser.Scene {
     }
   }
 
-  private drawFacing(graphics: Phaser.GameObjects.Graphics, x: number, y: number, radius: number, facing: number): void {
-    // Facing angles for pointy-top axial with E toward +x and NE up-right.
-    const angles = [0, -60, -120, 180, 120, 60]
-    const angle = (angles[((facing % 6) + 6) % 6] * Math.PI) / 180
+  // Facing angles for pointy-top axial with E toward +x and NE up-right.
+  private static readonly FACING_ANGLES = [0, -60, -120, 180, 120, 60]
+
+  private facingAngle(facing: number): number {
+    return (BoardScene.FACING_ANGLES[((facing % 6) + 6) % 6] * Math.PI) / 180
+  }
+
+  // The angle a piece's facing indicator draws at right now. The snapshot's
+  // facing is the batch's final one; a pending or playing 'turn' effect
+  // overrides it so the swing happens when its beat plays, not the moment
+  // the batch lands. A turn waiting in an unplayed playout moment holds the
+  // old facing the same way.
+  private facingAngleFor(entityId: string, finalFacing: number): number {
+    const finalAngle = this.facingAngle(finalFacing)
+    for (const effect of this.active) {
+      if (effect.kind !== 'turn' || effect.entityId !== entityId || effect.fromFacing === undefined) {
+        continue
+      }
+      const fromAngle = this.facingAngle(effect.fromFacing)
+      if (effect.elapsed < 0) {
+        return fromAngle
+      }
+      if (this.reducedMotion) {
+        return finalAngle
+      }
+      // Swing along the shorter arc.
+      let arc = finalAngle - fromAngle
+      if (arc > Math.PI) {
+        arc -= Math.PI * 2
+      } else if (arc < -Math.PI) {
+        arc += Math.PI * 2
+      }
+      return fromAngle + arc * easeOutCubic(Math.min(effect.elapsed / effect.duration, 1))
+    }
+    const pendingFacing = this.snapshot?.pendingFacings[entityId]
+    if (pendingFacing !== undefined) {
+      return this.facingAngle(pendingFacing)
+    }
+    return finalAngle
+  }
+
+  private drawFacing(graphics: Phaser.GameObjects.Graphics, x: number, y: number, radius: number, angle: number): void {
     const tipX = x + Math.cos(angle) * (radius + 7)
     const tipY = y + Math.sin(angle) * (radius + 7)
     graphics.lineStyle(3, 0xfafafa, 1)

@@ -91,11 +91,14 @@ function Slot({ slotIndex }: { slotIndex: number }) {
   // would make an inert control the brightest thing on screen.
   const pulse = gated ? '' : 'animate-pulse motion-reduce:animate-none'
 
-  // What would landing the in-hand card here do, and is it legal?
-  let incomingAction: 'Prepare' | 'Charge' | 'Replace' | null = null
+  // What would landing the in-hand card here do, and is it legal? A card
+  // placed into a Slot that began this Loadout empty is tentative, so
+  // landing another card there Swaps it back to hand; Replace — and its
+  // confirmation — is reserved for bundles the Slot carried into the Round.
+  let incomingAction: 'Prepare' | 'Charge' | 'Replace' | 'Swap' | null = null
   let incomingLegal = false
   if (incomingCardId !== null) {
-    incomingAction = slot.topCard === null ? 'Prepare' : state.phase === 'loadout' ? 'Replace' : 'Charge'
+    incomingAction = slot.topCard === null ? 'Prepare' : state.phase === 'loadout' ? (slot.placedThisLoadout ? 'Swap' : 'Replace') : 'Charge'
     incomingLegal = legality(catalog, state, {
       kind: incomingAction === 'Charge' ? 'charge_slot' : 'load_slot',
       sourceId: state.primaryHeroId,

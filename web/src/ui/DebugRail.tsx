@@ -216,7 +216,10 @@ export function DebugRail() {
   }, [facts.length])
 
   return (
-    <aside className={`flex ${FRAME_HEIGHT_CLASS} w-95 flex-col gap-3`} data-testid="debug-rail">
+    // On phones the page has no padding (the play surface is edge to edge),
+    // so the rail carries its own and spans the full width instead of the
+    // fixed 380px that overflowed narrower viewports.
+    <aside className={`flex ${FRAME_HEIGHT_CLASS} w-full flex-col gap-3 p-3 sm:w-95 sm:p-0`} data-testid="debug-rail">
       <ScenarioPicker />
       <TimeTravel />
       <SeedControl />

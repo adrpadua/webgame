@@ -10,6 +10,9 @@ import { FOCUS_RING_CLASS } from './theme'
 // watching it instead of reading a manual. Diagrams are pure CSS animation
 // and freeze under prefers-reduced-motion.
 
+// The five tones here are the PhaseControl chips' active tones and the
+// Phase Banner's palette — the track the guide teaches is the track the
+// HUD shows. Change them together.
 function TimelineDiagram() {
   const beats = [
     { label: 'Loadout', tone: 'bg-zinc-600', delay: '0s' },

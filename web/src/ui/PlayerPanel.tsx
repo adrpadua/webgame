@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
 import { getStatuses, type HeroState, type StatusInstance } from '@/engine'
+import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
+import { useDamageFlash } from './useDamageFlash'
 import { HeartIcon, HeroEmblem, PresenceIcon, ShieldIcon } from './icons'
 import { HERO_STAT_DETAILS } from './holdDetails'
 import { useHold, type HoldDetail } from './HoldPopover'
@@ -129,27 +130,20 @@ export function PlayerPanel() {
   const state = useWorkbench(selectState)
   const hero = state.heroes[state.primaryHeroId]
   const entity = state.board.entities[state.primaryHeroId]
+  // While a boss track replays beat by beat, the gauges show the staggered
+  // playout values; the state's numbers are the batch's final ones.
+  const override = usePlayout((store) => store.overrides[state.primaryHeroId])
+  const shownHealth = override?.health ?? hero?.health ?? 0
 
   // A hit the player took must be visible even while their eyes are on the
-  // board: the number itself flashes, then settles.
-  const previousHealth = useRef(hero?.health ?? 0)
-  const [flashKey, setFlashKey] = useState(0)
-  const [flashing, setFlashing] = useState(false)
-  useEffect(() => {
-    const health = hero?.health ?? 0
-    if (health < previousHealth.current) {
-      setFlashKey((key) => key + 1)
-      setFlashing(true)
-      const timer = setTimeout(() => setFlashing(false), 500)
-      previousHealth.current = health
-      return () => clearTimeout(timer)
-    }
-    previousHealth.current = health
-  }, [hero?.health])
+  // board: the number itself flashes, then settles — per beat, when the
+  // blow's playout moment arrives.
+  const { flashing, flashKey } = useDamageFlash(shownHealth)
 
   if (!hero) {
     return null
   }
+  const shownHero = override ? { ...hero, health: override.health, armor: override.armor ?? hero.armor } : hero
   const statuses = getStatuses(state, state.primaryHeroId)
   // The deck gauge drains against every card the Hero owns, wherever it sits
   // right now: deck, hand, discard, or prepared into a Slot.
@@ -161,7 +155,7 @@ export function PlayerPanel() {
         <HeroEmblem className="h-4 w-4 text-sky-400" />
         {entity?.title ?? hero.id}
       </span>
-      <HealthBar hero={hero} flashing={flashing} flashKey={flashKey} />
+      <HealthBar hero={shownHero} flashing={flashing} flashKey={flashKey} />
       <StatBar
         detail={HERO_STAT_DETAILS.presence}
         icon={PresenceIcon}

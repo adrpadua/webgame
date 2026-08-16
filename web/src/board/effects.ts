@@ -7,7 +7,18 @@ import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type
 
 export type EffectTone = 'hero' | 'boss' | 'guard' | 'heal' | 'hazard'
 
-export type BoardEffectKind = 'strike' | 'cast' | 'hit' | 'block' | 'move' | 'spawn' | 'defeat' | 'blast' | 'scorch'
+export type BoardEffectKind = 'strike' | 'cast' | 'hit' | 'block' | 'move' | 'spawn' | 'defeat' | 'blast' | 'scorch' | 'turn'
+
+// How far apart consecutive Boss Beats start. The rules resolve a whole
+// track in one batch; the board replays that batch one beat at a time so
+// the player can follow each step of the program in order.
+export const BEAT_STAGGER_MS = 700
+
+// How long after the last beat starts before staggered presentation (the
+// HUD's gauge overrides) settles back onto the authoritative state: the
+// longest single effect duration (BoardScene's EFFECT_DURATION.blast —
+// change them together), so nothing is reclaimed mid-animation.
+export const EFFECT_SETTLE_MS = 560
 
 export interface BoardEffect {
   kind: BoardEffectKind
@@ -22,6 +33,10 @@ export interface BoardEffect {
   // Short floating text: a damage number, an armor gain, "BLOCK".
   label?: string
   tone: EffectTone
+  // The facing a 'turn' swings from; it lands on the snapshot's facing.
+  fromFacing?: number
+  // Milliseconds after the batch lands before this effect begins.
+  delay?: number
 }
 
 function coordsOf(state: EncounterState, entityId: string): Axial | null {
@@ -64,7 +79,11 @@ export function deriveBoardEffects(
   const bossCoords = coordsOf(before, before.bossId)
   const heroCoords = coordsOf(before, before.primaryHeroId)
 
-  for (const fact of facts) {
+  let delay = 0
+  const add = (effect: BoardEffect) => effects.push(delay > 0 ? { ...effect, delay } : effect)
+
+  for (const [fact, factDelay] of factsWithBeatDelays(facts)) {
+    delay = factDelay
     if (!fact.succeeded) {
       continue
     }
@@ -80,7 +99,7 @@ export function deriveBoardEffects(
         if (card.boss_damage > 0 || card.damage > 0) {
           const targetId = detailString(fact, 'targetId')
           const toward = (targetId !== '' ? coordsOf(before, targetId) : bossCoords) ?? bossCoords ?? undefined
-          effects.push({ kind: 'strike', entityId: fact.sourceId, at: from, toward: toward ?? undefined, tone: 'hero' })
+          add({ kind: 'strike', entityId: fact.sourceId, at: from, toward: toward ?? undefined, tone: 'hero' })
           break
         }
         // A guard or a heal has no target to lunge at: it reads as a pulse
@@ -89,7 +108,7 @@ export function deriveBoardEffects(
         const healed = (after.heroes[fact.sourceId]?.health ?? 0) - (before.heroes[fact.sourceId]?.health ?? 0)
         const tone: EffectTone = healed > 0 && armorGained <= 0 ? 'heal' : 'guard'
         const label = healed > 0 && armorGained <= 0 ? `+${healed}` : armorGained > 0 ? `+${armorGained}` : undefined
-        effects.push({ kind: 'cast', entityId: fact.sourceId, at: from, label, tone })
+        add({ kind: 'cast', entityId: fact.sourceId, at: from, label, tone })
         break
       }
 
@@ -103,9 +122,9 @@ export function deriveBoardEffects(
         const healthLoss = numberFrom(fact.resolutionFact, 'health_loss')
         const prevented = numberFrom(fact.resolutionFact, 'prevented')
         if (healthLoss === 0 && prevented > 0) {
-          effects.push({ kind: 'block', entityId: targetId, at, label: `${prevented} blocked`, tone: 'guard' })
+          add({ kind: 'block', entityId: targetId, at, label: `${prevented} blocked`, tone: 'guard' })
         } else {
-          effects.push({
+          add({
             kind: 'hit',
             entityId: targetId,
             at,
@@ -114,7 +133,7 @@ export function deriveBoardEffects(
           })
         }
         if (fact.resolutionFact?.target_removed === true) {
-          effects.push({ kind: 'defeat', entityId: targetId, at, tone: 'hero' })
+          add({ kind: 'defeat', entityId: targetId, at, tone: 'hero' })
         }
         break
       }
@@ -122,15 +141,25 @@ export function deriveBoardEffects(
       case 'resolve_boss': {
         const beatId = detailString(fact, 'beatId')
         const beat = beatId === '' ? undefined : findBeat(catalog, before, beatId)
-        if (!beat || !bossCoords) {
+        if (!bossCoords) {
           break
         }
-        if (beat.kind === 'raking_claw') {
-          effects.push({ kind: 'strike', entityId: before.bossId, at: bossCoords, toward: heroCoords ?? undefined, tone: 'boss' })
-        } else if (beat.kind === 'cinder_breath') {
+        // The beat announces itself: the Boss pulses and the beat's name
+        // floats up, tying each moment of feedback to a chip on the strip.
+        const title = detailString(fact, 'beatTitle') !== '' ? detailString(fact, 'beatTitle') : (beat?.title ?? '')
+        add({ kind: 'cast', entityId: before.bossId, at: bossCoords, label: title === '' ? undefined : title, tone: 'boss' })
+        if (beat?.kind === 'turn_toward_player') {
+          const fromFacing = before.board.entities[before.bossId]?.facing
+          const toFacing = after.board.entities[before.bossId]?.facing
+          if (fromFacing !== undefined && toFacing !== undefined && fromFacing !== toFacing) {
+            add({ kind: 'turn', entityId: before.bossId, at: bossCoords, fromFacing, tone: 'boss' })
+          }
+        } else if (beat?.kind === 'raking_claw') {
+          add({ kind: 'strike', entityId: before.bossId, at: bossCoords, toward: heroCoords ?? undefined, tone: 'boss' })
+        } else if (beat?.kind === 'cinder_breath') {
           const hexes = telegraphedBreath(before)
           if (hexes.length > 0) {
-            effects.push({ kind: 'blast', entityId: before.bossId, at: bossCoords, hexes, tone: 'hazard' })
+            add({ kind: 'blast', entityId: before.bossId, at: bossCoords, hexes, tone: 'hazard' })
           }
         }
         break
@@ -140,7 +169,7 @@ export function deriveBoardEffects(
         const destination = detailAxial(fact, 'destination')
         const origin = coordsOf(before, fact.sourceId)
         if (destination && origin) {
-          effects.push({ kind: 'move', entityId: fact.sourceId, at: destination, from: origin, tone: 'hero' })
+          add({ kind: 'move', entityId: fact.sourceId, at: destination, from: origin, tone: 'hero' })
         }
         break
       }
@@ -148,7 +177,7 @@ export function deriveBoardEffects(
       case 'spawn_minion': {
         const coords = detailAxial(fact, 'coords')
         if (coords) {
-          effects.push({ kind: 'spawn', entityId: detailString(fact, 'minionId'), at: coords, tone: 'boss' })
+          add({ kind: 'spawn', entityId: detailString(fact, 'minionId'), at: coords, tone: 'boss' })
         }
         break
       }
@@ -156,7 +185,7 @@ export function deriveBoardEffects(
       case 'apply_hazard': {
         const coords = detailAxial(fact, 'coords')
         if (coords) {
-          effects.push({ kind: 'scorch', entityId: '', at: coords, tone: 'hazard' })
+          add({ kind: 'scorch', entityId: '', at: coords, tone: 'hazard' })
         }
         break
       }
@@ -166,6 +195,161 @@ export function deriveBoardEffects(
     }
   }
   return effects
+}
+
+// Facts arrive depth-first: each top-level `resolve_boss` fact is followed
+// by everything that beat generated. Every beat claims the next stagger
+// slot before anything it shows — even a beat with no motion of its own (a
+// warning) takes its moment — and its children ride that slot, so a boss
+// track plays out sequentially instead of as one simultaneous burst. Facts
+// outside any beat carry no delay.
+function* factsWithBeatDelays(facts: ResolvedActionFact[]): Generator<[ResolvedActionFact, number]> {
+  let delay = 0
+  let beatsSeen = 0
+  for (const fact of facts) {
+    if (fact.kind === 'resolve_boss' && fact.depth === 0 && fact.succeeded) {
+      delay = beatsSeen * BEAT_STAGGER_MS
+      beatsSeen += 1
+    }
+    yield [fact, delay]
+  }
+}
+
+// A gauge's staggered value: the health (and, for heroes, armor) a bar
+// should show once a beat's damage lands.
+export interface HealthPlayoutValue {
+  health: number
+  armor: number | null
+}
+
+export interface HealthPlayoutStep {
+  delay: number
+  entityId: string
+  value: HealthPlayoutValue
+}
+
+export interface HealthPlayout {
+  // What every affected gauge shows the moment the batch lands: its value
+  // before any staggered damage (delay-zero damage is already folded in).
+  initial: Record<string, HealthPlayoutValue>
+  steps: HealthPlayoutStep[]
+}
+
+// One moment of a batch's playout: a Boss Beat (or the single moment of a
+// beatless batch) with everything it shows and the gauge values its damage
+// leaves behind. Moments play one at a time — the player steps between them.
+export interface PlayoutMoment {
+  beatId: string | null
+  beatTitle: string | null
+  effects: BoardEffect[]
+  gauges: Record<string, HealthPlayoutValue>
+}
+
+export interface PlayoutScript {
+  // What every affected gauge shows the moment the batch lands.
+  initial: Record<string, HealthPlayoutValue>
+  moments: PlayoutMoment[]
+  // True when the batch ended the Encounter: the outcome reveal (banner,
+  // Restart control) waits for the last moment to finish playing.
+  endsEncounter: boolean
+}
+
+// Regroups a batch's derived feedback into one moment per Boss Beat, in
+// program order, using the same stagger slots the delays encode. Returns
+// null for a batch with no beats that didn't end the Encounter — immediate
+// player feedback needs no script. `effects` must be this batch's
+// deriveBoardEffects output.
+export function derivePlayoutScript(
+  before: EncounterState,
+  after: EncounterState,
+  facts: ResolvedActionFact[],
+  effects: BoardEffect[],
+): PlayoutScript | null {
+  const beats = facts
+    .filter((fact) => fact.kind === 'resolve_boss' && fact.depth === 0 && fact.succeeded)
+    .map((fact) => ({ id: detailString(fact, 'beatId'), title: detailString(fact, 'beatTitle') }))
+  const endsEncounter = before.active && !after.active
+  if (beats.length === 0 && !endsEncounter) {
+    return null
+  }
+  const moments: PlayoutMoment[] =
+    beats.length > 0
+      ? beats.map((beat) => ({
+          beatId: beat.id === '' ? null : beat.id,
+          beatTitle: beat.title === '' ? null : beat.title,
+          effects: [],
+          gauges: {},
+        }))
+      : [{ beatId: null, beatTitle: null, effects: [], gauges: {} }]
+  const slotFor = (delay: number | undefined) => Math.min(Math.round((delay ?? 0) / BEAT_STAGGER_MS), moments.length - 1)
+  for (const effect of effects) {
+    const clone = { ...effect }
+    delete clone.delay
+    moments[slotFor(effect.delay)].effects.push(clone)
+  }
+  const playout = deriveHealthPlayout(before, after, facts)
+  for (const step of playout?.steps ?? []) {
+    // Later steps for the same entity overwrite earlier ones within a
+    // moment; across moments each keeps its own landing value.
+    moments[slotFor(step.delay)].gauges[step.entityId] = step.value
+  }
+  return { initial: playout?.initial ?? {}, moments, endsEncounter }
+}
+
+function valueBefore(state: EncounterState, entityId: string): HealthPlayoutValue {
+  const hero = state.heroes[entityId]
+  if (hero) {
+    return { health: hero.health, armor: hero.armor }
+  }
+  return { health: state.board.entities[entityId]?.health ?? 0, armor: null }
+}
+
+// Derives the gauges' staggered timeline from the same beat slots the board
+// plays: bars hold their pre-batch values and step down as each beat's
+// damage lands. Health steps are exact (each damage fact records its health
+// loss); armor drain is approximated from the fact's prevented total, so
+// the final step per entity lands on the batch's true end state. Returns
+// null when nothing is staggered — player-action feedback stays immediate.
+export function deriveHealthPlayout(before: EncounterState, after: EncounterState, facts: ResolvedActionFact[]): HealthPlayout | null {
+  const initial: Record<string, HealthPlayoutValue> = {}
+  const current: Record<string, HealthPlayoutValue> = {}
+  const steps: HealthPlayoutStep[] = []
+  for (const [fact, delay] of factsWithBeatDelays(facts)) {
+    if (fact.kind !== 'damage' || !fact.succeeded) {
+      continue
+    }
+    const targetId = detailString(fact, 'targetId')
+    if (targetId === '') {
+      continue
+    }
+    const prior = current[targetId] ?? valueBefore(before, targetId)
+    const healthLoss = numberFrom(fact.resolutionFact, 'health_loss')
+    const prevented = numberFrom(fact.resolutionFact, 'prevented')
+    const next: HealthPlayoutValue = {
+      health: Math.max(prior.health - healthLoss, 0),
+      armor: prior.armor === null ? null : Math.max(prior.armor - prevented, 0),
+    }
+    current[targetId] = next
+    if (delay > 0) {
+      initial[targetId] ??= prior
+      steps.push({ delay, entityId: targetId, value: next })
+    }
+  }
+  if (steps.length === 0) {
+    return null
+  }
+  // Land each entity's last step on the state's true values.
+  const lastStep = new Map<string, HealthPlayoutStep>()
+  for (const step of steps) {
+    lastStep.set(step.entityId, step)
+  }
+  for (const [entityId, step] of lastStep) {
+    const hero = after.heroes[entityId]
+    step.value = hero
+      ? { health: hero.health, armor: hero.armor }
+      : { health: after.board.entities[entityId]?.health ?? step.value.health, armor: null }
+  }
+  return { initial, steps }
 }
 
 function findBeat(catalog: ContentCatalog, state: EncounterState, beatId: string) {

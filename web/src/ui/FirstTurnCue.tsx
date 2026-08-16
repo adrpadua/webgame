@@ -24,12 +24,14 @@ export function FirstTurnCue() {
   if (!active || step === null) {
     return null
   }
+  // Rendered inside the board's overlay stack: it floats over the lower
+  // hexes rather than shrinking the board when a step appears.
   return (
-    <div className="border-t border-zinc-800 bg-zinc-950/80 px-3 py-1.5" data-testid="first-turn-cue" data-step={step.id}>
+    <div data-testid="first-turn-cue" data-step={step.id}>
       <div
         {...hold.holdProps}
         role="status"
-        className="wb-slide-up flex items-center gap-2 rounded-lg border border-emerald-600 bg-emerald-950/80 px-2.5 py-1.5 text-emerald-100"
+        className="wb-slide-up flex items-center gap-2 rounded-lg border border-emerald-600 bg-emerald-950/95 px-2.5 py-1.5 text-emerald-100 shadow-xl"
       >
         <div className="flex shrink-0 gap-1" role="img" aria-label={`Step ${step.ordinal} of ${FIRST_TURN_STEP_COUNT}`}>
           {Array.from({ length: FIRST_TURN_STEP_COUNT }, (_, index) => (
