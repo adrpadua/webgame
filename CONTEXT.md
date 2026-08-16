@@ -217,7 +217,7 @@ The next one damage event that would affect the ally selected by an Interception
 _Avoid_: Permanent redirect, damage split
 
 **Guarded Front**:
-The Boss-facing adjacent hex directly in front of a Shield Wall Hero. The Guardian's positional protection and front-line duties use this hex; it is not a universal safe zone.
+The hex adjacent to the Boss on the side the Boss faces. A Shield Wall Hero holds the Guarded Front by standing in it, which is where the Guardian's positional protection and front-line duties apply; it is not a universal safe zone.
 _Avoid_: Tank lane, front row
 
 **Slot Tension**:

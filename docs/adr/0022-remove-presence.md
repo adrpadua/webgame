@@ -1,0 +1,7 @@
+# Remove Presence
+
+Presence is deleted from the Encounter Engine state, from the HUD, from the card schema's `presence_delta` field, and from the two cards whose only effect was granting it — `anchor_presence` and `grow_presence`, neither of which appeared in any deck. Presence was a Hero field that started at 1, incremented whenever a Slot fired, and rendered as a violet gauge against a display scale of 6. No rule read it, and it was never defined in `CONTEXT.md`: a visible meter for a concept the glossary did not carry.
+
+We removed it rather than defining and wiring it because the goal it was measured against is a playtester handed the URL cold, and a gauge that visibly moves while changing nothing actively teaches that player the HUD is decorative. Hiding the display alone was considered and rejected as leaving the field and schema entry in place — unread state behind an unread schema field is exactly how Presence became invisible debt. Keeping the two cards after stripping the field was also rejected: `anchor_presence` reads in full as "Gain 1 Presence," so it would have had no remaining effect, and a card in no deck with no effect is worse than no card.
+
+Nothing is lost that a future design needs. If Presence returns as a real resource it returns with a `CONTEXT.md` entry, a rule that reads it, and cards that appear in a deck — which is the bar it never met. The deletion is recorded here because a reader finding no trace of a mechanic that once had a HUD gauge would otherwise have no way to learn it was deliberate.
