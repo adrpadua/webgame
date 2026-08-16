@@ -10,9 +10,11 @@ on:
   push:
     branches:
       - main
-      # Pre-merge deploys for PR #3; both branches share the one Pages site
-      # (last push wins). Remove this entry after the branch merges.
-      - claude/web-game-loop-framework-73gyg8
+      # Pre-merge deploys for the mobile-compatibility branch; both branches
+      # share the one Pages site (last push wins). Remove this entry after
+      # the branch merges. (The PR #3 pre-merge entry is retired: that
+      # branch merged.)
+      - claude/webgame-mobile-compatible-859rx2
     paths:
       - 'web/**'
       - 'data/**'
