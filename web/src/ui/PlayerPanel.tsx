@@ -1,5 +1,6 @@
 import { getStatuses } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
+import { HeroEmblem } from './icons'
 
 export function PlayerPanel() {
   const state = useWorkbench(selectState)
@@ -11,7 +12,10 @@ export function PlayerPanel() {
   const statuses = getStatuses(state, state.primaryHeroId)
   return (
     <div className="flex items-center gap-3 border-t border-zinc-800 bg-zinc-900/60 px-4 py-2 text-xs" data-testid="player-panel">
-      <span className="font-semibold text-zinc-100">{entity?.title ?? hero.id}</span>
+      <span className="flex items-center gap-1.5 font-semibold text-zinc-100">
+        <HeroEmblem className="h-4 w-4 text-sky-400" />
+        {entity?.title ?? hero.id}
+      </span>
       <span className="text-red-400" data-testid="hero-health">
         HP {hero.health}/{hero.maxHealth}
       </span>

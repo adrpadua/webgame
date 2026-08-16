@@ -54,7 +54,11 @@ for confirmation, since it discards the Top Card and its Charge Stack.
 - `src/board/` — the Phaser hex board. It renders engine snapshots and
   reports hex-level intents; it owns no game state.
 - `src/ui/` — React: hand, Action Bar, phase control, HUD, debug rail
-  (Scenario picker, time travel, fact log, seed control).
+  (Scenario picker, time travel, fact log, seed control), plus the
+  onboarding layer: a reusable `Modal` surface, the illustrated How to
+  Play guide (auto-opens on first visit, reopens from the `?` button),
+  state-driven `CoachMark` prompts, and the transient `PhaseBanner`.
+  All motion freezes under `prefers-reduced-motion`.
 - `scripts/generateScenarios.ts` — policy search over the engine that
   authors the committed victory/defeat Scenarios in `data/scenarios/`
   (run with `npx vite-node scripts/generateScenarios.ts`).

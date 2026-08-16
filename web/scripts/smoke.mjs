@@ -53,6 +53,15 @@ try {
   await page.goto(BASE_URL)
   await page.waitForSelector('[data-testid="play-surface"]')
 
+  // A fresh browser context counts as a first visit, so the How to Play
+  // guide opens over the play surface; walk one step, then skip past it.
+  await page.waitForSelector('[data-testid="guide-modal"]')
+  assert((await page.locator('[data-testid="guide-modal"]').count()) === 1, 'first visit opens the How to Play guide')
+  await page.locator('[data-testid="guide-next"]').click()
+  await page.locator('[data-testid="guide-skip"]').click()
+  await page.waitForSelector('[data-testid="guide-modal"]', { state: 'detached' })
+  assert((await page.locator('[data-testid="guide-modal"]').count()) === 0, 'skipping dismisses the guide')
+
   const phase = () => page.locator('[data-phase]').getAttribute('data-phase')
   const next = () => page.locator('[data-testid="next-phase"]').click()
 

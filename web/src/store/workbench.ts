@@ -70,6 +70,8 @@ interface WorkbenchStore {
 
 const catalog = loadCatalog()
 
+export type WorkbenchCatalog = ReturnType<typeof loadCatalog>
+
 export const selectState = (store: WorkbenchStore): EncounterState => store.entries[store.index].state
 
 const SCENARIO_STEP_KINDS = new Set(['load_slot', 'charge_slot', 'fire_slot', 'move_hero', 'discard_for_stamina'])
