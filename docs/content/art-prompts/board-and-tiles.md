@@ -2,9 +2,12 @@
 
 Status: active prompt template. Produces the tactical surface art that replaces the borrowed OpenDuelyst placeholders.
 
-Compose as: [`_style-preamble.md`](_style-preamble.md) block, then the relevant block below.
-
 Output goes to `assets/art/board/`.
+
+This file splits across two tools, per [`_tools.md`](_tools.md):
+
+- **Tiles and crest** go to a vector generator. They are iconography, not illustration, and the blocks below are written for that. Do **not** prepend the style preamble to them — it describes painterly material rendering that a monochrome hex ring cannot express, and it dilutes the geometric instruction that matters.
+- **The backdrop** is an illustration. Compose it normally: [`_style-preamble.md`](_style-preamble.md) block, then the backdrop block.
 
 ## Read This Before Generating
 
@@ -27,21 +30,23 @@ One hex cell is `Vector2(76, 80)`. Generate at 4× or more and downsample; these
 
 ## Hover And Target Tiles
 
+Vector generator. Export SVG, then a transparent PNG at the exact draw size in the table above.
+
 ```text
-Create a single hexagonal tile overlay marker for a tactical game board, drawn in the hand-drawn cel-shaded style described above.
+Create a flat vector UI icon: a hexagonal tile overlay marker for a tactical game board.
 
 MARKER PURPOSE: {{PURPOSE}}.
 
-CRITICAL TECHNICAL REQUIREMENTS:
-Render the marker in neutral white and light grey only. Use no color whatsoever — the game applies its own color tint at runtime, and any color baked into this image will compound with that tint and corrupt the result.
-The background must be fully transparent. Not white, not near-white — transparent alpha.
-The marker must be a hexagonal ring or border shape, hollow in the center, so the board tile and any piece standing on it remain visible through it.
-Center the hexagon in a square canvas with a few pixels of margin so the shape is not clipped.
+FORM:
+A hexagonal ring — a hollow hex border with an open center, so the board and any piece standing on the tile remain visible through it. Flat icon design. Crisp geometric paths, even stroke weight, sharp vertices. Regular hexagon, centered, with a small even margin so no vertex touches the canvas edge.
 
-DESIGN:
-The marker should read as projected oathcraft geometry — hard-light guidance painted onto the ground by a pattern projector — rather than a painted decal or a glowing blob. Crisp geometric edges. A thin implied glyph structure is welcome if it stays subordinate to the ring. Value contrast alone must carry the shape, since color is applied later.
+COLOR:
+Pure white shape on a transparent background. No color, no gradient, no shadow, no glow effect. The shape must be defined by its silhouette alone, because the game multiplies this asset by its own color tint at runtime and any baked color or shading will compound with that tint.
 
-The design must stay unambiguous at 68 by 66 pixels. Prefer one strong ring over layered ornament.
+STYLE:
+Read as projected hard-light guidance geometry — a boundary painted onto the ground by a projector — not as a decorative frame or a soft glowing blob. A subordinate accent at the vertices or a thin inner line is welcome if it holds a clean edge at small size. One strong ring beats layered ornament.
+
+Design for legibility at 68 by 66 pixels. Nothing thinner than roughly one pixel at that scale.
 ```
 
 Slot `PURPOSE` with one of:
@@ -53,17 +58,21 @@ Keep them the same family and different in weight. A player must distinguish the
 
 ## Boss Crest
 
+Vector generator. Export SVG, then a transparent PNG at 46×46.
+
 ```text
-Create a single heraldic crest emblem to mark the raid boss's occupied hex on a tactical board, drawn in the hand-drawn cel-shaded style described above.
+Create a flat vector emblem: a heraldic crest marking the hex occupied by a raid boss on a tactical game board.
 
-The crest should read as an oath-seal or containment sigil — the mark a raid protocol stamps on a catastrophic entity — built from living-gold lockwork and hard geometric oathsteel forms. Radially balanced, heavy, and authoritative.
+FORM:
+Radially balanced, heavy, and authoritative. Read as an oath-seal or containment sigil — the mark a protocol stamps on a catastrophic entity to bind it. Build it from interlocking lock and hinge forms and hard angular geometry, suggesting machinery that holds something shut. Solid mass, not an outline.
 
-CRITICAL TECHNICAL REQUIREMENTS:
-Neutral white and light grey only, with no baked color; the game tints this at runtime.
-Fully transparent background.
-The design must remain readable at 46 by 46 pixels, which means very few elements and strong internal value separation.
+COLOR:
+Pure white shape on a transparent background. No color, no gradient, no shadow, no glow. The game multiplies this by its own tint at runtime, so any baked color will compound.
 
-No text, letters, numerals, or runes resembling real alphabets.
+CONSTRAINTS:
+Readable at 46 by 46 pixels. This is the hardest constraint here — use very few elements, keep negative space generous and deliberate, and let the outer silhouette do most of the identifying work.
+
+No text, letters, numerals, or marks resembling any real alphabet.
 ```
 
 ## Arena Backdrop
@@ -92,7 +101,8 @@ Verify the result by dropping it in and looking at the board, not by looking at 
 ## Acceptance Check
 
 - Open the PNG and confirm the background is genuinely transparent, not white.
-- Confirm no hue is present in any tile or crest asset.
+- Confirm no hue is present in any tile or crest asset, and no baked shadow or glow.
+- Confirm the export came from the SVG at the target size rather than from a downsampled raster, so edges stay crisp.
 - Downsample to the target pixel size and confirm the shape still reads.
 - For hover and target, view both under their runtime tints and confirm they remain distinguishable from each other.
 - For the backdrop, confirm legibility of tile outlines and combat text with it in place.
