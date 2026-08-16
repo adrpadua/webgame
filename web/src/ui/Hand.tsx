@@ -1,25 +1,24 @@
 import { useRef, useState } from 'react'
 import { cardChargeCap, cardWindowSpeed, type Card } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
+import { CARD_EFFECT_TONE, CardArt, cardEffect, cardStatLine } from './icons'
 import { FOCUS_RING_CLASS, windowToneClass } from './theme'
 
 // Card Inspection: the temporary full-card view shown while a player holds a
-// Compact Card; it dismisses on release. Full art is the shared placeholder
-// until per-card art is authored.
+// Compact Card; it dismisses on release. The art vignette is derived from
+// the card's dominant effect until per-card art is authored.
 function CardInspection({ card }: { card: Card }) {
   const windowSpeed = cardWindowSpeed(card)
   return (
     <div className="pointer-events-none absolute inset-x-4 bottom-36 z-30" data-testid="card-inspection">
-      <div className="rounded-2xl border-2 border-zinc-500 bg-zinc-900 p-4 shadow-2xl">
+      <div className="wb-pop-in rounded-2xl border-2 border-zinc-500 bg-zinc-900 p-4 shadow-2xl">
         <div className="flex items-baseline justify-between">
           <span className="text-base font-bold text-zinc-50">{card.title}</span>
           <span className={`text-[10px] font-semibold uppercase ${windowToneClass(windowSpeed)}`}>
             {windowSpeed} · Charge {cardChargeCap(card)}
           </span>
         </div>
-        <div className="mt-2 flex h-24 items-center justify-center rounded-lg bg-linear-to-br from-zinc-700 via-zinc-800 to-zinc-900 text-[10px] tracking-widest text-zinc-500 uppercase">
-          Placeholder art
-        </div>
+        <CardArt card={card} className="mt-2 h-24" />
         <p className="mt-2 text-xs leading-relaxed text-zinc-200">{card.rules_text}</p>
         <div className="mt-2 flex gap-1">
           {card.tags.map((tag) => (
@@ -72,6 +71,9 @@ export function Hand() {
         {hero.hand.map((instance) => {
           const card = catalog.cards[instance.cardId]
           const windowSpeed = cardWindowSpeed(card)
+          const effectTone = CARD_EFFECT_TONE[cardEffect(card)]
+          const EffectIcon = effectTone.icon
+          const statLine = cardStatLine(card)
           const selected = selectedCardId === instance.instanceId
           return (
             <button
@@ -111,9 +113,13 @@ export function Hand() {
                   Selected
                 </span>
               )}
-              <div className="text-[11px] leading-tight font-bold text-zinc-50">{card.title}</div>
+              <div className="flex items-start justify-between gap-1">
+                <div className="text-[11px] leading-tight font-bold text-zinc-50">{card.title}</div>
+                <EffectIcon className={`h-3.5 w-3.5 shrink-0 ${effectTone.text}`} />
+              </div>
               <div className={`mt-1 text-[9px] font-semibold uppercase ${windowToneClass(windowSpeed)}`}>{windowSpeed}</div>
-              <div className="mt-1 text-[9px] text-zinc-400">Charge {cardChargeCap(card)}</div>
+              {statLine !== '' && <div className={`mt-0.5 text-[9px] font-semibold ${effectTone.text}`}>{statLine}</div>}
+              <div className="mt-0.5 text-[9px] text-zinc-400">Charge {cardChargeCap(card)}</div>
             </button>
           )
         })}

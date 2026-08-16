@@ -1,10 +1,14 @@
 import { useEffect } from 'react'
 import { PhaserBoard } from '@/board/PhaserBoard'
 import { selectState, useWorkbench } from '@/store/workbench'
+import { BossEmblem, HeroEmblem } from './icons'
 import { ActionBar } from './ActionBar'
+import { CoachMark } from './CoachMark'
 import { DebugRail } from './DebugRail'
+import { GuideModal } from './GuideModal'
 import { Hand } from './Hand'
 import { MovePad } from './MovePad'
+import { PhaseBanner } from './PhaseBanner'
 import { PhaseControl } from './PhaseControl'
 import { PlayerPanel } from './PlayerPanel'
 import { ProgramStrip } from './ProgramStrip'
@@ -65,12 +69,18 @@ function OutcomeBanner() {
   return (
     <div className="absolute inset-x-3 top-1/3 z-20" data-testid="outcome-banner" data-outcome={state.outcome}>
       <div
-        className={`rounded-2xl border-2 px-4 py-6 text-center shadow-2xl ${
+        className={`wb-pop-in rounded-2xl border-2 px-4 py-6 text-center shadow-2xl ${
           victory ? 'border-emerald-500 bg-emerald-950/95 text-emerald-100' : 'border-red-600 bg-red-950/95 text-red-100'
         }`}
       >
-        <div className="text-2xl font-black tracking-widest uppercase">{victory ? 'Victory' : 'Defeat'}</div>
+        {victory ? (
+          <HeroEmblem className="wb-float mx-auto h-12 w-12 text-emerald-400" />
+        ) : (
+          <BossEmblem className="wb-float mx-auto h-12 w-12 text-red-500" />
+        )}
+        <div className="mt-2 text-2xl font-black tracking-widest uppercase">{victory ? 'Victory' : 'Defeat'}</div>
         <div className="mt-2 text-sm">{state.outcomeReason}</div>
+        <div className="mt-3 text-[11px] opacity-80">Press Restart to run the Encounter again.</div>
       </div>
     </div>
   )
@@ -88,17 +98,22 @@ export default function App() {
         <TopBar />
         <ProgramStrip />
         <PhaseControl />
-        <div className="relative flex min-h-0 flex-1 items-center justify-center">
+        {/* overflow-hidden: the fixed-size Phaser canvas centers here and must
+            clip, never spill over (or steal pointer events from) the HUD. */}
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <PhaserBoard />
           <MovePad />
         </div>
+        <CoachMark />
         <PlayerPanel />
         <ActionBar />
         <Hand />
         <RejectionToast />
         <TargetingBanner />
+        <PhaseBanner />
         <ReplaceConfirmModal />
         <OutcomeBanner />
+        <GuideModal />
       </main>
       <DebugRail />
     </div>

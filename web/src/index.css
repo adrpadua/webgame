@@ -13,3 +13,220 @@ body {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
 }
+
+/* --- Onboarding & polish animations ------------------------------------
+   Small, purposeful motion: entrances for popups and prompts, looping
+   diagrams inside the How to Play guide, and feedback flashes. Everything
+   freezes under prefers-reduced-motion. */
+
+@keyframes wb-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.wb-pop-in {
+  animation: wb-pop-in 0.25s ease-out both;
+}
+
+@keyframes wb-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.wb-fade-in {
+  animation: wb-fade-in 0.2s ease-out both;
+}
+
+@keyframes wb-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.wb-slide-up {
+  animation: wb-slide-up 0.3s ease-out both;
+}
+
+/* Phase banner: pop in, hold, fade away (total 1.7s, matches the JS timer). */
+@keyframes wb-banner {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+.wb-banner {
+  animation: wb-banner 1.7s ease-out both;
+}
+
+/* Guide diagram: idle bob for the hero/boss emblems. */
+@keyframes wb-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+.wb-float {
+  animation: wb-float 2.4s ease-in-out infinite;
+}
+
+/* Guide diagram: the round track lights each beat in turn. */
+@keyframes wb-beat-blink {
+  0%,
+  16%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  4%,
+  10% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+.wb-beat-blink {
+  animation: wb-beat-blink 4s linear infinite;
+  opacity: 0.3;
+}
+
+/* Guide diagram: a hand card rises into the Slot, then resets. */
+@keyframes wb-card-rise {
+  0%,
+  10% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  45%,
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -56px) scale(0.85);
+  }
+  85%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -56px) scale(0.7);
+  }
+}
+.wb-card-rise {
+  animation: wb-card-rise 4.8s ease-in-out infinite;
+}
+
+/* Guide diagram: charge pips fill one per card delivered. */
+@keyframes wb-pip-fill {
+  0%,
+  20% {
+    background-color: var(--color-zinc-700);
+  }
+  30%,
+  100% {
+    background-color: var(--color-amber-400);
+  }
+}
+.wb-pip-fill {
+  animation: wb-pip-fill 4.8s linear infinite;
+}
+
+/* Guide diagram: pulsing ring on the fireable Slot. */
+@keyframes wb-glow-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(52, 211, 153, 0);
+  }
+}
+.wb-glow-ring {
+  animation: wb-glow-ring 1.6s ease-out infinite;
+}
+
+/* Guide diagram: the hero steps across three hexes. */
+@keyframes wb-hex-step {
+  0%,
+  20% {
+    transform: translateX(8px);
+  }
+  40%,
+  60% {
+    transform: translateX(48px);
+  }
+  80%,
+  100% {
+    transform: translateX(88px);
+  }
+}
+.wb-hex-step {
+  animation: wb-hex-step 4.2s ease-in-out infinite;
+}
+
+/* Boss health bar: red flash on the numbers when damage lands. */
+@keyframes wb-damage-flash {
+  0% {
+    transform: scale(1.25);
+    filter: brightness(2);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+.wb-damage-flash {
+  animation: wb-damage-flash 0.45s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-pop-in,
+  .wb-fade-in,
+  .wb-slide-up,
+  .wb-float,
+  .wb-card-rise,
+  .wb-glow-ring,
+  .wb-hex-step,
+  .wb-damage-flash {
+    animation: none;
+  }
+  .wb-banner {
+    /* Keep the banner readable but static; the JS timer still removes it. */
+    animation: none;
+  }
+  .wb-beat-blink {
+    animation: none;
+    opacity: 1;
+  }
+  .wb-pip-fill {
+    animation: none;
+    background-color: var(--color-amber-400);
+  }
+  /* Utility transitions (health bar, phase chips, hover lifts) go instant
+     too — "all motion freezes" includes transitions, not just keyframes. */
+  [data-testid='play-surface'] *,
+  [data-testid='play-surface'] *::before,
+  [data-testid='play-surface'] *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

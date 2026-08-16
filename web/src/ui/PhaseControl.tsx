@@ -20,8 +20,8 @@ export function PhaseControl() {
         {PHASES.map((entry) => (
           <span
             key={entry.phase}
-            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-              state.phase === entry.phase ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-500'
+            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-all duration-300 ${
+              state.phase === entry.phase ? 'scale-105 bg-emerald-600 text-white shadow-md shadow-emerald-900' : 'bg-zinc-800 text-zinc-500'
             }`}
           >
             {entry.label}
