@@ -9,17 +9,19 @@ This file is transient run state. The durable system lives in [docs/content/art-
 **Zero of eleven cards are final.** Five generations were run on `guard_stance` and one on `iron_guard`. None are keepable:
 
 - The best `guard_stance` result satisfied pose, crop, arms, and rendering, but predates the setting direction and has an empty background. It needs re-rolling against its `SETTING:` line. Its pose and crop are the reference to preserve — attach it and change only the background.
+
+  That image is committed at `assets/art/cards/elian-voss/guard-stance.png` (1023×1537), alongside the anchor concept in `assets/art/concepts/elian-voss/`. Its background is flat grey diagonal bands, which is what needs replacing; everything else in it is the target.
 - The `iron_guard` attempt produced eight or more panels and buried the figure. The block now specifies exactly four. It also cannot be judged until `guard_stance` exists, since its whole prompt is written to match that image.
 
 **Board art has not been started.** Prompts are ready in [board-art-prompts.md](../../docs/content/art-prompts/board-art-prompts.md).
 
 ## Immediate Next Action
 
-Close the Leonardo evaluation, then run the set. Both are specified in [`_tools.md`](../../docs/content/art-prompts/_tools.md).
+**The Leonardo evaluation is closed.** It was closed against Leonardo on 2026-08-16, against its own API documentation rather than another bake-off. The reasoning is recorded in [`_tools.md`](../../docs/content/art-prompts/_tools.md); in short, the closing test could not be run, because Pose to Image is an SDXL-family feature with no Phoenix equivalent, and Character Reference is excluded from multi-ControlNet combinations on SDXL — so pose and identity cannot be applied to the same generation on any Leonardo model. Inpainting was then judged separately on the background-fix case alone and also rejected, mainly because Phoenix is explicitly unsupported for inpainting and it was the only Leonardo model that passed the rendering criterion.
 
-Text-only Phoenix has already been tested and failed on pose and setting. The open question is whether Leonardo's **pose guidance** and **inpainting** beat the conversational model — those are the features that made it a candidate and neither has been exercised. The closing test: Phoenix with Fast off, 3:4, Character Reference at High, and a pose input image driving the stance. If pose guidance produces the braced crouch reliably, adopt it. If not, close the evaluation and run the eleven cards on the conversational model.
+No tool decision changed. **Run the eleven cards on the conversational model.**
 
-Do not start the set until this is decided. Zero cards being final is what makes the switch free right now, and that stops being true after the first keeper.
+Start with `guard_stance`: attach the existing keeper, change only the background to satisfy its `SETTING:` line, and preserve the pose and crop that already work. `iron_guard` is judged against that image, so it comes second.
 
 ## What Was Learned The Hard Way
 
@@ -32,7 +34,7 @@ Four failure modes are documented in full in [elian-voss-card-prompts.md](../../
 
 ## Environment Notes For A Local Session
 
-- `leonardo.ai`, `app.leonardo.ai`, and `cdn.leonardo.ai` were all blocked by the remote session's egress proxy. A local session should be able to reach them, so the vendor's game-asset article is worth reading to confirm the feature list in `_tools.md`, which currently rests on secondary coverage.
+- ~~`leonardo.ai` was blocked by the remote session's egress proxy, so the feature list in `_tools.md` rested on secondary coverage.~~ Closed 2026-08-16: the feature list was confirmed against Leonardo's official API documentation, which is a better source than the vendor article this note asked for.
 - The remote container had no Godot binary. Two commits touching GDScript — `03c50bf` (arena backdrop constant) and `e0591cb` (placeholder card art seam) — are on `main` verified statically only, by grep rather than execution. Both are mechanical and value-preserving, but a local launch is the real check and has not happened.
 
 ## When Art Lands
