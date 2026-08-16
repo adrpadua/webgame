@@ -236,6 +236,29 @@ try {
   const stepsAfterConfirm = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
   assert(stepsAfterConfirm === stepsBeforeConfirm + 1, 'a confirmed replacement records exactly one Scenario step')
 
+  // Outside the script, a boss track steps through beat by beat: the
+  // resolving beat lights its Hunt Pattern chip and a Continue prompt
+  // gates each next beat, so the player reads every part of the turn.
+  await next()
+  assert((await phase()) === 'instant', 'Round 2 Loadout advances into Boss Instant')
+  await next()
+  assert((await phase()) === 'quick', 'the Instant track resolves into the Quick Window')
+  await page.waitForSelector('[data-testid="playout-continue"]')
+  assert(
+    (await page.locator('[data-testid="beat-chip"][data-playing="true"]').count()) >= 1,
+    'the resolving beat lights its Hunt Pattern chip',
+  )
+  const promptText = await page.locator('[data-testid="playout-continue"]').textContent()
+  assert((promptText ?? '').includes('Continue'), `the playout pauses on a Continue prompt (${promptText?.trim()})`)
+  await page.locator('[data-testid="playout-continue"]').click()
+  await page.waitForSelector('[data-testid="playout-continue"]', { state: 'detached' })
+  await page.waitForSelector('[data-testid="playout-continue"]')
+  await page.locator('[data-testid="playout-continue"]').click()
+  await page.waitForSelector('[data-testid="playout-continue"]', { state: 'detached' })
+  // The last beat needs no prompt: give a wrongly-armed one time to appear.
+  await page.waitForTimeout(900)
+  assert((await page.locator('[data-testid="playout-continue"]').count()) === 0, 'the last beat needs no prompt and the playout settles')
+
   // M3 exit criterion: export the session just played as an Encounter Record
   // (schema_version 2); the headless runner replays it after the browser
   // closes and must reach an identical final state.

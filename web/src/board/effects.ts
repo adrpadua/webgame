@@ -234,16 +234,65 @@ export interface HealthPlayout {
   steps: HealthPlayoutStep[]
 }
 
-// How long a batch's feedback runs on screen: the last effect's start plus
-// the settle. Zero for a batch that shows nothing. A batch that ended the
-// Encounter holds its outcome reveal for this long, so the fatal blow — even
-// one landing in the very first beat slot, where no gauge step is staggered —
-// plays out before the banner gives the ending away.
-export function playoutDurationMs(effects: BoardEffect[]): number {
-  if (effects.length === 0) {
-    return 0
+// One moment of a batch's playout: a Boss Beat (or the single moment of a
+// beatless batch) with everything it shows and the gauge values its damage
+// leaves behind. Moments play one at a time — the player steps between them.
+export interface PlayoutMoment {
+  beatId: string | null
+  beatTitle: string | null
+  effects: BoardEffect[]
+  gauges: Record<string, HealthPlayoutValue>
+}
+
+export interface PlayoutScript {
+  // What every affected gauge shows the moment the batch lands.
+  initial: Record<string, HealthPlayoutValue>
+  moments: PlayoutMoment[]
+  // True when the batch ended the Encounter: the outcome reveal (banner,
+  // Restart control) waits for the last moment to finish playing.
+  endsEncounter: boolean
+}
+
+// Regroups a batch's derived feedback into one moment per Boss Beat, in
+// program order, using the same stagger slots the delays encode. Returns
+// null for a batch with no beats that didn't end the Encounter — immediate
+// player feedback needs no script. `effects` must be this batch's
+// deriveBoardEffects output.
+export function derivePlayoutScript(
+  before: EncounterState,
+  after: EncounterState,
+  facts: ResolvedActionFact[],
+  effects: BoardEffect[],
+): PlayoutScript | null {
+  const beats = facts
+    .filter((fact) => fact.kind === 'resolve_boss' && fact.depth === 0 && fact.succeeded)
+    .map((fact) => ({ id: detailString(fact, 'beatId'), title: detailString(fact, 'beatTitle') }))
+  const endsEncounter = before.active && !after.active
+  if (beats.length === 0 && !endsEncounter) {
+    return null
   }
-  return Math.max(...effects.map((effect) => effect.delay ?? 0)) + EFFECT_SETTLE_MS
+  const moments: PlayoutMoment[] =
+    beats.length > 0
+      ? beats.map((beat) => ({
+          beatId: beat.id === '' ? null : beat.id,
+          beatTitle: beat.title === '' ? null : beat.title,
+          effects: [],
+          gauges: {},
+        }))
+      : [{ beatId: null, beatTitle: null, effects: [], gauges: {} }]
+  const slotFor = (delay: number | undefined) => Math.min(Math.round((delay ?? 0) / BEAT_STAGGER_MS), moments.length - 1)
+  for (const effect of effects) {
+    const clone = { ...effect }
+    delete clone.delay
+    moments[slotFor(effect.delay)].effects.push(clone)
+  }
+  const playout = deriveHealthPlayout(before, after, facts)
+  for (const step of playout?.steps ?? []) {
+    // Later steps for the same entity overwrite earlier ones within a
+    // moment; across moments each keeps its own landing value.
+    moments[slotFor(step.delay)].gauges[step.entityId] = step.value
+  }
+  return { initial: playout?.initial ?? {}, moments, endsEncounter }
 }
 
 function valueBefore(state: EncounterState, entityId: string): HealthPlayoutValue {

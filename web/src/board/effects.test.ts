@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
 import { advancePhase, createEncounterState, resolve, type EncounterActionInput, type EncounterState } from '@/engine'
-import { BEAT_STAGGER_MS, deriveBoardEffects, deriveHealthPlayout, playoutDurationMs, type BoardEffect } from './effects'
+import { BEAT_STAGGER_MS, deriveBoardEffects, deriveHealthPlayout, derivePlayoutScript, type BoardEffect } from './effects'
 
 // Board feedback is derived from Resolution Facts, never from intent: if the
 // Encounter did not resolve it, the board must not animate it.
@@ -103,7 +103,38 @@ describe('board effects', () => {
     expect(last.value).toEqual({ health: result.state.heroes[heroId].health, armor: result.state.heroes[heroId].armor })
   })
 
-  it('measures a fatal batch playout so the outcome reveal can wait for it', () => {
+  it('scripts a boss track into one moment per beat, in program order', () => {
+    let state = openedRound()
+    state = advancePhase(catalog, state).state
+    const result = advancePhase(catalog, state)
+    const effects = deriveBoardEffects(catalog, state, result.state, result.facts)
+    const script = derivePlayoutScript(state, result.state, result.facts, effects)
+    expect(script).not.toBeNull()
+    // One moment per resolved beat, titled from the program, delays gone.
+    const announces = effects.filter((effect) => effect.kind === 'cast' && effect.entityId === state.bossId)
+    expect(script!.moments.map((moment) => moment.beatTitle)).toEqual(announces.map((announce) => announce.label))
+    expect(script!.moments.every((moment) => moment.effects.every((effect) => effect.delay === undefined))).toBe(true)
+    // A beat's consequences ride its own moment: the claw's hit and its
+    // gauge value land in the same moment as its strike.
+    const clawIndex = script!.moments.findIndex((moment) => moment.effects.some((effect) => effect.kind === 'strike'))
+    expect(clawIndex).toBeGreaterThan(0)
+    expect(script!.moments[clawIndex].effects.some((effect) => effect.kind === 'hit')).toBe(true)
+    expect(script!.moments[clawIndex].gauges[state.primaryHeroId]).toBeDefined()
+    expect(script!.endsEncounter).toBe(false)
+  })
+
+  it('returns no script for immediate player actions', () => {
+    let state = openedRound()
+    state = advance(state).state
+    state = advance(state).state
+    const hero = state.heroes[state.primaryHeroId]
+    state = apply(state, { kind: 'charge_slot', sourceId: hero.id, slotIndex: 0, cardInstanceId: hero.hand[0].instanceId }).state
+    const result = resolve(catalog, state, { kind: 'fire_slot', sourceId: hero.id, slotIndex: 0 })
+    const effects = deriveBoardEffects(catalog, state, result.state, result.facts)
+    expect(derivePlayoutScript(state, result.state, result.facts, effects)).toBeNull()
+  })
+
+  it('flags a fatal batch so the outcome reveal can wait out its moments', () => {
     let state = openedRound()
     state = advancePhase(catalog, state).state
     // Wound the tank so the claw's beat is the killing blow.
@@ -113,15 +144,16 @@ describe('board effects', () => {
     const result = advancePhase(catalog, state)
     expect(result.state.active).toBe(false)
     expect(result.state.outcome).toBe('defeat')
-    // The claw sits past the first slot, so its own stagger is in the hold.
     const effects = deriveBoardEffects(catalog, state, result.state, result.facts)
-    expect(playoutDurationMs(effects)).toBeGreaterThan(BEAT_STAGGER_MS)
+    const script = derivePlayoutScript(state, result.state, result.facts, effects)
+    expect(script!.endsEncounter).toBe(true)
+    // The claw sits past the first slot: its moment carries the zero.
     const playout = deriveHealthPlayout(state, result.state, result.facts)
     const heroSteps = playout!.steps.filter((step) => step.entityId === state.primaryHeroId)
     expect(heroSteps[heroSteps.length - 1].value.health).toBe(0)
   })
 
-  it('holds the reveal even when the killing blow lands in the first beat slot', () => {
+  it('scripts a killing blow in the first beat slot so the reveal still waits', () => {
     let state = openedRound()
     for (let advances = 0; advances < 3; advances += 1) {
       state = advancePhase(catalog, state).state
@@ -134,9 +166,12 @@ describe('board effects', () => {
     const result = advancePhase(catalog, state)
     expect(result.state.active).toBe(false)
     // No gauge step staggers (the fatal damage is immediate), but the batch
-    // still has a playout — later beats, spawns — the reveal must outwait.
+    // still scripts moments the reveal must outwait.
     const effects = deriveBoardEffects(catalog, state, result.state, result.facts)
-    expect(playoutDurationMs(effects)).toBeGreaterThan(0)
+    const script = derivePlayoutScript(state, result.state, result.facts, effects)
+    expect(script).not.toBeNull()
+    expect(script!.endsEncounter).toBe(true)
+    expect(script!.moments.length).toBeGreaterThan(0)
   })
 
   it('skips the gauge playout entirely for immediate player actions', () => {

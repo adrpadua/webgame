@@ -16,6 +16,13 @@ export interface BoardSnapshot {
   // Staggered gauge values while a boss track replays: a piece listed here
   // draws this health/armor instead of the state's (already final) numbers.
   healthOverrides: Record<string, HealthPlayoutValue>
+  // What the playout's unplayed moments will show. The snapshot state is
+  // the batch's final one, so until those moments fire the board holds
+  // back: these hazards stay undrawn, these pieces stay unseen, and these
+  // pieces keep their old facing.
+  pendingScorchKeys: string[]
+  pendingSpawnIds: string[]
+  pendingFacings: Record<string, number>
 }
 
 export interface BoardSceneCallbacks {
@@ -326,10 +333,12 @@ export class BoardScene extends Phaser.Scene {
     const guidedMoves = new Set(snapshot.guidedMoveKeys)
     // The snapshot is the batch's final state, but a staggered playout means
     // some of it has not "happened" on screen yet: ground scorched by a
-    // later beat stays clean and a Whelp a later beat spawns stays unseen
-    // until that beat's own effect fires.
-    const pendingScorch = new Set<string>()
-    const pendingSpawns = new Set<string>()
+    // later moment stays clean and a Whelp a later moment spawns stays
+    // unseen until that moment's own effect fires. The playout director
+    // reports unplayed moments through the snapshot; still-delayed effects
+    // already queued here count too.
+    const pendingScorch = new Set<string>(snapshot.pendingScorchKeys)
+    const pendingSpawns = new Set<string>(snapshot.pendingSpawnIds)
     for (const effect of this.active) {
       if (effect.elapsed >= 0) {
         continue
@@ -503,7 +512,8 @@ export class BoardScene extends Phaser.Scene {
   // The angle a piece's facing indicator draws at right now. The snapshot's
   // facing is the batch's final one; a pending or playing 'turn' effect
   // overrides it so the swing happens when its beat plays, not the moment
-  // the batch lands.
+  // the batch lands. A turn waiting in an unplayed playout moment holds the
+  // old facing the same way.
   private facingAngleFor(entityId: string, finalFacing: number): number {
     const finalAngle = this.facingAngle(finalFacing)
     for (const effect of this.active) {
@@ -525,6 +535,10 @@ export class BoardScene extends Phaser.Scene {
         arc += Math.PI * 2
       }
       return fromAngle + arc * easeOutCubic(Math.min(effect.elapsed / effect.duration, 1))
+    }
+    const pendingFacing = this.snapshot?.pendingFacings[entityId]
+    if (pendingFacing !== undefined) {
+      return this.facingAngle(pendingFacing)
     }
     return finalAngle
   }

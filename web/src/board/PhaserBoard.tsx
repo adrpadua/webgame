@@ -6,7 +6,7 @@ import { useOnboarding } from '@/store/onboarding'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { BoardScene, type BoardSnapshot } from './BoardScene'
-import { deriveBoardEffects, deriveHealthPlayout, playoutDurationMs, type BoardEffect } from './effects'
+import { deriveBoardEffects, derivePlayoutScript, type BoardEffect } from './effects'
 import { BOARD_HEIGHT, BOARD_WIDTH, pixelToAxial } from './layout'
 
 function buildSnapshot(
@@ -29,7 +29,18 @@ function buildSnapshot(
       }
     }
   }
-  return { state, targeting, legalMoveKeys, guidedMoveKeys, showCoordinates, healthOverrides: usePlayout.getState().overrides }
+  const playout = usePlayout.getState()
+  return {
+    state,
+    targeting,
+    legalMoveKeys,
+    guidedMoveKeys,
+    showCoordinates,
+    healthOverrides: playout.overrides,
+    pendingScorchKeys: playout.pendingScorchKeys,
+    pendingSpawnIds: playout.pendingSpawnIds,
+    pendingFacings: playout.pendingFacings,
+  }
 }
 
 export function PhaserBoard() {
@@ -63,6 +74,7 @@ export function PhaserBoard() {
     // different timeline — a restart, or a replayed Scenario — rather than
     // one more step along this one.
     let lastEntry = useWorkbench.getState().entries[useWorkbench.getState().index]
+    let lastMomentSeq = usePlayout.getState().momentSeq
     const pushSnapshot = () => {
       const store = useWorkbench.getState()
       const step = currentFirstTurnStep()
@@ -74,22 +86,20 @@ export function PhaserBoard() {
       // notifies subscribers — this function included — and the re-entrant
       // call must not read the step as still-forward and play it twice.
       lastEntry = entry
-      let effects: BoardEffect[] = []
+      let directEffects: BoardEffect[] = []
       if (steppedForward) {
-        // The HUD's gauges ride the same beat slots the board plays: begin
-        // (or clear) their staggered timeline before this snapshot is built
-        // so held-back values apply from the first frame. A batch that
-        // ended the Encounter also holds the outcome reveal for as long as
-        // its feedback plays — the fatal blow lands on screen before the
-        // banner names the ending.
-        effects = deriveBoardEffects(store.catalog, previous.state, entry.state, entry.facts)
-        const playout = deriveHealthPlayout(previous.state, entry.state, entry.facts)
-        const ended = previous.state.active && !entry.state.active
-        const outcomeHoldMs = ended ? playoutDurationMs(effects) : 0
-        if (playout || outcomeHoldMs > 0) {
-          usePlayout.getState().begin(playout, outcomeHoldMs)
+        // A batch with Boss Beats (or one that ended the Encounter) plays
+        // through the playout director: one moment per beat, gauges riding
+        // along, a Continue prompt between beats — auto-paced during the
+        // scripted first turn, which gates its own controls. Anything else
+        // is immediate player feedback and goes straight to the board.
+        const effects = deriveBoardEffects(store.catalog, previous.state, entry.state, entry.facts)
+        const script = derivePlayoutScript(previous.state, entry.state, entry.facts, effects)
+        if (script) {
+          usePlayout.getState().begin(script, useOnboarding.getState().firstTurnActive)
         } else {
           usePlayout.getState().clear()
+          directEffects = effects
         }
       } else if (timelineMoved) {
         // Time travel, restart, or a replayed Scenario: nothing resolved,
@@ -106,8 +116,16 @@ export function PhaserBoard() {
           step?.safeHexKeys ?? [],
         ),
       )
-      if (steppedForward && effects.length > 0) {
-        scene.playEffects(effects)
+      // The playout director hands each fired moment's effects to the board
+      // through a sequence counter, so a moment plays exactly once whether
+      // it fired from a timer, a Continue tap, or the batch landing.
+      const playoutNow = usePlayout.getState()
+      if (playoutNow.momentSeq !== lastMomentSeq) {
+        lastMomentSeq = playoutNow.momentSeq
+        scene.playEffects(playoutNow.momentEffects)
+      }
+      if (directEffects.length > 0) {
+        scene.playEffects(directEffects)
       }
     }
     const unsubscribe = useWorkbench.subscribe(pushSnapshot)

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { currentProgram, type BossBeat, type BossProgram } from '@/engine'
+import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { beatDetail, programDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
@@ -15,12 +16,22 @@ import { FOCUS_RING_CLASS } from './theme'
 // program detail for keyboard reach.
 function BeatChip({ beat, track, active }: { beat: BossBeat; track: 'instant' | 'incoming'; active: boolean }) {
   const hold = useHold(beatDetail(beat, track))
+  // While the playout replays this beat, its chip lights up and pulses so
+  // the action on the board reads back to its place in the program.
+  const playing = usePlayout((store) => store.activeBeatId) === beat.id
   return (
     <span
       {...hold.holdProps}
       data-testid="beat-chip"
+      data-playing={playing}
       aria-label={`${beat.title}: ${beat.rules_text}`}
-      className={`rounded px-1.5 py-0.5 text-[11px] ${active ? 'bg-amber-950 text-amber-200' : 'bg-zinc-800 text-zinc-400'}`}
+      className={`rounded px-1.5 py-0.5 text-[11px] transition-colors ${
+        playing
+          ? 'animate-pulse bg-amber-500 font-bold text-amber-950 shadow-md shadow-amber-900 motion-reduce:animate-none'
+          : active
+            ? 'bg-amber-950 text-amber-200'
+            : 'bg-zinc-800 text-zinc-400'
+      }`}
     >
       {beat.title}
     </span>
