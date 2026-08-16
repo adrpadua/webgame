@@ -262,9 +262,36 @@ try {
   await phone.waitForSelector('[data-testid="play-surface"]')
   await phone.locator('[data-testid="guide-skip"]').click()
   await phone.waitForSelector('[data-testid="first-turn-cue"]')
+  // Walk to the Quick Window and select a card, so the measurements below
+  // run against the busiest state the phone ever shows: the move pad out
+  // beside the board.
+  const phoneScripted = () => phone.locator('[data-testid="hand-card"][data-scripted="true"]')
+  await phoneScripted().dragTo(phone.locator('[data-testid="slot-0"]'))
+  await phoneScripted().dragTo(phone.locator('[data-testid="slot-1"]'))
+  await phone.locator('[data-testid="next-phase"]').click()
+  await phone.locator('[data-testid="next-phase"]').click()
+  await phone.waitForTimeout(400)
+  await phoneScripted().click()
+  await phone.waitForSelector('[data-testid="move-pad"]')
   // The board refits itself when the HUD changes; give the scale manager
   // its poll interval before measuring.
   await phone.waitForTimeout(700)
+  const padOverBoard = await phone.evaluate(() => {
+    const canvas = document.querySelector('[data-testid="board"] canvas')?.getBoundingClientRect()
+    if (!canvas) {
+      return ['no board']
+    }
+    return [...document.querySelectorAll('[data-testid="move-pad"] button')]
+      .map((node) => ({ id: node.dataset.testid, rect: node.getBoundingClientRect() }))
+      .map(({ id, rect }) => ({
+        id,
+        w: Math.min(rect.right, canvas.right) - Math.max(rect.left, canvas.left),
+        h: Math.min(rect.bottom, canvas.bottom) - Math.max(rect.top, canvas.top),
+      }))
+      .filter(({ w, h }) => w > 0 && h > 0)
+      .map(({ id, w, h }) => `${id} covers ${Math.round(w)}x${Math.round(h)} of the board`)
+  })
+  assert(padOverBoard.length === 0, `the move pad flanks the board without covering a hex (${padOverBoard.join(' | ') || 'no overlap'})`)
   const cropped = await phone.evaluate(() => {
     const canvas = document.querySelector('[data-testid="board"] canvas')
     const area = document.querySelector('[data-testid="board"]')

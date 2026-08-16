@@ -27,7 +27,18 @@ export type * from './types'
 export type { EncounterActionInput, ActionKind } from './actions'
 export { ENCOUNTER_SOURCE } from './actions'
 export { hexKey, parseHexKey, hexDistance, axialEquals, axialAdd, type Axial, type HexKey } from './hex'
-export { facingName, axialDeltaFor, normalizeFacing, VALID_FACINGS } from './facing'
+export {
+  facingName,
+  axialDeltaFor,
+  normalizeFacing,
+  VALID_FACINGS,
+  FACING_E,
+  FACING_NE,
+  FACING_NW,
+  FACING_W,
+  FACING_SW,
+  FACING_SE,
+} from './facing'
 export { currentProgram } from './timeline'
 export { getStatuses } from './statuses'
 export { isLegalMove, neighbors, isGuardedFront } from './board'
