@@ -34,6 +34,8 @@ The exception is the tile and crest blocks in [board-and-tiles.md](board-and-til
 
 Supporting files: [`_style-preamble.md`](_style-preamble.md) holds the locked style contract, [`_tools.md`](_tools.md) holds the tool decisions.
 
+Pre-composed and ready to send: [elian-voss-card-prompts.md](elian-voss-card-prompts.md) — all eleven authored Elian cards with every slot filled, sequenced for a single generation session. Regenerate it from the preamble and card template if either changes.
+
 ## Generation Order
 
 Order matters, because later assets are generated against earlier ones:
