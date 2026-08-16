@@ -90,15 +90,16 @@ export function Hand() {
   const handGated = blocksTarget(step, 'hand')
   // A Compact Card keeps one width — its share of a full Hand — whether
   // five cards remain or one. Cards that stretched to fill the row stopped
-  // reading as cards; a thinning Hand now leaves empty space where spent
-  // cards sat. The wrap only matters if a Hand ever outgrows its refill
-  // target: extra cards start a second row instead of overflowing.
+  // reading as cards; a thinning Hand stays centered, with the freed space
+  // splitting evenly to either side. The wrap only matters if a Hand ever
+  // outgrows its refill target: extra cards start a second row instead of
+  // overflowing.
   const slotCount = Math.max(hero.refillTarget, hero.hand.length, 1)
   // 0.375rem is the row's gap-1.5; change them together.
   const cardWidth = `calc((100% - ${(slotCount - 1) * 0.375}rem) / ${slotCount})`
 
   return (
-    <div className="flex flex-wrap gap-1.5 border-t border-zinc-800 bg-zinc-950/90 px-3 py-3" data-testid="hand">
+    <div className="flex flex-wrap justify-center gap-1.5 border-t border-zinc-800 bg-zinc-950/90 px-3 py-3" data-testid="hand">
       {hero.hand.map((instance) => {
         // The script points at one card at a time; the rest of the Hand
         // waits its turn.
