@@ -74,10 +74,10 @@ try {
   assert((await page.locator('[data-testid="guide-modal"]').count()) === 0, 'Escape dismisses the reopened guide')
 
   const phase = () => page.locator('[data-phase]').getAttribute('data-phase')
-  // The Round track holds the Boss window while a batch's beats replay, so
-  // reaching a player window is something to wait for, not assert instantly.
-  const waitForPhase = (expected) =>
-    page.waitForFunction((want) => document.querySelector('[data-phase]')?.getAttribute('data-phase') === want, expected, { timeout: 5000 })
+  // A boss track resolves in the batch that opens its window and replays
+  // beat by beat; Next is inert until the last beat's moment has played.
+  const waitForBeatsToSettle = () =>
+    page.waitForSelector('[data-testid="beat-chip"][data-playing="true"]', { state: 'detached', timeout: 8000 })
   const next = () => page.locator('[data-testid="next-phase"]').click()
   const cueStep = () => page.locator('[data-testid="first-turn-cue"]').getAttribute('data-step')
   // The card the scripted turn is pointing at is the only live card in Hand.
@@ -132,21 +132,20 @@ try {
   assert((await slot1.getAttribute('data-top-card')) !== '', 'tapping the empty Slot prepares the selected card')
   assert((await cueStep()) === 'start-round', 'with both Slots set the script asks for Next')
 
-  // Step 3-4: the Boss opens the Round and the Claw lands on the tank.
+  // Step 3-4: the Boss opens the Round and the Claw lands on the tank. The
+  // Instant Row resolves in the batch that opens Boss Instant, so the beats
+  // replay while the phase IS the Boss's window.
   await next()
-  assert((await phase()) === 'instant', 'Next advances into Boss Instant')
+  assert((await phase()) === 'instant', 'Next opens Boss Instant with its beats replaying')
   assert((await cueStep()) === 'boss-instant', 'the script narrates the Boss Instant')
-  await next()
-  // The rules land in the Quick Window at once, but the Round track keeps
-  // Boss Instant while its beats replay, then settles onto Quick.
-  assert((await phase()) === 'instant', 'the Round track holds Boss Instant while its beats replay')
-  await waitForPhase('quick')
-  assert((await phase()) === 'quick', 'Boss Instant resolves into the Quick Window')
   // The claw's damage reaches the gauge at its beat's playout moment, not
   // the instant the batch resolves: wait out the staggered replay.
   await page.waitForFunction(() => document.querySelector('[data-testid="hero-health"]')?.textContent?.includes('30'), null, { timeout: 5000 })
   const heroHealth = await page.locator('[data-testid="hero-health"]').textContent()
   assert(heroHealth?.includes('30'), `Raking Claw hit the tank for 4, on its beat (${heroHealth?.trim()})`)
+  await waitForBeatsToSettle()
+  await next()
+  assert((await phase()) === 'quick', 'Boss Instant resolves into the Quick Window')
 
   // Step 5-6: charge the quick Slot, then fire it in its matching window.
   assert((await cueStep()) === 'charge-quick', 'the Quick Window opens on the charge step')
@@ -179,11 +178,9 @@ try {
   assert(factLog?.includes('Move to (-1, 0)'), 'the fact log records the Hero move')
 
   await next()
-  assert((await phase()) === 'incoming', 'Quick Window resolves into Boss Incoming')
+  assert((await phase()) === 'incoming', 'the Quick Window ends and Boss Incoming opens with its beats replaying')
+  await waitForBeatsToSettle()
   await next()
-  // The Incoming beats replay staggered too; the track releases into the
-  // Slow Window once the telling is done.
-  await waitForPhase('slow')
   assert((await phase()) === 'slow', 'Boss Incoming resolves into the Slow Window')
   const incomingLog = await page.locator('[data-testid="fact-log"]').textContent()
   assert(incomingLog?.includes('Spawn whelp_1'), 'Brood Call spawned Whelps')
@@ -247,14 +244,13 @@ try {
   const stepsAfterConfirm = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
   assert(stepsAfterConfirm === stepsBeforeConfirm + 1, 'a confirmed replacement records exactly one Scenario step')
 
-  // Outside the script, a boss track steps through beat by beat: the
-  // resolving beat lights its Boss Beat chip and a Continue prompt
-  // gates each next beat, so the player reads every part of the turn.
-  await next()
-  assert((await phase()) === 'instant', 'Round 2 Loadout advances into Boss Instant')
+  // Outside the script, a boss track steps through beat by beat: the batch
+  // that opens the window replays paced, the resolving beat lights its Boss
+  // Beat chip, and a Continue prompt gates each next beat, so the player
+  // reads every part of the turn.
   await next()
   await page.waitForSelector('[data-testid="playout-continue"]')
-  assert((await phase()) === 'instant', 'the Round track holds Boss Instant while the paced playout replays its beats')
+  assert((await phase()) === 'instant', 'Round 2 Next opens Boss Instant and paces its beats')
   assert(
     (await page.locator('[data-testid="beat-chip"][data-playing="true"]').count()) >= 1,
     'the resolving beat lights its Boss Beat chip',
@@ -269,7 +265,10 @@ try {
   // The last beat needs no prompt: give a wrongly-armed one time to appear.
   await page.waitForTimeout(900)
   assert((await page.locator('[data-testid="playout-continue"]').count()) === 0, 'the last beat needs no prompt and the playout settles')
-  assert((await phase()) === 'quick', 'the settled playout releases the Round track into the Quick Window')
+  // The resolved track waits in the Boss's window; Next moves on.
+  assert((await phase()) === 'instant', 'the settled track waits in Boss Instant for Next')
+  await next()
+  assert((await phase()) === 'quick', 'Next moves on into the Quick Window')
 
   // Skipping a window that still holds phase-appropriate actions warns
   // first: nothing has been fired or charged this Quick Window.
@@ -344,7 +343,10 @@ try {
   const phoneScripted = () => phone.locator('[data-testid="hand-card"][data-scripted="true"]')
   await phoneScripted().dragTo(phone.locator('[data-testid="slot-0"]'))
   await phoneScripted().dragTo(phone.locator('[data-testid="slot-1"]'))
+  // The first Next opens Boss Instant and replays its beats; Next is inert
+  // until they settle, then the second press enters the Quick Window.
   await phone.locator('[data-testid="next-phase"]').click()
+  await phone.waitForSelector('[data-testid="beat-chip"][data-playing="true"]', { state: 'detached', timeout: 8000 })
   await phone.locator('[data-testid="next-phase"]').click()
   await phone.waitForTimeout(400)
   await phoneScripted().click()

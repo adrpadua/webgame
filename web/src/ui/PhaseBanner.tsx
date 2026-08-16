@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Phase } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
-import { usePresentedPhase } from './usePresentedPhase'
 
 // A short, non-blocking banner that names each phase as it begins: the word
 // and its colour, nothing else. What the phase means lives behind a hold on
@@ -16,9 +15,7 @@ const PHASE_COPY: Record<Phase, { title: string; tone: string }> = {
 
 export function PhaseBanner() {
   const state = useWorkbench(selectState)
-  // The presented phase, not state.phase: the player's window is announced
-  // when the playout settles into it, not while the Boss is still replaying.
-  const phase = usePresentedPhase()
+  const phase = state.phase
   const [shownPhase, setShownPhase] = useState<Phase | null>(null)
   const previousPhase = useRef<Phase | null>(phase)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
