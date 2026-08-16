@@ -74,7 +74,9 @@ Generating the image is half the job. The two halves of the codebase consume art
 
 **Card art is data-driven.** `CardData.get_artwork()` resolves in three steps: the `artwork` export on the card resource if set, then a hardcoded `ART_BY_CARD_ID` lookup by card id, then `PLACEHOLDER_ART`. No card in `resources/cards/tank/` sets `artwork` today, so all eleven currently fall through to the second step and draw paladin placeholders.
 
-That makes the clean path for new card art a resource edit, not a script edit: drop the PNG in `assets/art/cards/<hero-slug>/`, let Godot import it, and set `artwork` on the card's `.tres`. It overrides the fallback with no code change. Once every card sets `artwork`, the `ART_BY_CARD_ID` table and its paladin imports become dead and should be deleted rather than left as a decoy.
+That makes the clean path for new card art a resource edit, not a script edit: drop the PNG in `assets/art/cards/<hero-slug>/`, let Godot import it, and set `artwork` on the card's `.tres`. It overrides the fallback with no code change.
+
+The fallback itself lives in `scripts/cards/PlaceholderCardArt.gd`, which holds two things with different lifetimes. `BY_CARD_ID` is temporary and dies once every card sets `artwork`. `EMPTY_SLOT` is permanent — it is what the UI draws where there is no card at all, which real card art does not replace. That file documents which half to delete and when.
 
 **Board art is hardcoded.** Tiles and the crest are `preload` constants compiled into `scripts/hex/HexTile.gd` and `scripts/hex/HexPiece.gd`, so replacing either requires editing the script that names it.
 

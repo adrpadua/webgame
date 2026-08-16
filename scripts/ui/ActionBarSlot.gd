@@ -6,7 +6,7 @@ const GameTooltipScene := preload("res://scripts/ui/GameTooltip.gd")
 signal slot_pressed(index: int)
 signal card_dropped(index: int, card: Resource)
 
-const PLACEHOLDER_ART := preload("res://assets/art/prototype/paladin-placeholder.png")
+const PlaceholderArt := preload("res://scripts/cards/PlaceholderCardArt.gd")
 const QUICK_ICON := "⚡"
 const SLOW_ICON := "◷"
 const CHARGE_ICON := "◆"
@@ -380,7 +380,7 @@ func _keyword_label(card: Resource, max_length: int) -> String:
 func _get_card_artwork(card: Resource) -> Texture2D:
 	if card != null and card.has_method("get_artwork") and card.get_artwork() != null:
 		return card.get_artwork()
-	return PLACEHOLDER_ART
+	return PlaceholderArt.EMPTY_SLOT
 
 func _short_title(title: String, max_length: int) -> String:
 	if title.length() <= max_length:

@@ -176,6 +176,8 @@ Per the pipeline in [README.md](README.md), card art is data-driven and needs no
 1. Save to `assets/art/cards/elian-voss/<card-slug>.png` and let Godot import it.
 2. Set `artwork` on the matching resource in `resources/cards/tank/<card-slug>.tres`.
 3. Repeat for all eleven. `get_artwork()` prefers `artwork` over the hardcoded fallback, so each card switches over as it is set.
-4. Once all eleven are set, delete the `ART_BY_CARD_ID` table and the paladin `preload` lines from `scripts/CardData.gd`, and remove `assets/art/prototype/paladin/`. Leaving them in place is a decoy — dead art that still looks wired.
+4. Once all eleven are set, open `scripts/cards/PlaceholderCardArt.gd` and delete `BY_CARD_ID` and `for_card_id()`, simplify `CardData.get_artwork()` to return `artwork` directly, and remove `assets/art/prototype/paladin/`. Leaving them in place is a decoy — dead art that still looks wired.
+
+   **Do not delete `EMPTY_SLOT` or `paladin-placeholder.png` with them.** That constant is what the UI draws where there is no card at all — an unfilled action bar slot, or the inspect overlay before a card is shown — and that need outlives real card art. Only the image is a placeholder; re-point it at a purpose-made empty-slot asset when one exists.
 
 Keep every approved result. At roughly fifteen assets these become the training set for a style model, per [`_tools.md`](_tools.md).

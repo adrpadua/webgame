@@ -3,7 +3,7 @@ extends Control
 
 signal dismiss_requested
 
-const PLACEHOLDER_ART := preload("res://assets/art/prototype/paladin-placeholder.png")
+const PlaceholderArt := preload("res://scripts/cards/PlaceholderCardArt.gd")
 
 var card: Resource
 var art: TextureRect
@@ -38,7 +38,7 @@ func show_card(new_card: Resource) -> void:
 	title_label.text = card.title
 	meta_label.text = "%s  |  Charge Value %d" % [card.get_window_speed().capitalize(), card.get_charge_cap()]
 	rules_label.text = card.rules_text
-	art.texture = card.get_artwork() if card.has_method("get_artwork") and card.get_artwork() != null else PLACEHOLDER_ART
+	art.texture = card.get_artwork() if card.has_method("get_artwork") and card.get_artwork() != null else PlaceholderArt.EMPTY_SLOT
 	visible = true
 
 func hide_card() -> void:
@@ -72,7 +72,7 @@ func _build() -> void:
 	content.add_child(title_label)
 
 	art = TextureRect.new()
-	art.texture = PLACEHOLDER_ART
+	art.texture = PlaceholderArt.EMPTY_SLOT
 	art.custom_minimum_size = Vector2(0, 272)
 	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
