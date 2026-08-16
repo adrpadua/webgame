@@ -17,11 +17,15 @@ This file is transient run state. The durable system lives in [docs/content/art-
 
 ## Immediate Next Action
 
-**The Leonardo evaluation is closed.** It was closed against Leonardo on 2026-08-16, against its own API documentation rather than another bake-off. The reasoning is recorded in [`_tools.md`](../../docs/content/art-prompts/_tools.md); in short, the closing test could not be run, because Pose to Image is an SDXL-family feature with no Phoenix equivalent, and Character Reference is excluded from multi-ControlNet combinations on SDXL — so pose and identity cannot be applied to the same generation on any Leonardo model. Inpainting was then judged separately on the background-fix case alone and also rejected, mainly because Phoenix is explicitly unsupported for inpainting and it was the only Leonardo model that passed the rendering criterion.
+**The Leonardo evaluation closed and then reopened.** It closed on 2026-08-16 against Leonardo's own API documentation: Pose to Image is an SDXL-family feature with no Phoenix equivalent, and Character Reference is excluded from multi-ControlNet combinations on SDXL, so pose and identity cannot be applied to the same generation on any Leonardo model. Inpainting was rejected separately because Phoenix is explicitly unsupported for it.
 
-No tool decision changed. **Run the eleven cards on the conversational model.**
+It **reopened on requirements grounds**, not because any of that changed. The priority for the set became consistency across the eleven rather than adherence to exact design rules, and pose fidelity is what that trade stops paying for. Full reasoning, risks, and new judging criteria are in [`_tools.md`](../../docs/content/art-prompts/_tools.md).
 
-Start with `guard_stance`: attach the existing keeper, change only the background to satisfy its `SETTING:` line, and preserve the pose and crop that already work. `iron_guard` is judged against that image, so it comes second.
+**No tool decision has changed yet.** Until the reopened evaluation settles, the matrix still sends cards to the conversational model.
+
+If the next session runs Leonardo, the two things to fix before anything else: **turn Fast off and use a 3:4 frame** — both were flagged as confounds at closure and were still uncontrolled in the run that triggered the reopen — and **state Elian's skin tone explicitly in the positive prompt**. The anchor and the committed keeper both show dark brown skin; the latest Phoenix output came back pale, and no written prompt in the library states a tone, so the reference is carrying it alone and losing it.
+
+If the next session runs the conversational model instead, start with `guard_stance`: attach the existing keeper, change only the background to satisfy its `SETTING:` line, and preserve the pose and crop that already work. `iron_guard` is judged against that image, so it comes second.
 
 ## What Was Learned The Hard Way
 

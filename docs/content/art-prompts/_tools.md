@@ -31,11 +31,11 @@ Those two gaps are precisely this project's two hardest requirements. What remai
 
 If you want the backdrop from Midjourney anyway, compress the preamble to a short style tag, move the never-include list into `--no`, and add `--style raw` with a low `--stylize` to suppress its default painterly bias. Do not add it for anything else.
 
-## Closed Evaluation: Leonardo
+## Reopened Evaluation: Leonardo
 
-Status: evaluated August 2026, **not adopted**. Cards stay on the conversational model. Recorded in full so the question does not get re-opened without new information.
+Status: closed August 2026, **reopened days later on requirements grounds**. No tool decision has changed yet; the matrix at the top of this file still sends cards to the conversational model. Read the Reopening section first — it states what changed and what is now being traded — then the closure findings below it, which all still hold.
 
-The evaluation closed on capability facts read from Leonardo's own API documentation, not on a further bake-off. Both features that made it a candidate turned out to be unavailable in the configuration this project needs — see the two Result sections below for exactly which constraint blocks which feature, since those are the conditions that would have to change for a re-open.
+The evaluation originally closed on capability facts from Leonardo's own API documentation: both features that made it a candidate were unavailable in the configuration this project needed. Neither of those facts has changed. What changed is the requirement they were measured against.
 
 ### Why It Was A Candidate
 
@@ -105,14 +105,11 @@ It was assessed separately on that narrow case and **rejected**, for one disqual
 
 **The setup is not free.** A separate account and API key, pay-as-you-go billing, and a mask pipeline with real constraints: masks must be white-on-black, init and mask dimensions must match exactly and be divisible by 8, the ceiling is 1536×1536, and `init_strength` is inverted from the UI value. That is a reasonable cost to carry for a workflow, and an unreasonable one for a single background fix on a single card.
 
-### Decision
+### Decision At Closure, And Why It Did Not Survive
 
-Card and ability art stays on the conversational image model. The matrix at the top of this file is unchanged.
+Card and ability art stayed on the conversational image model, with two capability-based re-open triggers recorded: a pose ControlNet reaching a Phoenix-class model, or inpainting reaching Phoenix. Neither has happened.
 
-Re-open only on a specific capability change, not on a new marketing cycle. Either of these would do it:
-
-- a pose ControlNet becomes available for a Phoenix-class model, so pose and Character Reference can be applied to the same generation; or
-- inpainting becomes available for Phoenix, so region repair can run on the one model already shown to hold this style.
+The closure had a third exit nobody wrote down, and it is the one that fired. Both rejected features were judged against a requirement — that each card hit an authored pose — which has since been relaxed. A decision is only as durable as the requirement it was measured against, and this one was measured against a requirement that moved. See Reopening below.
 
 Nothing here touches the tile and crest decision. That was made on vector precision at 46 pixels, and a diffusion model emitting transparent backgrounds is not the same thing as real paths. Revisit only if the vector route fails on its own terms.
 
@@ -121,6 +118,43 @@ Nothing here touches the tile and crest decision. That was made on vector precis
 The feature list above was previously flagged as resting on secondary coverage, because `leonardo.ai` was blocked by a remote session's egress proxy. It has since been confirmed against Leonardo's official API documentation — the guidance-type table, the model support lists, and the inpainting constraints all come from there, which is a better source than the vendor article that note asked for. That item is closed.
 
 Still treat the published figures as marketing: "90% consistency on first tries", "85% of surveyed game devs prefer Leonardo", and "4x better pose fidelity" all circulate without methodology. They played no part in this decision.
+
+### Reopening: The Requirement Moved
+
+Reopened August 2026, one day after closure. The stated priority for the card set became **consistency across the eleven, rather than adherence to exact design rules**. That reframes the closure rather than contradicting it.
+
+Pose guidance was the feature this tool was rejected over, and pose fidelity is what a consistency-first goal stops paying for. If no card has to hit an authored stance, Phoenix's inability to take pose direction is no longer disqualifying, and what remains is a model that is genuinely strong at holding one look across a set. The rejection reasoning was sound; it was answering a question that is no longer the question.
+
+A fresh Phoenix 1.0 run — Fast on, 896×896, Dynamic, with a Character Reference — produced four panels that confirm the one finding the failed run got right: **the rendering criterion passes and is not marginal.** Flat cel shading, clean confident linework, restrained cyan seams, no drift into a house gloss. The white-and-navy oathsteel, the gold keyhole at the collar, the translucent rectangular runeglass panels, and the gold-capped gateblade baton all survived. Phoenix can draw this character in this style.
+
+**Three live risks, in order of how much they threaten a consistency-first goal:**
+
+**Skin tone drifted, and this is the one that matters.** The anchor concept and the committed `guard-stance.png` keeper both show Elian with dark brown skin. All four new panels came back pale. They are consistent with each other and inconsistent with the two images that already exist, which is precisely the failure a consistency-first workflow cannot absorb — and it is the failure Character Reference is supposed to prevent. Nothing in the written prompt recipe states a skin tone; the anchor image carries it alone. Any adoption has to solve this first, most likely by stating it explicitly in the positive prompt rather than trusting the reference, per the negative-prompt lesson above.
+
+**The ember-red cord is missing from all four.** It is canon per the hero template and small enough to lose quietly. Lower stakes than skin tone, same class of problem.
+
+**The setting is still competing.** The stone walls render as individually drawn blocks fighting the figure rather than sitting behind it as value shapes — the same failure scored in the earlier run. It matters more than it looks, because card art is viewed small.
+
+**Two confounds are still uncontrolled, for the second run in a row.** Fast mode is on and the frame is square at 896×896 rather than 3:4. Both were flagged at closure as things to turn off before any further test, and neither has been. Any comparison against the conversational model is unsound until they are.
+
+### What Adoption Would Now Cost
+
+Pose direction, on every card. Phoenix has no pose ControlNet — that finding is unchanged and is not a tuning problem. The reference pulls toward the anchor's calm standing sheet, which is why all four new panels are standing variants and why the earlier run failed the same way.
+
+The card library is built the other direction: [card-ability-art.md](card-ability-art.md) gives each of the eleven its own fiction and beat, and `guard_stance` specifies a braced crouch. Adopting Leonardo under a consistency-first goal most likely means eleven standing figures — internally consistent and visually monotonous at the same time. That is a real design concession, not a detail, and it should be made deliberately rather than discovered at card nine.
+
+### What Would Settle It Now
+
+The original three criteria were written for a pose-first world. Under consistency-first, judge a Leonardo run on these instead:
+
+1. Does the character match the **anchor** on skin tone, hair, and the keyhole, cord, panel, and baton elements — not merely match the other outputs in its own batch?
+2. Does the set hold one look across at least three different cards generated in separate sessions?
+3. Does the setting sit behind the figure as subordinate value shapes when the image is scaled to card size?
+4. Is the variety across eleven cards acceptable without pose control, judged on a real spread of cards rather than one?
+
+Run it with **Fast off and a 3:4 frame** this time, or the result is not comparable to anything.
+
+Until that runs, the matrix at the top of this file stands and cards stay on the conversational model.
 
 Not tested, and deliberately so: whether an SDXL-family model can hold this library's flat cel direction. It would have to, for either the pose route or the inpainting route to be worth revisiting, and both are blocked ahead of that question.
 
@@ -134,7 +168,7 @@ Prompt-based direction has a ceiling. Every generation re-describes the style in
 
 The structural fix is training a private style model on your own art, so the direction is carried by weights instead of by adjectives. Platforms built for this — Scenario is the notable one — train a style LoRA from a small consistent set and are aimed at exactly this problem: a studio needing one look across hundreds of assets.
 
-Scenario is the standing recommendation for this path. Leonardo offers LoRA training too and would have absorbed it, but the evaluation above closed against Leonardo, so the two are no longer alternatives.
+Scenario is the standing recommendation for this path. Leonardo offers LoRA training too and would absorb it; the evaluation above closed against Leonardo and has since reopened on requirements grounds, so treat the two as live alternatives again rather than a settled choice. Whichever way that lands, the training set is the same eleven cards plus the concepts.
 
 **You cannot do this yet.** There is one anchor concept in the repo, and training wants 10–15+ at 1024 px or larger, consistent in aesthetic across varied subjects.
 
