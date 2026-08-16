@@ -2,7 +2,7 @@
 
 This document describes the current authored prototype encounter for `Embermaw`.
 
-The intended full encounter is documented separately in [embermaw-ashen-trial-design.md](D:/dev/webgame/docs/content/encounters/embermaw-ashen-trial-design.md). This file records the current runnable short-deck implementation; it is deliberately smaller than the eight-round design.
+The intended full encounter is documented separately in [embermaw-ashen-trial-design.md](embermaw-ashen-trial-design.md). This file records the current runnable short-deck implementation; it is deliberately smaller than the eight-round design.
 
 ## Purpose
 
@@ -45,7 +45,7 @@ The prototype uses the standard round structure:
 
 The authored program deck loops while the encounter remains active. The encounter ends when either combatant reaches `0` health, or when the clock advances beyond round `8`.
 
-The live encounter configuration is [resources/encounters/embermaw_prototype.tres](D:/dev/webgame/resources/encounters/embermaw_prototype.tres). It owns the round limit and authored enrage text.
+The live encounter configuration is [resources/encounters/embermaw_prototype.tres](../../../resources/encounters/embermaw_prototype.tres). It owns the round limit and authored enrage text.
 
 ## Spatial Resolution
 

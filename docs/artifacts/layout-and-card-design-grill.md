@@ -29,6 +29,6 @@ Status: accepted prototype direction. This records the fast-forward design grill
 
 ## Related Records
 
-- [ADR 0006](D:/dev/webgame/docs/adr/0006-use-a-portrait-first-direct-manipulation-combat-hud.md)
-- [Prototype Rules](D:/dev/webgame/docs/rules/prototype-rules.md)
-- [Mechanical Pillars And Inspirations](D:/dev/webgame/docs/rules/mechanical-pillars-and-inspirations.md)
+- [ADR 0006](../adr/0006-use-a-portrait-first-direct-manipulation-combat-hud.md)
+- [Prototype Rules](../rules/prototype-rules.md)
+- [Mechanical Pillars And Inspirations](../rules/mechanical-pillars-and-inspirations.md)

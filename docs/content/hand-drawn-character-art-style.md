@@ -1,12 +1,23 @@
 # Hand-Drawn Character Art Style
 
-Status: active art-direction recipe. Use this with [world-style-bible.md](D:/dev/webgame/docs/content/world-style-bible.md) when generating or briefing Hero concept art, card art, and visual explorations. This document is visual guidance only; it does not change rules or content behavior.
+Status: active art-direction recipe. Use this with [world-style-bible.md](world-style-bible.md) when generating or briefing Hero concept art, card art, and visual explorations. This document is visual guidance only; it does not change rules or content behavior.
 
 ## Purpose
 
 The current target style is **clean hand-drawn super-high fantasy character concept art**. It should keep the world bible's myth-tech materials and raid-role identity, but avoid the overly busy rendered look that came from dense layered plates, photoreal lighting, and too many mechanical parts.
 
 The goal is not to make the world less advanced. The goal is to make advanced armor and magic readable through simplified shapes, strong silhouettes, and limited visual ideas.
+
+## Relationship To The Shipping Art
+
+This document is the committed target for the game's real art. Everything currently rendered is a placeholder.
+
+The live skin is CC0 art borrowed from OpenDuelyst — battlefield backdrop, board and hover tiles, target tile, and neutral boss crest — catalogued in [assets/README.md](../../assets/README.md) and described in [embermaw-vertical-slice.md](../artifacts/embermaw-vertical-slice.md). It was chosen for legibility while the tactical surface was being built, not as art direction. It does not follow the material language in [world-style-bible.md](world-style-bible.md), and it should not be used as a reference when briefing new work.
+
+Two consequences worth holding onto:
+
+- New art is briefed against this document and the world bible, never against what is on screen today.
+- Replacing the placeholders is a known outstanding job, not a regression to be discovered later. Board, backdrop, tiles, crest, and Hero art all come from the same direction once real art exists, so partial replacement will look inconsistent in the interim; that is expected and is not a reason to match the placeholder look.
 
 ## Style Pillars
 
@@ -81,6 +92,8 @@ Recommended silhouette:
 - no excessive cape; signal cloth may hang as one or two clean panels.
 
 ## Prompt Recipe
+
+For generating new assets, prefer the composable sets in [art-prompts/](art-prompts/README.md), which carry this direction into per-asset-class templates for Heroes, cards, bosses, and board art. The recipe below is the original single-shot Elian prompt, kept because it produced the anchor concept; it is the calibration reference the library was built from.
 
 Use this as the starting point for future Elian concept iterations:
 

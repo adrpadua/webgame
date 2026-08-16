@@ -10,7 +10,7 @@ The game began as a tabletop board-game prototype in 2024. The current work uses
 
 The agents do not replace a single source of truth or product ownership. Product decisions begin with the human designer and PM; the repository keeps the durable rules, architecture decisions, backlog, handoff contracts, validation evidence, and coordination ledger. The Orchestrator sequences approved work across the specialist roles, while repeatable probes and independent reviews keep the game and its documentation aligned.
 
-The operating model is intentionally part of the prototype: it is being tested alongside the game. See the [agent recovery kit](D:/dev/webgame/docs/agents/recovery-kit.md), [product backlog](D:/dev/webgame/.scratch/product-backlog/map.md), and [coordination ledger](D:/dev/webgame/docs/artifacts/project-coordination.md) for the current process and delivery state.
+The operating model is intentionally part of the prototype: it is being tested alongside the game. See the [agent recovery kit](docs/agents/recovery-kit.md), [product backlog](.scratch/product-backlog/map.md), and [coordination ledger](docs/artifacts/project-coordination.md) for the current process and delivery state.
 
 ```mermaid
 flowchart LR
@@ -48,33 +48,33 @@ The current build centers on:
 
 ## Core Docs
 
-- [docs/README.md](D:/dev/webgame/docs/README.md): documentation map and promotion path for working notes
-- [CONTEXT.md](D:/dev/webgame/CONTEXT.md): domain glossary and canonical language
-- [docs/adr/0001-encounter-round-and-enrage.md](D:/dev/webgame/docs/adr/0001-encounter-round-and-enrage.md): why the encounter uses a scripted two-window round
-- [docs/adr/0002-use-a-persistent-action-bar-with-charge-stacks.md](D:/dev/webgame/docs/adr/0002-use-a-persistent-action-bar-with-charge-stacks.md): why player actions use persistent slots and charge stacks
-- [docs/rules/prototype-rules.md](D:/dev/webgame/docs/rules/prototype-rules.md): current playable rules of the prototype
-- [docs/rules/mechanical-pillars-and-inspirations.md](D:/dev/webgame/docs/rules/mechanical-pillars-and-inspirations.md): the outside games that inform the design pillars and the boundaries on what not to copy
-- [docs/artifacts/repo-artifacts.md](D:/dev/webgame/docs/artifacts/repo-artifacts.md): inventory of major gameplay artifacts in the repo
-- [docs/artifacts/embermaw-vertical-slice.md](D:/dev/webgame/docs/artifacts/embermaw-vertical-slice.md): completed playable encounter, responsive layout, asset provenance, and verification
-- [docs/artifacts/accessibility.md](D:/dev/webgame/docs/artifacts/accessibility.md): interaction-size, contrast, and keyboard-focus contract
-- [docs/content/README.md](D:/dev/webgame/docs/content/README.md): authored content docs such as decklists, encounter specs, and boss scripts
-- [docs/content/design-team-handoff.md](D:/dev/webgame/docs/content/design-team-handoff.md): designer Resource schemas, examples, validation, and playtest workflow
+- [docs/README.md](docs/README.md): documentation map and promotion path for working notes
+- [CONTEXT.md](CONTEXT.md): domain glossary and canonical language
+- [docs/adr/0001-encounter-round-and-enrage.md](docs/adr/0001-encounter-round-and-enrage.md): why the encounter uses a scripted two-window round
+- [docs/adr/0002-use-a-persistent-action-bar-with-charge-stacks.md](docs/adr/0002-use-a-persistent-action-bar-with-charge-stacks.md): why player actions use persistent slots and charge stacks
+- [docs/rules/prototype-rules.md](docs/rules/prototype-rules.md): current playable rules of the prototype
+- [docs/rules/mechanical-pillars-and-inspirations.md](docs/rules/mechanical-pillars-and-inspirations.md): the outside games that inform the design pillars and the boundaries on what not to copy
+- [docs/artifacts/repo-artifacts.md](docs/artifacts/repo-artifacts.md): inventory of major gameplay artifacts in the repo
+- [docs/artifacts/embermaw-vertical-slice.md](docs/artifacts/embermaw-vertical-slice.md): completed playable encounter, responsive layout, asset provenance, and verification
+- [docs/artifacts/accessibility.md](docs/artifacts/accessibility.md): interaction-size, contrast, and keyboard-focus contract
+- [docs/content/README.md](docs/content/README.md): authored content docs such as decklists, encounter specs, and boss scripts
+- [docs/content/design-team-handoff.md](docs/content/design-team-handoff.md): designer Resource schemas, examples, validation, and playtest workflow
 
 ## Repository Layout
 
-- [assets](D:/dev/webgame/assets): source art, audio, fonts, and UI media
-- [resources](D:/dev/webgame/resources): Godot-ready gameplay resources, currently cards and boss actions
-- [data](D:/dev/webgame/data): future machine-readable deck, encounter, and localization payloads
-- [scenes](D:/dev/webgame/scenes): Godot scenes
-- [scripts](D:/dev/webgame/scripts): runtime, UI, combat, and debug code
-- [docs](D:/dev/webgame/docs): rules, decisions, authored content, and artifact catalog
-- [notes](D:/dev/webgame/notes): research, playtest material, and screenshots
+- [assets](assets): source art, audio, fonts, and UI media
+- [resources](resources): Godot-ready gameplay resources, currently cards and boss actions
+- [data](data): future machine-readable deck, encounter, and localization payloads
+- [scenes](scenes): Godot scenes
+- [scripts](scripts): runtime, UI, combat, and debug code
+- [docs](docs): rules, decisions, authored content, and artifact catalog
+- [notes](notes): research, playtest material, and screenshots
 
 ## Run
 
-Open [project.godot](D:/dev/webgame/project.godot) in Godot 4.7+ and run the main scene.
+Open [project.godot](project.godot) in Godot 4.7+ and run the main scene.
 
-The playable scene is [scenes/Main.tscn](D:/dev/webgame/scenes/Main.tscn).
+The playable scene is [scenes/Main.tscn](scenes/Main.tscn).
 
 ## Current Interaction Model
 
@@ -89,14 +89,14 @@ The playable scene is [scenes/Main.tscn](D:/dev/webgame/scenes/Main.tscn).
 
 ## Main Code Paths
 
-- [scripts/sdk/EncounterEngine.gd](D:/dev/webgame/scripts/sdk/EncounterEngine.gd): authoritative Encounter rules and state
-- [scripts/Main.gd](D:/dev/webgame/scripts/Main.gd): direct-manipulation wiring that submits `EncounterAction` records
-- [scripts/player/PlayerState.gd](D:/dev/webgame/scripts/player/PlayerState.gd): read-only player projection for existing UI
-- [scripts/turns/TurnManager.gd](D:/dev/webgame/scripts/turns/TurnManager.gd): read-only phase projection
-- [scripts/boss/BossState.gd](D:/dev/webgame/scripts/boss/BossState.gd): read-only Boss Timeline projection
-- [scripts/cards/CardData.gd](D:/dev/webgame/scripts/cards/CardData.gd): reusable player card resource model
-- [scripts/boss/BossActionData.gd](D:/dev/webgame/scripts/boss/BossActionData.gd): reusable boss action resource model
-- [scripts/hex/HexGrid.gd](D:/dev/webgame/scripts/hex/HexGrid.gd): board, pieces, movement, and spawning
+- [scripts/sdk/EncounterEngine.gd](scripts/sdk/EncounterEngine.gd): authoritative Encounter rules and state
+- [scripts/Main.gd](scripts/Main.gd): direct-manipulation wiring that submits `EncounterAction` records
+- [scripts/player/PlayerState.gd](scripts/player/PlayerState.gd): read-only player projection for existing UI
+- [scripts/turns/TurnManager.gd](scripts/turns/TurnManager.gd): read-only phase projection
+- [scripts/boss/BossState.gd](scripts/boss/BossState.gd): read-only Boss Timeline projection
+- [scripts/cards/CardData.gd](scripts/cards/CardData.gd): reusable player card resource model
+- [scripts/boss/BossActionData.gd](scripts/boss/BossActionData.gd): reusable boss action resource model
+- [scripts/hex/HexGrid.gd](scripts/hex/HexGrid.gd): board, pieces, movement, and spawning
 
 ## Validate
 
