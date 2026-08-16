@@ -179,7 +179,7 @@ export function firstTurnStep(catalog: WorkbenchCatalog, state: EncounterState):
         detail: detail(
           'boss-instant',
           'Boss Instant',
-          'The Instant beats land immediately — Raking Claw cannot be dodged. Armor is how you answer it.',
+          'The Instant beats land immediately — Raking Claw cannot be dodged. Armor is how you answer it. Next moves on once they have landed.',
         ),
       })
 
@@ -246,7 +246,11 @@ export function firstTurnStep(catalog: WorkbenchCatalog, state: EncounterState):
         targetLabel: 'Next',
         targets: ['next'],
         ordinal: 6,
-        detail: detail('boss-incoming', 'Boss Incoming', 'The marked cone resolves and Whelps arrive on the marked hexes. Standing clear is the whole answer.'),
+        detail: detail(
+          'boss-incoming',
+          'Boss Incoming',
+          'The marked cone resolves and Whelps arrive on the marked hexes. Standing clear is the whole answer. Next moves on once the beats have landed.',
+        ),
       })
 
     case 'slow': {

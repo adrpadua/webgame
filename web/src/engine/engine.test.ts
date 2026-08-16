@@ -121,14 +121,15 @@ describe('encounter setup', () => {
 describe('phase cycle', () => {
   it('runs one full Round: Loadout, Boss Instant, Quick, Boss Incoming, Slow', () => {
     let state = start()
-    state = advancePhase(catalog, state).state
-    expect(state.phase).toBe('instant')
-
+    // A Boss Row resolves in the batch that OPENS its window (ADR 0024):
+    // leaving Loadout lands in Boss Instant with the Instant Row resolved,
+    // every boss fact stamped with the Boss's own phase.
     const instant = advancePhase(catalog, state)
     state = instant.state
-    expect(state.phase).toBe('quick')
+    expect(state.phase).toBe('instant')
     const beatFacts = instant.facts.filter((fact) => fact.kind === 'resolve_boss')
     expect(beatFacts.map((fact) => fact.detail.beatId)).toEqual(['turn_to_tank', 'raking_claw', 'claw_scorch'])
+    expect(beatFacts.every((fact) => fact.phase === 'instant')).toBe(true)
     expect(hero(state).health).toBe(30)
     const clawFact = instant.facts.find((fact) => fact.kind === 'damage')
     expect(clawFact?.resolutionFact).toMatchObject({
@@ -141,16 +142,21 @@ describe('phase cycle', () => {
     expect(state.board.hazards[hexKey({ q: 0, r: 0 })]?.[0]?.id).toBe('scorched')
 
     state = advancePhase(catalog, state).state
-    expect(state.phase).toBe('incoming')
+    expect(state.phase).toBe('quick')
 
+    // Ending the Quick Window opens Boss Incoming with its Row resolved.
     const incoming = advancePhase(catalog, state)
     state = incoming.state
-    expect(state.phase).toBe('slow')
+    expect(state.phase).toBe('incoming')
     expect(hero(state).health).toBe(25)
     const spawns = incoming.facts.filter((fact) => fact.kind === 'spawn_minion')
     expect(spawns).toHaveLength(2)
+    expect(incoming.facts.filter((fact) => fact.kind === 'resolve_boss').every((fact) => fact.phase === 'incoming')).toBe(true)
     expect(state.board.entities.whelp_1).toMatchObject({ kind: 'minion', health: 2, coords: { q: -2, r: 1 } })
     expect(state.board.entities.whelp_2).toMatchObject({ kind: 'minion', coords: { q: -1, r: 2 } })
+
+    state = advancePhase(catalog, state).state
+    expect(state.phase).toBe('slow')
 
     const wrap = advancePhase(catalog, state)
     state = wrap.state
@@ -639,7 +645,7 @@ describe('Encounter Records (schema_version 2)', () => {
     })
     state = rejected.state
     facts.push(...rejected.facts)
-    // Two advances resolve the Boss Instant row (generated actions).
+    // Two advances cross Boss Instant; the first carries its generated actions.
     for (let step = 0; step < 2; step += 1) {
       const result = advancePhase(catalog, state)
       state = result.state

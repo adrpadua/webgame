@@ -1,12 +1,11 @@
 import { useEffect, useRef } from 'react'
-import { cardChargeCap, type EncounterState, type Phase } from '@/engine'
+import { cardChargeCap, type EncounterState } from '@/engine'
 import { useOnboarding } from '@/store/onboarding'
 import { selectState, useWorkbench, type WorkbenchCatalog } from '@/store/workbench'
 import { BootIcon, HexIcon, ShieldIcon, SwordIcon } from './icons'
 import { useHold, type HoldDetail } from './HoldPopover'
 import { slotCanFire } from './slots'
 import { FOCUS_RING_CLASS } from './theme'
-import { usePresentedPhase } from './usePresentedPhase'
 
 // Non-blocking coaching for a player past the scripted first turn: one
 // four-word cue at a time, derived from the live Encounter state, with the
@@ -25,10 +24,7 @@ function tip(id: string, icon: typeof SwordIcon, tone: string, cue: string, titl
   return { id, icon, tone, cue, detail: { id: `tip:${id}`, title, tone: 'neutral', text } }
 }
 
-// Tips follow the presented phase, not state.phase: while Boss Beats are
-// still replaying, "Your window" must not appear (and must not retire the
-// boss-beat tip) before the Boss's turn has finished on screen.
-function currentTip(catalog: WorkbenchCatalog, state: EncounterState, phase: Phase): Tip | null {
+function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | null {
   if (!state.active) {
     return null
   }
@@ -42,7 +38,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState, phase: Pha
     (slot) => slot.topCard !== null && slot.activatedWindow === null && slot.charges.length < cardChargeCap(catalog.cards[slot.topCard.cardId]),
   )
 
-  if (phase === 'loadout' && loadedSlots.length === 0 && hero.hand.length > 0) {
+  if (state.phase === 'loadout' && loadedSlots.length === 0 && hero.hand.length > 0) {
     return tip(
       'prepare',
       ShieldIcon,
@@ -52,7 +48,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState, phase: Pha
       'Drag a card from your Hand onto an empty Slot, or tap the card and then the Slot.',
     )
   }
-  if (phase === 'loadout' && loadedSlots.length > 0) {
+  if (state.phase === 'loadout' && loadedSlots.length > 0) {
     return tip(
       'loadout-next',
       BootIcon,
@@ -62,14 +58,14 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState, phase: Pha
       'Embermaw acts first. Its coming beats are named on the amber strip up top.',
     )
   }
-  if (phase === 'instant' || phase === 'incoming') {
+  if (state.phase === 'instant' || state.phase === 'incoming') {
     return tip(
       'boss-beat',
       SwordIcon,
       'border-amber-700 bg-amber-950/80 text-amber-100',
       "Embermaw's beat",
       'The Boss acts',
-      'Press Next to resolve the amber beats. Hold any beat chip to read what it does.',
+      'The amber beats resolve one at a time. Hold any beat chip to read what it does; Next moves on once they land.',
     )
   }
   if (fireable) {
@@ -82,7 +78,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState, phase: Pha
       'Tap the Slot to resolve its Top Card together with everything charged under it.',
     )
   }
-  if ((phase === 'quick' || phase === 'slow') && hero.hand.length > 0 && chargeable) {
+  if ((state.phase === 'quick' || state.phase === 'slow') && hero.hand.length > 0 && chargeable) {
     return tip(
       'charge',
       HexIcon,
@@ -104,8 +100,7 @@ export function CoachMark() {
   // The scripted first turn owns this row while it runs.
   const firstTurnActive = useOnboarding((store) => store.firstTurnActive)
 
-  const phase = usePresentedPhase()
-  const tipNow = currentTip(catalog, state, phase)
+  const tipNow = currentTip(catalog, state)
   const visibleTip = tipNow !== null && !dismissedTips.includes(tipNow.id) ? tipNow : null
   const hold = useHold(visibleTip?.detail ?? null)
 
