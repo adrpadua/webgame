@@ -37,8 +37,12 @@ Four failure modes are documented in full in [elian-voss-card-prompts.md](../../
 - ~~`leonardo.ai` was blocked by the remote session's egress proxy, so the feature list in `_tools.md` rested on secondary coverage.~~ Closed 2026-08-16: the feature list was confirmed against Leonardo's official API documentation, which is a better source than the vendor article this note asked for.
 - Two commits touching GDScript — `03c50bf` (arena backdrop constant) and `e0591cb` (placeholder card art seam) — are on `main` verified statically only, by grep rather than execution, because the remote container had no Godot binary. **This is deferred, not pending.** Godot work is paused until the web version feels like a real game, which extends the freeze ADR 0019 already put on the Godot codebase. Do not schedule a local launch to close this out; re-check it whenever the freeze lifts. Both commits are mechanical and value-preserving, so the exposure is small.
 
-## When Art Lands
+## When Art Lands: Bank It, Do Not Wire It
 
-Wiring steps are in [README.md](../../docs/content/art-prompts/README.md). The short version: card art is data-driven, so set `artwork` on each `.tres` in `resources/cards/tank/` and no code changes. Board art is hardcoded and needs a script edit per asset.
+**Decided 2026-08-16: finished art gets committed and left unwired.** Commit each approved generation under `assets/art/cards/elian-voss/`, named for its card in hyphenated form, matching `guard-stance.png` for `guard_stance`, and stop there.
 
-Once every card sets `artwork`, delete `BY_CARD_ID` and `for_card_id()` from `scripts/cards/PlaceholderCardArt.gd` — but **not** `EMPTY_SLOT`, which draws the no-card state and outlives real card art. That file documents the split.
+Every wiring path this project has is Godot — card art is data-driven through `artwork` on the `.tres` files, board art is hardcoded per script — and Godot is paused until the web version feels like a real game. The web surface cannot consume the art either: card content in `data/cards/*.json` carries no art field and nothing under `web/src/` reads card imagery. **Adding one is explicitly out of scope**; the schema is not to be touched for this.
+
+So the art has no renderer right now, and that is accepted rather than a problem to solve. It still earns its keep two ways: it is the training set for the style model described in [`_tools.md`](../../docs/content/art-prompts/_tools.md), which wants roughly fifteen consistent assets and does not care which client draws them; and it is ready the moment either freeze lifts.
+
+The wiring steps stay documented in [README.md](../../docs/content/art-prompts/README.md) for whenever that happens. The short version, unchanged: set `artwork` on each `.tres` in `resources/cards/tank/` with no code changes, and once every card sets it, delete `BY_CARD_ID` and `for_card_id()` from `scripts/cards/PlaceholderCardArt.gd` — but **not** `EMPTY_SLOT`, which draws the no-card state and outlives real card art. Do none of that now.
