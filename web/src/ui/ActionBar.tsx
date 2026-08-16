@@ -51,6 +51,7 @@ export function ActionBar() {
             data-top-card={slot.topCard?.cardId ?? ''}
             data-charges={slot.charges.length}
             data-incoming-action={incomingAction ?? ''}
+            data-incoming-legal={incomingAction === null ? '' : String(incomingLegal)}
             onClick={() => {
               if (selectedCardId !== null) {
                 cardDroppedOnSlot(selectedCardId, slotIndex)
@@ -72,10 +73,10 @@ export function ActionBar() {
             className={`relative min-h-20 flex-1 rounded-xl border-2 p-2 text-left transition ${FOCUS_RING_CLASS} ${
               incomingCardId !== null && incomingLegal
                 ? incomingAction === 'Replace'
-                  ? 'animate-pulse border-amber-400 bg-amber-950/50'
-                  : 'animate-pulse border-emerald-400 bg-emerald-950/50'
+                  ? 'animate-pulse border-amber-400 bg-amber-950/50 motion-reduce:animate-none'
+                  : 'animate-pulse border-emerald-400 bg-emerald-950/50 motion-reduce:animate-none'
                 : canFire
-                  ? 'animate-pulse border-emerald-500 bg-emerald-950/60 hover:bg-emerald-900/60'
+                  ? 'animate-pulse border-emerald-500 bg-emerald-950/60 hover:bg-emerald-900/60 motion-reduce:animate-none'
                   : primed
                     ? 'border-amber-500 bg-amber-950/40'
                     : card
@@ -83,10 +84,14 @@ export function ActionBar() {
                       : 'border-dashed border-zinc-700 bg-zinc-900/40'
             }`}
           >
-            {incomingAction !== null && incomingLegal && (
+            {incomingAction !== null && (
               <span
                 className={`absolute -top-2 right-2 rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wide uppercase ${
-                  incomingAction === 'Replace' ? 'bg-amber-500 text-amber-950' : 'bg-emerald-500 text-emerald-950'
+                  !incomingLegal
+                    ? 'bg-zinc-700 text-zinc-400 line-through'
+                    : incomingAction === 'Replace'
+                      ? 'bg-amber-500 text-amber-950'
+                      : 'bg-emerald-500 text-emerald-950'
                 }`}
               >
                 {incomingAction}
@@ -96,9 +101,7 @@ export function ActionBar() {
               <>
                 <div className="flex items-baseline justify-between gap-1">
                   <span className="text-xs font-bold text-zinc-100">{card.title}</span>
-                  <span className={`text-[9px] font-semibold uppercase ${windowToneClass(windowSpeed as 'quick' | 'slow')}`}>
-                    {windowSpeed}
-                  </span>
+                  <span className={`text-[9px] font-semibold uppercase ${windowToneClass(cardWindowSpeed(card))}`}>{windowSpeed}</span>
                 </div>
                 <div className="mt-1 flex items-center gap-1">
                   {Array.from({ length: chargeCap }, (_, index) => (

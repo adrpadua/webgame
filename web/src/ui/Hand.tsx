@@ -100,12 +100,17 @@ export function Hand() {
                 setDraggingCard(instance.instanceId)
               }}
               onDragEnd={() => setDraggingCard(null)}
-              className={`min-h-24 flex-1 cursor-grab rounded-xl border p-2 text-left shadow-md transition hover:-translate-y-1 active:cursor-grabbing ${FOCUS_RING_CLASS} ${
+              className={`relative min-h-24 flex-1 cursor-grab rounded-xl border p-2 text-left shadow-md transition hover:-translate-y-1 active:cursor-grabbing ${FOCUS_RING_CLASS} ${
                 selected
                   ? '-translate-y-1 border-emerald-400 bg-linear-to-b from-emerald-900/60 to-zinc-800 ring-2 ring-emerald-400'
                   : 'border-zinc-600 bg-linear-to-b from-zinc-700 to-zinc-800 hover:border-zinc-400'
               }`}
             >
+              {selected && (
+                <span className="absolute -top-2 right-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold tracking-wide text-emerald-950 uppercase">
+                  Selected
+                </span>
+              )}
               <div className="text-[11px] leading-tight font-bold text-zinc-50">{card.title}</div>
               <div className={`mt-1 text-[9px] font-semibold uppercase ${windowToneClass(windowSpeed)}`}>{windowSpeed}</div>
               <div className="mt-1 text-[9px] text-zinc-400">Charge {cardChargeCap(card)}</div>

@@ -94,6 +94,14 @@ function initialEntry(seed: number): HistoryEntry {
   return { label: 'Encounter start', step: null, state: createEncounterState(catalog, DEFAULT_ENCOUNTER_ID, seed), facts: [] }
 }
 
+// Every session transition drops in-flight gesture state the same way.
+const CLEARED_INTERACTION = {
+  targetingSlotIndex: null,
+  selectedCardId: null,
+  pendingReplacement: null,
+  lastRejection: null,
+} as const
+
 export const useWorkbench = create<WorkbenchStore>((set, get) => {
   function pushEntry(label: string, step: ScenarioStep | null, state: EncounterState, produced: ResolvedActionFact[]): void {
     const { entries, index } = get()
@@ -130,7 +138,7 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
       const state = selectState(get())
       const result = advancePhase(catalog, state)
       pushEntry(`Advance (${state.phase} ends)`, { advance: true }, result.state, result.facts)
-      set({ targetingSlotIndex: null, selectedCardId: null, pendingReplacement: null, lastRejection: null })
+      set(CLEARED_INTERACTION)
     },
 
     restart: (seed) => {
@@ -141,11 +149,8 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
         index: 0,
         activeScenarioId: null,
         sessionStartedAt: new Date().toISOString(),
-        targetingSlotIndex: null,
         draggingCardId: null,
-        selectedCardId: null,
-        pendingReplacement: null,
-        lastRejection: null,
+        ...CLEARED_INTERACTION,
       })
     },
 
@@ -172,18 +177,15 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
         index: entries.length - 1,
         activeScenarioId: scenarioId,
         sessionStartedAt: new Date().toISOString(),
-        targetingSlotIndex: null,
         draggingCardId: null,
-        selectedCardId: null,
-        pendingReplacement: null,
-        lastRejection: null,
+        ...CLEARED_INTERACTION,
       })
     },
 
     timeTravelTo: (index) => {
       const { entries } = get()
       const clamped = Math.max(0, Math.min(index, entries.length - 1))
-      set({ index: clamped, targetingSlotIndex: null, selectedCardId: null, pendingReplacement: null, lastRejection: null })
+      set({ index: clamped, ...CLEARED_INTERACTION })
     },
 
     // The current session up to the viewed position, as a Scenario payload:

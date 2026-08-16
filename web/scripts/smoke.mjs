@@ -79,15 +79,19 @@ try {
   assert((await slot1.getAttribute('data-top-card')) !== '', 'tapping the empty Slot prepares the selected card')
   assert((await page.locator('[data-testid="replace-confirm"]').count()) === 0, 'preparing an empty Slot needs no confirmation')
 
-  // Slot Replacement is destructive, so it must confirm before resolving.
+  // Slot Replacement is destructive, so it must confirm before resolving —
+  // and a cancelled confirmation must leave no trace in the Scenario steps.
+  const stepsBeforeReplace = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
   const slot0CardBefore = await slot0.getAttribute('data-top-card')
   await page.locator('[data-testid="hand-card"]').first().click()
   await slot0.click()
   await page.waitForSelector('[data-testid="replace-confirm"]')
-  assert(true, 'replacing an occupied Slot opens the confirmation modal')
+  assert((await page.locator('[data-testid="replace-confirm"]').count()) === 1, 'replacing an occupied Slot opens the confirmation modal')
   await page.locator('[data-testid="cancel-replace"]').click()
-  await page.waitForTimeout(100)
+  await page.waitForSelector('[data-testid="replace-confirm"]', { state: 'detached' })
   assert((await slot0.getAttribute('data-top-card')) === slot0CardBefore, 'cancelling keeps the Slot bundle intact')
+  const stepsAfterCancel = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
+  assert(stepsAfterCancel === stepsBeforeReplace, 'a cancelled replacement records no Scenario step')
 
   await next()
   assert((await phase()) === 'instant', 'Next advances into Boss Instant')
@@ -140,6 +144,21 @@ try {
   assert(round?.includes('Round 2'), `the Boss Timeline rolled forward (${round?.trim()})`)
   assert((await page.locator('[data-testid="hand-card"]').count()) === 4, 'end-of-Round draw refilled the Hand to 4')
 
+  // A confirmed replacement (Round 2 Loadout, refilled hand) resolves as
+  // exactly one load_slot step.
+  const stepsBeforeConfirm = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
+  const replacementCard = page.locator('[data-testid="hand-card"]').first()
+  const replacementCardId = await replacementCard.getAttribute('data-card-id')
+  await replacementCard.click()
+  await slot0.click()
+  await page.waitForSelector('[data-testid="replace-confirm"]')
+  await page.locator('[data-testid="confirm-replace"]').click()
+  await page.waitForSelector('[data-testid="replace-confirm"]', { state: 'detached' })
+  assert((await slot0.getAttribute('data-top-card')) === replacementCardId, 'confirming replaces the Top Card with the selected card')
+  assert((await slot0.getAttribute('data-charges')) === '0', 'the replacement loads at 0 Charge')
+  const stepsAfterConfirm = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
+  assert(stepsAfterConfirm === stepsBeforeConfirm + 1, 'a confirmed replacement records exactly one Scenario step')
+
   // M3 exit criterion: export the session just played as an Encounter Record
   // (schema_version 2); the headless runner replays it after the browser
   // closes and must reach an identical final state.
@@ -156,7 +175,10 @@ try {
   await page.selectOption('[data-testid="scenario-select"]', 'embermaw_victory_line')
   await page.locator('[data-testid="load-scenario"]').click()
   await page.waitForSelector('[data-testid="outcome-banner"][data-outcome="victory"]')
-  assert(true, 'the victory Scenario replays to the Victory banner')
+  assert(
+    (await page.locator('[data-testid="outcome-banner"]').getAttribute('data-outcome')) === 'victory',
+    'the victory Scenario replays to the Victory banner',
+  )
 
   const position = await page.locator('[data-testid="time-travel-position"]').textContent()
   assert(/Step \d+ \/ \d+/.test(position ?? ''), `time travel shows the Scenario line (${position?.trim()})`)

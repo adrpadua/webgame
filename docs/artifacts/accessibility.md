@@ -29,6 +29,7 @@ This prototype follows a practical WCAG-oriented interaction baseline for its pl
 - With `accessibility/reduced_motion` enabled, selection and Slot transitions resolve directly to the same static end state.
 - Selected card titles dynamically reduce within a bounded readable range so the complete title fits rather than clipping.
 - The command-state color pairs are asserted at or above `4.5:1`; the current normal, hover, disabled, and focus values measure `8.16:1`, `6.97:1`, `7.17:1`, and `7.24:1` respectively.
+- The Encounter Workbench (`web/`) carries the same contract with its own label vocabulary: destination outcomes read `Prepare`/`Charge`/`Replace` as text badges (an illegal destination shows the badge muted and struck through), the selected Compact Card pairs its lift and ring with a `Selected` badge, movement uses the labeled move-pad direction buttons, and every pulse animation declares a `motion-reduce` static end state. The Godot tokens (`LOAD`, `SEL`, `MOVE`, ...) remain the frozen HUD's vocabulary.
 
 ## Verification
 
