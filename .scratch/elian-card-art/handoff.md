@@ -10,7 +10,7 @@ This file is transient run state. The durable system lives in [docs/content/art-
 
 - The best `guard_stance` result satisfied pose, crop, arms, and rendering, but predates the setting direction and has an empty background. It needs re-rolling against its `SETTING:` line. Its pose and crop are the reference to preserve — attach it and change only the background.
 
-  That image is on disk at `assets/art/cards/elian-voss/guard-stance.png` (1023×1537). It is **untracked** — it is not in any commit, so it exists only in this working copy and will not survive a clean clone. Its background is flat grey diagonal bands, which is what needs replacing; everything else in it is the target.
+  That image is committed at `assets/art/cards/elian-voss/guard-stance.png` (1023×1537), alongside the anchor concept in `assets/art/concepts/elian-voss/`. Its background is flat grey diagonal bands, which is what needs replacing; everything else in it is the target.
 - The `iron_guard` attempt produced eight or more panels and buried the figure. The block now specifies exactly four. It also cannot be judged until `guard_stance` exists, since its whole prompt is written to match that image.
 
 **Board art has not been started.** Prompts are ready in [board-art-prompts.md](../../docs/content/art-prompts/board-art-prompts.md).
