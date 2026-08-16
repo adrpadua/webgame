@@ -206,6 +206,16 @@ The second run fixed the pose but surfaced two more, both since addressed in the
 
 **Blur is not absence.** Told to drop the background, the model kept the architecture and defocused it — walls, columns, and a tiled floor grid still fully legible behind a depth-of-field haze. The rule now says outright that the structures must not be drawn at all, not drawn softly. Watch for the same move on any negative instruction: compliance-by-attenuation rather than compliance.
 
+## Known Failure Mode: Correction Whack-A-Mole
+
+The third run fixed both named faults and regressed on one that had already been solved. The background became fully compliant and the broken arm was repaired, but the action pose reverted to a neutral standing figure, the crop loosened back out, and the opposite arm vanished into the rig.
+
+This is the important lesson of the run and it is about method, not wording. **A corrective reply naming two faults gets those two fixed at the expense of constraints it does not mention.** The model weights the most recent instruction heavily and lets unmentioned earlier requirements drift.
+
+So: allow at most two corrective replies. After that, stop replying and re-roll from a single consolidated message that restates **every** constraint at once — pose, crop, arms, background, character, rendering — with the requirement that keeps slipping placed first and marked as the priority. Do not assume anything already achieved will persist just because it was achieved once.
+
+Pose is the constraint that slips most on this Hero, because the attached reference is a calm standing concept sheet and every turn pulls back toward it. Restate the pose requirement in every consolidated re-roll, however many times it has already been satisfied.
+
 ## Accepting Each Result
 
 From [card-ability-art.md](card-ability-art.md) — every illustration must answer, at thumbnail size: which Hero owns it, which role job it expresses, what material creates the effect, what board relationship matters, and which beat it is.
