@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
-import { getStatuses, type StatusInstance } from '@/engine'
+import { getStatuses, type HeroState, type StatusInstance } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { HeartIcon, HeroEmblem, PresenceIcon, ShieldIcon } from './icons'
 import { HERO_STAT_DETAILS } from './holdDetails'
 import { useHold, type HoldDetail } from './HoldPopover'
 import { FOCUS_RING_CLASS } from './theme'
 
-// The Hero's line: an emblem, three gauges, and the deck gauge. Each stat is
-// a filled bar with its number overlaid, so how full you are reads at a
-// glance and the exact figure is still right there. What each gauge means is
-// a hold away.
+// The Hero's line: an emblem, the health gauge, the presence gauge, and the
+// deck gauge. Each stat is a filled bar with its number overlaid, so how full
+// you are reads at a glance and the exact figure is still right there. Armor
+// rides the health bar as an overlay segment — it absorbs damage first, so it
+// draws in the same currency, appended after the health fill. What each gauge
+// means is a hold away.
 
-// Armor and Presence have no hard cap, so their bars fill against a display
-// scale: the value a strong round realistically reaches. Past it the bar
-// pins full and the number keeps counting.
-const ARMOR_BAR_SCALE = 10
+// Presence has no hard cap, so its bar fills against a display scale: the
+// value a strong round realistically reaches. Past it the bar pins full and
+// the number keeps counting.
 const PRESENCE_BAR_SCALE = 6
 
 function StatBar({
@@ -25,10 +26,7 @@ function StatBar({
   widthClass,
   value,
   fraction,
-  testId,
   label,
-  flashing,
-  flashKey,
 }: {
   detail: HoldDetail
   icon: typeof HeartIcon
@@ -37,10 +35,7 @@ function StatBar({
   widthClass: string
   value: string
   fraction: number
-  testId?: string
   label: string
-  flashing?: boolean
-  flashKey?: number
 }) {
   const hold = useHold(detail)
   const filled = Math.max(0, Math.min(1, fraction))
@@ -49,7 +44,6 @@ function StatBar({
       type="button"
       {...hold.holdProps}
       aria-label={`${label} ${value}`}
-      data-testid={testId}
       className={`flex min-h-11 min-w-11 items-center justify-center ${FOCUS_RING_CLASS}`}
     >
       <span className={`relative block h-[18px] overflow-hidden rounded-sm bg-zinc-800 ${widthClass}`}>
@@ -59,9 +53,58 @@ function StatBar({
         />
         <span className={`absolute inset-0 flex items-center justify-center gap-1 text-[10px] font-semibold ${textClass}`}>
           <Icon className="h-3 w-3 shrink-0" />
+          <span>{value}</span>
+        </span>
+      </span>
+    </button>
+  )
+}
+
+// Health and Armor share one bar. Both fills sit on the same scale, and when
+// armor lifts the total past max health the scale stretches so the whole
+// stack stays inside the track.
+function HealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing: boolean; flashKey: number }) {
+  const hold = useHold({
+    ...HERO_STAT_DETAILS.health,
+    stats: [
+      { label: 'Maximum', value: String(hero.maxHealth) },
+      { label: 'Armor now', value: String(hero.armor) },
+    ],
+    text: `${HERO_STAT_DETAILS.health.text} ${HERO_STAT_DETAILS.armor.text}`,
+  })
+  const scale = Math.max(hero.maxHealth, hero.health + hero.armor, 1)
+  const healthFraction = Math.max(0, hero.health) / scale
+  const armorFraction = Math.max(0, hero.armor) / scale
+  return (
+    <button
+      type="button"
+      {...hold.holdProps}
+      aria-label={`Health ${hero.health}/${hero.maxHealth}, Armor ${hero.armor}`}
+      data-testid="hero-health"
+      className={`flex min-h-11 min-w-11 items-center justify-center ${FOCUS_RING_CLASS}`}
+    >
+      <span className="relative block h-[18px] w-32 overflow-hidden rounded-sm bg-zinc-800">
+        <span
+          className="absolute inset-y-0 left-0 bg-red-500/70 transition-[width] duration-300"
+          style={{ width: `${healthFraction * 100}%` }}
+        />
+        <span
+          className="absolute inset-y-0 bg-sky-500/70 transition-[left,width] duration-300"
+          style={{ left: `${healthFraction * 100}%`, width: `${armorFraction * 100}%` }}
+        />
+        <span className="absolute inset-0 flex items-center justify-center gap-1 text-[10px] font-semibold text-red-50">
+          <HeartIcon className="h-3 w-3 shrink-0" />
           <span key={flashKey} className={flashing ? 'wb-damage-flash origin-left' : undefined}>
-            {value}
+            {hero.health}/{hero.maxHealth}
           </span>
+          {hero.armor > 0 && (
+            <>
+              <ShieldIcon className="ml-0.5 h-3 w-3 shrink-0 text-sky-300" />
+              <span data-testid="hero-armor" className="text-sky-100">
+                {hero.armor}
+              </span>
+            </>
+          )}
         </span>
       </span>
     </button>
@@ -124,30 +167,7 @@ export function PlayerPanel() {
         <HeroEmblem className="h-4 w-4 text-sky-400" />
         {entity?.title ?? hero.id}
       </span>
-      <StatBar
-        detail={{ ...HERO_STAT_DETAILS.health, stats: [{ label: 'Maximum', value: String(hero.maxHealth) }] }}
-        icon={HeartIcon}
-        fillClass="bg-red-500/70"
-        textClass="text-red-50"
-        widthClass="w-24"
-        label="Health"
-        value={`${hero.health}/${hero.maxHealth}`}
-        fraction={hero.maxHealth > 0 ? hero.health / hero.maxHealth : 0}
-        testId="hero-health"
-        flashing={flashing}
-        flashKey={flashKey}
-      />
-      <StatBar
-        detail={HERO_STAT_DETAILS.armor}
-        icon={ShieldIcon}
-        fillClass="bg-sky-500/70"
-        textClass="text-sky-50"
-        widthClass="w-14"
-        label="Armor"
-        value={String(hero.armor)}
-        fraction={hero.armor / ARMOR_BAR_SCALE}
-        testId="hero-armor"
-      />
+      <HealthBar hero={hero} flashing={flashing} flashKey={flashKey} />
       <StatBar
         detail={HERO_STAT_DETAILS.presence}
         icon={PresenceIcon}
