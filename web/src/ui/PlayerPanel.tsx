@@ -51,7 +51,7 @@ function StatBar({
           className={`absolute inset-y-0 left-0 transition-[width] duration-300 ${fillClass}`}
           style={{ width: `${filled * 100}%` }}
         />
-        <span className={`absolute inset-0 flex items-center justify-center gap-1 text-[10px] font-semibold ${textClass}`}>
+        <span className={`absolute inset-0 flex items-center justify-center gap-1 text-[10px] font-semibold [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] ${textClass}`}>
           <Icon className="h-3 w-3 shrink-0" />
           <span>{value}</span>
         </span>
@@ -92,7 +92,7 @@ function HealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing: bo
           className="absolute inset-y-0 bg-sky-500/70 transition-[left,width] duration-300"
           style={{ left: `${healthFraction * 100}%`, width: `${armorFraction * 100}%` }}
         />
-        <span className="absolute inset-0 flex items-center justify-center gap-1 text-[10px] font-semibold text-red-50">
+        <span className="absolute inset-0 flex items-center justify-center gap-1 text-[10px] font-semibold text-red-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
           <HeartIcon className="h-3 w-3 shrink-0" />
           <span key={flashKey} className={flashing ? 'wb-damage-flash origin-left' : undefined}>
             {hero.health}/{hero.maxHealth}

@@ -53,18 +53,21 @@ export function TopBar() {
         {...hold.holdProps}
         data-testid="boss-bar"
         aria-label={`${boss?.title ?? 'Boss'}, ${boss?.health ?? 0} of ${boss?.maxHealth ?? 0} health`}
-        className={`flex min-h-12 flex-1 flex-col justify-center gap-1 rounded-lg px-1 text-left ${FOCUS_RING_CLASS}`}
+        className={`flex min-h-12 flex-1 items-center gap-2 rounded-lg px-1 text-left ${FOCUS_RING_CLASS}`}
       >
-        <div className="flex items-center gap-2">
-          <BossEmblem className="h-6 w-6 shrink-0 text-red-500" />
-          <span className="text-sm font-semibold tracking-wide text-zinc-100">{boss?.title ?? 'Boss'}</span>
-          <span key={flashKey} className={`ml-auto text-[11px] ${flashing ? 'wb-damage-flash text-red-300' : 'text-zinc-400'}`} data-testid="boss-health">
-            {boss?.health ?? 0} / {boss?.maxHealth ?? 0}
+        <BossEmblem className="h-6 w-6 shrink-0 text-red-500" />
+        <span className="shrink-0 text-sm font-semibold tracking-wide text-zinc-100">{boss?.title ?? 'Boss'}</span>
+        <span className="relative block h-[18px] flex-1 overflow-hidden rounded-sm bg-zinc-800">
+          <span
+            className="absolute inset-y-0 left-0 bg-linear-to-r from-red-700 to-red-500 transition-[width] duration-500"
+            style={{ width: `${healthPercent}%` }}
+          />
+          <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold text-red-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+            <span key={flashKey} className={flashing ? 'wb-damage-flash' : undefined} data-testid="boss-health">
+              {boss?.health ?? 0} / {boss?.maxHealth ?? 0}
+            </span>
           </span>
-        </div>
-        <div className="h-2.5 overflow-hidden rounded-full bg-zinc-800">
-          <div className="h-full rounded-full bg-linear-to-r from-red-700 to-red-500 transition-all duration-500" style={{ width: `${healthPercent}%` }} />
-        </div>
+        </span>
       </button>
       <span className="shrink-0 text-[11px] text-zinc-400" data-testid="round-display">
         Round {state.round}/{state.roundLimit}
