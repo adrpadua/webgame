@@ -6,15 +6,25 @@ import { HERO_STAT_DETAILS } from './holdDetails'
 import { useHold, type HoldDetail } from './HoldPopover'
 import { FOCUS_RING_CLASS } from './theme'
 
-// The Hero's line: an emblem, three numbers, and the deck count. What each
-// number means is a hold away, so the panel stays a glance rather than a
-// sentence.
+// The Hero's line: an emblem, three gauges, and the deck gauge. Each stat is
+// a filled bar with its number overlaid, so how full you are reads at a
+// glance and the exact figure is still right there. What each gauge means is
+// a hold away.
 
-function Stat({
+// Armor and Presence have no hard cap, so their bars fill against a display
+// scale: the value a strong round realistically reaches. Past it the bar
+// pins full and the number keeps counting.
+const ARMOR_BAR_SCALE = 10
+const PRESENCE_BAR_SCALE = 6
+
+function StatBar({
   detail,
   icon: Icon,
-  tone,
+  fillClass,
+  textClass,
+  widthClass,
   value,
+  fraction,
   testId,
   label,
   flashing,
@@ -22,25 +32,37 @@ function Stat({
 }: {
   detail: HoldDetail
   icon: typeof HeartIcon
-  tone: string
+  fillClass: string
+  textClass: string
+  widthClass: string
   value: string
+  fraction: number
   testId?: string
   label: string
   flashing?: boolean
   flashKey?: number
 }) {
   const hold = useHold(detail)
+  const filled = Math.max(0, Math.min(1, fraction))
   return (
     <button
       type="button"
       {...hold.holdProps}
       aria-label={`${label} ${value}`}
       data-testid={testId}
-      className={`flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-md px-1 text-xs font-semibold ${tone} ${FOCUS_RING_CLASS}`}
+      className={`flex min-h-11 min-w-11 items-center justify-center ${FOCUS_RING_CLASS}`}
     >
-      <Icon className="h-3.5 w-3.5 shrink-0" />
-      <span key={flashKey} className={flashing ? 'wb-damage-flash origin-left' : undefined}>
-        {value}
+      <span className={`relative block h-[18px] overflow-hidden rounded-sm bg-zinc-800 ${widthClass}`}>
+        <span
+          className={`absolute inset-y-0 left-0 transition-[width] duration-300 ${fillClass}`}
+          style={{ width: `${filled * 100}%` }}
+        />
+        <span className={`absolute inset-0 flex items-center justify-center gap-1 text-[10px] font-semibold ${textClass}`}>
+          <Icon className="h-3 w-3 shrink-0" />
+          <span key={flashKey} className={flashing ? 'wb-damage-flash origin-left' : undefined}>
+            {value}
+          </span>
+        </span>
       </span>
     </button>
   )
@@ -92,29 +114,55 @@ export function PlayerPanel() {
     return null
   }
   const statuses = getStatuses(state, state.primaryHeroId)
+  // The deck gauge drains against every card the Hero owns, wherever it sits
+  // right now: deck, hand, discard, or prepared into a Slot.
+  const preparedCount = hero.actionBar.reduce((count, slot) => count + slot.charges.length + (slot.topCard === null ? 0 : 1), 0)
+  const librarySize = hero.deck.length + hero.hand.length + hero.discard.length + preparedCount
   return (
     <div className="flex items-center gap-1 border-t border-zinc-800 bg-zinc-900/60 px-3 text-xs" data-testid="player-panel">
       <span className="flex shrink-0 items-center gap-1.5 font-semibold text-zinc-100">
         <HeroEmblem className="h-4 w-4 text-sky-400" />
         {entity?.title ?? hero.id}
       </span>
-      <Stat
+      <StatBar
         detail={{ ...HERO_STAT_DETAILS.health, stats: [{ label: 'Maximum', value: String(hero.maxHealth) }] }}
         icon={HeartIcon}
-        tone="text-red-400"
+        fillClass="bg-red-500/70"
+        textClass="text-red-50"
+        widthClass="w-24"
         label="Health"
         value={`${hero.health}/${hero.maxHealth}`}
+        fraction={hero.maxHealth > 0 ? hero.health / hero.maxHealth : 0}
         testId="hero-health"
         flashing={flashing}
         flashKey={flashKey}
       />
-      <Stat detail={HERO_STAT_DETAILS.armor} icon={ShieldIcon} tone="text-sky-400" label="Armor" value={String(hero.armor)} testId="hero-armor" />
-      <Stat detail={HERO_STAT_DETAILS.presence} icon={PresenceIcon} tone="text-violet-400" label="Presence" value={String(hero.presence)} />
+      <StatBar
+        detail={HERO_STAT_DETAILS.armor}
+        icon={ShieldIcon}
+        fillClass="bg-sky-500/70"
+        textClass="text-sky-50"
+        widthClass="w-14"
+        label="Armor"
+        value={String(hero.armor)}
+        fraction={hero.armor / ARMOR_BAR_SCALE}
+        testId="hero-armor"
+      />
+      <StatBar
+        detail={HERO_STAT_DETAILS.presence}
+        icon={PresenceIcon}
+        fillClass="bg-violet-500/70"
+        textClass="text-violet-50"
+        widthClass="w-14"
+        label="Presence"
+        value={String(hero.presence)}
+        fraction={hero.presence / PRESENCE_BAR_SCALE}
+      />
       <div className="ml-auto flex items-center gap-1">
         {statuses.map((status) => (
           <StatusChip key={status.id} status={status} />
         ))}
-        <Stat
+        <StatBar
           detail={{
             ...HERO_STAT_DETAILS.cards,
             stats: [
@@ -124,9 +172,12 @@ export function PlayerPanel() {
             ],
           }}
           icon={DeckIcon}
-          tone="text-zinc-500"
+          fillClass="bg-zinc-600/80"
+          textClass="text-zinc-200"
+          widthClass="w-16"
           label="Cards in deck"
           value={String(hero.deck.length)}
+          fraction={librarySize > 0 ? hero.deck.length / librarySize : 0}
         />
       </div>
     </div>
