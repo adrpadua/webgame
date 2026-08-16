@@ -54,6 +54,8 @@ DRAW ARMS AND HANDS CLEARLY. Every arm must read as one unbroken line from shoul
 
 KEEP THE SILHOUETTE READABLE. Translucent runeglass panels must not cover the head or the mass of the torso. Place them so the body still reads as a clear shape. These are viewed as small phone thumbnails, where a large transparent rectangle across the figure becomes an unreadable blob.
 
+THE HERO IS THE SUBJECT. Deployed panels, projected geometry, and effects support the figure; they never become the picture. No effect element should occupy more than about a third of the frame, and Elian must stay centered rather than pushed toward an edge. When an ability calls for more of something, add it around the figure, never in front of it.
+
 One dominant visual idea. The material or implement creating the effect must be visibly the source of that effect.
 
 NEVER INCLUDE:
@@ -72,6 +74,7 @@ Generate these three consecutively, in this order.
 ABILITY: Guard Stance.
 WHAT HAPPENS: Elian brings the Gate Rig up into a braced front — two runeglass panels swinging up and seating into position across their body, cyan seams flaring as each panel locks home. The first rung of the defensive ladder: composed, economical, one clean motion.
 POSE: Caught at the instant of bracing — panels still mid-swing, not yet fully seated, Elian's weight dropping into the stance. Three-quarter view, tight crop.
+PANEL COUNT: Exactly two runeglass panels. This is the bottom rung of a three-step ladder, so keep it sparse.
 BOARD RELATIONSHIP: Self.
 BEAT: Setup.
 
@@ -84,10 +87,11 @@ HOLD: Mid-action pose with the weight visibly committed — never a standing fig
 ABILITY: Iron Guard.
 WHAT HAPPENS: The same brace as Guard Stance, escalated. Additional runeglass panels stack and lock in layers, overlapping into a deeper wall, living-gold lockwork visibly engaging between them. The pose reads as the same discipline held harder and longer.
 POSE: Mid-lock, additional panels sliding into place over the first, shoulder driving forward into the brace. Same viewing angle as Guard Stance so the escalation reads.
+PANEL COUNT: Exactly four runeglass panels — double Guard Stance, half of Fortify. A viewer must be able to count them at a glance; that countability is the escalation. Do not fill the frame with glass.
 BOARD RELATIONSHIP: Self.
 BEAT: Setup.
 
-HOLD: Everything from the Guard Stance image — same camera angle, same crouched committed stance, same tight crop, same abstract background with no architecture, both arms fully drawn from shoulder to hand, same flat cel rendering. The only change is more panels, stacked deeper.
+HOLD: Everything from the Guard Stance image — same camera angle, same crouched committed stance, same tight crop, same abstract background with no architecture, both arms fully drawn from shoulder to hand, same flat cel rendering. Elian remains the subject and stays centered; the panels support the figure and must not crowd it toward an edge or cover the torso. The only change is two additional panels.
 ```
 
 ### 3. Fortify → `fortify.png`
@@ -96,10 +100,11 @@ HOLD: Everything from the Guard Stance image — same camera angle, same crouche
 ABILITY: Fortify.
 WHAT HAPPENS: The Gate Rig at full deployment — every panel seated, every living-gold lock thrown and visible, the whole assembly closed into a fortress front around Elian. The top of the ladder: nothing left in reserve, the rig committed entirely to holding.
 POSE: The final lock throwing home, Elian braced behind a closed wall of panels, viewed from slightly low so the assembly looms. Same angle family as the other two Guard cards.
+PANEL COUNT: Exactly six runeglass panels — the top rung. Closed into one continuous front rather than scattered, so it reads as more complete than Iron Guard rather than merely more numerous.
 BOARD RELATIONSHIP: Self.
 BEAT: Recovery.
 
-HOLD: Everything from the Guard Stance and Iron Guard images — same camera angle family, same tight crop, same abstract background with no architecture, both arms fully drawn from shoulder to hand, same flat cel rendering. The only change is the rig fully closed with every lock thrown.
+HOLD: Everything from the Guard Stance and Iron Guard images — same camera angle family, same tight crop, same abstract background with no architecture, both arms fully drawn from shoulder to hand, same flat cel rendering. Elian remains the subject and stays centered; the panels support the figure and must not crowd it toward an edge or cover the torso. The only change is two more panels and the rig closing into one front with every lock thrown.
 ```
 
 ## Offense
@@ -245,6 +250,16 @@ The fourth run, from a single consolidated message, satisfied every constraint a
 Consolidation is therefore the method, not a fallback. Three rounds of one-axis corrections oscillated; one full restatement converged.
 
 The `HOLD:` line closing every block is the same lever used deliberately. Recency weighting is what caused the drift — the model favours the latest instruction — so the constraints that slip are placed **last** in each block rather than trusted to survive from the setup message. Send it every turn, including after a turn that came out perfectly. A block that just worked is the most tempting one to trim and the most expensive one to lose.
+
+## Known Failure Mode: Unbounded Comparatives
+
+Iron Guard's first attempt buried the Hero. Told "the only change is more panels, stacked deeper", the model maximised: eight or more panels filling over half the frame, Elian crowded to the left edge with the stack across the torso. At thumbnail size it read as a blue rectangle mass rather than a Hero bracing.
+
+The structural damage was worse than the composition. Guard Stance had two panels; this had eight; Fortify then had nowhere left to escalate to. **A comparative with no ceiling breaks a series** — "more", "deeper", "brighter", "wider" all invite the maximum, and the top of a ladder cannot exceed a middle rung that already went as far as the medium allows.
+
+Fixed by giving every rung an absolute rather than a comparative. The ladder is now two panels, four, then six, with the count stated in each block and the top rung distinguished by closing into one continuous front rather than by sheer quantity. A viewer can count the steps, which is what makes the escalation legible without numbers.
+
+Generalise this to any card whose effect scales: state the quantity, never the direction. Where a quantity is genuinely open-ended, bound it with the composition rule instead — effects stay under about a third of the frame and never crowd the figure off center.
 
 ## Accepting Each Result
 
