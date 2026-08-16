@@ -10,7 +10,9 @@ function hasSeenGuide(): boolean {
   try {
     return window.localStorage.getItem(GUIDE_SEEN_KEY) === 'true'
   } catch {
-    return true
+    // Storage blocked (private browsing): treat every visit as a first
+    // visit — showing the guide again beats never showing it.
+    return false
   }
 }
 
@@ -32,7 +34,6 @@ interface OnboardingStore {
   closeGuide: () => void
   setGuideStep: (step: number) => void
   dismissTip: (tipId: string) => void
-  resetTips: () => void
 }
 
 export const useOnboarding = create<OnboardingStore>((set) => ({
@@ -46,5 +47,4 @@ export const useOnboarding = create<OnboardingStore>((set) => ({
   },
   setGuideStep: (step) => set({ guideStep: step }),
   dismissTip: (tipId) => set((store) => (store.dismissedTips.includes(tipId) ? store : { dismissedTips: [...store.dismissedTips, tipId] })),
-  resetTips: () => set({ dismissedTips: [] }),
 }))

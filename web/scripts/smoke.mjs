@@ -62,6 +62,17 @@ try {
   await page.waitForSelector('[data-testid="guide-modal"]', { state: 'detached' })
   assert((await page.locator('[data-testid="guide-modal"]').count()) === 0, 'skipping dismisses the guide')
 
+  // The guide reopens on demand and dismisses via Escape (Modal contract).
+  await page.locator('[data-testid="open-guide"]').click()
+  await page.waitForSelector('[data-testid="guide-modal"]')
+  await page.keyboard.press('Escape')
+  await page.waitForSelector('[data-testid="guide-modal"]', { state: 'detached' })
+  assert((await page.locator('[data-testid="guide-modal"]').count()) === 0, 'Escape dismisses the reopened guide')
+
+  // With the guide away, the Loadout coach prompt suggests preparing a Slot.
+  await page.waitForSelector('[data-testid="coach-mark"]')
+  assert((await page.locator('[data-testid="coach-mark"]').getAttribute('data-tip')) === 'prepare', 'Loadout shows the prepare coach prompt')
+
   const phase = () => page.locator('[data-phase]').getAttribute('data-phase')
   const next = () => page.locator('[data-testid="next-phase"]').click()
 

@@ -50,7 +50,9 @@ for confirmation, since it discards the Top Card and its Charge Stack.
   zod schemas.
 - `src/store/` — zustand wrapper that owns the session timeline (snapshot
   history with time travel, Resolution Fact log, Scenario replay/export);
-  preserves the running Encounter across HMR.
+  preserves the running Encounter across HMR. `onboarding.ts` holds the
+  UI-only onboarding state (guide visibility, dismissed coach tips),
+  deliberately off the session timeline.
 - `src/board/` — the Phaser hex board. It renders engine snapshots and
   reports hex-level intents; it owns no game state.
 - `src/ui/` — React: hand, Action Bar, phase control, HUD, debug rail

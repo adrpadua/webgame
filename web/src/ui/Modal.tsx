@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 // The one reusable popup modal surface for the play surface: a dimmed
 // backdrop plus a framed, focused panel. Anything that needs a deliberate
@@ -28,6 +28,16 @@ export function Modal({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onDismiss])
 
+  // Move keyboard context into the dialog on open — unless a child already
+  // claimed it (e.g. an autoFocus confirmation button).
+  const panelRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const panel = panelRef.current
+    if (panel && !panel.contains(document.activeElement)) {
+      panel.focus()
+    }
+  }, [])
+
   return (
     <div
       className="wb-fade-in absolute inset-0 z-40 flex items-center justify-center bg-zinc-950/80 p-5 backdrop-blur-[2px]"
@@ -35,6 +45,8 @@ export function Modal({
       onClick={onDismiss}
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}

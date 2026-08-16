@@ -11,13 +11,19 @@ export function TopBar() {
   const healthPercent = boss ? Math.max(0, Math.round((boss.health / boss.maxHealth) * 100)) : 0
 
   // Flash the boss's numbers when damage lands, so a fired attack visibly
-  // connects even while the player's eyes are on the Action Bar.
+  // connects even while the player's eyes are on the Action Bar. The flash
+  // styling clears once the animation finishes, not permanently.
   const previousHealth = useRef(boss?.health ?? 0)
   const [flashKey, setFlashKey] = useState(0)
+  const [flashing, setFlashing] = useState(false)
   useEffect(() => {
     const health = boss?.health ?? 0
     if (health < previousHealth.current) {
       setFlashKey((key) => key + 1)
+      setFlashing(true)
+      const timer = setTimeout(() => setFlashing(false), 500)
+      previousHealth.current = health
+      return () => clearTimeout(timer)
     }
     previousHealth.current = health
   }, [boss?.health])
@@ -35,7 +41,7 @@ export function TopBar() {
           data-testid="open-guide"
           onClick={openGuide}
           aria-label="How to play"
-          className={`min-h-11 min-w-11 rounded-lg border border-zinc-700 bg-zinc-800 text-sm font-bold text-emerald-400 transition hover:border-emerald-500 hover:text-emerald-300 ${FOCUS_RING_CLASS}`}
+          className={`min-h-12 min-w-12 rounded-lg border border-zinc-700 bg-zinc-800 text-sm font-bold text-emerald-400 transition hover:border-emerald-500 hover:text-emerald-300 ${FOCUS_RING_CLASS}`}
         >
           ?
         </button>
@@ -44,7 +50,7 @@ export function TopBar() {
         <div className="h-full rounded-full bg-linear-to-r from-red-700 to-red-500 transition-all duration-500" style={{ width: `${healthPercent}%` }} />
       </div>
       <div className="mt-1 flex justify-between text-[11px] text-zinc-400">
-        <span key={flashKey} className={flashKey > 0 ? 'wb-damage-flash origin-left text-red-300' : undefined} data-testid="boss-health">
+        <span key={flashKey} className={flashing ? 'wb-damage-flash origin-left text-red-300' : undefined} data-testid="boss-health">
           {boss?.health ?? 0} / {boss?.maxHealth ?? 0}
         </span>
         <span>Encounter Clock: {state.roundLimit}</span>

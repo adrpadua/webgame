@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { cardChargeCap, cardWindowSpeed, type EncounterState } from '@/engine'
+import { cardChargeCap, type EncounterState } from '@/engine'
 import { useOnboarding } from '@/store/onboarding'
 import { selectState, useWorkbench, type WorkbenchCatalog } from '@/store/workbench'
 import { BootIcon, HexIcon, ShieldIcon, SwordIcon } from './icons'
+import { slotCanFire } from './slots'
 import { FOCUS_RING_CLASS } from './theme'
 
 // Non-blocking coaching: one slim prompt at a time, derived entirely from
@@ -26,12 +27,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | nul
     return null
   }
   const loadedSlots = hero.actionBar.filter((slot) => slot.topCard !== null)
-  const fireable = hero.actionBar.some((slot) => {
-    if (slot.topCard === null || slot.charges.length === 0 || slot.activatedWindow !== null) {
-      return false
-    }
-    return cardWindowSpeed(catalog.cards[slot.topCard.cardId]) === state.phase
-  })
+  const fireable = hero.actionBar.some((slot) => slotCanFire(catalog, state, slot))
   const chargeable = hero.actionBar.some(
     (slot) => slot.topCard !== null && slot.activatedWindow === null && slot.charges.length < cardChargeCap(catalog.cards[slot.topCard.cardId]),
   )
@@ -90,15 +86,20 @@ export function CoachMark() {
   const visibleTip = tip !== null && !dismissedTips.includes(tip.id) ? tip : null
 
   // Once a shown tip's moment passes (the player did the thing, or the phase
-  // moved on), retire it so it never repeats in later rounds.
+  // moved on), retire it so it never repeats in later rounds. While the
+  // guide occludes the bar nothing is truly shown, so retirement pauses —
+  // a tip must never be spent without ever being displayed.
   const lastShownId = useRef<string | null>(null)
   useEffect(() => {
+    if (guideOpen) {
+      return
+    }
     const shownId = visibleTip?.id ?? null
     if (lastShownId.current !== null && lastShownId.current !== shownId) {
       dismissTip(lastShownId.current)
     }
     lastShownId.current = shownId
-  }, [visibleTip?.id, dismissTip])
+  }, [visibleTip?.id, guideOpen, dismissTip])
 
   if (visibleTip === null || guideOpen) {
     return null
@@ -114,7 +115,7 @@ export function CoachMark() {
           data-testid="coach-dismiss"
           aria-label="Dismiss tip"
           onClick={() => dismissTip(visibleTip.id)}
-          className={`min-h-11 shrink-0 rounded-md px-2 text-[10px] font-bold tracking-wide uppercase opacity-70 transition hover:opacity-100 ${FOCUS_RING_CLASS}`}
+          className={`min-h-11 min-w-11 shrink-0 rounded-md px-2 text-[10px] font-bold tracking-wide uppercase opacity-70 transition hover:opacity-100 ${FOCUS_RING_CLASS}`}
         >
           Got it
         </button>

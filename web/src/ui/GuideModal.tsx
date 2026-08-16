@@ -1,6 +1,6 @@
 import { selectState, useWorkbench } from '@/store/workbench'
 import { useOnboarding } from '@/store/onboarding'
-import { BossEmblem, HeroEmblem, ShieldIcon, SwordIcon } from './icons'
+import { BossEmblem, HeroEmblem, HexIcon, ShieldIcon, SwordIcon } from './icons'
 import { Modal } from './Modal'
 import { FOCUS_RING_CLASS } from './theme'
 
@@ -13,9 +13,9 @@ import { FOCUS_RING_CLASS } from './theme'
 function TimelineDiagram() {
   const beats = [
     { label: 'Loadout', tone: 'bg-zinc-600', delay: '0s' },
-    { label: 'Boss', tone: 'bg-amber-500', delay: '0.8s' },
+    { label: 'Instant', tone: 'bg-amber-500', delay: '0.8s' },
     { label: 'Quick', tone: 'bg-emerald-500', delay: '1.6s' },
-    { label: 'Boss', tone: 'bg-amber-500', delay: '2.4s' },
+    { label: 'Incoming', tone: 'bg-amber-500', delay: '2.4s' },
     { label: 'Slow', tone: 'bg-sky-500', delay: '3.2s' },
   ]
   return (
@@ -63,9 +63,7 @@ function FireDiagram() {
       <div className="flex flex-col items-center gap-2">
         <div className="relative flex h-14 w-24 items-center">
           {[0, 1, 2].map((index) => (
-            <svg key={index} viewBox="0 0 20 20" className="h-10 w-10 shrink-0 text-zinc-700" fill="none" stroke="currentColor" strokeWidth="1.4">
-              <path d="M10 2 17 6v8l-7 4-7-4V6l7-4Z" strokeLinejoin="round" />
-            </svg>
+            <HexIcon key={index} className="h-10 w-10 shrink-0 text-zinc-700" />
           ))}
           <HeroEmblem className="wb-hex-step absolute top-2 left-0 h-6 w-6 text-sky-400" />
         </div>
@@ -115,7 +113,7 @@ export function GuideModal() {
     },
     {
       title: 'Prepare cards, then charge them',
-      body: 'During Loadout, drag a card from your hand onto an empty Slot to prepare it (or tap the card, then tap the Slot). In your windows, drop more cards onto a loaded Slot to add Charge — a fully charged card hits much harder.',
+      body: 'During Loadout, drag a card from your hand onto an empty Slot to prepare it (or tap the card, then tap the Slot). In your windows, drop more cards onto a loaded Slot to add Charge — each card’s text tells you what its Charge Stack pays off.',
       diagram: <PrepareDiagram />,
     },
     {
@@ -150,15 +148,11 @@ export function GuideModal() {
         </p>
       </div>
       <div className="mt-4 flex items-center gap-2">
-        <div className="flex flex-1 gap-1.5" aria-label={`Step ${guideStep + 1} of ${steps.length}`}>
+        {/* Progress indicators only — Back and Next are the navigation, so
+            these stay non-interactive and exempt from the 44px target rule. */}
+        <div className="flex flex-1 gap-1.5" role="img" aria-label={`Step ${guideStep + 1} of ${steps.length}`}>
           {steps.map((_, index) => (
-            <button
-              key={index}
-              type="button"
-              aria-label={`Go to step ${index + 1}`}
-              onClick={() => setGuideStep(index)}
-              className={`h-2.5 w-2.5 rounded-full transition ${FOCUS_RING_CLASS} ${index === guideStep ? 'bg-emerald-400' : 'bg-zinc-700'}`}
-            />
+            <span key={index} className={`h-2.5 w-2.5 rounded-full transition ${index === guideStep ? 'bg-emerald-400' : 'bg-zinc-700'}`} />
           ))}
         </div>
         {guideStep > 0 && (

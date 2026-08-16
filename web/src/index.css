@@ -222,4 +222,11 @@ body {
     animation: none;
     background-color: var(--color-amber-400);
   }
+  /* Utility transitions (health bar, phase chips, hover lifts) go instant
+     too — "all motion freezes" includes transitions, not just keyframes. */
+  [data-testid='play-surface'] *,
+  [data-testid='play-surface'] *::before,
+  [data-testid='play-surface'] *::after {
+    transition-duration: 0.01ms !important;
+  }
 }

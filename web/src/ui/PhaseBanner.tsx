@@ -39,7 +39,9 @@ export function PhaseBanner() {
     }
   }, [state.phase, state.active])
 
-  if (shownPhase === null) {
+  // Never linger over the outcome banner: an Encounter that ends mid-banner
+  // (or with the hide timer already cleared) drops the banner immediately.
+  if (shownPhase === null || !state.active) {
     return null
   }
   const copy = PHASE_COPY[shownPhase]

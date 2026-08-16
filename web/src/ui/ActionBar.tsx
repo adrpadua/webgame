@@ -1,5 +1,6 @@
 import { cardChargeCap, cardWindowSpeed, legality } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
+import { slotCanFire } from './slots'
 import { FOCUS_RING_CLASS, windowToneClass } from './theme'
 
 // The persistent Action Bar: each Slot shows its Top Card, Charge Stack, and
@@ -27,7 +28,7 @@ export function ActionBar() {
         const primed = card !== null && slot.charges.length === chargeCap && slot.activatedWindow === null
         const fired = slot.activatedWindow !== null
         const windowSpeed = card ? cardWindowSpeed(card) : null
-        const canFire = card !== null && slot.charges.length > 0 && !fired && windowSpeed === state.phase && state.active
+        const canFire = slotCanFire(catalog, state, slot)
 
         // What would landing the in-hand card here do, and is it legal?
         let incomingAction: 'Prepare' | 'Charge' | 'Replace' | null = null
