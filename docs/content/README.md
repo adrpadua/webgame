@@ -27,6 +27,7 @@ Current starter docs:
 - [world/myths-and-stories.md](world/myths-and-stories.md)
 - [world-style-bible.md](world-style-bible.md)
 - [hand-drawn-character-art-style.md](hand-drawn-character-art-style.md)
+- [art-prompts/README.md](art-prompts/README.md)
 - [../artifacts/encounter-records.md](../artifacts/encounter-records.md)
 
 - [decks/elian-voss-starter.md](decks/elian-voss-starter.md)

@@ -93,6 +93,8 @@ Recommended silhouette:
 
 ## Prompt Recipe
 
+For generating new assets, prefer the composable sets in [art-prompts/](art-prompts/README.md), which carry this direction into per-asset-class templates for Heroes, cards, bosses, and board art. The recipe below is the original single-shot Elian prompt, kept because it produced the anchor concept; it is the calibration reference the library was built from.
+
 Use this as the starting point for future Elian concept iterations:
 
 ```text
