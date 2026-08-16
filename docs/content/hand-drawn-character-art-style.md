@@ -8,6 +8,17 @@ The current target style is **clean hand-drawn super-high fantasy character conc
 
 The goal is not to make the world less advanced. The goal is to make advanced armor and magic readable through simplified shapes, strong silhouettes, and limited visual ideas.
 
+## Relationship To The Shipping Art
+
+This document is the committed target for the game's real art. Everything currently rendered is a placeholder.
+
+The live skin is CC0 art borrowed from OpenDuelyst — battlefield backdrop, board and hover tiles, target tile, and neutral boss crest — catalogued in [assets/README.md](../../assets/README.md) and described in [embermaw-vertical-slice.md](../artifacts/embermaw-vertical-slice.md). It was chosen for legibility while the tactical surface was being built, not as art direction. It does not follow the material language in [world-style-bible.md](world-style-bible.md), and it should not be used as a reference when briefing new work.
+
+Two consequences worth holding onto:
+
+- New art is briefed against this document and the world bible, never against what is on screen today.
+- Replacing the placeholders is a known outstanding job, not a regression to be discovered later. Board, backdrop, tiles, crest, and Hero art all come from the same direction once real art exists, so partial replacement will look inconsistent in the interim; that is expected and is not a reason to match the placeholder look.
+
 ## Style Pillars
 
 | Pillar | Use | Avoid |

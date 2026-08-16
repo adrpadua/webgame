@@ -96,14 +96,18 @@ The portrait regression probe at [scripts/debug/mobile_hud_probe.gd](../../scrip
 
 ## Visual Skin
 
-The board and global background use a low-opacity dungeon illustration from 0x72's `16x16 DungeonTileset II`.
+This skin is a **placeholder**. The committed art direction is the hand-drawn, cel-shaded look in [hand-drawn-character-art-style.md](../content/hand-drawn-character-art-style.md); nothing below expresses it, and all of it is expected to be replaced rather than extended.
 
-- Used file: [dungeon-scene.png](../../assets/art/environment/0x72-dungeon-tileset-ii/dungeon-scene.png)
-- Source: [0x72's itch.io page](https://0x72.itch.io/dungeontileset-ii)
-- License and local attribution: [LICENSES.md](../../assets/art/environment/0x72-dungeon-tileset-ii/LICENSES.md)
+The board and global background use a low-opacity CC0 battlefield illustration from OpenDuelyst.
+
+- Used file: [magaari_ember_highlands_background.jpg](../../assets/art/open-duelyst/magaari_ember_highlands_background.jpg)
+- Source: [OpenDuelyst repository](https://github.com/open-duelyst/duelyst)
+- License and local attribution: [LICENSES.md](../../assets/art/open-duelyst/LICENSES.md)
 - License: `CC0-1.0`
 
-The texture is deliberately subdued so tactical tile outlines, character facings, card timing, and combat text remain legible.
+The same texture is drawn twice at different strengths: [scripts/Main.gd](../../scripts/Main.gd) fills the window behind everything at alpha `0.14`, and [scripts/hex/HexGrid.gd](../../scripts/hex/HexGrid.gd) fills the board at alpha `0.72`. Both are deliberately subdued so tactical tile outlines, character facings, card timing, and combat text remain legible.
+
+0x72's `16x16 DungeonTileset II` is also vendored under `assets/art/environment/`, but no scene or script references it and it is drawn nowhere. It is a licensed candidate, not the current skin.
 
 ## Card Presentation
 
