@@ -35,7 +35,7 @@ Four failure modes are documented in full in [elian-voss-card-prompts.md](../../
 ## Environment Notes For A Local Session
 
 - ~~`leonardo.ai` was blocked by the remote session's egress proxy, so the feature list in `_tools.md` rested on secondary coverage.~~ Closed 2026-08-16: the feature list was confirmed against Leonardo's official API documentation, which is a better source than the vendor article this note asked for.
-- The remote container had no Godot binary. Two commits touching GDScript — `03c50bf` (arena backdrop constant) and `e0591cb` (placeholder card art seam) — are on `main` verified statically only, by grep rather than execution. Both are mechanical and value-preserving, but a local launch is the real check and has not happened.
+- Two commits touching GDScript — `03c50bf` (arena backdrop constant) and `e0591cb` (placeholder card art seam) — are on `main` verified statically only, by grep rather than execution, because the remote container had no Godot binary. **This is deferred, not pending.** Godot work is paused until the web version feels like a real game, which extends the freeze ADR 0019 already put on the Godot codebase. Do not schedule a local launch to close this out; re-check it whenever the freeze lifts. Both commits are mechanical and value-preserving, so the exposure is small.
 
 ## When Art Lands
 
