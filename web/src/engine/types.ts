@@ -18,6 +18,11 @@ export interface SlotState {
   charges: CardInstance[]
   // The window this Slot activated in, cleared when that window ends.
   activatedWindow: Phase | null
+  // True while the Slot's content was placed during the current Loadout
+  // into a Slot that began that Loadout empty. Such a card is tentative:
+  // re-loading the Slot swaps it back to hand instead of discarding it the
+  // way replacing a kept bundle does. Cleared when the Loadout ends.
+  placedThisLoadout: boolean
 }
 
 export interface HeroState {

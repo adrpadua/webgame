@@ -400,7 +400,7 @@ describe('damage and Resolution Facts', () => {
 
     // A legal Shield Slam consumes Riposte Ready for 2 bonus Boss damage.
     state.phase = 'quick'
-    hero(state).actionBar[0] = { topCard: card('s1', 'shield_slam'), charges: [card('s2', 'iron_guard')], activatedWindow: null }
+    hero(state).actionBar[0] = { topCard: card('s1', 'shield_slam'), charges: [card('s2', 'iron_guard')], activatedWindow: null, placedThisLoadout: false }
     const bossHealthBefore = boss(state).health
     const slam = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
     state = slam.state
@@ -454,10 +454,39 @@ describe('damage and Resolution Facts', () => {
   })
 })
 
+describe('loadout swaps', () => {
+  it('swaps a card placed this Loadout back to hand instead of discarding it', () => {
+    let state = start()
+    const [first, second] = hero(state).hand
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: hero(state).id, slotIndex: 0, cardInstanceId: first.instanceId }).state
+    const swap = resolve(catalog, state, { kind: 'load_slot', sourceId: hero(state).id, slotIndex: 0, cardInstanceId: second.instanceId })
+    state = swap.state
+    expect(hero(state).actionBar[0].topCard?.instanceId).toBe(second.instanceId)
+    // The first card came straight back to hand — nothing hit the discard.
+    expect(hero(state).discard).toHaveLength(0)
+    expect(hero(state).hand.some((held) => held.instanceId === first.instanceId)).toBe(true)
+    expect(swap.facts[0].detail.returnedToHand).toBe(first.cardId)
+  })
+
+  it('keeps Replace destructive for a Slot that entered the Loadout occupied', () => {
+    let state = start()
+    const first = hero(state).hand[0]
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: hero(state).id, slotIndex: 0, cardInstanceId: first.instanceId }).state
+    // A full Round later, the same Slot content is a kept bundle.
+    state = stepPhases(state, 5).state
+    expect(state.phase).toBe('loadout')
+    expect(hero(state).actionBar[0].placedThisLoadout).toBe(false)
+    const replacement = hero(state).hand[0]
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: hero(state).id, slotIndex: 0, cardInstanceId: replacement.instanceId }).state
+    expect(hero(state).discard.some((card) => card.instanceId === first.instanceId)).toBe(true)
+    expect(hero(state).hand.some((card) => card.instanceId === first.instanceId)).toBe(false)
+  })
+})
+
 describe('legality edges', () => {
   it('requires a Minion target in range for a piece-targeting Top Card', () => {
     const state = start()
-    hero(state).actionBar[0] = { topCard: card('s1', 'sweeping_blow'), charges: [card('s2', 'iron_guard')], activatedWindow: null }
+    hero(state).actionBar[0] = { topCard: card('s1', 'sweeping_blow'), charges: [card('s2', 'iron_guard')], activatedWindow: null, placedThisLoadout: false }
     state.phase = 'quick'
     const noTarget = legality(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
     expect(noTarget).toMatchObject({ legal: false, reason: 'The Top Card needs a Minion target.' })
@@ -468,6 +497,7 @@ describe('legality edges', () => {
       topCard: card('s1', 'sweeping_blow'),
       charges: [card('s2', 'iron_guard')],
       activatedWindow: null,
+      placedThisLoadout: false,
     }
     played = stepPhases(played, 4).state
     played.phase = 'quick'

@@ -30,7 +30,7 @@ export interface HistoryEntry {
   facts: FactEntry[]
 }
 
-interface WorkbenchStore {
+export interface WorkbenchStore {
   catalog: ReturnType<typeof loadCatalog>
   // Which authored Encounter this session is playing. A first-time player
   // opens the First Turn variant; Scenario replay and every export name the
@@ -281,7 +281,14 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
         return
       }
       if (slot.topCard !== null) {
-        // Replacing during Loadout discards the whole bundle — confirm first.
+        if (slot.placedThisLoadout) {
+          // The Slot began this Loadout empty: re-loading just swaps the
+          // tentative card back to hand. Nothing kept is destroyed, so no
+          // confirmation stands in the way.
+          get().submit({ kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId })
+          return
+        }
+        // Replacing a kept bundle discards all of it — confirm first.
         set({ pendingReplacement: { cardInstanceId, slotIndex }, lastRejection: null })
         return
       }

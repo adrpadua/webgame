@@ -108,7 +108,18 @@ function resolveOne(
       const card = takeFromHand(hero, action.cardInstanceId)
       const slot = hero.actionBar[action.slotIndex]
       if (slot.topCard !== null) {
-        hero.discard.push(slot.topCard, ...slot.charges)
+        if (slot.placedThisLoadout && draft.phase === 'loadout') {
+          // The Slot began this Loadout empty, so its content is tentative:
+          // re-loading swaps the previous card (and anything tucked under
+          // it) back to hand rather than discarding a decision the player
+          // only just made.
+          hero.hand.push(slot.topCard, ...slot.charges)
+          fact.detail.returnedToHand = slot.topCard.cardId
+        } else {
+          hero.discard.push(slot.topCard, ...slot.charges)
+        }
+      } else if (draft.phase === 'loadout') {
+        slot.placedThisLoadout = true
       }
       slot.topCard = card
       slot.charges = []
@@ -267,6 +278,15 @@ function resolveOne(
     }
     case 'advance_phase': {
       clearWindowFlags(draft, action.fromPhase)
+      if (action.fromPhase === 'loadout') {
+        // Leaving Loadout locks the bar in: nothing on it is tentative any
+        // more, so later re-loads are true Replacements.
+        for (const hero of Object.values(draft.heroes)) {
+          for (const slot of hero.actionBar) {
+            slot.placedThisLoadout = false
+          }
+        }
+      }
       draft.phase = action.toPhase
       draft.round = action.round
       succeed(fact)
@@ -299,7 +319,7 @@ function resolveOne(
       fact.detail.topCard = slot.topCard.cardId
       fact.detail.chargeCards = slot.charges.map((charge) => charge.cardId)
       hero.discard.push(slot.topCard, ...slot.charges)
-      hero.actionBar[action.slotIndex] = { topCard: null, charges: [], activatedWindow: null }
+      hero.actionBar[action.slotIndex] = { topCard: null, charges: [], activatedWindow: null, placedThisLoadout: false }
       succeed(fact)
       break
     }
