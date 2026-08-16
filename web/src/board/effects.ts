@@ -1,4 +1,4 @@
-import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type ResolvedActionFact } from '@/engine'
+import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type Phase, type ResolvedActionFact } from '@/engine'
 
 // Resolution Facts are the only thing the board animates from. Every beat of
 // motion on the board — a lunge, a hit, a step, a spawn — is derived from a
@@ -246,6 +246,11 @@ export interface PlayoutMoment {
 }
 
 export interface PlayoutScript {
+  // The phase the batch resolved from — the window the replayed beats belong
+  // to. The rules have already advanced past it, but the HUD's Round track
+  // keeps showing it until the last moment settles: while the Boss is
+  // visibly taking its turn, the track must not claim the window is yours.
+  phase: Phase
   // What every affected gauge shows the moment the batch lands.
   initial: Record<string, HealthPlayoutValue>
   moments: PlayoutMoment[]
@@ -293,7 +298,7 @@ export function derivePlayoutScript(
     // moment; across moments each keeps its own landing value.
     moments[slotFor(step.delay)].gauges[step.entityId] = step.value
   }
-  return { initial: playout?.initial ?? {}, moments, endsEncounter }
+  return { phase: before.phase, initial: playout?.initial ?? {}, moments, endsEncounter }
 }
 
 function valueBefore(state: EncounterState, entityId: string): HealthPlayoutValue {

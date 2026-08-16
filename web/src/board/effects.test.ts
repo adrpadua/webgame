@@ -110,6 +110,12 @@ describe('board effects', () => {
     const effects = deriveBoardEffects(catalog, state, result.state, result.facts)
     const script = derivePlayoutScript(state, result.state, result.facts, effects)
     expect(script).not.toBeNull()
+    // The script names the window its beats belong to — the phase the batch
+    // resolved from, not the player window the rules already advanced into —
+    // so the HUD can keep showing the Boss's turn while it replays.
+    expect(state.phase).toBe('instant')
+    expect(result.state.phase).toBe('quick')
+    expect(script!.phase).toBe('instant')
     // One moment per resolved beat, titled from the program, delays gone.
     const announces = effects.filter((effect) => effect.kind === 'cast' && effect.entityId === state.bossId)
     expect(script!.moments.map((moment) => moment.beatTitle)).toEqual(announces.map((announce) => announce.label))

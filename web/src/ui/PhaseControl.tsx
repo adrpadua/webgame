@@ -7,6 +7,7 @@ import { useFirstTurnStep } from './useFirstTurn'
 import { phaseDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
 import { Modal } from './Modal'
+import { usePresentedPhase } from './usePresentedPhase'
 import { slotCanFire } from './slots'
 import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS } from './theme'
 
@@ -92,7 +93,10 @@ export function PhaseControl() {
   const advance = useWorkbench((store) => store.advance)
   const restart = useWorkbench((store) => store.restart)
   const step = useFirstTurnStep()
-  const hold = useHold(phaseDetail(state.phase, true))
+  // The presented phase, not state.phase: the track must not light the
+  // player's chip while Boss Beats are still replaying on screen.
+  const shownPhase = usePresentedPhase()
+  const hold = useHold(phaseDetail(shownPhase, true))
   const nextGated = blocksTarget(step, 'next')
   const nextSpotlit = step !== null && step.targets.includes('next')
   // While a fatal batch is still replaying, the Restart control would give
@@ -133,19 +137,19 @@ export function PhaseControl() {
   }
 
   return (
-    <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-900/60 px-3 py-1.5" data-phase={state.phase}>
+    <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-900/60 px-3 py-1.5" data-phase={shownPhase}>
       <button
         type="button"
         {...hold.holdProps}
         data-testid="phase-track"
-        aria-label={`Current phase: ${state.phase}`}
+        aria-label={`Current phase: ${shownPhase}`}
         className={`flex min-h-11 flex-1 items-center gap-1 rounded-lg text-left ${FOCUS_RING_CLASS}`}
       >
         {PHASES.map((entry) => (
           <span
             key={entry.phase}
             className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wide uppercase transition-all duration-300 ${
-              state.phase === entry.phase ? `scale-105 font-bold shadow-md ${entry.activeClass}` : 'bg-zinc-800 text-zinc-500'
+              shownPhase === entry.phase ? `scale-105 font-bold shadow-md ${entry.activeClass}` : 'bg-zinc-800 text-zinc-500'
             }`}
           >
             {entry.label}

@@ -5,6 +5,7 @@ import { selectState, useWorkbench } from '@/store/workbench'
 import { beatDetail, programDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
 import { FOCUS_RING_CLASS } from './theme'
+import { usePresentedPhase } from './usePresentedPhase'
 
 // The boss-program strip: two tracks of named beats, in order.
 //
@@ -41,6 +42,9 @@ function BeatChip({ beat, track, active }: { beat: BossBeat; track: 'instant' | 
 export function ProgramStrip() {
   const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)
+  // The presented phase, not state.phase: a track's label stays lit while
+  // its beats are still replaying, matching the chip that is pulsing in it.
+  const phase = usePresentedPhase()
   const [expanded, setExpanded] = useState(true)
   const program = currentProgram(catalog, state)
   const detail = program ? programDetail(program) : null
@@ -70,8 +74,8 @@ export function ProgramStrip() {
       </button>
       {expanded && (
         <div {...rowsHold.holdProps}>
-          <Track program={program} track="instant" label="Instant" active={state.phase === 'instant'} />
-          <Track program={program} track="incoming" label="Incoming" active={state.phase === 'incoming'} />
+          <Track program={program} track="instant" label="Instant" active={phase === 'instant'} />
+          <Track program={program} track="incoming" label="Incoming" active={phase === 'incoming'} />
         </div>
       )}
     </div>
