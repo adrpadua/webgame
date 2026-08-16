@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Phase } from '@/engine'
+import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 
 // A short, non-blocking banner that names each phase as it begins: the word
@@ -15,19 +16,25 @@ const PHASE_COPY: Record<Phase, { title: string; tone: string }> = {
 
 export function PhaseBanner() {
   const state = useWorkbench(selectState)
+  // The banner announces what the player sees, not what the rules have
+  // already reached: while a boss track replays beat by beat, the presented
+  // phase holds on the Boss window, and the player window is announced when
+  // the playout settles into it.
+  const playoutPhase = usePlayout((store) => store.phase)
+  const phase = playoutPhase ?? state.phase
   const [shownPhase, setShownPhase] = useState<Phase | null>(null)
-  const previousPhase = useRef<Phase | null>(state.phase)
+  const previousPhase = useRef<Phase | null>(phase)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (previousPhase.current === state.phase) {
+    if (previousPhase.current === phase) {
       return
     }
-    previousPhase.current = state.phase
+    previousPhase.current = phase
     if (!state.active) {
       return
     }
-    setShownPhase(state.phase)
+    setShownPhase(phase)
     if (hideTimer.current !== null) {
       clearTimeout(hideTimer.current)
     }
@@ -37,7 +44,7 @@ export function PhaseBanner() {
         clearTimeout(hideTimer.current)
       }
     }
-  }, [state.phase, state.active])
+  }, [phase, state.active])
 
   // Never linger over the outcome banner: an Encounter that ends mid-banner
   // (or with the hide timer already cleared) drops the banner immediately.

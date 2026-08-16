@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { hexKey } from '@/engine'
+import { hexKey, type Phase } from '@/engine'
 import { BEAT_STAGGER_MS, EFFECT_SETTLE_MS, type BoardEffect, type HealthPlayoutValue, type PlayoutScript } from '@/board/effects'
 
 // The staggered-playout director for one resolved batch. While a boss track
@@ -20,6 +20,11 @@ import { BEAT_STAGGER_MS, EFFECT_SETTLE_MS, type BoardEffect, type HealthPlayout
 
 interface PlayoutStore {
   overrides: Record<string, HealthPlayoutValue>
+  // The phase the replaying batch resolved from. The Round track and the
+  // Phase Banner show it instead of the authoritative phase until the last
+  // moment settles: the rules are already in the next window, but on screen
+  // the Boss is still taking its turn.
+  phase: Phase | null
   // True while a batch that ended the Encounter is still replaying: the
   // outcome presentation (banner, Restart control) waits for it.
   outcomeHeld: boolean
@@ -78,6 +83,7 @@ function pendingAfter(index: number): Pick<PlayoutStore, 'pendingScorchKeys' | '
 
 const IDLE = {
   overrides: {},
+  phase: null,
   outcomeHeld: false,
   activeBeatId: null,
   activeBeatTitle: null,
@@ -123,7 +129,7 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
       cancelTimers()
       moments = script.moments
       autoMode = autoAdvance
-      set({ ...IDLE, overrides: { ...script.initial }, outcomeHeld: script.endsEncounter, paced: !autoAdvance })
+      set({ ...IDLE, overrides: { ...script.initial }, phase: script.phase, outcomeHeld: script.endsEncounter, paced: !autoAdvance })
       fireMoment(0)
     },
     continuePlayout: () => {
@@ -137,6 +143,7 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
       moments = []
       set((store) =>
         store.activeBeatId === null &&
+        store.phase === null &&
         !store.awaitingContinue &&
         !store.outcomeHeld &&
         Object.keys(store.overrides).length === 0 &&

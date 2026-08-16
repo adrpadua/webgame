@@ -133,6 +133,10 @@ try {
   assert((await phase()) === 'instant', 'Next advances into Boss Instant')
   assert((await cueStep()) === 'boss-instant', 'the script narrates the Boss Instant')
   await next()
+  // The rules land in the Quick Window at once, but the Round track keeps
+  // Boss Instant while its beats replay, then settles onto Quick.
+  assert((await phase()) === 'instant', 'the Round track holds Boss Instant while its beats replay')
+  await page.waitForFunction(() => document.querySelector('[data-phase]')?.getAttribute('data-phase') === 'quick', null, { timeout: 5000 })
   assert((await phase()) === 'quick', 'Boss Instant resolves into the Quick Window')
   // The claw's damage reaches the gauge at its beat's playout moment, not
   // the instant the batch resolves: wait out the staggered replay.
@@ -173,6 +177,9 @@ try {
   await next()
   assert((await phase()) === 'incoming', 'Quick Window resolves into Boss Incoming')
   await next()
+  // The Incoming beats replay staggered too; the track releases into the
+  // Slow Window once the telling is done.
+  await page.waitForFunction(() => document.querySelector('[data-phase]')?.getAttribute('data-phase') === 'slow', null, { timeout: 5000 })
   assert((await phase()) === 'slow', 'Boss Incoming resolves into the Slow Window')
   const incomingLog = await page.locator('[data-testid="fact-log"]').textContent()
   assert(incomingLog?.includes('Spawn whelp_1'), 'Brood Call spawned Whelps')
@@ -242,8 +249,8 @@ try {
   await next()
   assert((await phase()) === 'instant', 'Round 2 Loadout advances into Boss Instant')
   await next()
-  assert((await phase()) === 'quick', 'the Instant track resolves into the Quick Window')
   await page.waitForSelector('[data-testid="playout-continue"]')
+  assert((await phase()) === 'instant', 'the Round track holds Boss Instant while the paced playout replays its beats')
   assert(
     (await page.locator('[data-testid="beat-chip"][data-playing="true"]').count()) >= 1,
     'the resolving beat lights its Boss Beat chip',
@@ -258,6 +265,7 @@ try {
   // The last beat needs no prompt: give a wrongly-armed one time to appear.
   await page.waitForTimeout(900)
   assert((await page.locator('[data-testid="playout-continue"]').count()) === 0, 'the last beat needs no prompt and the playout settles')
+  assert((await phase()) === 'quick', 'the settled playout releases the Round track into the Quick Window')
 
   // Skipping a window that still holds phase-appropriate actions warns
   // first: nothing has been fired or charged this Quick Window.
