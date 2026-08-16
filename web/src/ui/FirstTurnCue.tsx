@@ -43,7 +43,7 @@ export function FirstTurnCue() {
           data-testid="first-turn-skip"
           aria-label="Skip the guided first turn"
           onClick={finishFirstTurn}
-          className={`min-h-11 shrink-0 rounded-md px-2 text-[10px] font-bold tracking-wide uppercase opacity-70 transition hover:opacity-100 ${FOCUS_RING_CLASS}`}
+          className={`min-h-11 min-w-11 shrink-0 rounded-md px-2 text-[10px] font-bold tracking-wide uppercase opacity-70 transition hover:opacity-100 ${FOCUS_RING_CLASS}`}
         >
           Skip
         </button>

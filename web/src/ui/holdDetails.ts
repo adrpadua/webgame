@@ -1,4 +1,4 @@
-import { cardChargeCap, cardWindowSpeed, type BossBeat, type Card, type Phase, type SlotState } from '@/engine'
+import { cardChargeCap, cardWindowSpeed, type BossBeat, type BossProgram, type Card, type Phase, type SlotState } from '@/engine'
 import type { HoldDetail, HoldTone } from './HoldPopover'
 import { cardEffect } from './icons'
 
@@ -100,25 +100,34 @@ export function phaseDetail(phase: Phase, active: boolean): HoldDetail {
   }
 }
 
-export function beatDetail(beat: BossBeat, track: 'instant' | 'incoming'): HoldDetail {
-  const stats: { label: string; value: string }[] = []
-  if (beat.damage > 0) {
-    stats.push({ label: 'Damage', value: String(beat.damage) })
-  }
-  if (beat.minion !== undefined) {
-    stats.push({ label: 'Spawns', value: `${beat.count} ${beat.minion}` })
-  }
-  if (beat.hazard !== undefined) {
-    stats.push({ label: 'Leaves', value: `${beat.hazard} · ${beat.duration_rounds}r` })
+// The whole Boss Program in one popup: both tracks, in resolution order,
+// each beat with the number that matters. Held from the program strip.
+export function programDetail(program: BossProgram): HoldDetail {
+  const line = (beat: BossBeat): { label: string; value: string } => {
+    const parts: string[] = []
+    if (beat.damage > 0) {
+      parts.push(`${beat.damage} dmg`)
+    }
+    if (beat.minion !== undefined) {
+      parts.push(`${beat.count} ${beat.minion}`)
+    }
+    if (beat.hazard !== undefined) {
+      parts.push(beat.hazard)
+    }
+    return { label: beat.title, value: parts.length > 0 ? parts.join(' · ') : '—' }
   }
   return {
-    id: `beat:${track}:${beat.id}`,
-    title: beat.title,
-    badge: track === 'instant' ? 'Instant' : 'Incoming',
+    id: `program:${program.id}`,
+    title: program.title,
+    badge: 'Boss program',
     tone: 'boss',
-    stats,
-    text: beat.rules_text,
-    tags: beat.counter_tags,
+    stats: [
+      { label: 'INSTANT', value: 'resolves now' },
+      ...program.instant_beats.map(line),
+      { label: 'INCOMING', value: 'after your Quick' },
+      ...program.incoming_beats.map(line),
+    ],
+    text: program.rules_text,
   }
 }
 

@@ -36,7 +36,7 @@ function Stat({
       {...hold.holdProps}
       aria-label={`${label} ${value}`}
       data-testid={testId}
-      className={`flex min-h-11 items-center gap-1 rounded-md px-1 text-xs font-semibold ${tone} ${FOCUS_RING_CLASS}`}
+      className={`flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-md px-1 text-xs font-semibold ${tone} ${FOCUS_RING_CLASS}`}
     >
       <Icon className="h-3.5 w-3.5 shrink-0" />
       <span key={flashKey} className={flashing ? 'wb-damage-flash origin-left' : undefined}>
@@ -59,7 +59,7 @@ function StatusChip({ status }: { status: StatusInstance }) {
     <button
       type="button"
       {...hold.holdProps}
-      className={`min-h-11 rounded bg-amber-900 px-1.5 text-[10px] font-semibold text-amber-200 ${FOCUS_RING_CLASS}`}
+      className={`min-h-11 min-w-11 rounded bg-amber-900 px-1.5 text-[10px] font-semibold text-amber-200 ${FOCUS_RING_CLASS}`}
     >
       {status.title}
     </button>

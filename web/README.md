@@ -14,8 +14,10 @@ npm run dev      # Workbench at http://localhost:5173 with HMR
 npm test         # Encounter Engine Vitest suite
 npm run lint     # includes the engine-purity boundary rule
 npm run build
-node scripts/smoke.mjs   # after build: browser round loop, Scenario replay,
-                         # time travel, and headless record verification
+node scripts/smoke.mjs   # after build: the scripted first turn, ordinary
+                         # round play, Scenario replay, time travel, headless
+                         # record verification, and a 390x844 portrait guard
+                         # (whole board on screen, 44px targets, no scroll)
 npm run headless -- --scenario embermaw_victory_line   # headless Scenario run
 npm run headless -- --replay <record.json>             # verify a v2 record
 ```

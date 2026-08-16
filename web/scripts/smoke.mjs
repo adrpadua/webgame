@@ -14,9 +14,13 @@ const BASE_URL = `http://localhost:${PORT}/`
 const HEX_SIZE = 36
 const SQRT3 = Math.sqrt(3)
 
-function axialOffset(q, r) {
-  // Mirrors web/src/board/layout.ts relative to the board container center.
-  return { x: 190 + HEX_SIZE * (SQRT3 * q + (SQRT3 / 2) * r), y: 200 + HEX_SIZE * 1.5 * r }
+// Mirrors web/src/board/layout.ts, then scales into the rendered canvas:
+// the board fits itself to whatever room the HUD leaves, so a drop target
+// has to be measured rather than assumed.
+async function hexPosition(canvas, q, r) {
+  const box = await canvas.boundingBox()
+  const scale = box.width / 380
+  return { x: (190 + HEX_SIZE * (SQRT3 * q + (SQRT3 / 2) * r)) * scale, y: (200 + HEX_SIZE * 1.5 * r) * scale }
 }
 
 async function waitForServer(url, attempts = 50) {
@@ -134,7 +138,16 @@ try {
   // Step 7: step out of the telegraphed breath cone, paying a card.
   assert((await cueStep()) === 'move-away', 'the script asks for the dodge next')
   const handBeforeMove = await page.locator('[data-testid="hand-card"]').count()
-  await scriptedCard().dragTo(page.locator('[data-testid="board"]'), { targetPosition: axialOffset(-1, 0) })
+  const boardCanvas = page.locator('[data-testid="board"] canvas')
+  // The whole board must be on screen: a hex a player can legally step to
+  // is useless if the HUD cropped it away.
+  const boardBox = await boardCanvas.boundingBox()
+  const areaBox = await page.locator('[data-testid="board"]').boundingBox()
+  assert(
+    boardBox.height <= areaBox.height + 1 && boardBox.width <= areaBox.width + 1,
+    `the board fits its play area (${Math.round(boardBox.width)}x${Math.round(boardBox.height)} in ${Math.round(areaBox.width)}x${Math.round(areaBox.height)})`,
+  )
+  await scriptedCard().dragTo(boardCanvas, { targetPosition: await hexPosition(boardCanvas, -1, 0) })
   await page.waitForTimeout(150)
   assert((await page.locator('[data-testid="hand-card"]').count()) === handBeforeMove - 1, 'the Stamina discard left the Hand')
   const factLog = await page.locator('[data-testid="fact-log"]').textContent()
@@ -239,6 +252,44 @@ try {
   assert(roundAtStart?.includes('Round 1'), 'step 0 is Round 1')
 
   await page.screenshot({ path: process.env.SMOKE_SHOT ?? 'smoke.png', fullPage: false })
+
+  // Accessibility contract, checked on the canonical portrait canvas: the
+  // whole board on screen, every enabled control at 44px, and no page
+  // scroll. A fresh context is a first visit, so this also proves the
+  // scripted turn lays out on a phone.
+  const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
+  await phone.goto(BASE_URL)
+  await phone.waitForSelector('[data-testid="play-surface"]')
+  await phone.locator('[data-testid="guide-skip"]').click()
+  await phone.waitForSelector('[data-testid="first-turn-cue"]')
+  // The board refits itself when the HUD changes; give the scale manager
+  // its poll interval before measuring.
+  await phone.waitForTimeout(700)
+  const cropped = await phone.evaluate(() => {
+    const canvas = document.querySelector('[data-testid="board"] canvas')
+    const area = document.querySelector('[data-testid="board"]')
+    if (!canvas || !area) {
+      return 'no board'
+    }
+    const c = canvas.getBoundingClientRect()
+    const a = area.getBoundingClientRect()
+    const hidden = Math.max(a.top - c.top, c.bottom - a.bottom, a.left - c.left, c.right - a.right)
+    return hidden > 1 ? `${Math.round(hidden)}px of the board is outside the play area` : ''
+  })
+  assert(cropped === '', `the whole board is on screen at 390x844 (${cropped || 'nothing cropped'})`)
+  const undersized = await phone.evaluate(() =>
+    [...document.querySelectorAll('[data-testid="play-surface"] button, [data-testid="play-surface"] input')]
+      .filter((node) => !node.disabled)
+      .map((node) => ({ id: node.dataset.testid ?? node.textContent?.trim().slice(0, 16), rect: node.getBoundingClientRect() }))
+      .filter(({ rect }) => (rect.width > 0 || rect.height > 0) && (rect.width < 44 || rect.height < 44))
+      .map(({ id, rect }) => `${id} ${Math.round(rect.width)}x${Math.round(rect.height)}`),
+  )
+  assert(undersized.length === 0, `every enabled control meets the 44px target at 390x844 (${undersized.join(' | ') || 'all pass'})`)
+  const scrolls = await phone.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+  assert(!scrolls, 'the portrait play surface never scrolls sideways')
+  await phone.screenshot({ path: process.env.SMOKE_PHONE_SHOT ?? 'smoke-portrait.png', fullPage: false })
+  await phone.close()
+
   await browser.close()
 
   const replay = spawnSync('npx', ['vite-node', 'scripts/runHeadless.ts', '--', '--replay', recordPath], {

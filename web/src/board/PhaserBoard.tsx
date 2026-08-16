@@ -42,9 +42,18 @@ export function PhaserBoard() {
     const game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: containerRef.current ?? undefined,
-      width: BOARD_WIDTH,
-      height: BOARD_HEIGHT,
       transparent: true,
+      // The board scales to whatever room the HUD leaves it, keeping its
+      // aspect. At a fixed size the outer ring of hexes fell outside the
+      // portrait play area — hexes a player could legally step to were not
+      // on screen. Scene and layout math stay in board space; only the
+      // canvas gets smaller.
+      scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: BOARD_WIDTH,
+        height: BOARD_HEIGHT,
+      },
       scene,
     })
     // Feedback plays for steps the session just took forward. Stepping back
@@ -83,10 +92,10 @@ export function PhaserBoard() {
     <div
       ref={containerRef}
       data-testid="board"
-      className="mx-auto"
+      className="h-full w-full"
       // touch-action none keeps hex taps and Hero route-preview presses from
       // scrolling the page on touch devices.
-      style={{ width: BOARD_WIDTH, height: BOARD_HEIGHT, touchAction: 'none' }}
+      style={{ touchAction: 'none' }}
       onDragOver={(event) => {
         event.preventDefault()
         event.dataTransfer.dropEffect = 'move'
@@ -97,8 +106,12 @@ export function PhaserBoard() {
         if (cardInstanceId === '') {
           return
         }
-        const bounds = event.currentTarget.getBoundingClientRect()
-        const coords = pixelToAxial(event.clientX - bounds.left, event.clientY - bounds.top)
+        // Measure the canvas, not the container: the scaled canvas is
+        // letterboxed inside it, so a drop must be read in board space.
+        const canvas = event.currentTarget.querySelector('canvas')
+        const bounds = (canvas ?? event.currentTarget).getBoundingClientRect()
+        const scale = bounds.width / BOARD_WIDTH
+        const coords = pixelToAxial((event.clientX - bounds.left) / scale, (event.clientY - bounds.top) / scale)
         useWorkbench.getState().cardDroppedOnHex(cardInstanceId, coords)
       }}
     />

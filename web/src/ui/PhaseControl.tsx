@@ -17,7 +17,9 @@ const PHASES: { phase: Phase; label: string }[] = [
 ]
 
 // The Round track plus the one control that moves it. Holding the track
-// explains the window you are standing in.
+// explains the window you are standing in. The five chips stay on one
+// unwrapped row: at phone width they used to wrap and push the track into a
+// second line under the Next button.
 export function PhaseControl() {
   const state = useWorkbench(selectState)
   const advance = useWorkbench((store) => store.advance)
@@ -34,12 +36,12 @@ export function PhaseControl() {
         {...hold.holdProps}
         data-testid="phase-track"
         aria-label={`Current phase: ${state.phase}`}
-        className={`flex min-h-11 flex-1 flex-wrap items-center gap-1 rounded-lg text-left ${FOCUS_RING_CLASS}`}
+        className={`flex min-h-11 flex-1 items-center gap-1 rounded-lg text-left ${FOCUS_RING_CLASS}`}
       >
         {PHASES.map((entry) => (
           <span
             key={entry.phase}
-            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase transition-all duration-300 ${
+            className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wide uppercase transition-all duration-300 ${
               state.phase === entry.phase ? 'scale-105 bg-emerald-600 text-white shadow-md shadow-emerald-900' : 'bg-zinc-800 text-zinc-500'
             }`}
           >

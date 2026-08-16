@@ -21,5 +21,6 @@ node_modules/
 web/dist/
 *.tsbuildinfo
 
-# Browser smoke screenshot (scripts/smoke.mjs rewrites it every run)
+# Browser smoke screenshots (scripts/smoke.mjs rewrites them every run)
 web/smoke.png
+web/smoke-portrait.png
