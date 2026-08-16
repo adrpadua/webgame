@@ -20,3 +20,6 @@ tmp/encounter-records/
 node_modules/
 web/dist/
 *.tsbuildinfo
+
+# Browser smoke screenshot (scripts/smoke.mjs rewrites it every run)
+web/smoke.png
