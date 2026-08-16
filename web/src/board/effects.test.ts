@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
 import { advancePhase, createEncounterState, resolve, type EncounterActionInput, type EncounterState } from '@/engine'
-import { BEAT_STAGGER_MS, deriveBoardEffects, type BoardEffect } from './effects'
+import { BEAT_STAGGER_MS, deriveBoardEffects, deriveHealthPlayout, type BoardEffect } from './effects'
 
 // Board feedback is derived from Resolution Facts, never from intent: if the
 // Encounter did not resolve it, the board must not animate it.
@@ -79,6 +79,38 @@ describe('board effects', () => {
     }
     expect(turn?.entityId).toBe(state.bossId)
     expect(turn?.fromFacing).toBe(bossFacingBefore)
+  })
+
+  it('sequences the gauges with the beat playout and lands them on the true end state', () => {
+    let state = openedRound()
+    state = advancePhase(catalog, state).state
+    const heroId = state.primaryHeroId
+    const heroBefore = state.heroes[heroId]
+    const result = advancePhase(catalog, state)
+    const playout = deriveHealthPlayout(state, result.state, result.facts)
+    expect(playout).not.toBeNull()
+    // The gauge holds its pre-batch value the moment the batch lands...
+    expect(playout!.initial[heroId]).toEqual({ health: heroBefore.health, armor: heroBefore.armor })
+    // ...then steps down when the damaging beat's moment arrives, matching
+    // the hit effect's stagger slot.
+    const steps = playout!.steps.filter((step) => step.entityId === heroId)
+    expect(steps.length).toBeGreaterThan(0)
+    const effects = deriveBoardEffects(catalog, state, result.state, result.facts)
+    const hit = effects.find((effect) => effect.kind === 'hit')
+    expect(steps[0].delay).toBe(hit?.delay)
+    // The final step is the authoritative end state, approximation or not.
+    const last = steps[steps.length - 1]
+    expect(last.value).toEqual({ health: result.state.heroes[heroId].health, armor: result.state.heroes[heroId].armor })
+  })
+
+  it('skips the gauge playout entirely for immediate player actions', () => {
+    let state = openedRound()
+    state = advance(state).state
+    state = advance(state).state
+    const hero = state.heroes[state.primaryHeroId]
+    state = apply(state, { kind: 'charge_slot', sourceId: hero.id, slotIndex: 0, cardInstanceId: hero.hand[0].instanceId }).state
+    const result = resolve(catalog, state, { kind: 'fire_slot', sourceId: hero.id, slotIndex: 0 })
+    expect(deriveHealthPlayout(state, result.state, result.facts)).toBeNull()
   })
 
   it('holds player-action feedback at zero delay: only boss tracks stagger', () => {

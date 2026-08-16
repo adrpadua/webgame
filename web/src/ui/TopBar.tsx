@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { currentProgram } from '@/engine'
 import { useOnboarding } from '@/store/onboarding'
+import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { BossEmblem } from './icons'
 import { useHold } from './HoldPopover'
@@ -14,14 +15,18 @@ export function TopBar() {
   const openGuide = useOnboarding((store) => store.openGuide)
   const boss = state.board.entities[state.bossId]
   const program = currentProgram(catalog, state)
-  const healthPercent = boss ? Math.min(100, Math.max(0, Math.round((boss.health / boss.maxHealth) * 100))) : 0
+  // While a boss track replays beat by beat, the gauge shows the staggered
+  // playout value; the state's number is the batch's final one.
+  const override = usePlayout((store) => store.overrides[state.bossId])
+  const bossHealth = override?.health ?? boss?.health ?? 0
+  const healthPercent = boss ? Math.min(100, Math.max(0, Math.round((bossHealth / boss.maxHealth) * 100))) : 0
   const hold = useHold({
     id: 'boss',
     title: boss?.title ?? 'Boss',
     badge: program?.title,
     tone: 'boss',
     stats: [
-      { label: 'Health', value: `${boss?.health ?? 0} / ${boss?.maxHealth ?? 0}` },
+      { label: 'Health', value: `${bossHealth} / ${boss?.maxHealth ?? 0}` },
       { label: 'Round', value: `${state.round} of ${state.roundLimit}` },
     ],
     text: catalog.encounters[state.encounterId]?.rules_text,
@@ -31,20 +36,19 @@ export function TopBar() {
   // Flash the boss's numbers when damage lands, so a fired attack visibly
   // connects even while the player's eyes are on the Action Bar. The flash
   // styling clears once the animation finishes, not permanently.
-  const previousHealth = useRef(boss?.health ?? 0)
+  const previousHealth = useRef(bossHealth)
   const [flashKey, setFlashKey] = useState(0)
   const [flashing, setFlashing] = useState(false)
   useEffect(() => {
-    const health = boss?.health ?? 0
-    if (health < previousHealth.current) {
+    if (bossHealth < previousHealth.current) {
       setFlashKey((key) => key + 1)
       setFlashing(true)
       const timer = setTimeout(() => setFlashing(false), 500)
-      previousHealth.current = health
+      previousHealth.current = bossHealth
       return () => clearTimeout(timer)
     }
-    previousHealth.current = health
-  }, [boss?.health])
+    previousHealth.current = bossHealth
+  }, [bossHealth])
 
   return (
     <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-900/80 px-4 py-2">
@@ -52,7 +56,7 @@ export function TopBar() {
         type="button"
         {...hold.holdProps}
         data-testid="boss-bar"
-        aria-label={`${boss?.title ?? 'Boss'}, ${boss?.health ?? 0} of ${boss?.maxHealth ?? 0} health`}
+        aria-label={`${boss?.title ?? 'Boss'}, ${bossHealth} of ${boss?.maxHealth ?? 0} health`}
         className={`flex min-h-12 flex-1 items-center gap-2 rounded-lg px-1 text-left ${FOCUS_RING_CLASS}`}
       >
         <BossEmblem className="h-6 w-6 shrink-0 text-red-500" />
@@ -63,7 +67,7 @@ export function TopBar() {
             {/* The colour shift is the flash's reduced-motion fallback: the
                 animation is disabled there, the tint is not. */}
             <span key={flashKey} className={flashing ? 'wb-damage-flash text-red-300' : undefined} data-testid="boss-health">
-              {boss?.health ?? 0} / {boss?.maxHealth ?? 0}
+              {bossHealth} / {boss?.maxHealth ?? 0}
             </span>
           </span>
         </span>

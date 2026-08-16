@@ -14,6 +14,11 @@ export type BoardEffectKind = 'strike' | 'cast' | 'hit' | 'block' | 'move' | 'sp
 // the player can follow each step of the program in order.
 export const BEAT_STAGGER_MS = 700
 
+// How long after the last beat starts before staggered presentation (the
+// HUD's gauge overrides) settles back onto the authoritative state: the
+// longest single effect duration, so nothing is reclaimed mid-animation.
+export const EFFECT_SETTLE_MS = 560
+
 export interface BoardEffect {
   kind: BoardEffectKind
   // The piece the motion attaches to, when there is one on the board.
@@ -73,15 +78,11 @@ export function deriveBoardEffects(
   const bossCoords = coordsOf(before, before.bossId)
   const heroCoords = coordsOf(before, before.primaryHeroId)
 
-  // Facts arrive depth-first: each top-level `resolve_boss` fact is followed
-  // by everything that beat generated. Every beat claims the next stagger
-  // slot, and its own effects plus its children's ride that slot, so the
-  // track plays out sequentially instead of as one simultaneous burst.
   let delay = 0
-  let beatsSeen = 0
   const add = (effect: BoardEffect) => effects.push(delay > 0 ? { ...effect, delay } : effect)
 
-  for (const fact of facts) {
+  for (const [fact, factDelay] of factsWithBeatDelays(facts)) {
+    delay = factDelay
     if (!fact.succeeded) {
       continue
     }
@@ -137,10 +138,6 @@ export function deriveBoardEffects(
       }
 
       case 'resolve_boss': {
-        // Each beat claims the next slot before anything it shows, so even a
-        // beat with no motion of its own (a warning) still takes its moment.
-        delay = beatsSeen * BEAT_STAGGER_MS
-        beatsSeen += 1
         const beatId = detailString(fact, 'beatId')
         const beat = beatId === '' ? undefined : findBeat(catalog, before, beatId)
         if (!bossCoords) {
@@ -197,6 +194,100 @@ export function deriveBoardEffects(
     }
   }
   return effects
+}
+
+// Facts arrive depth-first: each top-level `resolve_boss` fact is followed
+// by everything that beat generated. Every beat claims the next stagger
+// slot before anything it shows — even a beat with no motion of its own (a
+// warning) takes its moment — and its children ride that slot, so a boss
+// track plays out sequentially instead of as one simultaneous burst. Facts
+// outside any beat carry no delay.
+function* factsWithBeatDelays(facts: ResolvedActionFact[]): Generator<[ResolvedActionFact, number]> {
+  let delay = 0
+  let beatsSeen = 0
+  for (const fact of facts) {
+    if (fact.kind === 'resolve_boss' && fact.depth === 0 && fact.succeeded) {
+      delay = beatsSeen * BEAT_STAGGER_MS
+      beatsSeen += 1
+    }
+    yield [fact, delay]
+  }
+}
+
+// A gauge's staggered value: the health (and, for heroes, armor) a bar
+// should show once a beat's damage lands.
+export interface HealthPlayoutValue {
+  health: number
+  armor: number | null
+}
+
+export interface HealthPlayoutStep {
+  delay: number
+  entityId: string
+  value: HealthPlayoutValue
+}
+
+export interface HealthPlayout {
+  // What every affected gauge shows the moment the batch lands: its value
+  // before any staggered damage (delay-zero damage is already folded in).
+  initial: Record<string, HealthPlayoutValue>
+  steps: HealthPlayoutStep[]
+}
+
+function valueBefore(state: EncounterState, entityId: string): HealthPlayoutValue {
+  const hero = state.heroes[entityId]
+  if (hero) {
+    return { health: hero.health, armor: hero.armor }
+  }
+  return { health: state.board.entities[entityId]?.health ?? 0, armor: null }
+}
+
+// Derives the gauges' staggered timeline from the same beat slots the board
+// plays: bars hold their pre-batch values and step down as each beat's
+// damage lands. Health steps are exact (each damage fact records its health
+// loss); armor drain is approximated from the fact's prevented total, so
+// the final step per entity lands on the batch's true end state. Returns
+// null when nothing is staggered — player-action feedback stays immediate.
+export function deriveHealthPlayout(before: EncounterState, after: EncounterState, facts: ResolvedActionFact[]): HealthPlayout | null {
+  const initial: Record<string, HealthPlayoutValue> = {}
+  const current: Record<string, HealthPlayoutValue> = {}
+  const steps: HealthPlayoutStep[] = []
+  for (const [fact, delay] of factsWithBeatDelays(facts)) {
+    if (fact.kind !== 'damage' || !fact.succeeded) {
+      continue
+    }
+    const targetId = detailString(fact, 'targetId')
+    if (targetId === '') {
+      continue
+    }
+    const prior = current[targetId] ?? valueBefore(before, targetId)
+    const healthLoss = numberFrom(fact.resolutionFact, 'health_loss')
+    const prevented = numberFrom(fact.resolutionFact, 'prevented')
+    const next: HealthPlayoutValue = {
+      health: Math.max(prior.health - healthLoss, 0),
+      armor: prior.armor === null ? null : Math.max(prior.armor - prevented, 0),
+    }
+    current[targetId] = next
+    if (delay > 0) {
+      initial[targetId] ??= prior
+      steps.push({ delay, entityId: targetId, value: next })
+    }
+  }
+  if (steps.length === 0) {
+    return null
+  }
+  // Land each entity's last step on the state's true values.
+  const lastStep = new Map<string, HealthPlayoutStep>()
+  for (const step of steps) {
+    lastStep.set(step.entityId, step)
+  }
+  for (const [entityId, step] of lastStep) {
+    const hero = after.heroes[entityId]
+    step.value = hero
+      ? { health: hero.health, armor: hero.armor }
+      : { health: after.board.entities[entityId]?.health ?? step.value.health, armor: null }
+  }
+  return { initial, steps }
 }
 
 function findBeat(catalog: ContentCatalog, state: EncounterState, beatId: string) {

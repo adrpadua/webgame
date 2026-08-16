@@ -134,8 +134,11 @@ try {
   assert((await cueStep()) === 'boss-instant', 'the script narrates the Boss Instant')
   await next()
   assert((await phase()) === 'quick', 'Boss Instant resolves into the Quick Window')
+  // The claw's damage reaches the gauge at its beat's playout moment, not
+  // the instant the batch resolves: wait out the staggered replay.
+  await page.waitForFunction(() => document.querySelector('[data-testid="hero-health"]')?.textContent?.includes('30'), null, { timeout: 5000 })
   const heroHealth = await page.locator('[data-testid="hero-health"]').textContent()
-  assert(heroHealth?.includes('30'), `Raking Claw hit the tank for 4 (${heroHealth?.trim()})`)
+  assert(heroHealth?.includes('30'), `Raking Claw hit the tank for 4, on its beat (${heroHealth?.trim()})`)
 
   // Step 5-6: charge the quick Slot, then fire it in its matching window.
   assert((await cueStep()) === 'charge-quick', 'the Quick Window opens on the charge step')

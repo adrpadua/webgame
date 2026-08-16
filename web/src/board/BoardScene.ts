@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { facingName, hexKey, parseHexKey, type Axial, type EncounterState, type EntityKind } from '@/engine'
 import { axialToPixel, hexCorners, pixelToAxial, HEX_SIZE } from './layout'
 import { healthBarScale } from '@/ui/theme'
-import type { BoardEffect, EffectTone } from './effects'
+import type { BoardEffect, EffectTone, HealthPlayoutValue } from './effects'
 
 // The board snapshot the scene renders. Phaser owns no game state: it draws
 // what it is handed and reports hex-level intents upward (ADR 0019).
@@ -13,6 +13,9 @@ export interface BoardSnapshot {
   // Hexes the scripted first turn is pointing the player at.
   guidedMoveKeys: string[]
   showCoordinates: boolean
+  // Staggered gauge values while a boss track replays: a piece listed here
+  // draws this health/armor instead of the state's (already final) numbers.
+  healthOverrides: Record<string, HealthPlayoutValue>
 }
 
 export interface BoardSceneCallbacks {
@@ -404,8 +407,10 @@ export class BoardScene extends Phaser.Scene {
       graphics.lineStyle(2, 0xf4f4f5, 0.9)
       graphics.strokeCircle(x, y, radius)
       this.drawFacing(graphics, x, y, radius, this.facingAngleFor(entity.id, entity.facing))
-      const armor = entity.kind === 'hero' ? (state.heroes[entity.id]?.armor ?? 0) : 0
-      this.drawHealthBar(graphics, x, y - radius - 13, entity.kind, entity.health, entity.maxHealth, armor)
+      const override = snapshot.healthOverrides[entity.id]
+      const shownHealth = override?.health ?? entity.health
+      const shownArmor = entity.kind === 'hero' ? (override?.armor ?? state.heroes[entity.id]?.armor ?? 0) : 0
+      this.drawHealthBar(graphics, x, y - radius - 13, entity.kind, shownHealth, entity.maxHealth, shownArmor)
       if (entity.kind !== 'boss') {
         this.labels.push(
           this.add

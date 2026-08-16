@@ -3,9 +3,10 @@ import Phaser from 'phaser'
 import { hexKey, isLegalMove, neighbors, type EncounterState } from '@/engine'
 import { currentFirstTurnStep } from '@/ui/useFirstTurn'
 import { useOnboarding } from '@/store/onboarding'
+import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { BoardScene, type BoardSnapshot } from './BoardScene'
-import { deriveBoardEffects } from './effects'
+import { deriveBoardEffects, deriveHealthPlayout } from './effects'
 import { BOARD_HEIGHT, BOARD_WIDTH, pixelToAxial } from './layout'
 
 function buildSnapshot(
@@ -28,7 +29,7 @@ function buildSnapshot(
       }
     }
   }
-  return { state, targeting, legalMoveKeys, guidedMoveKeys, showCoordinates }
+  return { state, targeting, legalMoveKeys, guidedMoveKeys, showCoordinates, healthOverrides: usePlayout.getState().overrides }
 }
 
 export function PhaserBoard() {
@@ -65,6 +66,30 @@ export function PhaserBoard() {
     const pushSnapshot = () => {
       const store = useWorkbench.getState()
       const step = currentFirstTurnStep()
+      const entry = store.entries[store.index]
+      const previous = store.entries[store.index - 1]
+      const steppedForward = previous !== undefined && previous === lastEntry
+      const timelineMoved = entry !== lastEntry
+      // lastEntry settles before the playout store is touched: its `begin`
+      // notifies subscribers — this function included — and the re-entrant
+      // call must not read the step as still-forward and play it twice.
+      lastEntry = entry
+      if (steppedForward) {
+        // The HUD's gauges ride the same beat slots the board plays: begin
+        // (or clear) their staggered timeline before this snapshot is built
+        // so held-back values apply from the first frame.
+        const playout = deriveHealthPlayout(previous.state, entry.state, entry.facts)
+        if (playout) {
+          usePlayout.getState().begin(playout)
+        } else {
+          usePlayout.getState().clear()
+        }
+      } else if (timelineMoved) {
+        // Time travel, restart, or a replayed Scenario: nothing resolved,
+        // so every gauge shows the authoritative state immediately. UI-only
+        // store changes (a drag, a selection) leave a running playout alone.
+        usePlayout.getState().clear()
+      }
       scene.updateSnapshot(
         buildSnapshot(
           selectState(store),
@@ -74,20 +99,21 @@ export function PhaserBoard() {
           step?.safeHexKeys ?? [],
         ),
       )
-      const entry = store.entries[store.index]
-      const previous = store.entries[store.index - 1]
-      if (previous !== undefined && previous === lastEntry) {
+      if (steppedForward) {
         scene.playEffects(deriveBoardEffects(store.catalog, previous.state, entry.state, entry.facts))
       }
-      lastEntry = entry
     }
     const unsubscribe = useWorkbench.subscribe(pushSnapshot)
     // Skipping or finishing the script clears its board highlights too.
     const unsubscribeOnboarding = useOnboarding.subscribe(pushSnapshot)
+    // Each playout step redraws the board so the mini-bars step with it.
+    const unsubscribePlayout = usePlayout.subscribe(pushSnapshot)
     pushSnapshot()
     return () => {
       unsubscribe()
       unsubscribeOnboarding()
+      unsubscribePlayout()
+      usePlayout.getState().clear()
       game.destroy(true)
     }
   }, [])
