@@ -31,11 +31,49 @@ Those two gaps are precisely this project's two hardest requirements. What remai
 
 If you want the backdrop from Midjourney anyway, compress the preamble to a short style tag, move the never-include list into `--no`, and add `--style raw` with a low `--stylize` to suppress its default painterly bias. Do not add it for anything else.
 
+## Pending Evaluation: Leonardo
+
+Status: candidate, not adopted. Raised August 2026, after five rolls were spent getting one card right.
+
+Leonardo is worth evaluating here because three of its features map onto the three failure modes this run actually produced — recorded in [elian-voss-card-prompts.md](elian-voss-card-prompts.md) — rather than onto generic quality claims.
+
+**ControlNet-style pose guidance answers the pose drift.** The recurring failure was the reference image supplying identity *and* pose together, dragging every result back toward the calm concept sheet. Pose guidance specifies the pose structurally instead of describing it in prose, which removes the conflict rather than arguing with it.
+
+**Inpainting answers the whack-a-mole.** The most expensive pattern in this run was that fixing one fault by re-rolling lost others that were already right. Editing a region in place — repairing a broken arm without touching a pose, crop, and background that already work — eliminates that class of loss structurally. This is the strongest single argument for the tool.
+
+**Character Reference with adjustable strength answers identity-versus-pose.** Low/Mid/High strength is the knob for taking the design without importing the composition.
+
+Beyond those: custom LoRA training on 10–20 images in 15–30 minutes on paid plans, a multi-model library including anime presets relevant to the flat cel direction, and a transparent-background export.
+
+### What Adoption Would Change
+
+If it wins, it replaces both the conversational model for cards and the Scenario recommendation below — style LoRA on one axis, character reference on the other, which is the two-axis lock this library approximates in prose.
+
+It does **not** change the tile and crest decision. That was made on vector precision at 46 pixels, and a diffusion model emitting transparent backgrounds is not the same thing as real paths. Revisit only if the vector route fails on its own terms.
+
+### Judging Criteria
+
+Bake off on `guard_stance`, which needs re-rolling for its setting anyway. Zero cards are final right now, so this is the cheapest moment a tool switch will ever be — there is no half-finished set to strand. Judge three things:
+
+1. Does the pose obey the `POSE:` line rather than the reference's stance?
+2. Does the Redwater lock corridor render as subordinate value shapes rather than a competing scene?
+3. Does it hold flat cel shading without over-rendering into Leonardo's house look?
+
+### What Is Unverified
+
+The vendor's own game-asset-suite article could not be read from this environment — `leonardo.ai` is blocked by the egress proxy — so the feature list above comes from secondary coverage and should be confirmed against the source before committing.
+
+Treat the published figures as marketing: "90% consistency on first tries", "85% of surveyed game devs prefer Leonardo", and "4x better pose fidelity" all circulate without methodology. The features are the reason to evaluate; the numbers are not evidence.
+
+Two unknowns the bake-off exists to settle: whether the house aesthetic fights flat cel shading the way Midjourney's does, and whether losing a conversational thread hurts. On the second, consolidation already beat iterative correction in this run, so a non-conversational tool may suit the workflow rather than hinder it.
+
 ## The Scaling Path: A Trained Style Model
 
 Prompt-based direction has a ceiling. Every generation re-describes the style in prose and hopes the model complies, which is why this library spends a whole file on a preamble and why drift is a standing risk.
 
-The structural fix is training a private style model on your own art, so the direction is carried by weights instead of by adjectives. Platforms built for this — Scenario is the notable one — train a style LoRA on as few as 10–15 consistent images and are aimed at exactly this problem: a studio needing one look across hundreds of assets.
+The structural fix is training a private style model on your own art, so the direction is carried by weights instead of by adjectives. Platforms built for this — Scenario is the notable one, and Leonardo above offers the same on 10–20 images — train a style LoRA from a small consistent set and are aimed at exactly this problem: a studio needing one look across hundreds of assets.
+
+If the Leonardo evaluation succeeds, it absorbs this path and Scenario is not needed; the two are alternatives, not sequential steps.
 
 **You cannot do this yet.** There is one anchor concept in the repo, and training wants 10–15+ at 1024 px or larger, consistent in aesthetic across varied subjects.
 
