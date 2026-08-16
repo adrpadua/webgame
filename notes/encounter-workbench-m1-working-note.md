@@ -90,7 +90,16 @@ cost lands when a second Boss arrives: beat kinds, telegraph vocabulary, and
 spawn configuration should then generalize into authored Boss-level content
 rather than engine unions. Deliberately deferred until that Boss exists.
 
-## 9. Design finding: `boss_damage` has no range rule
+## 9. Hero route preview: press-and-hold implements the drag gesture
+
+`docs/rules/prototype-rules.md` says "drag the Hero itself to preview legal
+routes". The Workbench implements this as press-and-hold on the Hero's hex:
+the preview shows from pointer-down until release, so a drag (press, move,
+release) previews exactly as the doc describes, and a stationary press does
+too. The gesture is a superset of the documented one, not a replacement;
+recorded here because the wording differs.
+
+## 10. Design finding: `boss_damage` has no range rule
 
 Per the frozen engine and the rules docs, only `damage` (piece-targeting)
 effects check `range_tiles`; a card's `boss_damage` resolves from anywhere

@@ -50,6 +50,7 @@ export class BoardScene extends Phaser.Scene {
       }
     })
     this.input.on('pointerup', () => this.callbacks.onHeroPressChange(false))
+    this.input.on('pointerupoutside', () => this.callbacks.onHeroPressChange(false))
     this.input.on('gameout', () => this.callbacks.onHeroPressChange(false))
     this.renderSnapshot()
   }
@@ -123,7 +124,7 @@ export class BoardScene extends Phaser.Scene {
       this.drawFacing(graphics, x, y, radius, entity.facing)
       this.labels.push(
         this.add
-          .text(x, y - radius - 12, `${entity.kind === 'boss' ? '' : ''}${entity.health}`, {
+          .text(x, y - radius - 12, `${entity.health}`, {
             fontFamily: 'monospace',
             fontSize: '13px',
             color: '#fafafa',

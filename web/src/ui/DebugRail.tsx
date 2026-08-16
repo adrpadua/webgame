@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { selectState, useWorkbench, type FactEntry } from '@/store/workbench'
+import { FRAME_HEIGHT_CLASS } from './theme'
 
 function factSummary(fact: FactEntry): string | null {
   const resolution = fact.resolutionFact
@@ -215,7 +216,7 @@ export function DebugRail() {
   }, [facts.length])
 
   return (
-    <aside className="flex h-[840px] w-95 flex-col gap-3" data-testid="debug-rail">
+    <aside className={`flex ${FRAME_HEIGHT_CLASS} w-95 flex-col gap-3`} data-testid="debug-rail">
       <ScenarioPicker />
       <TimeTravel />
       <SeedControl />

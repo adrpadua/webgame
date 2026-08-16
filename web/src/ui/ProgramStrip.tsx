@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { currentProgram } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
+import { FOCUS_RING_CLASS } from './theme'
 
 // The boss-program strip: tap to expand or collapse its three-beat Instant
 // and Incoming tracks.
@@ -20,7 +21,7 @@ export function ProgramStrip() {
     <button
       type="button"
       onClick={() => setExpanded((current) => !current)}
-      className="w-full border-b border-zinc-800 bg-zinc-900/60 px-4 py-2 text-left text-[11px]"
+      className={`min-h-11 w-full border-b border-zinc-800 bg-zinc-900/60 px-4 py-2 text-left text-[11px] ${FOCUS_RING_CLASS}`}
       data-testid="program-strip"
       data-expanded={expanded}
     >
@@ -38,6 +39,7 @@ export function ProgramStrip() {
                 key={`${beat.id}-${index}`}
                 className={`rounded px-1.5 py-0.5 ${row.active ? 'bg-amber-950 text-amber-200' : 'bg-zinc-800 text-zinc-400'}`}
                 title={beat.rules_text}
+                aria-label={`${beat.title}: ${beat.rules_text}`}
               >
                 {beat.title}
               </span>

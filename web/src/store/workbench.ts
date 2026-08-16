@@ -38,6 +38,12 @@ interface WorkbenchStore {
   sessionStartedAt: string
   targetingSlotIndex: number | null
   draggingCardId: string | null
+  // Tap path (accessibility contract): a selected Compact Card acts on the
+  // next tapped Slot or move destination, mirroring the drag gestures.
+  selectedCardId: string | null
+  // Slot Replacement discards the Top Card and its whole Charge Stack, so it
+  // never fires from a raw gesture: it parks here until confirmed.
+  pendingReplacement: { cardInstanceId: string; slotIndex: number } | null
   heroRoutePreview: boolean
   showCoordinates: boolean
   lastRejection: string | null
@@ -53,7 +59,10 @@ interface WorkbenchStore {
   cardDroppedOnHex: (cardInstanceId: string, coords: Axial) => void
   cardDroppedOnSlot: (cardInstanceId: string, slotIndex: number) => void
   cancelTargeting: () => void
+  confirmReplacement: () => void
+  cancelReplacement: () => void
   setDraggingCard: (cardInstanceId: string | null) => void
+  selectCard: (cardInstanceId: string) => void
   setHeroRoutePreview: (previewing: boolean) => void
   toggleCoordinates: () => void
   clearRejection: () => void
@@ -102,6 +111,8 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
     sessionStartedAt: new Date().toISOString(),
     targetingSlotIndex: null,
     draggingCardId: null,
+    selectedCardId: null,
+    pendingReplacement: null,
     heroRoutePreview: false,
     showCoordinates: false,
     lastRejection: null,
@@ -119,7 +130,7 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
       const state = selectState(get())
       const result = advancePhase(catalog, state)
       pushEntry(`Advance (${state.phase} ends)`, { advance: true }, result.state, result.facts)
-      set({ targetingSlotIndex: null, lastRejection: null })
+      set({ targetingSlotIndex: null, selectedCardId: null, pendingReplacement: null, lastRejection: null })
     },
 
     restart: (seed) => {
@@ -132,6 +143,8 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
         sessionStartedAt: new Date().toISOString(),
         targetingSlotIndex: null,
         draggingCardId: null,
+        selectedCardId: null,
+        pendingReplacement: null,
         lastRejection: null,
       })
     },
@@ -161,6 +174,8 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
         sessionStartedAt: new Date().toISOString(),
         targetingSlotIndex: null,
         draggingCardId: null,
+        selectedCardId: null,
+        pendingReplacement: null,
         lastRejection: null,
       })
     },
@@ -168,7 +183,7 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
     timeTravelTo: (index) => {
       const { entries } = get()
       const clamped = Math.max(0, Math.min(index, entries.length - 1))
-      set({ index: clamped, targetingSlotIndex: null, lastRejection: null })
+      set({ index: clamped, targetingSlotIndex: null, selectedCardId: null, pendingReplacement: null, lastRejection: null })
     },
 
     // The current session up to the viewed position, as a Scenario payload:
@@ -199,26 +214,32 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
     },
 
     hexClicked: (coords) => {
-      const { targetingSlotIndex } = get()
+      const { targetingSlotIndex, selectedCardId } = get()
       const state = selectState(get())
-      if (targetingSlotIndex === null) {
+      if (targetingSlotIndex !== null) {
+        const target = Object.values(state.board.entities).find(
+          (entity) => entity.coords.q === coords.q && entity.coords.r === coords.r && entity.kind === 'minion',
+        )
+        if (!target) {
+          set({ lastRejection: 'The Top Card needs a Minion target.' })
+          return
+        }
+        set({ targetingSlotIndex: null })
+        get().submit({ kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: targetingSlotIndex, targetId: target.id })
         return
       }
-      const target = Object.values(state.board.entities).find(
-        (entity) => entity.coords.q === coords.q && entity.coords.r === coords.r && entity.kind === 'minion',
-      )
-      if (!target) {
-        set({ lastRejection: 'The Top Card needs a Minion target.' })
-        return
+      // Tap path for movement: a selected Compact Card discards to move the
+      // Hero to the tapped hex, mirroring drag-card-to-hex.
+      if (selectedCardId !== null) {
+        get().cardDroppedOnHex(selectedCardId, coords)
       }
-      set({ targetingSlotIndex: null })
-      get().submit({ kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: targetingSlotIndex, targetId: target.id })
     },
 
     // Dragging a hand card to an adjacent legal hex discards it for 1 Stamina
     // and moves the Hero.
     cardDroppedOnHex: (cardInstanceId, coords) => {
       const state = selectState(get())
+      set({ selectedCardId: null })
       get().submit({ kind: 'move_hero', sourceId: state.primaryHeroId, destination: coords, cardInstanceId })
     },
 
@@ -228,12 +249,44 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
       const state = selectState(get())
       const hero = state.heroes[state.primaryHeroId]
       const slot = hero.actionBar[slotIndex]
-      const kind = slot.topCard !== null && state.phase !== 'loadout' ? 'charge_slot' : 'load_slot'
-      get().submit({ kind, sourceId: state.primaryHeroId, slotIndex, cardInstanceId })
+      set({ selectedCardId: null })
+      if (slot.topCard !== null && state.phase !== 'loadout') {
+        get().submit({ kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId })
+        return
+      }
+      if (slot.topCard !== null) {
+        // Replacing during Loadout discards the whole bundle — confirm first.
+        set({ pendingReplacement: { cardInstanceId, slotIndex }, lastRejection: null })
+        return
+      }
+      get().submit({ kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId })
     },
 
+    confirmReplacement: () => {
+      const { pendingReplacement } = get()
+      if (pendingReplacement === null) {
+        return
+      }
+      const state = selectState(get())
+      set({ pendingReplacement: null })
+      get().submit({
+        kind: 'load_slot',
+        sourceId: state.primaryHeroId,
+        slotIndex: pendingReplacement.slotIndex,
+        cardInstanceId: pendingReplacement.cardInstanceId,
+      })
+    },
+
+    cancelReplacement: () => set({ pendingReplacement: null }),
+
     cancelTargeting: () => set({ targetingSlotIndex: null }),
-    setDraggingCard: (cardInstanceId) => set({ draggingCardId: cardInstanceId }),
+    setDraggingCard: (cardInstanceId) => set({ draggingCardId: cardInstanceId, ...(cardInstanceId !== null ? { selectedCardId: null } : {}) }),
+    selectCard: (cardInstanceId) =>
+      set((store) => ({
+        selectedCardId: store.selectedCardId === cardInstanceId ? null : cardInstanceId,
+        targetingSlotIndex: null,
+        lastRejection: null,
+      })),
     setHeroRoutePreview: (previewing) => set({ heroRoutePreview: previewing }),
     toggleCoordinates: () => set((store) => ({ showCoordinates: !store.showCoordinates })),
     clearRejection: () => set({ lastRejection: null }),

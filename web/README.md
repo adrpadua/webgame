@@ -24,7 +24,8 @@ npm run headless -- --replay <record.json>             # verify a v2 record
 
 The Workbench is a fully static build, so it deploys to GitHub Pages via
 `.github/workflows/deploy-workbench.yml` on every push to `main` (or the
-active workbench branch) that touches `web/` or `data/`.
+active workbench branch) that touches `web/`, `data/`, or the workflow file
+itself.
 
 Pages is enabled for this repository (Settings → Pages → Source: "GitHub
 Actions"), so every deploy lands at `https://adrpadua.github.io/webgame/` —
@@ -34,8 +35,11 @@ anyone with the URL. Any static host (Netlify, Cloudflare Pages) works the
 same way, with `VITE_BASE` set to that host's serving path.
 
 Touch is first-class on iPadOS Safari: drag Compact Cards with a finger to
-prepare, charge, or move; hold a card for Card Inspection; press the Hero to
-preview routes; tap the program strip to expand or collapse it.
+prepare, charge, or move; hold a card for Card Inspection; drag or press the
+Hero to preview routes; tap the program strip to expand or collapse it.
+Every drag also has a tap path — tap a Compact Card to select it, then tap a
+Slot or a move-pad direction — and replacing an occupied Slot always asks
+for confirmation, since it discards the Top Card and its Charge Stack.
 
 ## Layout
 

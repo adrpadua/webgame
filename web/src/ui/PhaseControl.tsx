@@ -1,5 +1,6 @@
 import { selectState, useWorkbench } from '@/store/workbench'
 import type { Phase } from '@/engine'
+import { FOCUS_RING_CLASS } from './theme'
 
 const PHASES: { phase: Phase; label: string }[] = [
   { phase: 'loadout', label: 'Loadout' },
@@ -32,7 +33,7 @@ export function PhaseControl() {
           type="button"
           data-testid="next-phase"
           onClick={advance}
-          className="min-h-11 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-500 active:scale-95"
+          className={`min-h-12 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-500 active:scale-95 ${FOCUS_RING_CLASS}`}
         >
           Next
         </button>
@@ -41,7 +42,7 @@ export function PhaseControl() {
           type="button"
           data-testid="restart"
           onClick={() => restart()}
-          className="min-h-11 rounded-lg bg-amber-600 px-4 text-sm font-bold text-white transition hover:bg-amber-500 active:scale-95"
+          className={`min-h-12 rounded-lg bg-amber-600 px-4 text-sm font-bold text-white transition hover:bg-amber-500 active:scale-95 ${FOCUS_RING_CLASS}`}
         >
           Restart
         </button>

@@ -10,6 +10,8 @@ on:
   push:
     branches:
       - main
+      # Pre-merge deploys for PR #3; both branches share the one Pages site
+      # (last push wins). Remove this entry after the branch merges.
       - claude/web-game-loop-framework-73gyg8
     paths:
       - 'web/**'

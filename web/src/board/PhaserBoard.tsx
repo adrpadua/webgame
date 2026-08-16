@@ -49,7 +49,7 @@ export function PhaserBoard() {
         buildSnapshot(
           selectState(store),
           store.targetingSlotIndex !== null,
-          store.draggingCardId !== null || store.heroRoutePreview,
+          store.draggingCardId !== null || store.selectedCardId !== null || store.heroRoutePreview,
           store.showCoordinates,
         ),
       )

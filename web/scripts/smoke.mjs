@@ -66,6 +66,29 @@ try {
   assert(topCard !== '', `dragging a hand card prepares Slot 1 (${topCard})`)
   assert((await page.locator('[data-testid="hand-card"]').count()) === 3, 'the prepared card left the Hand')
 
+  // Tap path (accessibility contract): select a Compact Card, tap a Slot.
+  const slot1 = page.locator('[data-testid="slot-1"]')
+  await page.locator('[data-testid="hand-card"]').first().click()
+  assert(
+    (await page.locator('[data-testid="hand-card"]').first().getAttribute('data-selected')) === 'true',
+    'tapping a Compact Card selects it',
+  )
+  assert((await slot0.getAttribute('data-incoming-action')) === 'Replace', 'an occupied Slot advertises Replace during Loadout')
+  assert((await slot1.getAttribute('data-incoming-action')) === 'Prepare', 'an empty Slot advertises Prepare')
+  await slot1.click()
+  assert((await slot1.getAttribute('data-top-card')) !== '', 'tapping the empty Slot prepares the selected card')
+  assert((await page.locator('[data-testid="replace-confirm"]').count()) === 0, 'preparing an empty Slot needs no confirmation')
+
+  // Slot Replacement is destructive, so it must confirm before resolving.
+  const slot0CardBefore = await slot0.getAttribute('data-top-card')
+  await page.locator('[data-testid="hand-card"]').first().click()
+  await slot0.click()
+  await page.waitForSelector('[data-testid="replace-confirm"]')
+  assert(true, 'replacing an occupied Slot opens the confirmation modal')
+  await page.locator('[data-testid="cancel-replace"]').click()
+  await page.waitForTimeout(100)
+  assert((await slot0.getAttribute('data-top-card')) === slot0CardBefore, 'cancelling keeps the Slot bundle intact')
+
   await next()
   assert((await phase()) === 'instant', 'Next advances into Boss Instant')
   await next()
