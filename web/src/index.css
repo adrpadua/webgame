@@ -4,6 +4,9 @@ html,
 body {
   margin: 0;
   background-color: #09090b;
+  /* Touch browsers: no pull-to-refresh or rubber-banding — a drag that
+     starts on the play surface must never turn into a page gesture. */
+  overscroll-behavior: none;
 }
 
 /* iPadOS: suppress the long-press callout and text-selection loupe on the

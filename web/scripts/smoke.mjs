@@ -338,6 +338,29 @@ try {
   assert(undersized.length === 0, `every enabled control meets the 44px target at 390x844 (${undersized.join(' | ') || 'all pass'})`)
   const scrolls = await phone.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
   assert(!scrolls, 'the portrait play surface never scrolls sideways')
+  // The whole HUD fits the phone's viewport: the frame spans it edge to
+  // edge and the Hand — the bottom interaction zone — is on screen without
+  // any vertical scrolling. (The debug rail below the fold is allowed to be
+  // the page's only overflow.)
+  const overflows = await phone.evaluate(() => {
+    const surface = document.querySelector('[data-testid="play-surface"]')?.getBoundingClientRect()
+    const hand = document.querySelector('[data-testid="hand"]')?.getBoundingClientRect()
+    if (!surface || !hand) {
+      return ['missing play surface or hand']
+    }
+    const problems = []
+    if (surface.top < 0 || surface.bottom > window.innerHeight + 1) {
+      problems.push(`frame spans ${Math.round(surface.top)}..${Math.round(surface.bottom)} in a ${window.innerHeight}px viewport`)
+    }
+    if (Math.round(surface.width) < window.innerWidth) {
+      problems.push(`frame is ${Math.round(surface.width)}px wide in a ${window.innerWidth}px viewport`)
+    }
+    if (hand.bottom > window.innerHeight + 1) {
+      problems.push(`the Hand ends at ${Math.round(hand.bottom)}px, below the ${window.innerHeight}px viewport`)
+    }
+    return problems
+  })
+  assert(overflows.length === 0, `the full HUD fits the phone viewport without scrolling (${overflows.join(' | ') || 'fits'})`)
   await phone.screenshot({ path: process.env.SMOKE_PHONE_SHOT ?? 'smoke-portrait.png', fullPage: false })
   await phone.close()
 

@@ -90,10 +90,14 @@ function OutcomeBanner() {
 export default function App() {
   // flex-wrap keeps the portrait frame and the debug rail side by side on
   // wide screens and stacks the rail below on narrow ones (iPad portrait).
+  // On phones (below `sm`) the frame goes edge to edge — no page padding, no
+  // rounded border — and pads itself with the safe-area insets so the Boss
+  // line and the Hand clear the notch and the home indicator under
+  // viewport-fit=cover. The rail still stacks below, one scroll away.
   return (
-    <div className="flex min-h-screen flex-wrap content-start items-start justify-center gap-6 bg-zinc-950 p-4 font-sans text-zinc-100 sm:p-6">
+    <div className="flex min-h-dvh flex-wrap content-start items-start justify-center bg-zinc-950 font-sans text-zinc-100 sm:gap-6 sm:p-6">
       <main
-        className={`relative flex ${FRAME_HEIGHT_CLASS} w-[420px] max-w-full shrink-0 touch-manipulation flex-col overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 shadow-2xl select-none`}
+        className={`relative flex ${FRAME_HEIGHT_CLASS} w-full max-w-full shrink-0 touch-manipulation flex-col overflow-hidden bg-zinc-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-2xl select-none sm:w-[420px] sm:rounded-3xl sm:border sm:border-zinc-700`}
         data-testid="play-surface"
       >
         <TopBar />
