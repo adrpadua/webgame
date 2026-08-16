@@ -62,6 +62,6 @@ Any card can charge either Top Card. `Steady Strike` rewards total Charge, while
 
 ## Source Resources
 
-The underlying card resources live in [resources/cards/tank](D:/dev/webgame/resources/cards/tank).
+The underlying card resources live in [resources/cards/tank](../../../resources/cards/tank).
 
-Player-card wording and presentation follow [Player Card Authoring Rules](D:/dev/webgame/docs/rules/player-card-authoring.md).
+Player-card wording and presentation follow [Player Card Authoring Rules](../../rules/player-card-authoring.md).

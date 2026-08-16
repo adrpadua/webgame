@@ -1,6 +1,6 @@
 # Hand-Drawn Character Art Style
 
-Status: active art-direction recipe. Use this with [world-style-bible.md](D:/dev/webgame/docs/content/world-style-bible.md) when generating or briefing Hero concept art, card art, and visual explorations. This document is visual guidance only; it does not change rules or content behavior.
+Status: active art-direction recipe. Use this with [world-style-bible.md](world-style-bible.md) when generating or briefing Hero concept art, card art, and visual explorations. This document is visual guidance only; it does not change rules or content behavior.
 
 ## Purpose
 

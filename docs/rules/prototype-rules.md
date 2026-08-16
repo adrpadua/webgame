@@ -2,9 +2,9 @@
 
 This document describes the current playable rules of the prototype as they exist in the repo today.
 
-Use [CONTEXT.md](D:/dev/webgame/CONTEXT.md) for canonical terms and the ADRs for why the model exists.
+Use [CONTEXT.md](../../CONTEXT.md) for canonical terms and the ADRs for why the model exists.
 
-Use [player-card-authoring.md](D:/dev/webgame/docs/rules/player-card-authoring.md) when creating or editing player cards.
+Use [player-card-authoring.md](player-card-authoring.md) when creating or editing player cards.
 
 ## Encounter Structure
 

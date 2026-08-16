@@ -1,6 +1,6 @@
 # Embermaw: Ashen Trial - Boss Design
 
-Status: approved full encounter design. The runnable short deck is documented in [embermaw-prototype.md](D:/dev/webgame/docs/content/encounters/embermaw-prototype.md); it implements the first spatial lessons but not this document's phase-two package.
+Status: approved full encounter design. The runnable short deck is documented in [embermaw-prototype.md](embermaw-prototype.md); it implements the first spatial lessons but not this document's phase-two package.
 
 ## Encounter Promise
 

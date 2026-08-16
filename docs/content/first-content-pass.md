@@ -4,9 +4,9 @@ Status: proposed and ranked, with the first-pass Shield Wall default migration a
 
 ## Status And Source Of Truth
 
-**Current authored truth:** the runnable Embermaw loop is defined by `resources/boss/programs/embermaw_hunt.tres`, `embermaw_embers.tres`, and `embermaw_brood.tres`, summarized in [embermaw-prototype.md](D:/dev/webgame/docs/content/encounters/embermaw-prototype.md). In particular, the current **Ember Pattern** resolves `Brood Call`, `Raking Claw` (`tank_hit`), then `Keep a Safe Hex` in its Incoming track. This is the existing Riposte Ready reachability path; it is not a proposed content edit.
+**Current authored truth:** the runnable Embermaw loop is defined by `resources/boss/programs/embermaw_hunt.tres`, `embermaw_embers.tres`, and `embermaw_brood.tres`, summarized in [embermaw-prototype.md](encounters/embermaw-prototype.md). In particular, the current **Ember Pattern** resolves `Brood Call`, `Raking Claw` (`tank_hit`), then `Keep a Safe Hex` in its Incoming track. This is the existing Riposte Ready reachability path; it is not a proposed content edit.
 
-**Adopted default-deck guidance:** the `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, `2x Shield Slam` Shield Wall list is the approved live/default Elian deck specification and is now authored in `resources/encounters/embermaw_prototype.tres`. The prior evaluation-only restriction from proposal 03 is superseded only for default adoption by [product intake 04](D:/dev/webgame/.scratch/product-backlog/issues/04-promote-aegis-starter-deck-to-shield-wall-kit.md); the controlled-cohort evidence remains historical.
+**Adopted default-deck guidance:** the `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, `2x Shield Slam` Shield Wall list is the approved live/default Elian deck specification and is now authored in `resources/encounters/embermaw_prototype.tres`. The prior evaluation-only restriction from proposal 03 is superseded only for default adoption by [product intake 04](../../.scratch/product-backlog/issues/04-promote-aegis-starter-deck-to-shield-wall-kit.md); the controlled-cohort evidence remains historical.
 
 **Proposed guidance:** packages not explicitly marked adopted below remain future content tests or changes after their stated gates and evidence. They do not override the runnable resources.
 
@@ -28,7 +28,7 @@ Status: proposed and ranked, with the first-pass Shield Wall default migration a
 
 **Precise rule:** Add `2x Sweeping Blow` to the live twenty-card deck. It remains a Quick Top Card, needs one charged card to activate, selects an adjacent Minion, and deals its authored `2` damage. A Whelp has `2` health, so one successful Sweeping Blow removes it. The Boss retains `Kill Adds` as a counter tag only while this card is present in the encounter deck.
 
-**Affected content:** `resources/encounters/embermaw_prototype.tres`; reuse `resources/cards/tank/sweeping_blow.tres` and `resources/minions/whelp.tres`. Update [elian-voss-starter.md](D:/dev/webgame/docs/content/decks/elian-voss-starter.md) and [embermaw-prototype.md](D:/dev/webgame/docs/content/encounters/embermaw-prototype.md) when implemented.
+**Affected content:** `resources/encounters/embermaw_prototype.tres`; reuse `resources/cards/tank/sweeping_blow.tres` and `resources/minions/whelp.tres`. Update [elian-voss-starter.md](decks/elian-voss-starter.md) and [embermaw-prototype.md](encounters/embermaw-prototype.md) when implemented.
 
 **Edge cases:** No Minion may exist when Sweeping Blow is loaded; the card must remain a legal prepared Top Card but cannot fire without a selected in-range Minion. A Whelp can block the only adjacent hex, so the target affordance must remain reachable without moving. A charged Sweeping Blow is not itself a Whelp answer until it is in the Quick Window.
 
@@ -82,7 +82,7 @@ Status: proposed and ranked, with the first-pass Shield Wall default migration a
 
 **Player-facing intent:** The final four Rounds combine learned spatial rules into a readable raid finish rather than adding arbitrary damage.
 
-**Precise rule:** At the documented phase trigger, Embermaw performs Molting Roar after the current Round, rotates one legal edge clockwise, retains Whelps and Scorched terrain, reveals the Phase II package, and deals no unavoidable transition damage. Phase II introduces Ashen Brand, Molten Tail, and Cinderstorm exactly as defined in [embermaw-ashen-trial-design.md](D:/dev/webgame/docs/content/encounters/embermaw-ashen-trial-design.md).
+**Precise rule:** At the documented phase trigger, Embermaw performs Molting Roar after the current Round, rotates one legal edge clockwise, retains Whelps and Scorched terrain, reveals the Phase II package, and deals no unavoidable transition damage. Phase II introduces Ashen Brand, Molten Tail, and Cinderstorm exactly as defined in [embermaw-ashen-trial-design.md](encounters/embermaw-ashen-trial-design.md).
 
 **Affected content:** the Embermaw encounter, Boss Programs, Hazards, Minions, phase briefing, and the data schema/engine/UI listed in the backlog.
 
@@ -92,4 +92,4 @@ Status: proposed and ranked, with the first-pass Shield Wall default migration a
 
 ## Deck Composition History
 
-The former authoring gate limited the five-identity list to testing preparation. The old `10x Steady Strike` / `10x Iron Guard` baseline and its cohort remain historical evidence for that mechanics shell. The user-approved [default-deck intake](D:/dev/webgame/.scratch/product-backlog/issues/04-promote-aegis-starter-deck-to-shield-wall-kit.md) now adopts `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, and `2x Shield Slam` as the live/default Elian Shield Wall specification, and `resources/encounters/embermaw_prototype.tres` now carries that list. This adoption does not claim balance completion or authorize encounter, seed, hand, or pacing changes.
+The former authoring gate limited the five-identity list to testing preparation. The old `10x Steady Strike` / `10x Iron Guard` baseline and its cohort remain historical evidence for that mechanics shell. The user-approved [default-deck intake](../../.scratch/product-backlog/issues/04-promote-aegis-starter-deck-to-shield-wall-kit.md) now adopts `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, and `2x Shield Slam` as the live/default Elian Shield Wall specification, and `resources/encounters/embermaw_prototype.tres` now carries that list. This adoption does not claim balance completion or authorize encounter, seed, hand, or pacing changes.

@@ -2,9 +2,9 @@
 
 This file records the current prototype boss script for `Embermaw`.
 
-For the approved spatial-pattern successor design, see [embermaw-ashen-trial-design.md](D:/dev/webgame/docs/content/encounters/embermaw-ashen-trial-design.md). This file intentionally records only the current runnable script.
+For the approved spatial-pattern successor design, see [embermaw-ashen-trial-design.md](../encounters/embermaw-ashen-trial-design.md). This file intentionally records only the current runnable script.
 
-The live resource files are in [resources/boss](D:/dev/webgame/resources/boss).
+The live resource files are in [resources/boss](../../../resources/boss).
 
 ## Script Loop
 

@@ -2,7 +2,7 @@
 
 This document records the external games that most strongly inform the current design direction of this repo.
 
-Use [CONTEXT.md](D:/dev/webgame/CONTEXT.md) for canonical terms, [docs/adr](D:/dev/webgame/docs/adr) for decisions that are already locked in, and [docs/rules/prototype-rules.md](D:/dev/webgame/docs/rules/prototype-rules.md) for the currently playable rules.
+Use [CONTEXT.md](../../CONTEXT.md) for canonical terms, [docs/adr](../adr) for decisions that are already locked in, and [docs/rules/prototype-rules.md](prototype-rules.md) for the currently playable rules.
 
 The goal is not to clone any one game. The goal is to be explicit about which mechanical lessons are useful, and which surrounding assumptions should stay outside this project.
 

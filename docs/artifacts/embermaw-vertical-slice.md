@@ -12,7 +12,7 @@ The playable scope is one `Elian Voss` tank versus `Embermaw`.
 
 - The encounter opens on the authored board with visible coordinates, colored tile outlines, and legal hex-edge facing arrows.
 - The round sequence is `Boss Instant` -> `Quick Window` -> `Boss Incoming` -> `Slow Window`.
-- The encounter clock defaults to eight rounds and is authored by [resources/encounters/embermaw_prototype.tres](D:/dev/webgame/resources/encounters/embermaw_prototype.tres).
+- The encounter clock defaults to eight rounds and is authored by [resources/encounters/embermaw_prototype.tres](../../resources/encounters/embermaw_prototype.tres).
 - Boss actions show and resolve separate `Tank Hit` and `Raid Hit` values. In the one-player slice, raid hits resolve against Elian Voss.
 - The player wins by defeating Embermaw and loses through health depletion or enrage. Terminal results lock gameplay and expose `Restart Encounter`.
 - Encounter history is retained in `EncounterState` for debugging, but is deliberately absent from the player HUD.
@@ -33,7 +33,7 @@ The playable scope is one `Elian Voss` tank versus `Embermaw`.
 - The hand, action bar, board, and encounter clock remain in the primary visible layout; the board presents each combatant's health bar above its token.
 - The secondary right-side information and control column scrolls on short windows rather than forcing the root UI beyond the viewport.
 
-The layout probe at [scripts/debug/layout_probe.gd](D:/dev/webgame/scripts/debug/layout_probe.gd) asserts the root layout remains within a `1280x720` viewport.
+The layout probe at [scripts/debug/layout_probe.gd](../../scripts/debug/layout_probe.gd) asserts the root layout remains within a `1280x720` viewport.
 
 ## Mobile HUD
 
@@ -92,15 +92,15 @@ The pane is presentation-only: it does not create trigger, expiry, consumption, 
 
 Rationale: the player needs to know why the opening exists, what closes it, and what card spends it without confusing Riposte Ready for a new resource. A compact Status Effect pane keeps the decision visible near the prompt while preserving the Bottom Interaction Zone for cards and Slots. Follow-up: QA should verify legibility and overlap in portrait, while Architecture should verify the UI remains an adapter over status projections and action facts.
 
-The portrait regression probe at [scripts/debug/mobile_hud_probe.gd](D:/dev/webgame/scripts/debug/mobile_hud_probe.gd) lays out once at the `390x844` logical design viewport, then checks that the rendered Help rectangle remains readable, tappable, distinct from Play, and fully inside both the logical canvas and the `488x1056` default presentation. It also checks mobile visibility rules, board-before-action-bar ordering, required-control safe padding, unclipped button labels, and the absence of a player-facing combat log. A non-headless run captures the Help-hidden and Help-open default-presentation images without reapplying the physical display size as a layout breakpoint.
+The portrait regression probe at [scripts/debug/mobile_hud_probe.gd](../../scripts/debug/mobile_hud_probe.gd) lays out once at the `390x844` logical design viewport, then checks that the rendered Help rectangle remains readable, tappable, distinct from Play, and fully inside both the logical canvas and the `488x1056` default presentation. It also checks mobile visibility rules, board-before-action-bar ordering, required-control safe padding, unclipped button labels, and the absence of a player-facing combat log. A non-headless run captures the Help-hidden and Help-open default-presentation images without reapplying the physical display size as a layout breakpoint.
 
 ## Visual Skin
 
 The board and global background use a low-opacity dungeon illustration from 0x72's `16x16 DungeonTileset II`.
 
-- Used file: [dungeon-scene.png](D:/dev/webgame/assets/art/environment/0x72-dungeon-tileset-ii/dungeon-scene.png)
+- Used file: [dungeon-scene.png](../../assets/art/environment/0x72-dungeon-tileset-ii/dungeon-scene.png)
 - Source: [0x72's itch.io page](https://0x72.itch.io/dungeontileset-ii)
-- License and local attribution: [LICENSES.md](D:/dev/webgame/assets/art/environment/0x72-dungeon-tileset-ii/LICENSES.md)
+- License and local attribution: [LICENSES.md](../../assets/art/environment/0x72-dungeon-tileset-ii/LICENSES.md)
 - License: `CC0-1.0`
 
 The texture is deliberately subdued so tactical tile outlines, character facings, card timing, and combat text remain legible.

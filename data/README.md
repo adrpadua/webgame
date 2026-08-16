@@ -11,4 +11,4 @@ This directory holds the authored gameplay content as schema-validated JSON (ADR
 - `encounters/`: encounter setup, deck list, and Boss Program sequence
 - `decks/`, `localization/`: reserved for future payloads
 
-Use [docs/content](D:/dev/webgame/docs/content) for the readable design counterpart to a data package. Keep a package name consistent across both locations, such as `embermaw-prototype`.
+Use [docs/content](../docs/content) for the readable design counterpart to a data package. Keep a package name consistent across both locations, such as `embermaw-prototype`.

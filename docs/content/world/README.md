@@ -6,12 +6,12 @@ Status: active setting canon for fiction, visual design, card naming, encounter 
 
 If you want the "wake up and read stories about the world" path, read in this order:
 
-1. [World History](D:/dev/webgame/docs/content/world/world-history.md)
-2. [Gazetteer](D:/dev/webgame/docs/content/world/gazetteer.md)
-3. [Laws And Institutions](D:/dev/webgame/docs/content/world/laws-and-institutions.md)
-4. [Lore Dictionary](D:/dev/webgame/docs/content/world/lore-dictionary.md)
-5. [Myths And Stories](D:/dev/webgame/docs/content/world/myths-and-stories.md)
-6. [World Style Bible](D:/dev/webgame/docs/content/world-style-bible.md)
+1. [World History](world-history.md)
+2. [Gazetteer](gazetteer.md)
+3. [Laws And Institutions](laws-and-institutions.md)
+4. [Lore Dictionary](lore-dictionary.md)
+5. [Myths And Stories](myths-and-stories.md)
+6. [World Style Bible](../world-style-bible.md)
 
 ## Premise
 
@@ -74,14 +74,14 @@ What is intentionally undecided?
 
 ## Canon Boundaries
 
-- Use [World Style Bible](D:/dev/webgame/docs/content/world-style-bible.md) for art and tone.
-- Use [Character Design Bible](D:/dev/webgame/docs/rules/character-design-bible.md) for hero/deck design standards.
+- Use [World Style Bible](../world-style-bible.md) for art and tone.
+- Use [Character Design Bible](../../rules/character-design-bible.md) for hero/deck design standards.
 - Use `docs/content/heroes/` for specific Hero kits and playable character contracts.
 - Use `docs/content/encounters/` and `resources/` for live encounter content.
 - Do not introduce gameplay mechanics in lore prose without an explicit design/rules handoff.
 
 ## Current Anchor Articles
 
-- [Elian Voss](D:/dev/webgame/docs/content/heroes/elian-voss-design.md): Shield Wall Tank from Redwater Locks.
-- [Embermaw Prototype](D:/dev/webgame/docs/content/encounters/embermaw-prototype.md): first runnable raid-boss shell.
-- [Embermaw Ashen Trial](D:/dev/webgame/docs/content/encounters/embermaw-ashen-trial-design.md): intended larger Embermaw encounter direction.
+- [Elian Voss](../heroes/elian-voss-design.md): Shield Wall Tank from Redwater Locks.
+- [Embermaw Prototype](../encounters/embermaw-prototype.md): first runnable raid-boss shell.
+- [Embermaw Ashen Trial](../encounters/embermaw-ashen-trial-design.md): intended larger Embermaw encounter direction.
