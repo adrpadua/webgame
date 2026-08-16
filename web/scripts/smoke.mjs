@@ -74,10 +74,10 @@ try {
   assert((await page.locator('[data-testid="guide-modal"]').count()) === 0, 'Escape dismisses the reopened guide')
 
   const phase = () => page.locator('[data-phase]').getAttribute('data-phase')
-  // A boss track resolves in the batch that opens its window and replays
+  // A Boss Row resolves in the batch that opens its window and replays
   // beat by beat; Next is inert until the last beat's moment has played.
-  const waitForBeatsToSettle = () =>
-    page.waitForSelector('[data-testid="beat-chip"][data-playing="true"]', { state: 'detached', timeout: 8000 })
+  const waitForBeatsToSettle = (view = page) =>
+    view.waitForSelector('[data-testid="beat-chip"][data-playing="true"]', { state: 'detached', timeout: 8000 })
   const next = () => page.locator('[data-testid="next-phase"]').click()
   const cueStep = () => page.locator('[data-testid="first-turn-cue"]').getAttribute('data-step')
   // The card the scripted turn is pointing at is the only live card in Hand.
@@ -244,7 +244,7 @@ try {
   const stepsAfterConfirm = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
   assert(stepsAfterConfirm === stepsBeforeConfirm + 1, 'a confirmed replacement records exactly one Scenario step')
 
-  // Outside the script, a boss track steps through beat by beat: the batch
+  // Outside the script, a Boss Row steps through beat by beat: the batch
   // that opens the window replays paced, the resolving beat lights its Boss
   // Beat chip, and a Continue prompt gates each next beat, so the player
   // reads every part of the turn.
@@ -346,7 +346,7 @@ try {
   // The first Next opens Boss Instant and replays its beats; Next is inert
   // until they settle, then the second press enters the Quick Window.
   await phone.locator('[data-testid="next-phase"]').click()
-  await phone.waitForSelector('[data-testid="beat-chip"][data-playing="true"]', { state: 'detached', timeout: 8000 })
+  await waitForBeatsToSettle(phone)
   await phone.locator('[data-testid="next-phase"]').click()
   await phone.waitForTimeout(400)
   await phoneScripted().click()

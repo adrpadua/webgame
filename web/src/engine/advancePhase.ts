@@ -48,13 +48,13 @@ function statusExpiryActions(draft: EncounterState, window: Phase): EncounterAct
 // Advances one phase boundary; every mutation it causes rides an action, and
 // the returned facts are the complete ordered slice it produced (ADR 0015).
 //
-// Boss tracks resolve when their window OPENS, not when it closes: the batch
-// that enters Boss Instant carries the Instant Row, and the batch that enters
-// Boss Incoming carries the Incoming Row, so the phase on every boss fact —
-// and on the state a client shows while those facts play out — is the Boss's
-// own window (ADR 0024). The global event order per Round is unchanged from
-// the close-of-window batching; only the batch boundaries moved, so replayed
-// Scenarios reach identical states at every player window.
+// Boss Rows resolve when their window OPENS: the batch that enters Boss
+// Instant carries the Instant Row, and the batch that enters Boss Incoming
+// carries the Incoming Row, so the phase on every boss fact — and on the
+// state a client shows while those facts play out — is the Boss's own window
+// (ADR 0024). Replay compatibility constrains any rebatching here: the
+// per-Round event order is fixed and only batch boundaries may move, so
+// replayed Scenarios reach identical states at every player window.
 export function advancePhase(catalog: ContentCatalog, state: EncounterState): ResolveResult {
   if (!state.active) {
     return { state, facts: [] }
@@ -81,8 +81,7 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
         submit(action)
       }
       submit(advanceAction('quick', 'incoming', draft.round))
-      // Re-aim the telegraphs before the Incoming Row resolves, exactly as
-      // the close-of-window batching did on its way into the Incoming beats.
+      // Re-aim the telegraphs before the Incoming Row resolves.
       refreshTelegraphs(catalog, draft)
       for (const action of actionsForTrack(catalog, draft, 'incoming')) {
         submit(action)

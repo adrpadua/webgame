@@ -121,7 +121,7 @@ describe('encounter setup', () => {
 describe('phase cycle', () => {
   it('runs one full Round: Loadout, Boss Instant, Quick, Boss Incoming, Slow', () => {
     let state = start()
-    // A boss track resolves in the batch that OPENS its window (ADR 0024):
+    // A Boss Row resolves in the batch that OPENS its window (ADR 0024):
     // leaving Loadout lands in Boss Instant with the Instant Row resolved,
     // every boss fact stamped with the Boss's own phase.
     const instant = advancePhase(catalog, state)
