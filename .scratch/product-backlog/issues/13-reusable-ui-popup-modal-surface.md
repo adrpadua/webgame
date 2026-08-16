@@ -1,6 +1,6 @@
 # Add a Reusable UI Popup Modal Surface
 
-Status: needs-triage
+Status: completed
 
 ## Player Problem
 
@@ -97,3 +97,12 @@ Before this intake can close as delivered, evidence must show that:
 ## Approval Record
 
 On Friday, August 14, 2026, the user requested a reusable popup modal in the UI and provided a screenshot of the current guide/help presentation. PM records this as a distinct product/UI-surface proposal because it overlaps existing tutorial-prompt and first-turn-comprehension work but is not identical to either. This item remains `needs-triage` until the user approves the first-use boundary and modal behavior.
+
+On Saturday, August 16, 2026, the user approved the delivered modal boundary and its first-use surfaces (PR #4, "I approve everything you need to do to achieve the goal"). Recorded decisions on the previously open questions:
+
+- First approved use cases: the How to Play guide (a focused onboarding/help explainer, reopenable from the top bar) and the Slot Replacement confirmation, both migrated onto the one reusable `Modal` surface in `web/src/ui/Modal.tsx`.
+- The first slice includes both dismissible-only (guide: Skip/Escape/backdrop) and primary/secondary action variants (Replace confirmation: Keep the Slot / Replace).
+- The modal may be used for optional focused reading (the guide) as well as blocking confirmations; gameplay stays visually paused and subordinate behind the dimmed backdrop, and the overlay carries no rules authority.
+- First migrated surface: the Slot Replacement confirmation, keeping its test contract (`replace-confirm` testids) intact.
+
+The boundary with proposal 08 holds: non-blocking coaching ships as the separate `CoachMark` prompt bar, not as modals.
