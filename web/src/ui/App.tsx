@@ -41,10 +41,9 @@ function RejectionToast() {
   )
 }
 
-// The boss turn's pacing control: while the playout waits between beats,
-// one amber bar over the board's lower edge names the beat that just
-// played and hands the player the next one. The rules already resolved the
-// whole track — this only paces the telling.
+// The playout's pacing control: while it waits between beats, one amber bar
+// names the beat that just played and hands the player the next one. The
+// rules already resolved the whole track — this only paces the telling.
 function PlayoutContinue() {
   const awaiting = usePlayout((store) => store.awaitingContinue)
   const beatTitle = usePlayout((store) => store.activeBeatTitle)
@@ -53,19 +52,17 @@ function PlayoutContinue() {
     return null
   }
   return (
-    <div className="absolute inset-x-2 bottom-2 z-10">
-      <button
-        type="button"
-        data-testid="playout-continue"
-        onClick={continuePlayout}
-        className={`wb-slide-up flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border-2 border-amber-500 bg-amber-950/95 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
-      >
-        <span className="text-xs font-bold text-amber-100">{beatTitle ?? 'Boss beat'}</span>
-        <span className="animate-pulse text-xs font-black tracking-widest text-amber-300 uppercase motion-reduce:animate-none">
-          Continue ▸
-        </span>
-      </button>
-    </div>
+    <button
+      type="button"
+      data-testid="playout-continue"
+      onClick={continuePlayout}
+      className={`wb-slide-up flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border-2 border-amber-500 bg-amber-950/95 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
+    >
+      <span className="text-xs font-bold text-amber-100">{beatTitle ?? 'Boss beat'}</span>
+      <span className="animate-pulse text-xs font-black tracking-widest text-amber-300 uppercase motion-reduce:animate-none">
+        Continue ▸
+      </span>
+    </button>
   )
 }
 
@@ -137,13 +134,22 @@ export default function App() {
         <PhaseControl />
         {/* overflow-hidden: the fixed-size Phaser canvas centers here and must
             clip, never spill over (or steal pointer events from) the HUD. */}
-        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+        {/* px-11 reserves the MovePad's 44px side gutters structurally: the
+            fitted canvas can never reach the edges, so the pad's columns
+            always sit beside the board rather than over its outer hexes. */}
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-11">
           <PhaserBoard />
           <MovePad />
-          <PlayoutContinue />
+          {/* Transient guidance — the scripted cue, coach tips, the playout's
+              Continue bar — floats over the board's lower edge instead of
+              stacking beneath it: bars appearing and disappearing must never
+              resize the board mid-Encounter. */}
+          <div className="absolute inset-x-2 bottom-2 z-10 flex flex-col gap-1.5">
+            <FirstTurnCue />
+            <CoachMark />
+            <PlayoutContinue />
+          </div>
         </div>
-        <FirstTurnCue />
-        <CoachMark />
         <PlayerPanel />
         <ActionBar />
         <Hand />
