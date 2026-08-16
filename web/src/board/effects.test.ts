@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
 import { advancePhase, createEncounterState, resolve, type EncounterActionInput, type EncounterState } from '@/engine'
-import { deriveBoardEffects, type BoardEffect } from './effects'
+import { BEAT_STAGGER_MS, deriveBoardEffects, type BoardEffect } from './effects'
 
 // Board feedback is derived from Resolution Facts, never from intent: if the
 // Encounter did not resolve it, the board must not animate it.
@@ -46,6 +46,49 @@ describe('board effects', () => {
     expect(hit?.label).toBe('-4')
     expect(hit?.tone).toBe('boss')
     expect(effects.some((effect) => effect.kind === 'scorch')).toBe(true)
+  })
+
+  it('plays a boss track out one beat at a time: announced, staggered, and in program order', () => {
+    let state = openedRound()
+    state = advance(state).state
+    const { effects } = advance(state)
+    // Every beat announces itself over the Boss with its authored title, in
+    // the order the program lists them, each one stagger slot later.
+    const announces = effects.filter((effect) => effect.kind === 'cast' && effect.entityId === state.bossId)
+    expect(announces.length).toBeGreaterThanOrEqual(2)
+    expect(announces.map((effect) => effect.delay ?? 0)).toEqual(announces.map((_, index) => index * BEAT_STAGGER_MS))
+    expect(announces.every((effect) => typeof effect.label === 'string' && effect.label.length > 0)).toBe(true)
+    // A beat's consequences ride its own slot: the claw's hit lands with the
+    // claw, not with the batch.
+    const strike = effects.find((effect) => effect.kind === 'strike')
+    const hit = effects.find((effect) => effect.kind === 'hit')
+    expect(hit?.delay).toBe(strike?.delay)
+    expect(strike?.delay).toBeGreaterThan(0)
+  })
+
+  it('swings the Boss facing when a turn beat actually turned it', () => {
+    let state = openedRound()
+    state = advance(state).state
+    const bossFacingBefore = state.board.entities[state.bossId].facing
+    const { state: after, effects } = advance(state)
+    const turn = effects.find((effect) => effect.kind === 'turn')
+    if (after.board.entities[after.bossId].facing === bossFacingBefore) {
+      // The Boss already faced the Hero: nothing turned, nothing swings.
+      expect(turn).toBeUndefined()
+      return
+    }
+    expect(turn?.entityId).toBe(state.bossId)
+    expect(turn?.fromFacing).toBe(bossFacingBefore)
+  })
+
+  it('holds player-action feedback at zero delay: only boss tracks stagger', () => {
+    let state = openedRound()
+    state = advance(state).state
+    state = advance(state).state
+    const hero = state.heroes[state.primaryHeroId]
+    state = apply(state, { kind: 'charge_slot', sourceId: hero.id, slotIndex: 0, cardInstanceId: hero.hand[0].instanceId }).state
+    const { effects } = apply(state, { kind: 'fire_slot', sourceId: hero.id, slotIndex: 0 })
+    expect(effects.every((effect) => (effect.delay ?? 0) === 0)).toBe(true)
   })
 
   it('turns a fired attack into a Hero lunge at the Boss and a hit carrying the damage', () => {

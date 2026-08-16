@@ -7,7 +7,12 @@ import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type
 
 export type EffectTone = 'hero' | 'boss' | 'guard' | 'heal' | 'hazard'
 
-export type BoardEffectKind = 'strike' | 'cast' | 'hit' | 'block' | 'move' | 'spawn' | 'defeat' | 'blast' | 'scorch'
+export type BoardEffectKind = 'strike' | 'cast' | 'hit' | 'block' | 'move' | 'spawn' | 'defeat' | 'blast' | 'scorch' | 'turn'
+
+// How far apart consecutive Boss Beats start. The rules resolve a whole
+// track in one batch; the board replays that batch one beat at a time so
+// the player can follow each step of the program in order.
+export const BEAT_STAGGER_MS = 700
 
 export interface BoardEffect {
   kind: BoardEffectKind
@@ -22,6 +27,10 @@ export interface BoardEffect {
   // Short floating text: a damage number, an armor gain, "BLOCK".
   label?: string
   tone: EffectTone
+  // The facing a 'turn' swings from; it lands on the snapshot's facing.
+  fromFacing?: number
+  // Milliseconds after the batch lands before this effect begins.
+  delay?: number
 }
 
 function coordsOf(state: EncounterState, entityId: string): Axial | null {
@@ -64,6 +73,14 @@ export function deriveBoardEffects(
   const bossCoords = coordsOf(before, before.bossId)
   const heroCoords = coordsOf(before, before.primaryHeroId)
 
+  // Facts arrive depth-first: each top-level `resolve_boss` fact is followed
+  // by everything that beat generated. Every beat claims the next stagger
+  // slot, and its own effects plus its children's ride that slot, so the
+  // track plays out sequentially instead of as one simultaneous burst.
+  let delay = 0
+  let beatsSeen = 0
+  const add = (effect: BoardEffect) => effects.push(delay > 0 ? { ...effect, delay } : effect)
+
   for (const fact of facts) {
     if (!fact.succeeded) {
       continue
@@ -80,7 +97,7 @@ export function deriveBoardEffects(
         if (card.boss_damage > 0 || card.damage > 0) {
           const targetId = detailString(fact, 'targetId')
           const toward = (targetId !== '' ? coordsOf(before, targetId) : bossCoords) ?? bossCoords ?? undefined
-          effects.push({ kind: 'strike', entityId: fact.sourceId, at: from, toward: toward ?? undefined, tone: 'hero' })
+          add({ kind: 'strike', entityId: fact.sourceId, at: from, toward: toward ?? undefined, tone: 'hero' })
           break
         }
         // A guard or a heal has no target to lunge at: it reads as a pulse
@@ -89,7 +106,7 @@ export function deriveBoardEffects(
         const healed = (after.heroes[fact.sourceId]?.health ?? 0) - (before.heroes[fact.sourceId]?.health ?? 0)
         const tone: EffectTone = healed > 0 && armorGained <= 0 ? 'heal' : 'guard'
         const label = healed > 0 && armorGained <= 0 ? `+${healed}` : armorGained > 0 ? `+${armorGained}` : undefined
-        effects.push({ kind: 'cast', entityId: fact.sourceId, at: from, label, tone })
+        add({ kind: 'cast', entityId: fact.sourceId, at: from, label, tone })
         break
       }
 
@@ -103,9 +120,9 @@ export function deriveBoardEffects(
         const healthLoss = numberFrom(fact.resolutionFact, 'health_loss')
         const prevented = numberFrom(fact.resolutionFact, 'prevented')
         if (healthLoss === 0 && prevented > 0) {
-          effects.push({ kind: 'block', entityId: targetId, at, label: `${prevented} blocked`, tone: 'guard' })
+          add({ kind: 'block', entityId: targetId, at, label: `${prevented} blocked`, tone: 'guard' })
         } else {
-          effects.push({
+          add({
             kind: 'hit',
             entityId: targetId,
             at,
@@ -114,23 +131,37 @@ export function deriveBoardEffects(
           })
         }
         if (fact.resolutionFact?.target_removed === true) {
-          effects.push({ kind: 'defeat', entityId: targetId, at, tone: 'hero' })
+          add({ kind: 'defeat', entityId: targetId, at, tone: 'hero' })
         }
         break
       }
 
       case 'resolve_boss': {
+        // Each beat claims the next slot before anything it shows, so even a
+        // beat with no motion of its own (a warning) still takes its moment.
+        delay = beatsSeen * BEAT_STAGGER_MS
+        beatsSeen += 1
         const beatId = detailString(fact, 'beatId')
         const beat = beatId === '' ? undefined : findBeat(catalog, before, beatId)
-        if (!beat || !bossCoords) {
+        if (!bossCoords) {
           break
         }
-        if (beat.kind === 'raking_claw') {
-          effects.push({ kind: 'strike', entityId: before.bossId, at: bossCoords, toward: heroCoords ?? undefined, tone: 'boss' })
-        } else if (beat.kind === 'cinder_breath') {
+        // The beat announces itself: the Boss pulses and the beat's name
+        // floats up, tying each moment of feedback to a chip on the strip.
+        const title = detailString(fact, 'beatTitle') !== '' ? detailString(fact, 'beatTitle') : (beat?.title ?? '')
+        add({ kind: 'cast', entityId: before.bossId, at: bossCoords, label: title === '' ? undefined : title, tone: 'boss' })
+        if (beat?.kind === 'turn_toward_player') {
+          const fromFacing = before.board.entities[before.bossId]?.facing
+          const toFacing = after.board.entities[before.bossId]?.facing
+          if (fromFacing !== undefined && toFacing !== undefined && fromFacing !== toFacing) {
+            add({ kind: 'turn', entityId: before.bossId, at: bossCoords, fromFacing, tone: 'boss' })
+          }
+        } else if (beat?.kind === 'raking_claw') {
+          add({ kind: 'strike', entityId: before.bossId, at: bossCoords, toward: heroCoords ?? undefined, tone: 'boss' })
+        } else if (beat?.kind === 'cinder_breath') {
           const hexes = telegraphedBreath(before)
           if (hexes.length > 0) {
-            effects.push({ kind: 'blast', entityId: before.bossId, at: bossCoords, hexes, tone: 'hazard' })
+            add({ kind: 'blast', entityId: before.bossId, at: bossCoords, hexes, tone: 'hazard' })
           }
         }
         break
@@ -140,7 +171,7 @@ export function deriveBoardEffects(
         const destination = detailAxial(fact, 'destination')
         const origin = coordsOf(before, fact.sourceId)
         if (destination && origin) {
-          effects.push({ kind: 'move', entityId: fact.sourceId, at: destination, from: origin, tone: 'hero' })
+          add({ kind: 'move', entityId: fact.sourceId, at: destination, from: origin, tone: 'hero' })
         }
         break
       }
@@ -148,7 +179,7 @@ export function deriveBoardEffects(
       case 'spawn_minion': {
         const coords = detailAxial(fact, 'coords')
         if (coords) {
-          effects.push({ kind: 'spawn', entityId: detailString(fact, 'minionId'), at: coords, tone: 'boss' })
+          add({ kind: 'spawn', entityId: detailString(fact, 'minionId'), at: coords, tone: 'boss' })
         }
         break
       }
@@ -156,7 +187,7 @@ export function deriveBoardEffects(
       case 'apply_hazard': {
         const coords = detailAxial(fact, 'coords')
         if (coords) {
-          effects.push({ kind: 'scorch', entityId: '', at: coords, tone: 'hazard' })
+          add({ kind: 'scorch', entityId: '', at: coords, tone: 'hazard' })
         }
         break
       }
