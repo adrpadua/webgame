@@ -69,7 +69,7 @@ Before this intake can close as delivered, focused evidence must show that:
 - [Deck Evaluation Rubric](../../../docs/content/deck-evaluation-rubric.md): viability, play-feel, Slot Tension, role moment, and promotion gate.
 - [Deck Evaluation Measurement Plan](../../../docs/artifacts/deck-evaluation-measurement-plan.md): fixed-seed cohort/report flow.
 - [First Content Pass](../../../docs/content/first-content-pass.md): smallest valid test list after the live two-card gate.
-- [Combat Postures delivery spec](../../../.scratch/combat-postures-elian-voss/spec.md): delivered first-slice context and the closed baseline-cohort limitation.
+- [Combat Postures delivery spec](../../combat-postures-aegis-guardian/spec.md): delivered first-slice context and the closed baseline-cohort limitation.
 - [Project coordination ledger](../../../docs/artifacts/project-coordination.md): cross-role ownership, active work, and closure state.
 
 ## Confirmed Product Decisions

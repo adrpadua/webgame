@@ -4,7 +4,7 @@ Status: resolved
 
 ## Intake
 
-Authorized product proposal: [`.scratch/product-backlog/issues/01-combat-postures-elian-voss.md`](../product-backlog/issues/01-combat-postures-elian-voss.md), approved by the user on 2026-08-13.
+Authorized product proposal: [`.scratch/product-backlog/issues/01-combat-postures-aegis-guardian.md`](../product-backlog/issues/01-combat-postures-aegis-guardian.md), approved by the user on 2026-08-13.
 
 The confirmed outcome and explicit non-goals in that proposal are fixed delivery constraints. Any material outcome change returns to Product Management and the user.
 
