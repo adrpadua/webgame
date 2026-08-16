@@ -11,7 +11,19 @@ import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS, windowToneClass } from 
 // Compact Card carries a name, an effect colour, its window speed, and its
 // Charge Value as pips — no rules text. Hold one to read the full card;
 // tap (or focus and press Enter) to select it for the tap path.
-function CompactCard({ instanceId, cardId, spotlit, gated }: { instanceId: string; cardId: string; spotlit: boolean; gated: boolean }) {
+function CompactCard({
+  instanceId,
+  cardId,
+  spotlit,
+  gated,
+  width,
+}: {
+  instanceId: string
+  cardId: string
+  spotlit: boolean
+  gated: boolean
+  width: string
+}) {
   const catalog = useWorkbench((store) => store.catalog)
   const setDraggingCard = useWorkbench((store) => store.setDraggingCard)
   const selectCard = useWorkbench((store) => store.selectCard)
@@ -44,7 +56,8 @@ function CompactCard({ instanceId, cardId, spotlit, gated }: { instanceId: strin
         setDraggingCard(instanceId)
       }}
       onDragEnd={() => setDraggingCard(null)}
-      className={`relative min-h-24 flex-1 cursor-grab rounded-xl border p-1.5 text-left shadow-md transition hover:-translate-y-1 active:cursor-grabbing ${FOCUS_RING_CLASS} ${
+      style={{ width }}
+      className={`relative min-h-24 shrink-0 cursor-grab rounded-xl border p-1.5 text-left shadow-md transition hover:-translate-y-1 active:cursor-grabbing ${FOCUS_RING_CLASS} ${
         selected
           ? '-translate-y-1 border-emerald-400 bg-linear-to-b from-emerald-900/60 to-zinc-800 ring-2 ring-emerald-400'
           : 'border-zinc-600 bg-linear-to-b from-zinc-700 to-zinc-800 hover:border-zinc-400'
@@ -75,16 +88,33 @@ export function Hand() {
     return null
   }
   const handGated = blocksTarget(step, 'hand')
+  // A Compact Card keeps one width — its share of a full Hand — whether
+  // five cards remain or one. Cards that stretched to fill the row stopped
+  // reading as cards; a thinning Hand now leaves empty space where spent
+  // cards sat. The wrap only matters if a Hand ever outgrows its refill
+  // target: extra cards start a second row instead of overflowing.
+  const slotCount = Math.max(hero.refillTarget, hero.hand.length, 1)
+  // 0.375rem is the row's gap-1.5; change them together.
+  const cardWidth = `calc((100% - ${(slotCount - 1) * 0.375}rem) / ${slotCount})`
 
   return (
-    <div className="flex gap-1.5 border-t border-zinc-800 bg-zinc-950/90 px-3 py-3" data-testid="hand">
+    <div className="flex flex-wrap gap-1.5 border-t border-zinc-800 bg-zinc-950/90 px-3 py-3" data-testid="hand">
       {hero.hand.map((instance) => {
         // The script points at one card at a time; the rest of the Hand
         // waits its turn.
         const scripted = step?.cardInstanceId ?? null
         const spotlit = !handGated && scripted === instance.instanceId
         const gated = handGated || (scripted !== null && scripted !== instance.instanceId)
-        return <CompactCard key={instance.instanceId} instanceId={instance.instanceId} cardId={instance.cardId} spotlit={spotlit} gated={gated} />
+        return (
+          <CompactCard
+            key={instance.instanceId}
+            instanceId={instance.instanceId}
+            cardId={instance.cardId}
+            spotlit={spotlit}
+            gated={gated}
+            width={cardWidth}
+          />
+        )
       })}
       {hero.hand.length === 0 && <div className="flex-1 py-4 text-center text-xs text-zinc-600">Hand is empty</div>}
     </div>
