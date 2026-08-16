@@ -4,9 +4,15 @@ Status: active production tooling. Reusable prompt sets for generating game art 
 
 This library exists to replace the placeholder art catalogued in [assets/README.md](../../../assets/README.md). It does not change rules or content behavior.
 
+## Pick The Tool First
+
+[`_tools.md`](_tools.md) records which generator each asset class goes to and why. Read it before starting a new class — the templates assume those choices, and one of them changes how you compose.
+
+The short version: tiles and the boss crest go to a **vector generator**, because they need true alpha and crisp edges at 46–68 px. Everything else goes to a conversational image model with reference attachment. Midjourney was considered and rejected; `_tools.md` records the reasoning so it does not get re-litigated.
+
 ## How To Compose A Prompt
 
-Every prompt is two pieces, pasted in order:
+Most prompts are two pieces, pasted in order:
 
 1. **[`_style-preamble.md`](_style-preamble.md)** — the locked style contract. Identical for every asset, every time.
 2. **One asset-class template** — the part that varies, with `{{SLOTS}}` you fill in.
@@ -14,6 +20,8 @@ Every prompt is two pieces, pasted in order:
 Then attach any reference images the template asks for, and generate.
 
 The split is the whole point. Style lives in exactly one file, so correcting the direction is one edit rather than a sweep through every prompt, and two assets generated a month apart still agree about what the game looks like. Resist the temptation to paste style wording into a template — that is how a prompt set quietly stops being a set.
+
+The exception is the tile and crest blocks in [board-and-tiles.md](board-and-tiles.md). Those are self-contained and take **no** preamble: the preamble describes painterly material rendering that a monochrome hex ring cannot express, and prepending it only dilutes the geometric instruction that decides whether the asset works.
 
 ## Templates
 
@@ -23,6 +31,8 @@ The split is the whole point. Style lives in exactly one file, so correcting the
 | [card-ability-art.md](card-ability-art.md) | Card and action-bar ability illustrations | `assets/art/cards/<hero-slug>/` |
 | [board-and-tiles.md](board-and-tiles.md) | Hover and target tiles, boss crest, arena backdrop | `assets/art/board/` |
 | [boss-and-minion.md](boss-and-minion.md) | Raid boss and minion art | `assets/art/bosses/`, `assets/art/minions/` |
+
+Supporting files: [`_style-preamble.md`](_style-preamble.md) holds the locked style contract, [`_tools.md`](_tools.md) holds the tool decisions.
 
 ## Generation Order
 
@@ -72,3 +82,5 @@ What the placeholders are, and which template retires each one:
 | `prototype/paladin/*.webp` | Placeholder ability icons | [card-ability-art.md](card-ability-art.md), once a Paladin kit is authored |
 
 Cards in `resources/cards/tank/` currently carry no art at all — the eleven authored Elian Voss cards are the largest single generation job in the backlog, and [card-ability-art.md](card-ability-art.md) lists the fiction and beat for each.
+
+Those eleven are also the exit condition for this library in its current form. Prompt-based direction has a ceiling: every generation re-describes the style in prose and hopes for compliance, which is why drift is a standing risk and why a whole file exists to fight it. Once roughly fifteen approved assets accumulate, a trained style model carries the direction in weights instead of adjectives, and becomes the better tool. [`_tools.md`](_tools.md) records that path and when to revisit it.
