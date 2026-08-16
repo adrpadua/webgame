@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { usePlayout } from '@/store/playout'
-import { selectState, useWorkbench } from '@/store/workbench'
-import type { Phase } from '@/engine'
+import { selectState, useWorkbench, type WorkbenchStore } from '@/store/workbench'
+import type { EncounterState, Phase } from '@/engine'
 import { blocksTarget } from './firstTurnScript'
 import { useFirstTurnStep } from './useFirstTurn'
 import { phaseDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
+import { Modal } from './Modal'
+import { slotCanFire } from './slots'
 import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS } from './theme'
 
 // One word per phase, in the Encounter's own vocabulary and its own colour:
@@ -24,6 +27,66 @@ const PHASES: { phase: Phase; label: string; activeClass: string }[] = [
 // explains the window you are standing in. The five chips stay on one
 // unwrapped row: at phone width they used to wrap and push the track into a
 // second line under the Next button.
+// The actions Next would leave on the table, phrased for the window being
+// skipped. Advisory only: "Skip anyway" always goes through.
+interface SkipWarning {
+  title: string
+  body: string
+}
+
+const PLAYER_ACTION_KINDS = new Set(['load_slot', 'charge_slot', 'fire_slot', 'move_hero', 'discard_for_stamina'])
+
+function skipWarning(store: WorkbenchStore, state: EncounterState): SkipWarning | null {
+  const hero = state.heroes[state.primaryHeroId]
+  if (!hero) {
+    return null
+  }
+  if (state.phase === 'loadout') {
+    // An empty Slot does nothing all Round — but only warn while a hand
+    // card could still fill it.
+    if (hero.actionBar.some((slot) => slot.topCard === null) && hero.hand.length > 0) {
+      return {
+        title: 'Leave a Slot empty?',
+        body: 'A Slot is still empty. A card prepared now can take Charge and fire later — an empty Slot does nothing all Round.',
+      }
+    }
+    return null
+  }
+  if (state.phase !== 'quick' && state.phase !== 'slow') {
+    return null
+  }
+  // Did the player do anything at all with this window? Facts carry their
+  // round and phase, so the current window's actions are on the timeline.
+  const acted = store.entries
+    .slice(0, store.index + 1)
+    .some((entry) =>
+      entry.facts.some(
+        (fact) =>
+          fact.succeeded &&
+          fact.round === state.round &&
+          fact.phase === state.phase &&
+          fact.sourceId === state.primaryHeroId &&
+          PLAYER_ACTION_KINDS.has(fact.kind),
+      ),
+    )
+  if (acted) {
+    return null
+  }
+  // ...and is anything still possible? A fireable Slot or any hand card
+  // (Charge, or a paid step during the Quick Window) counts.
+  const canFire = hero.actionBar.some((slot) => slotCanFire(store.catalog, state, slot))
+  if (!canFire && hero.hand.length === 0) {
+    return null
+  }
+  const windowName = state.phase === 'quick' ? 'Quick Window' : 'Slow Window'
+  return {
+    title: `Skip the ${windowName}?`,
+    body: canFire
+      ? `You haven't used the ${windowName}: a Slot can fire right now, and a hand card could add Charge. The window closes when you move on.`
+      : `You haven't used the ${windowName}: a hand card could still add Charge${state.phase === 'quick' ? ' or pay for a step' : ''}. The window closes when you move on.`,
+  }
+}
+
 export function PhaseControl() {
   const state = useWorkbench(selectState)
   const advance = useWorkbench((store) => store.advance)
@@ -36,6 +99,25 @@ export function PhaseControl() {
   // the ending away; Next stays up (and inert — advance no-ops on an ended
   // Encounter) until the outcome reveal lands.
   const outcomeHeld = usePlayout((store) => store.outcomeHeld)
+  // A Next that would waste the window parks here until the player decides.
+  const [pendingSkip, setPendingSkip] = useState<SkipWarning | null>(null)
+
+  // The scripted first turn narrates every press itself, so its Nexts skip
+  // the warning.
+  const onNext = () => {
+    if (step === null && state.active) {
+      const warning = skipWarning(useWorkbench.getState(), state)
+      if (warning) {
+        setPendingSkip(warning)
+        return
+      }
+    }
+    advance()
+  }
+  const confirmSkip = () => {
+    setPendingSkip(null)
+    advance()
+  }
 
   return (
     <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-900/60 px-3 py-1.5" data-phase={state.phase}>
@@ -61,7 +143,7 @@ export function PhaseControl() {
         <button
           type="button"
           data-testid="next-phase"
-          onClick={advance}
+          onClick={onNext}
           className={`min-h-12 shrink-0 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-500 active:scale-95 ${FOCUS_RING_CLASS} ${
             nextSpotlit ? SPOTLIGHT_CLASS : ''
           } ${nextGated ? GATED_CLASS : ''}`}
@@ -77,6 +159,38 @@ export function PhaseControl() {
         >
           Restart
         </button>
+      )}
+      {pendingSkip !== null && (
+        <Modal
+          onDismiss={() => setPendingSkip(null)}
+          labelledBy="phase-skip-title"
+          accentBorderClass="border-amber-500"
+          testId="phase-skip-confirm"
+        >
+          <h2 id="phase-skip-title" className="text-sm font-bold text-amber-300">
+            {pendingSkip.title}
+          </h2>
+          <p className="mt-3 text-xs leading-relaxed text-zinc-200">{pendingSkip.body}</p>
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              autoFocus
+              data-testid="cancel-skip"
+              onClick={() => setPendingSkip(null)}
+              className={`min-h-12 flex-1 rounded-lg bg-emerald-600 text-sm font-bold text-white transition hover:bg-emerald-500 ${FOCUS_RING_CLASS}`}
+            >
+              Stay
+            </button>
+            <button
+              type="button"
+              data-testid="confirm-skip"
+              onClick={confirmSkip}
+              className={`min-h-12 flex-1 rounded-lg bg-zinc-700 text-sm font-bold text-zinc-100 transition hover:bg-zinc-600 ${FOCUS_RING_CLASS}`}
+            >
+              Skip anyway
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   )

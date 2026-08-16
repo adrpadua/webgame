@@ -259,6 +259,20 @@ try {
   await page.waitForTimeout(900)
   assert((await page.locator('[data-testid="playout-continue"]').count()) === 0, 'the last beat needs no prompt and the playout settles')
 
+  // Skipping a window that still holds phase-appropriate actions warns
+  // first: nothing has been fired or charged this Quick Window.
+  await next()
+  await page.waitForSelector('[data-testid="phase-skip-confirm"]')
+  assert((await phase()) === 'quick', 'the warned Next has not advanced the phase')
+  await page.locator('[data-testid="cancel-skip"]').click()
+  await page.waitForSelector('[data-testid="phase-skip-confirm"]', { state: 'detached' })
+  assert((await phase()) === 'quick', 'staying keeps the Quick Window open')
+  await next()
+  await page.waitForSelector('[data-testid="phase-skip-confirm"]')
+  await page.locator('[data-testid="confirm-skip"]').click()
+  await page.waitForSelector('[data-testid="phase-skip-confirm"]', { state: 'detached' })
+  assert((await phase()) === 'incoming', 'confirming the skip advances into Boss Incoming')
+
   // M3 exit criterion: export the session just played as an Encounter Record
   // (schema_version 2); the headless runner replays it after the browser
   // closes and must reach an identical final state.
