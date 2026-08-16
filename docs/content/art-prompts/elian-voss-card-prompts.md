@@ -42,8 +42,17 @@ Elian's specific material set: a white and deep-navy oathsteel frame, living-gol
 
 Every glow must have a physical source in one of those materials. Magic leaves evidence — scorch marks, cracked runeglass, lingering glyphs, tether lines. Nothing shines for decoration alone.
 
-STANDING COMPOSITION RULES for every image in this session:
-One dominant visual idea, filling the frame. A bold Elian silhouette in a clear, readable action pose. Clean background geometry — suggest the arena with simple shapes and value, never a detailed scene. The material or implement creating the effect must be visibly the source of that effect. Vertical portrait framing, roughly 3:4, composed so the figure and the effect stay legible reduced to a small card thumbnail.
+COMPOSITION RULES that apply to every image in this session:
+
+THIS IS NOT A CHARACTER SHEET. Do not produce a neutral standing pose, a turnaround, or a reference sheet. Each image is a single frozen instant from the middle of an action — the character caught mid-motion, committed or off-balance, at the exact moment the ability fires. If the resulting pose could be described as "standing", it is wrong. The attached reference is for identity only: match the design from it, never the pose.
+
+CROP CLOSE. The figure and its effect fill the frame edge to edge, with minimal headroom and no empty floor. Vertical portrait framing, roughly 3:4.
+
+THE BACKGROUND CARRIES NO DETAIL. No architecture, no arches, no columns, no banners, no patterned floors, no environment. Abstract value and a few simple geometric shapes only — enough to suggest space, never enough to read as a place. If a viewer could describe the location, it is too busy.
+
+KEEP THE SILHOUETTE READABLE. Translucent runeglass panels must not cover the head or the mass of the torso. Place them so the body still reads as a clear shape. These are viewed as small phone thumbnails, where a large transparent rectangle across the figure becomes an unreadable blob.
+
+One dominant visual idea. The material or implement creating the effect must be visibly the source of that effect.
 
 NEVER INCLUDE:
 Card frames, borders, text, letters, numbers, cost pips, icons, or any interface furniture — produce only the illustration. No logos, watermarks, or signatures. No generic Dungeons-and-Dragons tavern fantasy, medieval chainmail, or leather-and-mud low fantasy. No firearms or modern technology. No unmotivated glow. No photoreal or 3D-rendered surfaces.
@@ -60,6 +69,7 @@ Generate these three consecutively, in this order.
 ```text
 ABILITY: Guard Stance.
 WHAT HAPPENS: Elian brings the Gate Rig up into a braced front — two runeglass panels swinging up and seating into position across their body, cyan seams flaring as each panel locks home. The first rung of the defensive ladder: composed, economical, one clean motion.
+POSE: Caught at the instant of bracing — panels still mid-swing, not yet fully seated, Elian's weight dropping into the stance. Three-quarter view, tight crop.
 BOARD RELATIONSHIP: Self.
 BEAT: Setup.
 ```
@@ -69,6 +79,7 @@ BEAT: Setup.
 ```text
 ABILITY: Iron Guard.
 WHAT HAPPENS: The same brace as Guard Stance, escalated. Additional runeglass panels stack and lock in layers, overlapping into a deeper wall, living-gold lockwork visibly engaging between them. The pose reads as the same discipline held harder and longer.
+POSE: Mid-lock, additional panels sliding into place over the first, shoulder driving forward into the brace. Same viewing angle as Guard Stance so the escalation reads.
 BOARD RELATIONSHIP: Self.
 BEAT: Setup.
 ```
@@ -78,6 +89,7 @@ BEAT: Setup.
 ```text
 ABILITY: Fortify.
 WHAT HAPPENS: The Gate Rig at full deployment — every panel seated, every living-gold lock thrown and visible, the whole assembly closed into a fortress front around Elian. The top of the ladder: nothing left in reserve, the rig committed entirely to holding.
+POSE: The final lock throwing home, Elian braced behind a closed wall of panels, viewed from slightly low so the assembly looms. Same angle family as the other two Guard cards.
 BOARD RELATIONSHIP: Self.
 BEAT: Recovery.
 ```
@@ -89,6 +101,7 @@ BEAT: Recovery.
 ```text
 ABILITY: Steady Strike.
 WHAT HAPPENS: A controlled gateblade baton strike — precise and measured rather than heavy. Elian's weight stays centered and their guard stays intact through the motion. This is a professional landing a clean hit, not a swing that commits.
+POSE: Mid-strike, baton extended at the moment of contact, guard still held on the opposite side. Weight centered, not lunging.
 BOARD RELATIONSHIP: Single target.
 BEAT: Conversion.
 ```
@@ -98,6 +111,7 @@ BEAT: Conversion.
 ```text
 ABILITY: Shield Slam.
 WHAT HAPPENS: A deployed runeglass gate panel driven edge-first as a weapon — the defensive tool turned offensive, the panel's edge striking with the full mass of the rig behind it. Impact light cracks along the panel's internal glyph grid at the moment of contact.
+POSE: Mid-slam, panel edge driving forward with the whole body behind it, impact light cracking at the point of contact.
 BOARD RELATIONSHIP: Single target.
 BEAT: Payoff.
 ```
@@ -107,6 +121,7 @@ BEAT: Payoff.
 ```text
 ABILITY: Sweeping Blow.
 WHAT HAPPENS: A wide horizontal sweep clearing a lane in front of Elian, the motion arc drawn as one clean confident line rather than a cluttered blur. The sweep displaces something small and burning at its outer edge.
+POSE: Mid-sweep, arms carried through the arc, torso rotated hard, the motion line crossing the frame diagonally.
 BOARD RELATIONSHIP: Cone.
 BEAT: Conversion.
 ```
@@ -116,6 +131,7 @@ BEAT: Conversion.
 ```text
 ABILITY: Unyielding Step.
 WHAT HAPPENS: A braced step forward directly into incoming pressure, gate-panel edge leading, head and shoulders behind the guard. Ground cracks or scorches under the planted foot. Advancing and defending in the same motion — Elian gives no distance.
+POSE: Mid-step, front foot landing hard, body leaning into the incoming pressure, panel edge leading.
 BOARD RELATIONSHIP: Single target.
 BEAT: Conversion.
 ```
@@ -127,6 +143,7 @@ BEAT: Conversion.
 ```text
 ABILITY: Anchor Presence.
 WHAT HAPPENS: Elian sets both boots hard into the ground and a low ring of runeglass light spreads outward from the stance, painting a claimed circle on the arena floor. Stillness rather than motion — the image of someone becoming a fixed point that the battle has to route around.
+POSE: The instant both boots slam down and the ring of light bursts outward. Stillness of intent, but caught at the moment of impact — never standing at rest.
 BOARD RELATIONSHIP: Self.
 BEAT: Setup.
 ```
@@ -136,6 +153,7 @@ BEAT: Setup.
 ```text
 ABILITY: Taunting Challenge.
 WHAT HAPPENS: The gateblade baton raised in a formal, ceremonial challenge — a deliberate protocol gesture, not a jeer. Every gate seam and runeglass panel flares bright at once to make Elian the loudest thing on the field. Calm face, absolute composure.
+POSE: Baton snapping up into the challenge, seams flaring in the same instant, body turned to face the threat.
 BOARD RELATIONSHIP: Single target.
 BEAT: Setup.
 ```
@@ -145,6 +163,7 @@ BEAT: Setup.
 ```text
 ABILITY: Intercept.
 WHAT HAPPENS: A straight safe-passage line projects from Elian toward an ally off-frame — a hard-light corridor painted across the ground — and an incoming hit is visibly pulled off that line and onto the shield gate. Elian is turned into the impact, taking it deliberately.
+POSE: Mid-lunge across the projected line, body turned into the incoming hit, panel angled to catch it.
 BOARD RELATIONSHIP: Straight line.
 BEAT: Emergency response.
 ```
@@ -154,9 +173,28 @@ BEAT: Emergency response.
 ```text
 ABILITY: Rallying Cry.
 WHAT HAPPENS: Signal cloth snaps outward as a warm restorative pulse crosses the runeglass panels and spreads past Elian into the space around them. The one warm-toned image in the set — ember-red and gold rather than cyan — reading as relief arriving.
+POSE: Mid-shout, chest open, signal cloth snapping outward at the peak of the pulse.
 BOARD RELATIONSHIP: Zone.
 BEAT: Recovery.
 ```
+
+## Known Failure Mode: The Concept Sheet Reprise
+
+The first run of this file returned a neutral standing pose against a detailed hall — arches, a banner, a patterned marble floor — with a runeglass panel covering most of the torso. Character identity was correct; everything about it as *card art* was wrong.
+
+Three causes, all now addressed above:
+
+- The composition section was headed `STANDING COMPOSITION RULES`, meaning persistent. "Standing" is also a pose, and it read as one. Renamed.
+- The setup was long and character-descriptive while each ability block was four lines, so the setup dominated. Each block now carries an explicit `POSE:` line describing the instant to draw.
+- "Never a detailed scene" was too soft to override the model's default instinct to set a scene. The background rule now enumerates what is banned.
+
+If a result still comes back static, do not accept it and do not try to fix it by editing. Reply in the same session:
+
+```text
+That is still a standing character-sheet pose against a detailed environment. Redo it as a single frozen instant from the middle of the action — the body committed and mid-motion, cropped close so the figure fills the frame, against an abstract background with no architecture or floor pattern. Keep the character design identical.
+```
+
+The reference image is the likely culprit when this recurs: it is a calm full-body concept sheet, and attaching it pulls toward that composition. Identity and pose come from the same attachment, so the prompt has to work against it on purpose.
 
 ## Accepting Each Result
 
