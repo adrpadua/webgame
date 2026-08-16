@@ -1,0 +1,11 @@
+{
+  "id": "sweeping_blow",
+  "title": "Sweeping Blow",
+  "rules_text": "Deal 2 damage to a minion on the selected hex.",
+  "speed": "quick",
+  "max_charge": 2,
+  "target_type": "piece",
+  "damage": 2,
+  "range_tiles": 1,
+  "tags": ["tank", "attack"]
+}

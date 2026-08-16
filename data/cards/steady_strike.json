@@ -1,0 +1,11 @@
+{
+  "id": "steady_strike",
+  "title": "Steady Strike",
+  "rules_text": "Deal 2 damage to the boss. Gain +1 damage for each charged card.",
+  "speed": "quick",
+  "max_charge": 3,
+  "target_type": "none",
+  "boss_damage": 2,
+  "tags": ["tank", "attack"],
+  "charge_modifiers": ["each_charge_boss_damage"]
+}

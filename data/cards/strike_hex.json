@@ -1,0 +1,11 @@
+{
+  "id": "strike_hex",
+  "title": "Strike Hex",
+  "rules_text": "Deal 1 damage to the first piece on the selected hex.",
+  "speed": "quick",
+  "max_charge": 2,
+  "target_type": "piece",
+  "damage": 1,
+  "range_tiles": 1,
+  "tags": ["attack"]
+}

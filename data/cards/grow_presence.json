@@ -1,0 +1,10 @@
+{
+  "id": "grow_presence",
+  "title": "Grow Presence",
+  "rules_text": "Gain 1 Presence.",
+  "speed": "slow",
+  "max_charge": 2,
+  "target_type": "none",
+  "presence_delta": 1,
+  "tags": ["board", "presence"]
+}

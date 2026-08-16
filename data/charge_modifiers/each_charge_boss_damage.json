@@ -1,0 +1,7 @@
+{
+  "id": "each_charge_boss_damage",
+  "title": "Charged Assault",
+  "rules_text": "Gain 1 Boss damage for each charged card.",
+  "effect": "boss_damage",
+  "amount_per_match": 1
+}

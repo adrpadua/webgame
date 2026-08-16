@@ -55,7 +55,7 @@ Current slot rules:
 - A Top Card enters a Slot at `0 Charge`; its `Charge Value` is the maximum number of tucked cards it can hold
 - A Slot needs at least one charged hand card before it can activate
 - Any hand card can charge a Slot during either player window; the Top Card alone determines activation timing
-- A charged Slot activates once in its matching player window, then cannot receive more charges until its next matching window
+- A charged Slot activates once in its matching player window, then cannot receive more charges for the rest of that window
 - Activation does not consume the Charge Stack. The Top Card's printed rules determine how charge count and Keywords modify its effect
 - A full, unactivated Slot is `Primed` and persists for a later activation or an explicit special interaction
 - If a full Slot activates, discard its Top Card and Charge Stack at the end of that matching player window
@@ -115,6 +115,8 @@ Cards currently resolve against one of these target styles:
 - no target
 - direct damage to the Boss through a card's `boss_damage` effect
 - selected Minion piece on a hex through the current `PIECE` target type
+
+A card's `boss_damage` effect resolves without a range check in the prototype: the Hero's position never blocks it. Counter-pressure against playing at a distance is authored encounter content, not a card range rule.
 
 The prototype does not yet provide a selectable generic Enemy target. A future `Enemy` selector must allow both the Boss and Minions, then validate their shared range and targeting rules consistently.
 

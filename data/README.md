@@ -1,11 +1,14 @@
 # Authored Data
 
-This directory is reserved for structured, machine-readable authored content when it outgrows the current Godot `.tres` resources.
+This directory holds the authored gameplay content as schema-validated JSON (ADR 0020). The Encounter Engine in `web/src/engine/` validates every file at load through its zod schemas; the frozen Godot `.tres` resources remain in `resources/` as reference copies only.
 
-- `decks/`: decklists, card pools, and progression payloads
-- `encounters/`: encounter setup and difficulty variants
-- `localization/`: player-facing strings and translation tables
+- `cards/`: player card definitions
+- `keywords/`: reusable mechanical labels on cards
+- `charge_modifiers/`: explicit Top Card rules that read the Charge Stack
+- `hazards/`: temporary board effects attached to hexes
+- `minions/`: non-Boss Enemy definitions
+- `boss_programs/`: authored Instant and Incoming rows of Boss Beats
+- `encounters/`: encounter setup, deck list, and Boss Program sequence
+- `decks/`, `localization/`: reserved for future payloads
 
 Use [docs/content](D:/dev/webgame/docs/content) for the readable design counterpart to a data package. Keep a package name consistent across both locations, such as `embermaw-prototype`.
-
-Do not duplicate the live values from `.tres` files here until the loader actually consumes this data.

@@ -1,0 +1,98 @@
+import { addEntity, createBoard } from './board'
+import { FACING_NE, FACING_SW } from './facing'
+import { createRng, shuffle } from './rng'
+import { checkResolution } from './resolve'
+import { refreshTelegraphs } from './timeline'
+import type { ContentCatalog } from './content/catalog'
+import type { CardInstance, EncounterState, HeroState, SlotState } from './types'
+
+// Builds the seeded initial Encounter state from an authored encounter
+// definition, mirroring the reference start().
+export function createEncounterState(catalog: ContentCatalog, encounterId: string, seedOverride?: number): EncounterState {
+  const encounter = catalog.encounters[encounterId]
+  if (!encounter) {
+    throw new Error(`Unknown encounter: ${encounterId}`)
+  }
+  const state: EncounterState = {
+    encounterId,
+    phase: 'loadout',
+    round: 1,
+    roundLimit: Math.max(encounter.round_limit, 1),
+    active: true,
+    outcome: 'ongoing',
+    outcomeReason: '',
+    enrageText: encounter.enrage_text,
+    board: createBoard(encounter.board_radius),
+    heroes: {},
+    statusEffects: {},
+    bossId: encounter.boss_id,
+    primaryHeroId: encounter.primary_hero_id,
+    programIds: [...encounter.boss_programs],
+    loopPrograms: encounter.loop_boss_programs,
+    programIndex: 0,
+    currentProgramId: encounter.boss_programs[0] ?? null,
+    broodSpawnCandidates: encounter.brood_spawn_candidates.map((coords) => ({ ...coords })),
+    telegraphedSpawnHexes: [],
+    telegraphs: {},
+    previousImpactedHexes: [],
+    lastPattern: [],
+    minionSequence: 0,
+    cardInstanceSequence: 0,
+    rng: createRng(seedOverride ?? encounter.random_seed),
+  }
+  addEntity(state.board, encounter.boss_id, 'boss', encounter.boss_start, encounter.boss_health, FACING_SW, 'enemy', encounter.boss_title)
+  addEntity(
+    state.board,
+    encounter.primary_hero_id,
+    'hero',
+    encounter.player_start,
+    encounter.player_health,
+    FACING_NE,
+    'party',
+    encounter.primary_hero_title,
+  )
+  const deck: CardInstance[] = []
+  for (const entry of encounter.player_deck) {
+    for (let copy = 0; copy < entry.copies; copy += 1) {
+      state.cardInstanceSequence += 1
+      deck.push({ instanceId: `${entry.card}_${state.cardInstanceSequence}`, cardId: entry.card })
+    }
+  }
+  const actionBar: SlotState[] = []
+  for (let index = 0; index < encounter.slot_count; index += 1) {
+    actionBar.push({ topCard: null, charges: [], activatedWindow: null })
+  }
+  const hero: HeroState = {
+    id: encounter.primary_hero_id,
+    health: encounter.player_health,
+    maxHealth: encounter.player_health,
+    armor: 0,
+    presence: 1,
+    deck,
+    hand: [],
+    discard: [],
+    refillTarget: Math.max(encounter.hand_refill_target, 1),
+    actionBar,
+  }
+  state.heroes[hero.id] = hero
+  shuffle(state.rng, hero.deck, 'initial_deck_shuffle')
+  drawUntilRefill(state, hero.id)
+  refreshTelegraphs(catalog, state)
+  checkResolution(state)
+  return state
+}
+
+function drawUntilRefill(state: EncounterState, heroId: string): void {
+  const hero = state.heroes[heroId]
+  while (hero.hand.length < hero.refillTarget) {
+    if (hero.deck.length === 0) {
+      if (hero.discard.length === 0) {
+        break
+      }
+      hero.deck = hero.discard
+      hero.discard = []
+      shuffle(state.rng, hero.deck, 'discard_shuffle')
+    }
+    hero.hand.push(hero.deck.pop() as CardInstance)
+  }
+}
