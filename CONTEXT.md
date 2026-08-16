@@ -177,16 +177,24 @@ The neutral presentation state of an occupied Slot whose Top Card exists and who
 _Avoid_: Ready, Primed, Activated, Locked
 
 **Hand**:
-The player's currently available cards, presented as four compact cards in the bottom interaction zone of the portrait combat HUD. Four is the normal end-of-Round refill target, not a hard maximum.
+The player's currently available cards, presented as compact cards in the bottom interaction zone of the portrait combat HUD. Four is the normal end-of-Round refill target, not a hard maximum; the authored First Turn Encounter refills to five so the scripted Round can spend one card on every gesture it teaches.
 _Avoid_: Hand row, card tray
 
 **Compact Card**:
 A hand-sized card that exposes only its name, timing, and Charge Value for rapid scanning. It is not the canonical full-card reading surface.
 _Avoid_: Full card, tooltip card
 
-**Card Inspection**:
-The temporary full-card view shown while a player holds a Compact Card. It contains the card's artwork and complete rules text, then dismisses on release or an outside tap.
-_Avoid_: Tooltip, card menu
+**Detail Popup**:
+The temporary reading surface for any named HUD object — a Compact Card, a Slot, a Boss Beat chip, a Hero stat, the Round track. It carries that object's numbers and complete authored text. Each input opens it its own way: touch presses and holds, a mouse hovers, the keyboard holds `Enter` or `Space`; it dismisses on release or when the pointer leaves. The HUD proper carries names, numbers, and colour; the sentences live here, one gesture away. Card Inspection is the Compact Card case of a Detail Popup.
+_Avoid_: Tooltip, card menu, help screen
+
+**Scripted First Turn**:
+The guided Round a first-time player meets: it walks prepare, charge, fire in the Quick Window, step out of a telegraph, and fire in the Slow Window, gating input to one control at a time. Its current step is derived from the live Encounter state rather than counted off, so it stays correct when the player wanders, restarts, or time-travels. It runs once, and finishing or skipping it retires it.
+_Avoid_: Tutorial mode, onboarding wizard, scripted encounter
+
+**Board Feedback**:
+The transient motion the board plays for a resolved batch of actions: a lunge toward what was struck, a flash and floating number on what was hit, a pulse on a Hero who guarded, a glide for a step taken, a flare over a resolved telegraph. Every beat of it is derived from Resolution Facts, so the board can never show a blow the Encounter did not resolve.
+_Avoid_: Animation state, VFX layer
 
 **Bottom Interaction Zone**:
 The thumb-reachable portrait HUD area that contains the Action Bar immediately above the Hand. It is reserved for player input rather than encounter telemetry.

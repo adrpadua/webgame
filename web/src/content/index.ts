@@ -3,6 +3,12 @@ import { buildCatalog, type ContentCatalog } from '@/engine'
 // The encounter the Workbench and tooling open by default.
 export const DEFAULT_ENCOUNTER_ID = 'embermaw_prototype'
 
+// The same Ashen Trial dealt with a five-card opening Hand, which is exactly
+// what the scripted first turn spends: two Slots prepared, both charged, and
+// one card paid to step out of the breath cone. A first-time player opens
+// here; everyone else opens the default encounter.
+export const FIRST_TURN_ENCOUNTER_ID = 'embermaw_first_turn'
+
 // Loads every authored JSON payload from the repo-level data/ directory
 // (ADR 0020). Validation happens inside buildCatalog via the zod schemas.
 const modules = import.meta.glob('../../../data/{cards,keywords,charge_modifiers,hazards,minions,boss_programs,encounters,decks,scenarios}/*.json', {

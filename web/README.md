@@ -14,8 +14,10 @@ npm run dev      # Workbench at http://localhost:5173 with HMR
 npm test         # Encounter Engine Vitest suite
 npm run lint     # includes the engine-purity boundary rule
 npm run build
-node scripts/smoke.mjs   # after build: browser round loop, Scenario replay,
-                         # time travel, and headless record verification
+node scripts/smoke.mjs   # after build: the scripted first turn, ordinary
+                         # round play, Scenario replay, time travel, headless
+                         # record verification, and a 390x844 portrait guard
+                         # (whole board on screen, 44px targets, no scroll)
 npm run headless -- --scenario embermaw_victory_line   # headless Scenario run
 npm run headless -- --replay <record.json>             # verify a v2 record
 ```
@@ -35,11 +37,28 @@ anyone with the URL. Any static host (Netlify, Cloudflare Pages) works the
 same way, with `VITE_BASE` set to that host's serving path.
 
 Touch is first-class on iPadOS Safari: drag Compact Cards with a finger to
-prepare, charge, or move; hold a card for Card Inspection; drag or press the
-Hero to preview routes; tap the program strip to expand or collapse it.
-Every drag also has a tap path — tap a Compact Card to select it, then tap a
-Slot or a move-pad direction — and replacing an occupied Slot always asks
-for confirmation, since it discards the Top Card and its Charge Stack.
+prepare, charge, or move; drag or press the Hero to preview routes; tap the
+program strip to expand or collapse it. Every drag also has a tap path — tap
+a Compact Card to select it, then tap a Slot or a move-pad direction — and
+replacing an occupied Slot always asks for confirmation, since it discards
+the Top Card and its Charge Stack.
+
+Press and hold anything named on the HUD — a Compact Card, a Slot, a boss
+beat chip, a Hero stat, the round track, the boss bar — for a Detail Popup
+with that object's numbers and full authored text. The HUD itself stays down
+to names, numbers, and colour; the sentences live one gesture away. On a
+desktop the same popups open on hover, one element at a time, so hovering a
+single boss beat explains that beat while holding the strip on a phone gives
+the whole two-track program. Holding `Enter` or `Space` on a focused control
+does the same thing from a keyboard.
+
+A first visit opens the `embermaw_first_turn` Encounter with the scripted
+first turn running: a single guided Round that walks preparing both Slots,
+charging one, firing it in the Quick Window, stepping out of the telegraphed
+breath cone, and firing the slow Slot — dimming every control the current
+step did not name. It retires itself when the Round ends or when the player
+skips it, and a returning player opens the standard `embermaw_prototype`
+Encounter instead.
 
 ## Layout
 
@@ -51,16 +70,21 @@ for confirmation, since it discards the Top Card and its Charge Stack.
 - `src/store/` — zustand wrapper that owns the session timeline (snapshot
   history with time travel, Resolution Fact log, Scenario replay/export);
   preserves the running Encounter across HMR. `onboarding.ts` holds the
-  UI-only onboarding state (guide visibility, dismissed coach tips),
-  deliberately off the session timeline.
+  UI-only onboarding state (guide visibility, scripted-first-turn
+  completion, dismissed coach tips), deliberately off the session timeline.
 - `src/board/` — the Phaser hex board. It renders engine snapshots and
-  reports hex-level intents; it owns no game state.
+  reports hex-level intents; it owns no game state. `effects.ts` translates
+  a resolved batch of Resolution Facts into the board feedback the scene
+  plays, so animation can never claim something the rules did not resolve.
 - `src/ui/` — React: hand, Action Bar, phase control, HUD, debug rail
   (Scenario picker, time travel, fact log, seed control), plus the
-  onboarding layer: a reusable `Modal` surface, the illustrated How to
-  Play guide (auto-opens on first visit, reopens from the `?` button),
-  state-driven `CoachMark` prompts, and the transient `PhaseBanner`.
-  All motion freezes under `prefers-reduced-motion`.
+  onboarding layer: a reusable `Modal` surface, the `HoldPopover`
+  tap-and-hold detail surface (with the explanatory copy collected in
+  `holdDetails.ts`), the state-derived `firstTurnScript.ts` and its
+  `FirstTurnCue` bar, the illustrated How to Play guide (auto-opens on
+  first visit, reopens from the `?` button), state-driven `CoachMark`
+  prompts, and the transient `PhaseBanner`. All motion freezes under
+  `prefers-reduced-motion`.
 - `scripts/generateScenarios.ts` — policy search over the engine that
   authors the committed victory/defeat Scenarios in `data/scenarios/`
   (run with `npx vite-node scripts/generateScenarios.ts`).

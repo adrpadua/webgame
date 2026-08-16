@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { DEFAULT_ENCOUNTER_ID, loadCatalog } from '@/content'
+import { DEFAULT_ENCOUNTER_ID, FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
+import { hasFinishedFirstTurn } from './onboarding'
 import {
   advancePhase,
   cardWindowSpeed,
@@ -31,6 +32,10 @@ export interface HistoryEntry {
 
 interface WorkbenchStore {
   catalog: ReturnType<typeof loadCatalog>
+  // Which authored Encounter this session is playing. A first-time player
+  // opens the First Turn variant; Scenario replay and every export name the
+  // Encounter that actually produced the line.
+  encounterId: string
   seed: number
   entries: HistoryEntry[]
   index: number
@@ -49,6 +54,8 @@ interface WorkbenchStore {
   lastRejection: string | null
   submit: (action: EncounterActionInput) => void
   advance: () => void
+  // Replays the Encounter this session opened, with the same seed or a new
+  // one. Which Encounter that is stays fixed for the session.
   restart: (seed?: number) => void
   loadScenario: (scenarioId: string) => void
   timeTravelTo: (index: number) => void
@@ -92,14 +99,19 @@ function nextFactId(entries: HistoryEntry[], index: number): number {
   return 1
 }
 
-function initialEntry(seed: number): HistoryEntry {
-  return { label: 'Encounter start', step: null, state: createEncounterState(catalog, DEFAULT_ENCOUNTER_ID, seed), facts: [] }
+function initialEntry(encounterId: string, seed: number): HistoryEntry {
+  return { label: 'Encounter start', step: null, state: createEncounterState(catalog, encounterId, seed), facts: [] }
 }
+
+// A returning player skips the training wheels: the scripted first turn and
+// its wider opening Hand belong to the first visit only.
+const OPENING_ENCOUNTER_ID = hasFinishedFirstTurn() ? DEFAULT_ENCOUNTER_ID : FIRST_TURN_ENCOUNTER_ID
 
 // Every session transition drops in-flight gesture state the same way.
 const CLEARED_INTERACTION = {
   targetingSlotIndex: null,
   selectedCardId: null,
+  draggingCardId: null,
   pendingReplacement: null,
   lastRejection: null,
 } as const
@@ -114,8 +126,9 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
 
   return {
     catalog,
-    seed: catalog.encounters[DEFAULT_ENCOUNTER_ID].random_seed,
-    entries: [initialEntry(catalog.encounters[DEFAULT_ENCOUNTER_ID].random_seed)],
+    encounterId: OPENING_ENCOUNTER_ID,
+    seed: catalog.encounters[OPENING_ENCOUNTER_ID].random_seed,
+    entries: [initialEntry(OPENING_ENCOUNTER_ID, catalog.encounters[OPENING_ENCOUNTER_ID].random_seed)],
     index: 0,
     activeScenarioId: null,
     sessionStartedAt: new Date().toISOString(),
@@ -144,14 +157,14 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
     },
 
     restart: (seed) => {
+      const { encounterId } = get()
       const nextSeed = seed ?? get().seed
       set({
         seed: nextSeed,
-        entries: [initialEntry(nextSeed)],
+        entries: [initialEntry(encounterId, nextSeed)],
         index: 0,
         activeScenarioId: null,
         sessionStartedAt: new Date().toISOString(),
-        draggingCardId: null,
         ...CLEARED_INTERACTION,
       })
     },
@@ -174,12 +187,12 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
         firstId += entry.facts.length
       }
       set({
+        encounterId: scenario.encounter,
         seed: scenario.seed,
         entries,
         index: entries.length - 1,
         activeScenarioId: scenarioId,
         sessionStartedAt: new Date().toISOString(),
-        draggingCardId: null,
         ...CLEARED_INTERACTION,
       })
     },
@@ -193,15 +206,15 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
     // The current session up to the viewed position, as a Scenario payload:
     // a named, versioned action-prefix plus the seed — never a snapshot.
     exportScenario: () => {
-      const { entries, index, seed } = get()
-      return buildScenarioExport(entries, index, DEFAULT_ENCOUNTER_ID, seed)
+      const { entries, index, seed, encounterId } = get()
+      return buildScenarioExport(entries, index, encounterId, seed)
     },
 
     // Encounter Record schema_version 2: the session timeline up to the
     // viewed position, sealed with content identity and state fingerprints.
     exportRecord: async () => {
-      const { entries, index, sessionStartedAt } = get()
-      return buildRecordExport(catalog, entries, index, DEFAULT_ENCOUNTER_ID, sessionStartedAt)
+      const { entries, index, sessionStartedAt, encounterId } = get()
+      return buildRecordExport(catalog, entries, index, encounterId, sessionStartedAt)
     },
 
     // Tapping a prepared Slot: a piece-targeting Top Card first needs a Minion
@@ -243,7 +256,11 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
     // and moves the Hero.
     cardDroppedOnHex: (cardInstanceId, coords) => {
       const state = selectState(get())
-      set({ selectedCardId: null })
+      // A dropped card is no longer in flight. The browser skips dragend
+      // when the dragged element unmounts under it, so the drop itself is
+      // what ends the gesture — otherwise the HUD keeps offering to place a
+      // card that has already landed.
+      set({ selectedCardId: null, draggingCardId: null })
       get().submit({ kind: 'move_hero', sourceId: state.primaryHeroId, destination: coords, cardInstanceId })
     },
 
@@ -253,7 +270,7 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
       const state = selectState(get())
       const hero = state.heroes[state.primaryHeroId]
       const slot = hero.actionBar[slotIndex]
-      set({ selectedCardId: null })
+      set({ selectedCardId: null, draggingCardId: null })
       if (slot.topCard !== null && state.phase !== 'loadout') {
         get().submit({ kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId })
         return
@@ -324,12 +341,13 @@ if (import.meta.hot) {
       entries: saved.entries,
       index: saved.index ?? saved.entries.length - 1,
       seed: saved.seed,
+      encounterId: saved.encounterId ?? OPENING_ENCOUNTER_ID,
       activeScenarioId: saved.activeScenarioId ?? null,
     })
   }
   import.meta.hot.dispose((data) => {
-    const { entries, index, seed, activeScenarioId } = useWorkbench.getState()
-    data.workbench = { entries, index, seed, activeScenarioId }
+    const { entries, index, seed, encounterId, activeScenarioId } = useWorkbench.getState()
+    data.workbench = { entries, index, seed, encounterId, activeScenarioId }
   })
   import.meta.hot.accept()
 }

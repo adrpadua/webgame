@@ -1,14 +1,32 @@
 import { useEffect, useRef, useState } from 'react'
+import { currentProgram } from '@/engine'
 import { useOnboarding } from '@/store/onboarding'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { BossEmblem } from './icons'
+import { useHold } from './HoldPopover'
 import { FOCUS_RING_CLASS } from './theme'
 
+// The Boss line: who you are fighting, how much of it is left, and where the
+// Round clock stands. Hold it for the Encounter's terms.
 export function TopBar() {
   const state = useWorkbench(selectState)
+  const catalog = useWorkbench((store) => store.catalog)
   const openGuide = useOnboarding((store) => store.openGuide)
   const boss = state.board.entities[state.bossId]
+  const program = currentProgram(catalog, state)
   const healthPercent = boss ? Math.max(0, Math.round((boss.health / boss.maxHealth) * 100)) : 0
+  const hold = useHold({
+    id: 'boss',
+    title: boss?.title ?? 'Boss',
+    badge: program?.title,
+    tone: 'boss',
+    stats: [
+      { label: 'Health', value: `${boss?.health ?? 0} / ${boss?.maxHealth ?? 0}` },
+      { label: 'Round', value: `${state.round} of ${state.roundLimit}` },
+    ],
+    text: catalog.encounters[state.encounterId]?.rules_text,
+    hint: state.enrageText,
+  })
 
   // Flash the boss's numbers when damage lands, so a fired attack visibly
   // connects even while the player's eyes are on the Action Bar. The flash
@@ -29,32 +47,37 @@ export function TopBar() {
   }, [boss?.health])
 
   return (
-    <div className="border-b border-zinc-800 bg-zinc-900/80 px-4 py-3">
-      <div className="flex items-center gap-2">
-        <BossEmblem className="h-7 w-7 shrink-0 text-red-500" />
-        <span className="text-sm font-semibold tracking-wide text-zinc-100">{boss?.title ?? 'Boss'}</span>
-        <span className="ml-auto text-xs text-zinc-400" data-testid="round-display">
-          Round {state.round} / {state.roundLimit}
-        </span>
-        <button
-          type="button"
-          data-testid="open-guide"
-          onClick={openGuide}
-          aria-label="How to play"
-          className={`min-h-12 min-w-12 rounded-lg border border-zinc-700 bg-zinc-800 text-sm font-bold text-emerald-400 transition hover:border-emerald-500 hover:text-emerald-300 ${FOCUS_RING_CLASS}`}
-        >
-          ?
-        </button>
-      </div>
-      <div className="mt-2 h-3 overflow-hidden rounded-full bg-zinc-800">
-        <div className="h-full rounded-full bg-linear-to-r from-red-700 to-red-500 transition-all duration-500" style={{ width: `${healthPercent}%` }} />
-      </div>
-      <div className="mt-1 flex justify-between text-[11px] text-zinc-400">
-        <span key={flashKey} className={flashing ? 'wb-damage-flash origin-left text-red-300' : undefined} data-testid="boss-health">
-          {boss?.health ?? 0} / {boss?.maxHealth ?? 0}
-        </span>
-        <span>Encounter Clock: {state.roundLimit}</span>
-      </div>
+    <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-900/80 px-4 py-2">
+      <button
+        type="button"
+        {...hold.holdProps}
+        data-testid="boss-bar"
+        aria-label={`${boss?.title ?? 'Boss'}, ${boss?.health ?? 0} of ${boss?.maxHealth ?? 0} health`}
+        className={`flex min-h-12 flex-1 flex-col justify-center gap-1 rounded-lg px-1 text-left ${FOCUS_RING_CLASS}`}
+      >
+        <div className="flex items-center gap-2">
+          <BossEmblem className="h-6 w-6 shrink-0 text-red-500" />
+          <span className="text-sm font-semibold tracking-wide text-zinc-100">{boss?.title ?? 'Boss'}</span>
+          <span key={flashKey} className={`ml-auto text-[11px] ${flashing ? 'wb-damage-flash text-red-300' : 'text-zinc-400'}`} data-testid="boss-health">
+            {boss?.health ?? 0} / {boss?.maxHealth ?? 0}
+          </span>
+        </div>
+        <div className="h-2.5 overflow-hidden rounded-full bg-zinc-800">
+          <div className="h-full rounded-full bg-linear-to-r from-red-700 to-red-500 transition-all duration-500" style={{ width: `${healthPercent}%` }} />
+        </div>
+      </button>
+      <span className="shrink-0 text-[11px] text-zinc-400" data-testid="round-display">
+        Round {state.round}/{state.roundLimit}
+      </span>
+      <button
+        type="button"
+        data-testid="open-guide"
+        onClick={openGuide}
+        aria-label="How to play"
+        className={`min-h-12 min-w-12 shrink-0 rounded-lg border border-zinc-700 bg-zinc-800 text-sm font-bold text-emerald-400 transition hover:border-emerald-500 hover:text-emerald-300 ${FOCUS_RING_CLASS}`}
+      >
+        ?
+      </button>
     </div>
   )
 }

@@ -1,0 +1,110 @@
+import { describe, expect, it } from 'vitest'
+import { FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
+import { advancePhase, createEncounterState, resolve, type EncounterActionInput, type EncounterState } from '@/engine'
+import { deriveBoardEffects, type BoardEffect } from './effects'
+
+// Board feedback is derived from Resolution Facts, never from intent: if the
+// Encounter did not resolve it, the board must not animate it.
+
+const catalog = loadCatalog()
+
+function apply(state: EncounterState, action: EncounterActionInput): { state: EncounterState; effects: BoardEffect[] } {
+  const result = resolve(catalog, state, action)
+  return { state: result.state, effects: deriveBoardEffects(catalog, state, result.state, result.facts) }
+}
+
+function advance(state: EncounterState): { state: EncounterState; effects: BoardEffect[] } {
+  const result = advancePhase(catalog, state)
+  return { state: result.state, effects: deriveBoardEffects(catalog, state, result.state, result.facts) }
+}
+
+function openedRound(): EncounterState {
+  let state = createEncounterState(catalog, FIRST_TURN_ENCOUNTER_ID)
+  const hero = state.heroes[state.primaryHeroId]
+  const quick = hero.hand.find((card) => catalog.cards[card.cardId].boss_damage > 0 && catalog.cards[card.cardId].speed === 'quick')
+  state = apply(state, { kind: 'load_slot', sourceId: hero.id, slotIndex: 0, cardInstanceId: quick!.instanceId }).state
+  return state
+}
+
+describe('board effects', () => {
+  it('says nothing about actions that only move cards around', () => {
+    const state = createEncounterState(catalog, FIRST_TURN_ENCOUNTER_ID)
+    const hero = state.heroes[state.primaryHeroId]
+    const { effects } = apply(state, { kind: 'load_slot', sourceId: hero.id, slotIndex: 0, cardInstanceId: hero.hand[0].instanceId })
+    expect(effects).toEqual([])
+  })
+
+  it('turns the Boss Instant into a lunge, a hit on the Hero, and scorched ground', () => {
+    let state = openedRound()
+    state = advance(state).state
+    const { effects } = advance(state)
+    const strike = effects.find((effect) => effect.kind === 'strike')
+    expect(strike?.entityId).toBe(state.bossId)
+    expect(strike?.toward).toEqual(state.board.entities[state.primaryHeroId].coords)
+    const hit = effects.find((effect) => effect.kind === 'hit')
+    expect(hit?.entityId).toBe(state.primaryHeroId)
+    expect(hit?.label).toBe('-4')
+    expect(hit?.tone).toBe('boss')
+    expect(effects.some((effect) => effect.kind === 'scorch')).toBe(true)
+  })
+
+  it('turns a fired attack into a Hero lunge at the Boss and a hit carrying the damage', () => {
+    let state = openedRound()
+    state = advance(state).state
+    state = advance(state).state
+    const hero = state.heroes[state.primaryHeroId]
+    state = apply(state, { kind: 'charge_slot', sourceId: hero.id, slotIndex: 0, cardInstanceId: hero.hand[0].instanceId }).state
+    const { effects } = apply(state, { kind: 'fire_slot', sourceId: hero.id, slotIndex: 0 })
+    expect(effects.map((effect) => effect.kind)).toEqual(['strike', 'hit'])
+    expect(effects[0].entityId).toBe(state.primaryHeroId)
+    expect(effects[0].toward).toEqual(state.board.entities[state.bossId].coords)
+    expect(effects[1].entityId).toBe(state.bossId)
+    expect(effects[1].tone).toBe('hero')
+    expect(effects[1].label).toBe('-3')
+  })
+
+  it('reads a Hero step as a glide from the hex it left', () => {
+    let state = openedRound()
+    state = advance(state).state
+    state = advance(state).state
+    const hero = state.heroes[state.primaryHeroId]
+    const from = state.board.entities[hero.id].coords
+    const destination = { q: from.q - 1, r: from.r }
+    const { effects } = apply(state, { kind: 'move_hero', sourceId: hero.id, destination, cardInstanceId: hero.hand[0].instanceId })
+    const move = effects.find((effect) => effect.kind === 'move')
+    expect(move?.from).toEqual(from)
+    expect(move?.at).toEqual(destination)
+  })
+
+  it('flares the telegraphed cone and pops the Whelps the Incoming beats produced', () => {
+    let state = openedRound()
+    state = advance(state).state
+    state = advance(state).state
+    state = advance(state).state
+    const { effects } = advance(state)
+    const blast = effects.find((effect) => effect.kind === 'blast')
+    expect(blast?.hexes?.length).toBeGreaterThan(0)
+    expect(effects.filter((effect) => effect.kind === 'spawn')).toHaveLength(2)
+  })
+
+  it('shows Armor a guard actually granted rather than the number printed on the card', () => {
+    let state = createEncounterState(catalog, FIRST_TURN_ENCOUNTER_ID)
+    const hero = state.heroes[state.primaryHeroId]
+    const guard = hero.hand.find((card) => catalog.cards[card.cardId].armor_delta > 0 && catalog.cards[card.cardId].speed === 'quick')
+    if (!guard) {
+      // The authored opening Hand is allowed to hold no quick guard; the
+      // other cases already cover the attack path.
+      return
+    }
+    state = apply(state, { kind: 'load_slot', sourceId: hero.id, slotIndex: 0, cardInstanceId: guard.instanceId }).state
+    state = advance(state).state
+    state = advance(state).state
+    const charge = state.heroes[hero.id].hand[0]
+    state = apply(state, { kind: 'charge_slot', sourceId: hero.id, slotIndex: 0, cardInstanceId: charge.instanceId }).state
+    const before = state.heroes[hero.id].armor
+    const { state: after, effects } = apply(state, { kind: 'fire_slot', sourceId: hero.id, slotIndex: 0 })
+    const cast = effects.find((effect) => effect.kind === 'cast')
+    expect(cast?.tone).toBe('guard')
+    expect(cast?.label).toBe(`+${after.heroes[hero.id].armor - before}`)
+  })
+})

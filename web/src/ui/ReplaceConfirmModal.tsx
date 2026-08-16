@@ -26,16 +26,18 @@ export function ReplaceConfirmModal() {
       <h2 id="replace-confirm-title" className="text-sm font-bold text-amber-300">
         Replace this Slot?
       </h2>
-      <p className="mt-2 text-xs leading-relaxed text-zinc-200">
-        Replacing discards <span className="font-bold">{oldCard?.title ?? 'the Top Card'}</span>
-        {chargeCount > 0 && (
-          <>
-            {' '}
-            and its <span className="font-bold">{chargeCount}</span> charged card{chargeCount === 1 ? '' : 's'}
-          </>
-        )}
-        , then loads <span className="font-bold">{newCard?.title ?? 'the chosen card'}</span> at 0 Charge.
-      </p>
+      {/* The trade, as two lines rather than a paragraph: what leaves, what
+          lands. */}
+      <div className="mt-3 space-y-1 text-xs">
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-red-950/60 px-2 py-1.5 text-red-200">
+          <span className="font-bold">{oldCard?.title ?? 'Top Card'}</span>
+          <span className="text-[10px] uppercase">discarded{chargeCount > 0 ? ` + ${chargeCount} charged` : ''}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-950/60 px-2 py-1.5 text-emerald-200">
+          <span className="font-bold">{newCard?.title ?? 'Chosen card'}</span>
+          <span className="text-[10px] uppercase">loads at 0 charge</span>
+        </div>
+      </div>
       <div className="mt-4 flex gap-2">
         <button
           type="button"
