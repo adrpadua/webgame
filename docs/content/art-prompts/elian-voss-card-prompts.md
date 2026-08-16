@@ -74,6 +74,8 @@ WHAT HAPPENS: Elian brings the Gate Rig up into a braced front — two runeglass
 POSE: Caught at the instant of bracing — panels still mid-swing, not yet fully seated, Elian's weight dropping into the stance. Three-quarter view, tight crop.
 BOARD RELATIONSHIP: Self.
 BEAT: Setup.
+
+HOLD: Mid-action pose with the weight visibly committed — never a standing figure. Tight crop filling the frame. Abstract background with no architecture, floor, or structures. Both arms fully drawn from shoulder to hand. Flat cel rendering. Character design exactly as established.
 ```
 
 ### 2. Iron Guard → `iron_guard.png`
@@ -84,6 +86,8 @@ WHAT HAPPENS: The same brace as Guard Stance, escalated. Additional runeglass pa
 POSE: Mid-lock, additional panels sliding into place over the first, shoulder driving forward into the brace. Same viewing angle as Guard Stance so the escalation reads.
 BOARD RELATIONSHIP: Self.
 BEAT: Setup.
+
+HOLD: Everything from the Guard Stance image — same camera angle, same crouched committed stance, same tight crop, same abstract background with no architecture, both arms fully drawn from shoulder to hand, same flat cel rendering. The only change is more panels, stacked deeper.
 ```
 
 ### 3. Fortify → `fortify.png`
@@ -94,6 +98,8 @@ WHAT HAPPENS: The Gate Rig at full deployment — every panel seated, every livi
 POSE: The final lock throwing home, Elian braced behind a closed wall of panels, viewed from slightly low so the assembly looms. Same angle family as the other two Guard cards.
 BOARD RELATIONSHIP: Self.
 BEAT: Recovery.
+
+HOLD: Everything from the Guard Stance and Iron Guard images — same camera angle family, same tight crop, same abstract background with no architecture, both arms fully drawn from shoulder to hand, same flat cel rendering. The only change is the rig fully closed with every lock thrown.
 ```
 
 ## Offense
@@ -106,6 +112,8 @@ WHAT HAPPENS: A controlled gateblade baton strike — precise and measured rathe
 POSE: Mid-strike, baton extended at the moment of contact, guard still held on the opposite side. Weight centered, not lunging.
 BOARD RELATIONSHIP: Single target.
 BEAT: Conversion.
+
+HOLD: Mid-action pose with the weight visibly committed — never a standing figure. Tight crop filling the frame. Abstract background with no architecture, floor, or structures. Both arms fully drawn from shoulder to hand. Flat cel rendering. Character design exactly as established.
 ```
 
 ### 5. Shield Slam → `shield_slam.png`
@@ -116,6 +124,8 @@ WHAT HAPPENS: A deployed runeglass gate panel driven edge-first as a weapon — 
 POSE: Mid-slam, panel edge driving forward with the whole body behind it, impact light cracking at the point of contact.
 BOARD RELATIONSHIP: Single target.
 BEAT: Payoff.
+
+HOLD: Mid-action pose with the weight visibly committed — never a standing figure. Tight crop filling the frame. Abstract background with no architecture, floor, or structures. Both arms fully drawn from shoulder to hand. Flat cel rendering. Character design exactly as established.
 ```
 
 ### 6. Sweeping Blow → `sweeping_blow.png`
@@ -126,6 +136,8 @@ WHAT HAPPENS: A wide horizontal sweep clearing a lane in front of Elian, the mot
 POSE: Mid-sweep, arms carried through the arc, torso rotated hard, the motion line crossing the frame diagonally.
 BOARD RELATIONSHIP: Cone.
 BEAT: Conversion.
+
+HOLD: Mid-action pose with the weight visibly committed — never a standing figure. Tight crop filling the frame. Abstract background with no architecture, floor, or structures. Both arms fully drawn from shoulder to hand. Flat cel rendering. Character design exactly as established.
 ```
 
 ### 7. Unyielding Step → `unyielding_step.png`
@@ -136,6 +148,8 @@ WHAT HAPPENS: A braced step forward directly into incoming pressure, gate-panel 
 POSE: Mid-step, front foot landing hard, body leaning into the incoming pressure, panel edge leading.
 BOARD RELATIONSHIP: Single target.
 BEAT: Conversion.
+
+HOLD: Mid-action pose with the weight visibly committed — never a standing figure. Tight crop filling the frame. Abstract background with no architecture, floor, or structures. Both arms fully drawn from shoulder to hand. Flat cel rendering. Character design exactly as established.
 ```
 
 ## Control And Support
@@ -148,6 +162,8 @@ WHAT HAPPENS: Elian sets both boots hard into the ground and a low ring of runeg
 POSE: The instant both boots slam down and the ring of light bursts outward. Stillness of intent, but caught at the moment of impact — never standing at rest.
 BOARD RELATIONSHIP: Self.
 BEAT: Setup.
+
+HOLD: Mid-action pose with the weight visibly committed — never a standing figure. Tight crop filling the frame. Abstract background with no architecture, floor, or structures. Both arms fully drawn from shoulder to hand. Flat cel rendering. Character design exactly as established.
 ```
 
 ### 9. Taunting Challenge → `taunting_challenge.png`
@@ -158,6 +174,8 @@ WHAT HAPPENS: The gateblade baton raised in a formal, ceremonial challenge — a
 POSE: Baton snapping up into the challenge, seams flaring in the same instant, body turned to face the threat.
 BOARD RELATIONSHIP: Single target.
 BEAT: Setup.
+
+HOLD: Mid-action pose with the weight visibly committed — never a standing figure. Tight crop filling the frame. Abstract background with no architecture, floor, or structures. Both arms fully drawn from shoulder to hand. Flat cel rendering. Character design exactly as established.
 ```
 
 ### 10. Intercept → `intercept.png`
@@ -168,6 +186,8 @@ WHAT HAPPENS: A straight safe-passage line projects from Elian toward an ally of
 POSE: Mid-lunge across the projected line, body turned into the incoming hit, panel angled to catch it.
 BOARD RELATIONSHIP: Straight line.
 BEAT: Emergency response.
+
+HOLD: Mid-action pose with the weight visibly committed — never a standing figure. Tight crop filling the frame. Abstract background with no architecture, floor, or structures. Both arms fully drawn from shoulder to hand. Flat cel rendering. Character design exactly as established.
 ```
 
 ### 11. Rallying Cry → `rallying_cry.png`
@@ -178,6 +198,8 @@ WHAT HAPPENS: Signal cloth snaps outward as a warm restorative pulse crosses the
 POSE: Mid-shout, chest open, signal cloth snapping outward at the peak of the pulse.
 BOARD RELATIONSHIP: Zone.
 BEAT: Recovery.
+
+HOLD: Mid-action pose with the weight visibly committed — never a standing figure. Tight crop filling the frame. Abstract background with no architecture, floor, or structures. Both arms fully drawn from shoulder to hand. Flat cel rendering. Character design exactly as established.
 ```
 
 ## Known Failure Mode: The Concept Sheet Reprise
@@ -215,6 +237,14 @@ This is the important lesson of the run and it is about method, not wording. **A
 So: allow at most two corrective replies. After that, stop replying and re-roll from a single consolidated message that restates **every** constraint at once — pose, crop, arms, background, character, rendering — with the requirement that keeps slipping placed first and marked as the priority. Do not assume anything already achieved will persist just because it was achieved once.
 
 Pose is the constraint that slips most on this Hero, because the attached reference is a calm standing concept sheet and every turn pulls back toward it. Restate the pose requirement in every consolidated re-roll, however many times it has already been satisfied.
+
+### How It Resolved
+
+The fourth run, from a single consolidated message, satisfied every constraint at once: mid-action with knees bent and weight dropped, panels mid-swing with motion arcs reading as their own source, both arms tracing shoulder to hand with the right hand visible, abstract background, tight crop, character identity intact. It was accepted as `guard_stance.png`.
+
+Consolidation is therefore the method, not a fallback. Three rounds of one-axis corrections oscillated; one full restatement converged.
+
+The `HOLD:` line closing every block is the same lever used deliberately. Recency weighting is what caused the drift — the model favours the latest instruction — so the constraints that slip are placed **last** in each block rather than trusted to survive from the setup message. Send it every turn, including after a turn that came out perfectly. A block that just worked is the most tempting one to trim and the most expensive one to lose.
 
 ## Accepting Each Result
 
