@@ -105,7 +105,7 @@ The board and global background use a low-opacity CC0 battlefield illustration f
 - License and local attribution: [LICENSES.md](../../assets/art/open-duelyst/LICENSES.md)
 - License: `CC0-1.0`
 
-The same texture is drawn twice at different strengths: [scripts/Main.gd](../../scripts/Main.gd) fills the window behind everything at alpha `0.14`, and [scripts/hex/HexGrid.gd](../../scripts/hex/HexGrid.gd) fills the board at alpha `0.72`. Both are deliberately subdued so tactical tile outlines, character facings, card timing, and combat text remain legible.
+The same texture is drawn twice at different strengths: [scripts/Main.gd](../../scripts/Main.gd) fills the window behind everything at alpha `0.14`, and [scripts/hex/HexGrid.gd](../../scripts/hex/HexGrid.gd) fills the board at alpha `0.72`. Both are deliberately subdued so tactical tile outlines, character facings, card timing, and combat text remain legible. Both read the texture from `ArenaArt.BACKDROP` in [scripts/art/ArenaArt.gd](../../scripts/art/ArenaArt.gd), which owns the asset path.
 
 0x72's `16x16 DungeonTileset II` is also vendored under `assets/art/environment/`, but no scene or script references it and it is drawn nowhere. It is a licensed candidate, not the current skin.
 

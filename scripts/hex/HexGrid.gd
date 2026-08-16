@@ -5,7 +5,7 @@ const HexTileScene := preload("res://scripts/hex/HexTile.gd")
 const HexPieceScene := preload("res://scripts/hex/HexPiece.gd")
 const FacingDirections := preload("res://scripts/combat/Facing.gd")
 const BoardQueryModel := preload("res://scripts/hex/BoardQuery.gd")
-const DuelystBackdrop := preload("res://assets/art/open-duelyst/magaari_ember_highlands_background.jpg")
+const ArenaArtAssets := preload("res://scripts/art/ArenaArt.gd")
 const MovementPathPreviewScene := preload("res://scripts/hex/MovementPathPreview.gd")
 
 signal tile_selected(tile)
@@ -72,7 +72,7 @@ func _input(event: InputEvent) -> void:
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.025, 0.05, 0.06, 0.90), true)
-	draw_texture_rect(DuelystBackdrop, Rect2(Vector2.ZERO, size), false, Color(0.78, 0.94, 1.0, 0.72))
+	draw_texture_rect(ArenaArtAssets.BACKDROP, Rect2(Vector2.ZERO, size), false, Color(0.78, 0.94, 1.0, 0.72))
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.045, 0.05, 0.20), true)
 	draw_circle(size * 0.5, min(size.x, size.y) * 0.31, Color(0.48, 0.22, 0.08, 0.12))
 

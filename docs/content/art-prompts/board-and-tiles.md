@@ -24,7 +24,9 @@ Current call sites and the exact treatment each asset receives:
 | Target tile (second pass) | `scripts/hex/HexTile.gd:122` | 42×42 px | `Color(0.94, 0.78, 0.72)` — warm pale |
 | Boss crest | `scripts/hex/HexPiece.gd:140` | 46×46 px | `Color(1.0, 1.0, 1.0, 0.92)` — near-neutral |
 | Backdrop, board | `scripts/hex/HexGrid.gd:75` | fills board | `Color(0.78, 0.94, 1.0, 0.72)` — cool, 72% |
-| Backdrop, window | `scripts/Main.gd:197` | fills window | `Color(0.78, 0.90, 1.0, 0.14)` — cool, 14% |
+| Backdrop, window | `scripts/Main.gd:198` | fills window | `Color(0.78, 0.90, 1.0, 0.14)` — cool, 14% |
+
+Both backdrop sites read `ArenaArt.BACKDROP` from `scripts/art/ArenaArt.gd`, so replacing the backdrop is one edit there rather than one per drawing site.
 
 One hex cell is `Vector2(76, 80)`. Generate at 4× or more and downsample; these are tiny targets and detail that survives at 68 px is the only detail worth drawing.
 

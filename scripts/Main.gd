@@ -4,8 +4,9 @@ const EncounterEngineModel := preload("res://scripts/sdk/EncounterEngine.gd")
 const EncounterActionModel := preload("res://scripts/sdk/EncounterAction.gd")
 const EncounterRecordModel := preload("res://scripts/records/EncounterRecord.gd")
 
+const ArenaArtAssets := preload("res://scripts/art/ArenaArt.gd")
+
 const CONTENT_CATALOG := preload("res://resources/content_catalog.tres")
-const DUELYST_BACKDROP := preload("res://assets/art/open-duelyst/magaari_ember_highlands_background.jpg")
 const MOBILE_SAFE_EDGE_PADDING := 12.0
 const MOBILE_ACTION_CONTROL_PADDING := 8.0
 const MOBILE_CONTROLS_ROW_HEIGHT := 48.0
@@ -194,7 +195,7 @@ func _apply_responsive_layout() -> void:
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.11, 0.11, 0.12), true)
-	draw_texture_rect(DUELYST_BACKDROP, Rect2(Vector2.ZERO, size), false, Color(0.78, 0.90, 1.0, 0.14))
+	draw_texture_rect(ArenaArtAssets.BACKDROP, Rect2(Vector2.ZERO, size), false, Color(0.78, 0.90, 1.0, 0.14))
 	draw_circle(Vector2(size.x * 0.72, size.y * 0.24), min(size.x, size.y) * 0.22, Color(0.35, 0.14, 0.10, 0.22))
 	draw_circle(Vector2(size.x * 0.28, size.y * 0.58), min(size.x, size.y) * 0.18, Color(0.08, 0.22, 0.28, 0.18))
 	draw_rect(Rect2(0.0, size.y * 0.74, size.x, size.y * 0.26), Color(0.08, 0.07, 0.06, 0.48), true)

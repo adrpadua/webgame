@@ -69,7 +69,9 @@ Generating the image is half the job. The two halves of the codebase consume art
 
 That makes the clean path for new card art a resource edit, not a script edit: drop the PNG in `assets/art/cards/<hero-slug>/`, let Godot import it, and set `artwork` on the card's `.tres`. It overrides the fallback with no code change. Once every card sets `artwork`, the `ART_BY_CARD_ID` table and its paladin imports become dead and should be deleted rather than left as a decoy.
 
-**Board art is hardcoded.** The backdrop, tiles, and crest are `preload` constants compiled into four scripts — `scripts/Main.gd`, `scripts/hex/HexGrid.gd`, `scripts/hex/HexTile.gd`, and `scripts/hex/HexPiece.gd` — so replacing any of them requires editing the script that names it. The backdrop is the awkward one: `Main.gd` and `HexGrid.gd` each declare their own constant for the same file under different names, so swapping it is a two-file edit with nothing shared between them. Worth collapsing to one constant when the real backdrop lands.
+**Board art is hardcoded.** Tiles and the crest are `preload` constants compiled into `scripts/hex/HexTile.gd` and `scripts/hex/HexPiece.gd`, so replacing either requires editing the script that names it.
+
+The backdrop is the exception: its path lives once in `scripts/art/ArenaArt.gd` as `ArenaArt.BACKDROP`, and both drawing sites reference it from there. Swapping the backdrop is a one-line edit in that file. The tile and crest constants could follow the same pattern when their replacements land.
 
 **Then verify in the game, not the file browser.** This is where board art fails, because the runtime tint is applied after everything above.
 
