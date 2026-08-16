@@ -33,7 +33,7 @@ If you want the backdrop from Midjourney anyway, compress the preamble to a shor
 
 ## Pending Evaluation: Leonardo
 
-Status: candidate, not adopted. Raised August 2026, after five rolls were spent getting one card right.
+Status: candidate, partially tested, not adopted. Raised August 2026 after five rolls were spent getting one card right. Text-only Phoenix has since been tested and failed — see Result below. The features that made it a candidate remain untested.
 
 Leonardo is worth evaluating here because three of its features map onto the three failure modes this run actually produced — recorded in [elian-voss-card-prompts.md](elian-voss-card-prompts.md) — rather than onto generic quality claims.
 
@@ -58,6 +58,30 @@ Bake off on `guard_stance`, which needs re-rolling for its setting anyway. Zero 
 1. Does the pose obey the `POSE:` line rather than the reference's stance?
 2. Does the Redwater lock corridor render as subordinate value shapes rather than a competing scene?
 3. Does it hold flat cel shading without over-rendering into Leonardo's house look?
+
+### Result: Text-Only Phoenix Failed
+
+Tested August 2026 on `guard_stance`, using Phoenix 1.0 with a Character Reference loaded and the full prompt converted to Phoenix form — positive prompt, separate negative prompt, no conversational turn.
+
+Scored against the three criteria: **pose failed**, **setting failed**, **rendering passed**.
+
+The pose came back fully standing — weight even, arms down, more static than any Gemini attempt including the first. The setting rendered as heavy detailed masonry with individual stone blocks on both walls, competing directly with the figure rather than sitting behind it. Flat cel shading and clean linework did hold, so the house-aesthetic worry was unfounded; Phoenix can draw in this style.
+
+Identity also drifted despite the Character Reference: the keyhole emblem and ember-red tassel were gone, the large geometric oathsteel plates were replaced with generic armor, the gateblade baton became two thin rods, and the runeglass panels became projected light cones instead of rectangular gates.
+
+**The transferable lesson concerns negative prompts.** `standing pose` and `architectural detail` were both stated explicitly in the negative field, and both appeared prominently in the result. A diffusion negative prompt is weak steering away from a concept, not a prohibition. Do not move a hard constraint from a positive instruction into a negative list and assume it still binds — on this workflow the two constraints that matter most are exactly the two that will not survive the move.
+
+Confounds not controlled: the run used Fast mode and a 736×1120 frame rather than 3:4. Neither accounts for a fully standing pose, but both should be off before any further test.
+
+### What This Does And Does Not Settle
+
+Settled: text-only Phoenix is worse than the conversational model for this work, and should not be adopted.
+
+Not settled: whether *Leonardo* beats the conversational model. This run used neither of the two features that made it a candidate — ControlNet-style pose guidance and inpainting. Prose-driven pose fidelity is the thing diffusion is worst at, which is precisely why pose guidance exists, so the test exercised the weakest available configuration.
+
+To close the evaluation, run Phoenix once more with Fast off, a 3:4 frame, Character Reference at High for identity, and **a pose input image** driving the stance — a rough sketch or any photograph with the right body position. If pose guidance produces the braced crouch reliably, Leonardo wins on the failure that has cost the most rolls. If it does not, close the evaluation and keep the conversational model.
+
+Until that test runs, no tool decision changes.
 
 ### What Is Unverified
 
