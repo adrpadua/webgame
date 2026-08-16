@@ -206,11 +206,9 @@ describe('Slot rules', () => {
     expect(chargeAfterFire).toMatchObject({ legal: false, reason: 'That Slot cannot accept another charge.' })
   })
 
-  // Interim ruling (working note): the Slot Activation Limit follows
-  // CONTEXT.md and the frozen reference — activation blocks further charges
-  // only within that same window. prototype-rules.md line 58 reads broader
-  // ("until its next matching window") and needs a docs ruling; this test
-  // pins the current behavior so a future ruling changes it deliberately.
+  // Ruled (working note §6): the Slot Activation Limit blocks further
+  // charges only within the activation window, per CONTEXT.md — and
+  // prototype-rules.md now says the same. This test pins the ruled behavior.
   it('allows charging a fired Quick Slot again once that window has ended', () => {
     let state = start()
     hero(state).hand = [card('h1', 'steady_strike'), card('h2', 'iron_guard'), card('h3', 'iron_guard')]

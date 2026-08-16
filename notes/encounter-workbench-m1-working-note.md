@@ -67,9 +67,12 @@ the window ends).
 **Interim ruling**: the TS engine keeps the CONTEXT.md / reference behavior —
 charging a fired Quick Slot is legal again once Quick ends. A test pins this
 (`engine.test.ts`, "allows charging a fired Quick Slot again once that window
-has ended") so a future docs ruling changes it deliberately. The
-prototype-rules sentence needs a ruling: either reword it to match the Slot
-Activation Limit or ratify the stricter lockout and change the engine.
+has ended") so a future docs ruling changes it deliberately.
+
+**Ruled (2026-08-16 grilling)**: the narrow rule stands. The
+`prototype-rules.md` sentence now reads "cannot receive more charges for the
+rest of that window", matching CONTEXT.md's Slot Activation Limit. The
+engine and its pinning test were already correct; no code change.
 
 ## 7. `discard_for_stamina` is a translation artifact, held to Quick
 
@@ -110,3 +113,20 @@ Round 6 with 10 Health to spare (`data/scenarios/embermaw_victory_line.json`).
 If ranged pressure on the Boss is meant to have a positional cost, the rules
 docs need a range or engagement rule for `boss_damage`; until then the
 engine keeps the documented behavior.
+
+**Ruled (2026-08-16 grilling)**: range-free is ratified. `prototype-rules.md`
+now states that `boss_damage` resolves without a range check and that
+counter-pressure against distant play is authored encounter content, not a
+card range rule. The counter-pressure work is filed as product-backlog
+proposal 15 (`.scratch/product-backlog/issues/15-*.md`, `needs-triage`).
+
+## 11. Slot Replacement misfires: ruled a presentation problem
+
+Playtesting on touch showed replacing an occupied Slot was too easy to do
+when the player meant to charge it. Ruled (2026-08-16 grilling): the rules
+stay as authored — Slot Replacement remains a free Loadout action regardless
+of Charge Stack — and the fix is presentation: the replacement confirmation
+modal (naming the discarded Top Card and charges) plus the animated
+Prepare/Charge/Replace badges shown while a card is in hand. The rules
+question reopens only if playtests show deliberate-but-regretted
+replacements after this guidance.
