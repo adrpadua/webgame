@@ -5,8 +5,10 @@ import { BossEmblem, HeroEmblem } from './icons'
 import { ActionBar } from './ActionBar'
 import { CoachMark } from './CoachMark'
 import { DebugRail } from './DebugRail'
+import { FirstTurnCue } from './FirstTurnCue'
 import { GuideModal } from './GuideModal'
 import { Hand } from './Hand'
+import { HoldPopoverLayer } from './HoldPopover'
 import { MovePad } from './MovePad'
 import { PhaseBanner } from './PhaseBanner'
 import { PhaseControl } from './PhaseControl'
@@ -47,7 +49,7 @@ function TargetingBanner() {
   return (
     <div className="absolute top-40 right-3 left-3 z-10" data-testid="targeting-banner">
       <div className="flex items-center justify-between rounded-lg border border-yellow-700 bg-yellow-950/95 px-3 py-2 text-xs font-semibold text-yellow-200 shadow-lg">
-        <span>Select a Minion on the board</span>
+        <span>Pick a Minion</span>
         <button
           type="button"
           onClick={cancelTargeting}
@@ -80,7 +82,6 @@ function OutcomeBanner() {
         )}
         <div className="mt-2 text-2xl font-black tracking-widest uppercase">{victory ? 'Victory' : 'Defeat'}</div>
         <div className="mt-2 text-sm">{state.outcomeReason}</div>
-        <div className="mt-3 text-[11px] opacity-80">Press Restart to run the Encounter again.</div>
       </div>
     </div>
   )
@@ -104,6 +105,7 @@ export default function App() {
           <PhaserBoard />
           <MovePad />
         </div>
+        <FirstTurnCue />
         <CoachMark />
         <PlayerPanel />
         <ActionBar />
@@ -116,6 +118,8 @@ export default function App() {
         <GuideModal />
       </main>
       <DebugRail />
+      {/* One popup surface for every tap-and-hold on the page. */}
+      <HoldPopoverLayer />
     </div>
   )
 }

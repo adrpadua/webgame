@@ -98,6 +98,21 @@ PM and the user approved these product policy values for the first Embermaw cont
 
 The `whelp_pressure` contract remains blocked on its stated authoritative-relevance gaps: legal Sweeping Blow target projection and route-blocking relevance. The approved presentation policy does not authorize the HUD to infer either condition from artwork, enemy count, or board position alone.
 
+## First Turn Variant
+
+[data/encounters/embermaw_first_turn.json](../../../data/encounters/embermaw_first_turn.json) is the Ashen Trial as a first-time player meets it in the Encounter Workbench. It is the same board, boss health, Boss Programs, and Round limit, and differs in exactly two authored values:
+
+| Authored value | Prototype | First Turn | Why |
+| --- | --- | ---: | --- |
+| `hand_refill_target` | `4` | `5` | The scripted Round spends one card on every gesture it teaches: two Slots prepared, both charged, and one card paid as Stamina to leave the breath cone. Four cards cannot cover all five. |
+| `random_seed` | `1337` | `23` | Fixes the opening Hand at one quick attack (`Steady Strike`), one slow attack (`Unyielding Step`), and three cards to spend, so the scripted Round is the same for every new player. |
+
+`unyielding_step` joins the deck list so the Slow Window beat lands visible Boss damage. `fortify` alone would have taught the Slow Window with Armor that the next `round_start` immediately wipes.
+
+The Round it produces, against the `embermaw_hunt` program: `Raking Claw` lands for `4` (it cannot be dodged, so the lesson is mitigation), the charged `Steady Strike` deals `3` in the Quick Window, the telegraphed `Cinder Breath` cone misses the Hero who stepped clear, and `Unyielding Step` deals `2` in the Slow Window. `web/src/ui/firstTurnScript.test.ts` asserts that whole line, so authored drift here fails before a player meets it.
+
+The scripted turn gates input to the control its current step names, which is a deliberate exception to the non-blocking policy adopted for contextual prompts above. The exception is bounded: it runs for Round 1 of a first visit only, carries a `Skip` control, ends the moment the Round ends, and every step it gates toward is an action the Encounter Engine would accept anyway — it narrows choice, it never invents a rule or a legality. Contextual prompts remain non-blocking and dismissible everywhere else.
+
 ## Current Gaps
 
 - No phase break or boss transformation

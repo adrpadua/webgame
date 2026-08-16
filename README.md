@@ -83,6 +83,9 @@ The playable scene is [scenes/Main.tscn](D:/dev/webgame/scenes/Main.tscn).
 - Click a hex to target it for piece-targeting effects
 - During the `Quick Window`, drag a hand card to an adjacent legal hex to discard it for `1 Stamina` and move; drag the Hero to preview legal routes
 - Advance phases with the phase control to step through the boss timeline
+- Press and hold any card, slot, boss beat, stat, or the round track for a `Detail Popup` carrying its numbers and full rules text — the HUD itself stays down to names, numbers, and colour
+- A first visit opens the `Scripted First Turn`: one guided Round that walks prepare, charge, fire Quick, step out of the telegraphed cone, and fire Slow, with one live control at a time
+- Resolved actions play `Board Feedback` — lunges, hit flashes with damage numbers, guard pulses, step glides, telegraph flares — all derived from Resolution Facts
 
 ## Main Code Paths
 

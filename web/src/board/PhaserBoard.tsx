@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
 import { hexKey, isLegalMove, neighbors, type EncounterState } from '@/engine'
+import { currentFirstTurnStep } from '@/ui/useFirstTurn'
+import { useOnboarding } from '@/store/onboarding'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { BoardScene, type BoardSnapshot } from './BoardScene'
+import { deriveBoardEffects } from './effects'
 import { BOARD_HEIGHT, BOARD_WIDTH, pixelToAxial } from './layout'
 
 function buildSnapshot(
@@ -10,6 +13,7 @@ function buildSnapshot(
   targeting: boolean,
   previewingRoutes: boolean,
   showCoordinates: boolean,
+  guidedMoveKeys: string[],
 ): BoardSnapshot {
   const legalMoveKeys: string[] = []
   // Legal routes light up while dragging a hand card (the paid move) or
@@ -24,7 +28,7 @@ function buildSnapshot(
       }
     }
   }
-  return { state, targeting, legalMoveKeys, showCoordinates }
+  return { state, targeting, legalMoveKeys, guidedMoveKeys, showCoordinates }
 }
 
 export function PhaserBoard() {
@@ -43,21 +47,34 @@ export function PhaserBoard() {
       transparent: true,
       scene,
     })
+    // Feedback plays for steps the session just took forward. Stepping back
+    // through time travel re-renders in silence: nothing was resolved.
+    let lastIndex = useWorkbench.getState().index
     const pushSnapshot = () => {
       const store = useWorkbench.getState()
+      const step = currentFirstTurnStep()
       scene.updateSnapshot(
         buildSnapshot(
           selectState(store),
           store.targetingSlotIndex !== null,
           store.draggingCardId !== null || store.selectedCardId !== null || store.heroRoutePreview,
           store.showCoordinates,
+          step?.safeHexKeys ?? [],
         ),
       )
+      if (store.index === lastIndex + 1) {
+        const entry = store.entries[store.index]
+        scene.playEffects(deriveBoardEffects(store.catalog, store.entries[store.index - 1].state, entry.state, entry.facts))
+      }
+      lastIndex = store.index
     }
     const unsubscribe = useWorkbench.subscribe(pushSnapshot)
+    // Skipping or finishing the script clears its board highlights too.
+    const unsubscribeOnboarding = useOnboarding.subscribe(pushSnapshot)
     pushSnapshot()
     return () => {
       unsubscribe()
+      unsubscribeOnboarding()
       game.destroy(true)
     }
   }, [])

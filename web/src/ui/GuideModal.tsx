@@ -89,7 +89,7 @@ export function GuideModal() {
   const steps = [
     {
       title: boss ? `Defeat ${boss.title}` : 'Defeat the Boss',
-      body: `You are ${hero?.title ?? 'the party tank'} — the party's shield. Bring the boss's health to zero within ${state.roundLimit} rounds, before its attacks or the Encounter Clock finish you first.`,
+      body: `You are ${hero?.title ?? 'the party tank'}. Bring the boss to zero within ${state.roundLimit} Rounds — before it does the same to you.`,
       diagram: (
         <div className="flex items-center justify-center gap-6 rounded-xl bg-zinc-950 px-3 py-5">
           <div className="flex flex-col items-center gap-1">
@@ -107,18 +107,18 @@ export function GuideModal() {
       ),
     },
     {
-      title: 'Every round runs the same track',
-      body: 'Loadout, then Boss Instant, your Quick Window, Boss Incoming, and your Slow Window. Amber beats belong to the boss — read what is coming on the strip up top. Green and blue windows are yours. Press Next to advance the track.',
+      title: 'Every Round runs one track',
+      body: 'Amber beats are the boss. Green and blue windows are yours. Next moves the track.',
       diagram: <TimelineDiagram />,
     },
     {
-      title: 'Prepare cards, then charge them',
-      body: 'During Loadout, drag a card from your hand onto an empty Slot to prepare it (or tap the card, then tap the Slot). In your windows, drop more cards onto a loaded Slot to add Charge — each card’s text tells you what its Charge Stack pays off.',
+      title: 'Prepare, then charge',
+      body: 'Drag a card onto a Slot to prepare it. Tuck more cards under it to add Charge.',
       diagram: <PrepareDiagram />,
     },
     {
-      title: 'Fire in the matching window — or move',
-      body: 'A quick card fires in the Quick Window, a slow card in the Slow Window: when a Slot glows, tap it. You can instead discard a hand card onto a nearby hex to step there and dodge what the boss telegraphed.',
+      title: 'Fire in the matching window',
+      body: 'A glowing Slot is ready — tap it. Or discard a card onto a nearby hex to step clear.',
       diagram: <FireDiagram />,
     },
   ]
@@ -177,7 +177,7 @@ export function GuideModal() {
       {guideStep === 0 && (
         <div className="mt-3 flex items-center gap-2 rounded-lg bg-zinc-800/70 px-3 py-2 text-[10px] text-zinc-400">
           <ShieldIcon className="h-3.5 w-3.5 shrink-0 text-sky-400" />
-          Tip: hold any card to inspect its full text at any time.
+          Hold anything — a card, a Slot, a boss beat — to read it.
         </div>
       )}
     </Modal>

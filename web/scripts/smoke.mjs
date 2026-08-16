@@ -69,41 +69,119 @@ try {
   await page.waitForSelector('[data-testid="guide-modal"]', { state: 'detached' })
   assert((await page.locator('[data-testid="guide-modal"]').count()) === 0, 'Escape dismisses the reopened guide')
 
-  // With the guide away, the Loadout coach prompt suggests preparing a Slot.
-  await page.waitForSelector('[data-testid="coach-mark"]')
-  assert((await page.locator('[data-testid="coach-mark"]').getAttribute('data-tip')) === 'prepare', 'Loadout shows the prepare coach prompt')
-
   const phase = () => page.locator('[data-phase]').getAttribute('data-phase')
   const next = () => page.locator('[data-testid="next-phase"]').click()
-
-  assert((await phase()) === 'loadout', 'Encounter opens in the Loadout Step')
-  assert((await page.locator('[data-testid="hand-card"]').count()) === 4, 'opening Hand holds 4 Compact Cards')
-
-  // Loadout: drag the first hand card onto Slot 1 to prepare it.
+  const cueStep = () => page.locator('[data-testid="first-turn-cue"]').getAttribute('data-step')
+  // The card the scripted turn is pointing at is the only live card in Hand.
+  const scriptedCard = () => page.locator('[data-testid="hand-card"][data-scripted="true"]')
   const slot0 = page.locator('[data-testid="slot-0"]')
-  await page.locator('[data-testid="hand-card"]').first().dragTo(slot0)
-  const topCard = await slot0.getAttribute('data-top-card')
-  assert(topCard !== '', `dragging a hand card prepares Slot 1 (${topCard})`)
-  assert((await page.locator('[data-testid="hand-card"]').count()) === 3, 'the prepared card left the Hand')
-
-  // Tap path (accessibility contract): select a Compact Card, tap a Slot.
   const slot1 = page.locator('[data-testid="slot-1"]')
-  await page.locator('[data-testid="hand-card"]').first().click()
-  assert(
-    (await page.locator('[data-testid="hand-card"]').first().getAttribute('data-selected')) === 'true',
-    'tapping a Compact Card selects it',
-  )
-  assert((await slot0.getAttribute('data-incoming-action')) === 'Replace', 'an occupied Slot advertises Replace during Loadout')
+
+  // A first visit opens the First Turn Encounter with the scripted Round
+  // running: one cue, one live control, no coach prompts competing with it.
+  await page.waitForSelector('[data-testid="first-turn-cue"]')
+  assert((await phase()) === 'loadout', 'Encounter opens in the Loadout Step')
+  assert((await cueStep()) === 'prepare-quick', 'the scripted first turn opens on the prepare step')
+  assert((await page.locator('[data-testid="coach-mark"]').count()) === 0, 'the scripted turn owns the prompt row alone')
+  assert((await page.locator('[data-testid="hand-card"]').count()) === 5, 'the First Turn Hand holds 5 Compact Cards')
+  assert((await scriptedCard().count()) === 1, 'exactly one Hand card is scripted at a time')
+
+  // Tap-and-hold is where the words went: press a Compact Card and its full
+  // card text pops up; release dismisses it.
+  const firstCard = page.locator('[data-testid="hand-card"]').first()
+  const cardBox = await firstCard.boundingBox()
+  await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2)
+  await page.mouse.down()
+  await page.waitForSelector('[data-testid="hold-popover"]')
+  assert((await page.locator('[data-testid="hold-popover"]').count()) === 1, 'holding a Compact Card opens its detail popup')
+  await page.mouse.up()
+  await page.waitForSelector('[data-testid="hold-popover"]', { state: 'detached' })
+  assert((await page.locator('[data-testid="hold-popover"]').count()) === 0, 'releasing the hold dismisses the popup')
+
+  // Step 1-2: prepare the quick Slot by drag, the slow Slot by the tap path.
+  await scriptedCard().dragTo(slot0)
+  const topCard = await slot0.getAttribute('data-top-card')
+  assert(topCard !== '', `dragging the scripted card prepares Slot 1 (${topCard})`)
+  assert((await cueStep()) === 'prepare-slow', 'the script advances to the slow Slot')
+  await scriptedCard().click()
+  assert((await scriptedCard().getAttribute('data-selected')) === 'true', 'tapping a Compact Card selects it')
   assert((await slot1.getAttribute('data-incoming-action')) === 'Prepare', 'an empty Slot advertises Prepare')
   await slot1.click()
   assert((await slot1.getAttribute('data-top-card')) !== '', 'tapping the empty Slot prepares the selected card')
-  assert((await page.locator('[data-testid="replace-confirm"]').count()) === 0, 'preparing an empty Slot needs no confirmation')
+  assert((await cueStep()) === 'start-round', 'with both Slots set the script asks for Next')
+
+  // Step 3-4: the Boss opens the Round and the Claw lands on the tank.
+  await next()
+  assert((await phase()) === 'instant', 'Next advances into Boss Instant')
+  assert((await cueStep()) === 'boss-instant', 'the script narrates the Boss Instant')
+  await next()
+  assert((await phase()) === 'quick', 'Boss Instant resolves into the Quick Window')
+  const heroHealth = await page.locator('[data-testid="hero-health"]').textContent()
+  assert(heroHealth?.includes('30'), `Raking Claw hit the tank for 4 (${heroHealth?.trim()})`)
+
+  // Step 5-6: charge the quick Slot, then fire it in its matching window.
+  assert((await cueStep()) === 'charge-quick', 'the Quick Window opens on the charge step')
+  await scriptedCard().dragTo(slot0)
+  assert((await slot0.getAttribute('data-charges')) === '1', 'a tucked hand card adds one Charge')
+  assert((await cueStep()) === 'fire-quick', 'a charged Slot moves the script to firing')
+  const bossBeforeQuick = await page.locator('[data-testid="boss-health"]').textContent()
+  await slot0.click()
+  await page.waitForTimeout(150)
+  assert((await slot0.getAttribute('data-slot-state')) === 'fired', 'the charged Slot activated in its matching window')
+  const bossAfterQuick = await page.locator('[data-testid="boss-health"]').textContent()
+  assert(bossBeforeQuick !== bossAfterQuick, `the quick Slot moved the Boss bar (${bossBeforeQuick?.trim()} -> ${bossAfterQuick?.trim()})`)
+
+  // Step 7: step out of the telegraphed breath cone, paying a card.
+  assert((await cueStep()) === 'move-away', 'the script asks for the dodge next')
+  const handBeforeMove = await page.locator('[data-testid="hand-card"]').count()
+  await scriptedCard().dragTo(page.locator('[data-testid="board"]'), { targetPosition: axialOffset(-1, 0) })
+  await page.waitForTimeout(150)
+  assert((await page.locator('[data-testid="hand-card"]').count()) === handBeforeMove - 1, 'the Stamina discard left the Hand')
+  const factLog = await page.locator('[data-testid="fact-log"]').textContent()
+  assert(factLog?.includes('Move to (-1, 0)'), 'the fact log records the Hero move')
+
+  await next()
+  assert((await phase()) === 'incoming', 'Quick Window resolves into Boss Incoming')
+  await next()
+  assert((await phase()) === 'slow', 'Boss Incoming resolves into the Slow Window')
+  const incomingLog = await page.locator('[data-testid="fact-log"]').textContent()
+  assert(incomingLog?.includes('Spawn whelp_1'), 'Brood Call spawned Whelps')
+  const heroAfterBreath = await page.locator('[data-testid="hero-health"]').textContent()
+  assert(heroAfterBreath?.includes('30'), `the dodged Cinder Breath dealt nothing (${heroAfterBreath?.trim()})`)
+
+  // Step 8: charge and fire the slow Slot before the Round turns.
+  assert((await cueStep()) === 'charge-slow', 'the Slow Window opens on the slow charge step')
+  await scriptedCard().dragTo(slot1)
+  assert((await cueStep()) === 'fire-slow', 'a charged slow Slot moves the script to firing')
+  const bossBeforeSlow = await page.locator('[data-testid="boss-health"]').textContent()
+  await slot1.click()
+  await page.waitForTimeout(150)
+  assert((await slot1.getAttribute('data-slot-state')) === 'fired', 'the slow Slot activated in the Slow Window')
+  const bossAfterSlow = await page.locator('[data-testid="boss-health"]').textContent()
+  assert(bossBeforeSlow !== bossAfterSlow, `the slow Slot moved the Boss bar (${bossBeforeSlow?.trim()} -> ${bossAfterSlow?.trim()})`)
+
+  await next()
+  assert((await phase()) === 'loadout', 'the Slow Window rolls into the next Round')
+  const round = await page.locator('[data-testid="round-display"]').textContent()
+  assert(round?.includes('Round 2'), `the Boss Timeline rolled forward (${round?.trim()})`)
+  assert((await page.locator('[data-testid="hand-card"]').count()) === 5, 'end-of-Round draw refilled the Hand')
+
+  // The script retires itself with the Round it taught, and ordinary
+  // coaching takes the row back.
+  await page.waitForSelector('[data-testid="first-turn-cue"]', { state: 'detached' })
+  assert((await page.locator('[data-testid="first-turn-cue"]').count()) === 0, 'the scripted first turn ends with Round 1')
+  await page.waitForSelector('[data-testid="coach-mark"]')
+  assert(
+    (await page.locator('[data-testid="coach-mark"]').getAttribute('data-tip')) === 'loadout-next',
+    'coach prompts resume once the script is done, reading the Slots the player already kept',
+  )
 
   // Slot Replacement is destructive, so it must confirm before resolving —
   // and a cancelled confirmation must leave no trace in the Scenario steps.
   const stepsBeforeReplace = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
   const slot0CardBefore = await slot0.getAttribute('data-top-card')
   await page.locator('[data-testid="hand-card"]').first().click()
+  assert((await slot0.getAttribute('data-incoming-action')) === 'Replace', 'an occupied Slot advertises Replace during Loadout')
   await slot0.click()
   await page.waitForSelector('[data-testid="replace-confirm"]')
   assert((await page.locator('[data-testid="replace-confirm"]').count()) === 1, 'replacing an occupied Slot opens the confirmation modal')
@@ -112,57 +190,6 @@ try {
   assert((await slot0.getAttribute('data-top-card')) === slot0CardBefore, 'cancelling keeps the Slot bundle intact')
   const stepsAfterCancel = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
   assert(stepsAfterCancel === stepsBeforeReplace, 'a cancelled replacement records no Scenario step')
-
-  await next()
-  assert((await phase()) === 'instant', 'Next advances into Boss Instant')
-  await next()
-  assert((await phase()) === 'quick', 'Boss Instant resolves into the Quick Window')
-  const heroHealth = await page.locator('[data-testid="hero-health"]').textContent()
-  assert(heroHealth?.includes('30'), `Raking Claw hit the tank for 4 (${heroHealth?.trim()})`)
-
-  // Quick Window: charge the prepared Slot with another hand card.
-  await page.locator('[data-testid="hand-card"]').first().dragTo(slot0)
-  assert((await slot0.getAttribute('data-charges')) === '1', 'a tucked hand card adds one Charge')
-
-  // Quick Window: discard a hand card for 1 Stamina to move one hex.
-  const board = page.locator('[data-testid="board"]')
-  const handBefore = await page.locator('[data-testid="hand-card"]').count()
-  const west = axialOffset(-1, 0)
-  await page.locator('[data-testid="hand-card"]').first().dragTo(board, { targetPosition: west })
-  await page.waitForTimeout(150)
-  const handAfterMove = await page.locator('[data-testid="hand-card"]').count()
-  assert(handAfterMove === handBefore - 1, 'the Stamina discard left the Hand')
-  const factLog = await page.locator('[data-testid="fact-log"]').textContent()
-  assert(factLog?.includes('Move to (-1, 0)'), 'the fact log records the Hero move')
-
-  // Quick Window: a charged quick Top Card activates once. Whether the Top
-  // Card is an attack or a guard depends on the seeded draw, so assert the
-  // activation itself plus its visible effect (Boss health or Armor moved).
-  const bossBefore = await page.locator('[data-testid="boss-health"]').textContent()
-  const armorBefore = await page.locator('[data-testid="hero-armor"]').textContent()
-  await slot0.click()
-  await page.waitForTimeout(150)
-  const slotState = await slot0.textContent()
-  assert(slotState?.includes('Activated'), 'the charged Slot activated in its matching window')
-  const bossAfter = await page.locator('[data-testid="boss-health"]').textContent()
-  const armorAfter = await page.locator('[data-testid="hero-armor"]').textContent()
-  assert(
-    bossBefore !== bossAfter || armorBefore !== armorAfter,
-    `firing the Slot had a visible effect (boss ${bossBefore?.trim()} -> ${bossAfter?.trim()}, ${armorBefore?.trim()} -> ${armorAfter?.trim()})`,
-  )
-
-  await next()
-  assert((await phase()) === 'incoming', 'Quick Window resolves into Boss Incoming')
-  await next()
-  assert((await phase()) === 'slow', 'Boss Incoming resolves into the Slow Window')
-  const incomingLog = await page.locator('[data-testid="fact-log"]').textContent()
-  assert(incomingLog?.includes('Spawn whelp_1'), 'Brood Call spawned Whelps')
-
-  await next()
-  assert((await phase()) === 'loadout', 'the Slow Window rolls into the next Round')
-  const round = await page.locator('[data-testid="round-display"]').textContent()
-  assert(round?.includes('Round 2'), `the Boss Timeline rolled forward (${round?.trim()})`)
-  assert((await page.locator('[data-testid="hand-card"]').count()) === 4, 'end-of-Round draw refilled the Hand to 4')
 
   // A confirmed replacement (Round 2 Loadout, refilled hand) resolves as
   // exactly one load_slot step.
