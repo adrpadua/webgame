@@ -74,6 +74,10 @@ try {
   assert((await page.locator('[data-testid="guide-modal"]').count()) === 0, 'Escape dismisses the reopened guide')
 
   const phase = () => page.locator('[data-phase]').getAttribute('data-phase')
+  // The Round track holds the Boss window while a batch's beats replay, so
+  // reaching a player window is something to wait for, not assert instantly.
+  const waitForPhase = (expected) =>
+    page.waitForFunction((want) => document.querySelector('[data-phase]')?.getAttribute('data-phase') === want, expected, { timeout: 5000 })
   const next = () => page.locator('[data-testid="next-phase"]').click()
   const cueStep = () => page.locator('[data-testid="first-turn-cue"]').getAttribute('data-step')
   // The card the scripted turn is pointing at is the only live card in Hand.
@@ -136,7 +140,7 @@ try {
   // The rules land in the Quick Window at once, but the Round track keeps
   // Boss Instant while its beats replay, then settles onto Quick.
   assert((await phase()) === 'instant', 'the Round track holds Boss Instant while its beats replay')
-  await page.waitForFunction(() => document.querySelector('[data-phase]')?.getAttribute('data-phase') === 'quick', null, { timeout: 5000 })
+  await waitForPhase('quick')
   assert((await phase()) === 'quick', 'Boss Instant resolves into the Quick Window')
   // The claw's damage reaches the gauge at its beat's playout moment, not
   // the instant the batch resolves: wait out the staggered replay.
@@ -179,7 +183,7 @@ try {
   await next()
   // The Incoming beats replay staggered too; the track releases into the
   // Slow Window once the telling is done.
-  await page.waitForFunction(() => document.querySelector('[data-phase]')?.getAttribute('data-phase') === 'slow', null, { timeout: 5000 })
+  await waitForPhase('slow')
   assert((await phase()) === 'slow', 'Boss Incoming resolves into the Slow Window')
   const incomingLog = await page.locator('[data-testid="fact-log"]').textContent()
   assert(incomingLog?.includes('Spawn whelp_1'), 'Brood Call spawned Whelps')

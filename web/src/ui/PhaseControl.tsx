@@ -7,6 +7,7 @@ import { useFirstTurnStep } from './useFirstTurn'
 import { phaseDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
 import { Modal } from './Modal'
+import { usePresentedPhase } from './usePresentedPhase'
 import { slotCanFire } from './slots'
 import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS } from './theme'
 
@@ -92,12 +93,9 @@ export function PhaseControl() {
   const advance = useWorkbench((store) => store.advance)
   const restart = useWorkbench((store) => store.restart)
   const step = useFirstTurnStep()
-  // While a resolved batch's Boss Beats are still replaying, the track keeps
-  // the window those beats belong to: the rules have already advanced into
-  // the player's next window, but on screen the Boss is still acting, and
-  // the track must not light the player's chip mid-boss-turn.
-  const playoutPhase = usePlayout((store) => store.phase)
-  const shownPhase = playoutPhase ?? state.phase
+  // The presented phase, not state.phase: the track must not light the
+  // player's chip while Boss Beats are still replaying on screen.
+  const shownPhase = usePresentedPhase()
   const hold = useHold(phaseDetail(shownPhase, true))
   const nextGated = blocksTarget(step, 'next')
   const nextSpotlit = step !== null && step.targets.includes('next')
