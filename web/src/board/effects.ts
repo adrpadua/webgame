@@ -1,4 +1,4 @@
-import type { Axial, ContentCatalog, EncounterState, ResolvedActionFact } from '@/engine'
+import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type ResolvedActionFact } from '@/engine'
 
 // Resolution Facts are the only thing the board animates from. Every beat of
 // motion on the board — a lunge, a hit, a step, a spawn — is derived from a
@@ -48,10 +48,7 @@ function detailAxial(fact: ResolvedActionFact, key: string): Axial | null {
 function telegraphedBreath(state: EncounterState): Axial[] {
   return Object.entries(state.telegraphs)
     .filter(([, kind]) => kind === 'breath')
-    .map(([key]) => {
-      const [q, r] = key.split(',').map(Number)
-      return { q, r }
-    })
+    .map(([key]) => parseHexKey(key))
 }
 
 // Translates one resolved batch into the effects the board should play.

@@ -53,16 +53,14 @@ export function slotDetail(card: Card, slot: SlotState, slotIndex: number, phase
   const cap = cardChargeCap(card)
   const detail = cardDetail(card, `slot-${slotIndex}`)
   const stats = [{ label: 'Charge stack', value: `${slot.charges.length} / ${cap}` }, ...cardStats(card).slice(1)]
-  let hint = 'Tuck a hand card here to add Charge.'
-  if (slot.activatedWindow !== null) {
-    hint = 'Already fired this window.'
-  } else if (slot.charges.length === 0) {
-    hint = 'Needs at least one Charge before it can fire.'
-  } else if (speed === phase) {
-    hint = 'Tap to fire it now.'
-  } else {
-    hint = `Fires in the ${speed === 'quick' ? 'Quick' : 'Slow'} Window.`
-  }
+  const hint =
+    slot.activatedWindow !== null
+      ? 'Already fired this window.'
+      : slot.charges.length === 0
+        ? 'Needs at least one Charge before it can fire.'
+        : speed === phase
+          ? 'Tap to fire it now.'
+          : `Fires in the ${speed === 'quick' ? 'Quick' : 'Slow'} Window.`
   return { ...detail, id: `slot-${slotIndex}`, stats, hint }
 }
 

@@ -57,8 +57,11 @@ export function PhaserBoard() {
       scene,
     })
     // Feedback plays for steps the session just took forward. Stepping back
-    // through time travel re-renders in silence: nothing was resolved.
-    let lastIndex = useWorkbench.getState().index
+    // through time travel re-renders in silence: nothing was resolved. The
+    // previous entry has to be the same object we last drew, or this is a
+    // different timeline — a restart, or a replayed Scenario — rather than
+    // one more step along this one.
+    let lastEntry = useWorkbench.getState().entries[useWorkbench.getState().index]
     const pushSnapshot = () => {
       const store = useWorkbench.getState()
       const step = currentFirstTurnStep()
@@ -71,11 +74,12 @@ export function PhaserBoard() {
           step?.safeHexKeys ?? [],
         ),
       )
-      if (store.index === lastIndex + 1) {
-        const entry = store.entries[store.index]
-        scene.playEffects(deriveBoardEffects(store.catalog, store.entries[store.index - 1].state, entry.state, entry.facts))
+      const entry = store.entries[store.index]
+      const previous = store.entries[store.index - 1]
+      if (previous !== undefined && previous === lastEntry) {
+        scene.playEffects(deriveBoardEffects(store.catalog, previous.state, entry.state, entry.facts))
       }
-      lastIndex = store.index
+      lastEntry = entry
     }
     const unsubscribe = useWorkbench.subscribe(pushSnapshot)
     // Skipping or finishing the script clears its board highlights too.

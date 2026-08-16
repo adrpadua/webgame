@@ -54,7 +54,9 @@ interface WorkbenchStore {
   lastRejection: string | null
   submit: (action: EncounterActionInput) => void
   advance: () => void
-  restart: (seed?: number, encounterId?: string) => void
+  // Replays the Encounter this session opened, with the same seed or a new
+  // one. Which Encounter that is stays fixed for the session.
+  restart: (seed?: number) => void
   loadScenario: (scenarioId: string) => void
   timeTravelTo: (index: number) => void
   exportScenario: () => string
@@ -154,13 +156,12 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
       set(CLEARED_INTERACTION)
     },
 
-    restart: (seed, encounterId) => {
-      const nextEncounterId = encounterId ?? get().encounterId
-      const nextSeed = seed ?? (encounterId ? catalog.encounters[nextEncounterId].random_seed : get().seed)
+    restart: (seed) => {
+      const { encounterId } = get()
+      const nextSeed = seed ?? get().seed
       set({
-        encounterId: nextEncounterId,
         seed: nextSeed,
-        entries: [initialEntry(nextEncounterId, nextSeed)],
+        entries: [initialEntry(encounterId, nextSeed)],
         index: 0,
         activeScenarioId: null,
         sessionStartedAt: new Date().toISOString(),

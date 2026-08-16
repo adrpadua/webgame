@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { create } from 'zustand'
 
 // Tap-and-hold detail popups (the mobile-game affordance): the HUD shows a
@@ -129,6 +129,25 @@ export function useHold(detail: HoldDetail | null, options: HoldOptions = {}): H
   const hoverEnabled = options.hover ?? true
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const opened = useRef(false)
+  const shownId = useRef<string | null>(null)
+  shownId.current = detail?.id ?? null
+
+  // A control can leave the tree mid-gesture — a card played out of Hand, a
+  // beat chip retired by the next Round. No pointerup or leave will ever
+  // arrive for it, so its popup would hang on screen with nothing left to
+  // dismiss it. Unmounting closes its own popup and drops its pending timer.
+  useEffect(
+    () => () => {
+      if (timer.current !== null) {
+        clearTimeout(timer.current)
+        timer.current = null
+      }
+      if (shownId.current !== null) {
+        useHoldPopoverStore.getState().hide(shownId.current)
+      }
+    },
+    [],
+  )
 
   const begin = (rect: DOMRect, delayMs: number, consumesClick: boolean) => {
     if (detail === null) {
@@ -216,8 +235,10 @@ export function HoldPopoverLayer() {
         </div>
         {detail.stats !== undefined && detail.stats.length > 0 && (
           <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-            {detail.stats.map((stat) => (
-              <div key={stat.label} className="contents">
+            {/* Rows are keyed by position: a label can legitimately repeat,
+                since a Boss Program may run the same beat twice. */}
+            {detail.stats.map((stat, index) => (
+              <div key={index} className="contents">
                 <span className="text-[11px] text-zinc-500">{stat.label}</span>
                 <span className="text-right text-[11px] font-semibold text-zinc-100">{stat.value}</span>
               </div>
