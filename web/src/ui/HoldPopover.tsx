@@ -6,7 +6,11 @@ import { create } from 'zustand'
 // away. Any control can register a HoldDetail, and pressing it for a beat
 // pops that detail next to the control until the finger lifts.
 //
-// The same gesture works from the keyboard: holding Enter or Space on a
+// A mouse gets the same detail by hovering, which is what a mouse is for —
+// so press-and-hold is reserved for touch and pen, and a mouse click never
+// has to be swallowed to protect a hold.
+//
+// The gesture also works from the keyboard: holding Enter or Space on a
 // focused control repeats keydown, which opens the popup; releasing closes
 // it. A quick press stays a plain tap, so nothing is hidden behind a hold.
 
@@ -69,6 +73,9 @@ const useHoldPopoverStore = create<HoldPopoverStore>((set, get) => ({
 }))
 
 const HOLD_DELAY_MS = 280
+// A hover is a cheaper, more reversible gesture than a press, so it opens
+// sooner.
+const HOVER_DELAY_MS = 220
 
 const TONE_CLASS: Record<HoldTone, string> = {
   neutral: 'border-zinc-500',
@@ -95,6 +102,7 @@ const BADGE_CLASS: Record<HoldTone, string> = {
 export interface HoldHandlers {
   onPointerDown: (event: React.PointerEvent<HTMLElement>) => void
   onPointerUp: () => void
+  onPointerEnter: (event: React.PointerEvent<HTMLElement>) => void
   onPointerLeave: () => void
   onPointerCancel: () => void
   onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => void
@@ -105,24 +113,36 @@ export interface HoldHandlers {
 export interface HoldBinding {
   holdProps: HoldHandlers
   // True exactly once after a press that opened the popup, so the control
-  // can drop the click that press would otherwise produce.
+  // can drop the click that press would otherwise produce. A hover never
+  // sets it: a mouse click stays a click.
   consumeHold: () => boolean
 }
 
+export interface HoldOptions {
+  // Set false where hover would fight a more specific target inside this
+  // one — a container whose children carry their own details.
+  hover?: boolean
+}
+
 // Binds one control to one detail. Pass null to leave the control inert.
-export function useHold(detail: HoldDetail | null): HoldBinding {
+export function useHold(detail: HoldDetail | null, options: HoldOptions = {}): HoldBinding {
+  const hoverEnabled = options.hover ?? true
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const opened = useRef(false)
 
-  const begin = (rect: DOMRect) => {
+  const begin = (rect: DOMRect, delayMs: number, consumesClick: boolean) => {
     if (detail === null) {
       return
     }
-    opened.current = false
+    if (timer.current !== null) {
+      clearTimeout(timer.current)
+    }
     timer.current = setTimeout(() => {
-      opened.current = true
+      if (consumesClick) {
+        opened.current = true
+      }
       useHoldPopoverStore.getState().show(detail, rect)
-    }, HOLD_DELAY_MS)
+    }, delayMs)
   }
 
   const end = () => {
@@ -138,14 +158,25 @@ export function useHold(detail: HoldDetail | null): HoldBinding {
   return {
     holdProps: {
       // The rect is read synchronously: currentTarget is gone by the time
-      // the hold timer fires.
-      onPointerDown: (event) => begin(event.currentTarget.getBoundingClientRect()),
+      // the timer fires.
+      onPointerDown: (event) => {
+        // A mouse already has hover; pressing must not swallow its click.
+        if (event.pointerType !== 'mouse') {
+          opened.current = false
+          begin(event.currentTarget.getBoundingClientRect(), HOLD_DELAY_MS, true)
+        }
+      },
       onPointerUp: end,
+      onPointerEnter: (event) => {
+        if (hoverEnabled && event.pointerType === 'mouse') {
+          begin(event.currentTarget.getBoundingClientRect(), HOVER_DELAY_MS, false)
+        }
+      },
       onPointerLeave: end,
       onPointerCancel: end,
       onKeyDown: (event) => {
         if ((event.key === 'Enter' || event.key === ' ') && event.repeat && !opened.current) {
-          begin(event.currentTarget.getBoundingClientRect())
+          begin(event.currentTarget.getBoundingClientRect(), HOLD_DELAY_MS, true)
         }
       },
       onKeyUp: end,

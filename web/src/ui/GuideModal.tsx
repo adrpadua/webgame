@@ -177,7 +177,7 @@ export function GuideModal() {
       {guideStep === 0 && (
         <div className="mt-3 flex items-center gap-2 rounded-lg bg-zinc-800/70 px-3 py-2 text-[10px] text-zinc-400">
           <ShieldIcon className="h-3.5 w-3.5 shrink-0 text-sky-400" />
-          Hold anything — a card, a Slot, a boss beat — to read it.
+          Hold anything — a card, a Slot, a boss beat — to read it. On a desktop, hover it.
         </div>
       )}
     </Modal>

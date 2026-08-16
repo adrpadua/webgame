@@ -46,8 +46,11 @@ the Top Card and its Charge Stack.
 Press and hold anything named on the HUD — a Compact Card, a Slot, a boss
 beat chip, a Hero stat, the round track, the boss bar — for a Detail Popup
 with that object's numbers and full authored text. The HUD itself stays down
-to names, numbers, and colour; the sentences live one press away. Holding
-`Enter` or `Space` on a focused control does the same thing from a keyboard.
+to names, numbers, and colour; the sentences live one gesture away. On a
+desktop the same popups open on hover, one element at a time, so hovering a
+single boss beat explains that beat while holding the strip on a phone gives
+the whole two-track program. Holding `Enter` or `Space` on a focused control
+does the same thing from a keyboard.
 
 A first visit opens the `embermaw_first_turn` Encounter with the scripted
 first turn running: a single guided Round that walks preparing both Slots,

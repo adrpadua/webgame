@@ -185,7 +185,7 @@ A hand-sized card that exposes only its name, timing, and Charge Value for rapid
 _Avoid_: Full card, tooltip card
 
 **Detail Popup**:
-The temporary reading surface shown while a player holds any named HUD object — a Compact Card, a Slot, a Boss Beat chip, a Hero stat, the Round track. It carries that object's numbers and complete authored text, and dismisses on release. The HUD proper carries names, numbers, and colour; the sentences live here, one press away. Card Inspection is the Compact Card case of a Detail Popup.
+The temporary reading surface for any named HUD object — a Compact Card, a Slot, a Boss Beat chip, a Hero stat, the Round track. It carries that object's numbers and complete authored text. Each input opens it its own way: touch presses and holds, a mouse hovers, the keyboard holds `Enter` or `Space`; it dismisses on release or when the pointer leaves. The HUD proper carries names, numbers, and colour; the sentences live here, one gesture away. Card Inspection is the Compact Card case of a Detail Popup.
 _Avoid_: Tooltip, card menu, help screen
 
 **Scripted First Turn**:

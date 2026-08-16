@@ -90,17 +90,31 @@ try {
   assert((await page.locator('[data-testid="hand-card"]').count()) === 5, 'the First Turn Hand holds 5 Compact Cards')
   assert((await scriptedCard().count()) === 1, 'exactly one Hand card is scripted at a time')
 
-  // Tap-and-hold is where the words went: press a Compact Card and its full
-  // card text pops up; release dismisses it.
+  // Detail popups are where the words went. A mouse gets them by hovering,
+  // one element at a time: a Compact Card explains the card...
   const firstCard = page.locator('[data-testid="hand-card"]').first()
-  const cardBox = await firstCard.boundingBox()
-  await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2)
-  await page.mouse.down()
+  await firstCard.hover()
   await page.waitForSelector('[data-testid="hold-popover"]')
-  assert((await page.locator('[data-testid="hold-popover"]').count()) === 1, 'holding a Compact Card opens its detail popup')
-  await page.mouse.up()
+  assert(
+    (await page.locator('[data-testid="hold-popover"]').getAttribute('data-hold-id'))?.startsWith('hand:'),
+    'hovering a Compact Card opens its detail popup',
+  )
+  // ...and a boss beat chip explains that beat, rather than the whole strip.
+  await page.locator('[data-testid="beat-chip"]').nth(1).hover()
+  await page.waitForTimeout(400)
+  const beatPopoverId = await page.locator('[data-testid="hold-popover"]').getAttribute('data-hold-id')
+  assert(beatPopoverId?.startsWith('beat:'), `hovering a boss beat explains that beat (${beatPopoverId})`)
+  const beatPopoverText = await page.locator('[data-testid="hold-popover"]').innerText()
+  assert(beatPopoverText.includes('Damage'), `the beat popup carries the beat's numbers (${beatPopoverText.split('\n').join(' / ')})`)
+  await page.locator('[data-testid="hand"]').hover()
   await page.waitForSelector('[data-testid="hold-popover"]', { state: 'detached' })
-  assert((await page.locator('[data-testid="hold-popover"]').count()) === 0, 'releasing the hold dismisses the popup')
+  assert((await page.locator('[data-testid="hold-popover"]').count()) === 0, 'moving the pointer away dismisses the popup')
+  // A hover must never swallow the click that follows it.
+  await firstCard.hover()
+  await page.waitForSelector('[data-testid="hold-popover"]')
+  await firstCard.click()
+  assert((await firstCard.getAttribute('data-selected')) === 'true', 'clicking a hovered card still selects it')
+  await firstCard.click()
 
   // Step 1-2: prepare the quick Slot by drag, the slow Slot by the tap path.
   await scriptedCard().dragTo(slot0)
@@ -265,6 +279,16 @@ try {
   // Walk to the Quick Window and select a card, so the measurements below
   // run against the busiest state the phone ever shows: the move pad out
   // beside the board.
+  // Touch has no hover, so it keeps press-and-hold: the same detail, opened
+  // by holding a finger down and dismissed on release.
+  const phoneCard = phone.locator('[data-testid="hand-card"]').first()
+  await phoneCard.dispatchEvent('pointerdown', { pointerType: 'touch', isPrimary: true, bubbles: true })
+  await phone.waitForSelector('[data-testid="hold-popover"]')
+  assert((await phone.locator('[data-testid="hold-popover"]').count()) === 1, 'holding a Compact Card on touch opens its detail popup')
+  await phoneCard.dispatchEvent('pointerup', { pointerType: 'touch', isPrimary: true, bubbles: true })
+  await phone.waitForSelector('[data-testid="hold-popover"]', { state: 'detached' })
+  assert((await phone.locator('[data-testid="hold-popover"]').count()) === 0, 'releasing the hold dismisses the popup')
+
   const phoneScripted = () => phone.locator('[data-testid="hand-card"][data-scripted="true"]')
   await phoneScripted().dragTo(phone.locator('[data-testid="slot-0"]'))
   await phoneScripted().dragTo(phone.locator('[data-testid="slot-1"]'))

@@ -1,16 +1,32 @@
 import { useState } from 'react'
-import { currentProgram, type BossProgram } from '@/engine'
+import { currentProgram, type BossBeat, type BossProgram } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
-import { programDetail } from './holdDetails'
+import { beatDetail, programDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
 import { FOCUS_RING_CLASS } from './theme'
 
-// The boss-program strip: two tracks of named beats, in order. The chips
-// stay compact labels rather than tiny buttons — a 21px target would break
-// the pointer contract, and stacking six 44px chips would eat the board.
-// Instead the whole strip is one hold surface: press anywhere on it for the
-// full two-track breakdown, with the header button carrying the same detail
-// for keyboard reach.
+// The boss-program strip: two tracks of named beats, in order.
+//
+// The chips stay compact labels rather than tiny buttons — a 21px target
+// would break the pointer contract, and stacking six 44px chips would eat
+// the board. Detail arrives by pointer instead: hovering one chip explains
+// that beat, and holding anywhere on the strip gives a touch player the
+// whole two-track program at once. The header button carries the same
+// program detail for keyboard reach.
+function BeatChip({ beat, track, active }: { beat: BossBeat; track: 'instant' | 'incoming'; active: boolean }) {
+  const hold = useHold(beatDetail(beat, track))
+  return (
+    <span
+      {...hold.holdProps}
+      data-testid="beat-chip"
+      aria-label={`${beat.title}: ${beat.rules_text}`}
+      className={`rounded px-1.5 py-0.5 text-[11px] ${active ? 'bg-amber-950 text-amber-200' : 'bg-zinc-800 text-zinc-400'}`}
+    >
+      {beat.title}
+    </span>
+  )
+}
+
 export function ProgramStrip() {
   const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)
@@ -18,7 +34,9 @@ export function ProgramStrip() {
   const program = currentProgram(catalog, state)
   const detail = program ? programDetail(program) : null
   const headerHold = useHold(detail)
-  const rowsHold = useHold(detail)
+  // The rows hold for touch only: hovering here belongs to whichever chip
+  // the mouse is actually over.
+  const rowsHold = useHold(detail, { hover: false })
   if (!program) {
     return null
   }
@@ -56,13 +74,7 @@ function Track({ program, track, label, active }: { program: BossProgram; track:
       <span className={`w-16 shrink-0 text-[11px] font-semibold ${active ? 'text-amber-400' : 'text-zinc-500'}`}>{label}</span>
       <div className="flex flex-wrap gap-1">
         {beats.map((beat, index) => (
-          <span
-            key={`${beat.id}-${index}`}
-            data-testid="beat-chip"
-            className={`rounded px-1.5 py-0.5 text-[11px] ${active ? 'bg-amber-950 text-amber-200' : 'bg-zinc-800 text-zinc-400'}`}
-          >
-            {beat.title}
-          </span>
+          <BeatChip key={`${beat.id}-${index}`} beat={beat} track={track} active={active} />
         ))}
       </div>
     </div>

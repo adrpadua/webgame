@@ -131,6 +131,33 @@ export function programDetail(program: BossProgram): HoldDetail {
   }
 }
 
+// One beat on its own: what it does, what it leaves behind, what answers
+// it. Hovered from a chip in the program strip.
+export function beatDetail(beat: BossBeat, track: 'instant' | 'incoming'): HoldDetail {
+  const stats: { label: string; value: string }[] = []
+  if (beat.damage > 0) {
+    stats.push({ label: 'Damage', value: String(beat.damage) })
+  }
+  if (beat.target_selector !== '') {
+    stats.push({ label: 'Target', value: beat.target_selector })
+  }
+  if (beat.minion !== undefined) {
+    stats.push({ label: 'Spawns', value: `${beat.count} ${beat.minion}` })
+  }
+  if (beat.hazard !== undefined) {
+    stats.push({ label: 'Leaves', value: `${beat.hazard} · ${beat.duration_rounds} round${beat.duration_rounds === 1 ? '' : 's'}` })
+  }
+  return {
+    id: `beat:${track}:${beat.id}`,
+    title: beat.title,
+    badge: track === 'instant' ? 'Instant' : 'Incoming',
+    tone: 'boss',
+    stats,
+    text: beat.rules_text,
+    tags: beat.counter_tags,
+  }
+}
+
 export const HERO_STAT_DETAILS: Record<'health' | 'armor' | 'presence' | 'cards', Omit<HoldDetail, 'stats'>> = {
   health: {
     id: 'hero:health',
