@@ -4,7 +4,7 @@ import { useOnboarding } from '@/store/onboarding'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { BossEmblem } from './icons'
 import { useHold } from './HoldPopover'
-import { FOCUS_RING_CLASS } from './theme'
+import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS } from './theme'
 
 // The Boss line: who you are fighting, how much of it is left, and where the
 // Round clock stands. Hold it for the Encounter's terms.
@@ -14,7 +14,7 @@ export function TopBar() {
   const openGuide = useOnboarding((store) => store.openGuide)
   const boss = state.board.entities[state.bossId]
   const program = currentProgram(catalog, state)
-  const healthPercent = boss ? Math.max(0, Math.round((boss.health / boss.maxHealth) * 100)) : 0
+  const healthPercent = boss ? Math.min(100, Math.max(0, Math.round((boss.health / boss.maxHealth) * 100))) : 0
   const hold = useHold({
     id: 'boss',
     title: boss?.title ?? 'Boss',
@@ -53,18 +53,20 @@ export function TopBar() {
         {...hold.holdProps}
         data-testid="boss-bar"
         aria-label={`${boss?.title ?? 'Boss'}, ${boss?.health ?? 0} of ${boss?.maxHealth ?? 0} health`}
-        className={`flex min-h-12 flex-1 flex-col justify-center gap-1 rounded-lg px-1 text-left ${FOCUS_RING_CLASS}`}
+        className={`flex min-h-12 flex-1 items-center gap-2 rounded-lg px-1 text-left ${FOCUS_RING_CLASS}`}
       >
-        <div className="flex items-center gap-2">
-          <BossEmblem className="h-6 w-6 shrink-0 text-red-500" />
-          <span className="text-sm font-semibold tracking-wide text-zinc-100">{boss?.title ?? 'Boss'}</span>
-          <span key={flashKey} className={`ml-auto text-[11px] ${flashing ? 'wb-damage-flash text-red-300' : 'text-zinc-400'}`} data-testid="boss-health">
-            {boss?.health ?? 0} / {boss?.maxHealth ?? 0}
+        <BossEmblem className="h-6 w-6 shrink-0 text-red-500" />
+        <span className="shrink-0 text-sm font-semibold tracking-wide text-zinc-100">{boss?.title ?? 'Boss'}</span>
+        <span className={`${GAUGE_TRACK_CLASS} flex-1`}>
+          <span className={`${GAUGE_FILL_CLASS} bg-linear-to-r from-red-700 to-red-500`} style={{ width: `${healthPercent}%` }} />
+          <span className={`${GAUGE_LABEL_CLASS} text-[11px] text-red-50`}>
+            {/* The colour shift is the flash's reduced-motion fallback: the
+                animation is disabled there, the tint is not. */}
+            <span key={flashKey} className={flashing ? 'wb-damage-flash text-red-300' : undefined} data-testid="boss-health">
+              {boss?.health ?? 0} / {boss?.maxHealth ?? 0}
+            </span>
           </span>
-        </div>
-        <div className="h-2.5 overflow-hidden rounded-full bg-zinc-800">
-          <div className="h-full rounded-full bg-linear-to-r from-red-700 to-red-500 transition-all duration-500" style={{ width: `${healthPercent}%` }} />
-        </div>
+        </span>
       </button>
       <span className="shrink-0 text-[11px] text-zinc-400" data-testid="round-display">
         Round {state.round}/{state.roundLimit}

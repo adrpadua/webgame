@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
-import { facingName, hexKey, parseHexKey, type Axial, type EncounterState } from '@/engine'
+import { facingName, hexKey, parseHexKey, type Axial, type EncounterState, type EntityKind } from '@/engine'
 import { axialToPixel, hexCorners, pixelToAxial, HEX_SIZE } from './layout'
+import { healthBarScale } from '@/ui/theme'
 import type { BoardEffect, EffectTone } from './effects'
 
 // The board snapshot the scene renders. Phaser owns no game state: it draws
@@ -355,17 +356,8 @@ export class BoardScene extends Phaser.Scene {
       graphics.lineStyle(2, 0xf4f4f5, 0.9)
       graphics.strokeCircle(x, y, radius)
       this.drawFacing(graphics, x, y, radius, entity.facing)
-      this.labels.push(
-        this.add
-          .text(x, y - radius - 12, `${entity.health}`, {
-            fontFamily: 'monospace',
-            fontSize: '13px',
-            color: '#fafafa',
-            stroke: '#18181b',
-            strokeThickness: 3,
-          })
-          .setOrigin(0.5, 0.5),
-      )
+      const armor = entity.kind === 'hero' ? (state.heroes[entity.id]?.armor ?? 0) : 0
+      this.drawHealthBar(graphics, x, y - radius - 13, entity.kind, entity.health, entity.maxHealth, armor)
       if (entity.kind !== 'boss') {
         this.labels.push(
           this.add
@@ -414,6 +406,38 @@ export class BoardScene extends Phaser.Scene {
 
   private strokeHex(graphics: Phaser.GameObjects.Graphics, corners: { x: number; y: number }[]): void {
     this.strokePath(graphics, corners)
+  }
+
+  // A piece's health as a mini gauge in the HUD's language: red fill on a
+  // dark track, the hero's armor riding it as a sky segment. Small pools get
+  // segment ticks so an exact count stays readable without a number. The hex
+  // colors mirror the HUD gauges' Tailwind palette (red-500, sky-500,
+  // zinc-800) — change them together.
+  private drawHealthBar(graphics: Phaser.GameObjects.Graphics, x: number, top: number, kind: EntityKind, health: number, maxHealth: number, armor: number): void {
+    const width = kind === 'boss' ? 44 : kind === 'hero' ? 34 : 24
+    const height = 5
+    const left = x - width / 2
+    const scale = healthBarScale(health, maxHealth, armor)
+    graphics.fillStyle(0x09090b, 0.85)
+    graphics.fillRect(left - 1, top - 1, width + 2, height + 2)
+    graphics.fillStyle(0x27272a, 1)
+    graphics.fillRect(left, top, width, height)
+    const healthWidth = (Math.max(health, 0) / scale) * width
+    if (healthWidth > 0) {
+      graphics.fillStyle(0xef4444, 1)
+      graphics.fillRect(left, top, healthWidth, height)
+    }
+    if (armor > 0) {
+      graphics.fillStyle(0x0ea5e9, 1)
+      graphics.fillRect(left + healthWidth, top, (armor / scale) * width, height)
+    }
+    if (scale <= 6) {
+      graphics.lineStyle(1, 0x09090b, 0.9)
+      for (let segment = 1; segment < scale; segment += 1) {
+        const tickX = left + (segment / scale) * width
+        graphics.lineBetween(tickX, top, tickX, top + height)
+      }
+    }
   }
 
   private drawFacing(graphics: Phaser.GameObjects.Graphics, x: number, y: number, radius: number, facing: number): void {
