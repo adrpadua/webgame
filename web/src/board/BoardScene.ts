@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { facingName, hexKey, parseHexKey, type Axial, type EncounterState, type EntityKind } from '@/engine'
 import { axialToPixel, hexCorners, pixelToAxial, HEX_SIZE } from './layout'
+import { healthBarScale } from '@/ui/theme'
 import type { BoardEffect, EffectTone } from './effects'
 
 // The board snapshot the scene renders. Phaser owns no game state: it draws
@@ -409,12 +410,14 @@ export class BoardScene extends Phaser.Scene {
 
   // A piece's health as a mini gauge in the HUD's language: red fill on a
   // dark track, the hero's armor riding it as a sky segment. Small pools get
-  // segment ticks so an exact count stays readable without a number.
+  // segment ticks so an exact count stays readable without a number. The hex
+  // colors mirror the HUD gauges' Tailwind palette (red-500, sky-500,
+  // zinc-800) — change them together.
   private drawHealthBar(graphics: Phaser.GameObjects.Graphics, x: number, top: number, kind: EntityKind, health: number, maxHealth: number, armor: number): void {
     const width = kind === 'boss' ? 44 : kind === 'hero' ? 34 : 24
     const height = 5
     const left = x - width / 2
-    const scale = Math.max(maxHealth, health + armor, 1)
+    const scale = healthBarScale(health, maxHealth, armor)
     graphics.fillStyle(0x09090b, 0.85)
     graphics.fillRect(left - 1, top - 1, width + 2, height + 2)
     graphics.fillStyle(0x27272a, 1)

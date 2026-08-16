@@ -4,7 +4,7 @@ import { selectState, useWorkbench } from '@/store/workbench'
 import { HeartIcon, HeroEmblem, PresenceIcon, ShieldIcon } from './icons'
 import { HERO_STAT_DETAILS } from './holdDetails'
 import { useHold, type HoldDetail } from './HoldPopover'
-import { FOCUS_RING_CLASS } from './theme'
+import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS, healthBarScale } from './theme'
 
 // The Hero's line: an emblem, the health gauge, the presence gauge, and the
 // deck gauge. Each stat is a filled bar with its number overlaid, so how full
@@ -46,12 +46,9 @@ function StatBar({
       aria-label={`${label} ${value}`}
       className={`flex min-h-11 min-w-11 items-center justify-center ${FOCUS_RING_CLASS}`}
     >
-      <span className={`relative block h-[18px] overflow-hidden rounded-sm bg-zinc-800 ${widthClass}`}>
-        <span
-          className={`absolute inset-y-0 left-0 transition-[width] duration-300 ${fillClass}`}
-          style={{ width: `${filled * 100}%` }}
-        />
-        <span className={`absolute inset-0 flex items-center justify-center gap-1 text-[10px] font-semibold [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] ${textClass}`}>
+      <span className={`${GAUGE_TRACK_CLASS} ${widthClass}`}>
+        <span className={`${GAUGE_FILL_CLASS} ${fillClass}`} style={{ width: `${filled * 100}%` }} />
+        <span className={`${GAUGE_LABEL_CLASS} text-[10px] ${textClass}`}>
           <Icon className="h-3 w-3 shrink-0" />
           <span>{value}</span>
         </span>
@@ -72,7 +69,7 @@ function HealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing: bo
     ],
     text: `${HERO_STAT_DETAILS.health.text} ${HERO_STAT_DETAILS.armor.text}`,
   })
-  const scale = Math.max(hero.maxHealth, hero.health + hero.armor, 1)
+  const scale = healthBarScale(hero.health, hero.maxHealth, hero.armor)
   const healthFraction = Math.max(0, hero.health) / scale
   const armorFraction = Math.max(0, hero.armor) / scale
   return (
@@ -83,16 +80,13 @@ function HealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing: bo
       data-testid="hero-health"
       className={`flex min-h-11 min-w-11 items-center justify-center ${FOCUS_RING_CLASS}`}
     >
-      <span className="relative block h-[18px] w-32 overflow-hidden rounded-sm bg-zinc-800">
-        <span
-          className="absolute inset-y-0 left-0 bg-red-500/70 transition-[width] duration-300"
-          style={{ width: `${healthFraction * 100}%` }}
-        />
+      <span className={`${GAUGE_TRACK_CLASS} w-32`}>
+        <span className={`${GAUGE_FILL_CLASS} bg-red-500/70`} style={{ width: `${healthFraction * 100}%` }} />
         <span
           className="absolute inset-y-0 bg-sky-500/70 transition-[left,width] duration-300"
           style={{ left: `${healthFraction * 100}%`, width: `${armorFraction * 100}%` }}
         />
-        <span className="absolute inset-0 flex items-center justify-center gap-1 text-[10px] font-semibold text-red-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+        <span className={`${GAUGE_LABEL_CLASS} text-[10px] text-red-50`}>
           <HeartIcon className="h-3 w-3 shrink-0" />
           <span key={flashKey} className={flashing ? 'wb-damage-flash origin-left' : undefined}>
             {hero.health}/{hero.maxHealth}
@@ -160,7 +154,7 @@ export function PlayerPanel() {
   // The deck gauge drains against every card the Hero owns, wherever it sits
   // right now: deck, hand, discard, or prepared into a Slot.
   const preparedCount = hero.actionBar.reduce((count, slot) => count + slot.charges.length + (slot.topCard === null ? 0 : 1), 0)
-  const librarySize = hero.deck.length + hero.hand.length + hero.discard.length + preparedCount
+  const ownedCardCount = hero.deck.length + hero.hand.length + hero.discard.length + preparedCount
   return (
     <div className="flex items-center gap-1 border-t border-zinc-800 bg-zinc-900/60 px-3 text-xs" data-testid="player-panel">
       <span className="flex shrink-0 items-center gap-1.5 font-semibold text-zinc-100">
@@ -197,7 +191,7 @@ export function PlayerPanel() {
           widthClass="w-16"
           label="Cards in deck"
           value={String(hero.deck.length)}
-          fraction={librarySize > 0 ? hero.deck.length / librarySize : 0}
+          fraction={ownedCardCount > 0 ? hero.deck.length / ownedCardCount : 0}
         />
       </div>
     </div>

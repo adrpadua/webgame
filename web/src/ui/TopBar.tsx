@@ -4,7 +4,7 @@ import { useOnboarding } from '@/store/onboarding'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { BossEmblem } from './icons'
 import { useHold } from './HoldPopover'
-import { FOCUS_RING_CLASS } from './theme'
+import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS } from './theme'
 
 // The Boss line: who you are fighting, how much of it is left, and where the
 // Round clock stands. Hold it for the Encounter's terms.
@@ -14,7 +14,7 @@ export function TopBar() {
   const openGuide = useOnboarding((store) => store.openGuide)
   const boss = state.board.entities[state.bossId]
   const program = currentProgram(catalog, state)
-  const healthPercent = boss ? Math.max(0, Math.round((boss.health / boss.maxHealth) * 100)) : 0
+  const healthPercent = boss ? Math.min(100, Math.max(0, Math.round((boss.health / boss.maxHealth) * 100))) : 0
   const hold = useHold({
     id: 'boss',
     title: boss?.title ?? 'Boss',
@@ -57,13 +57,12 @@ export function TopBar() {
       >
         <BossEmblem className="h-6 w-6 shrink-0 text-red-500" />
         <span className="shrink-0 text-sm font-semibold tracking-wide text-zinc-100">{boss?.title ?? 'Boss'}</span>
-        <span className="relative block h-[18px] flex-1 overflow-hidden rounded-sm bg-zinc-800">
-          <span
-            className="absolute inset-y-0 left-0 bg-linear-to-r from-red-700 to-red-500 transition-[width] duration-500"
-            style={{ width: `${healthPercent}%` }}
-          />
-          <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold text-red-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
-            <span key={flashKey} className={flashing ? 'wb-damage-flash' : undefined} data-testid="boss-health">
+        <span className={`${GAUGE_TRACK_CLASS} flex-1`}>
+          <span className={`${GAUGE_FILL_CLASS} bg-linear-to-r from-red-700 to-red-500`} style={{ width: `${healthPercent}%` }} />
+          <span className={`${GAUGE_LABEL_CLASS} text-[11px] text-red-50`}>
+            {/* The colour shift is the flash's reduced-motion fallback: the
+                animation is disabled there, the tint is not. */}
+            <span key={flashKey} className={flashing ? 'wb-damage-flash text-red-300' : undefined} data-testid="boss-health">
               {boss?.health ?? 0} / {boss?.maxHealth ?? 0}
             </span>
           </span>
