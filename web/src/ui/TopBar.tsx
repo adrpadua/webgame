@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
 import { currentProgram } from '@/engine'
 import { useOnboarding } from '@/store/onboarding'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { BossEmblem } from './icons'
+import { useDamageFlash } from './useDamageFlash'
 import { useHold } from './HoldPopover'
 import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS } from './theme'
 
@@ -34,21 +34,8 @@ export function TopBar() {
   })
 
   // Flash the boss's numbers when damage lands, so a fired attack visibly
-  // connects even while the player's eyes are on the Action Bar. The flash
-  // styling clears once the animation finishes, not permanently.
-  const previousHealth = useRef(bossHealth)
-  const [flashKey, setFlashKey] = useState(0)
-  const [flashing, setFlashing] = useState(false)
-  useEffect(() => {
-    if (bossHealth < previousHealth.current) {
-      setFlashKey((key) => key + 1)
-      setFlashing(true)
-      const timer = setTimeout(() => setFlashing(false), 500)
-      previousHealth.current = bossHealth
-      return () => clearTimeout(timer)
-    }
-    previousHealth.current = bossHealth
-  }, [bossHealth])
+  // connects even while the player's eyes are on the Action Bar.
+  const { flashing, flashKey } = useDamageFlash(bossHealth)
 
   return (
     <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-900/80 px-4 py-2">

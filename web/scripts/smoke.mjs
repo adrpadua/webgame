@@ -237,7 +237,7 @@ try {
   assert(stepsAfterConfirm === stepsBeforeConfirm + 1, 'a confirmed replacement records exactly one Scenario step')
 
   // Outside the script, a boss track steps through beat by beat: the
-  // resolving beat lights its Hunt Pattern chip and a Continue prompt
+  // resolving beat lights its Boss Beat chip and a Continue prompt
   // gates each next beat, so the player reads every part of the turn.
   await next()
   assert((await phase()) === 'instant', 'Round 2 Loadout advances into Boss Instant')
@@ -246,7 +246,7 @@ try {
   await page.waitForSelector('[data-testid="playout-continue"]')
   assert(
     (await page.locator('[data-testid="beat-chip"][data-playing="true"]').count()) >= 1,
-    'the resolving beat lights its Hunt Pattern chip',
+    'the resolving beat lights its Boss Beat chip',
   )
   const promptText = await page.locator('[data-testid="playout-continue"]').textContent()
   assert((promptText ?? '').includes('Continue'), `the playout pauses on a Continue prompt (${promptText?.trim()})`)

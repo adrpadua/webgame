@@ -5,14 +5,14 @@ import { BEAT_STAGGER_MS, EFFECT_SETTLE_MS, type BoardEffect, type HealthPlayout
 // The staggered-playout director for one resolved batch. While a boss track
 // replays beat by beat, the authoritative state already holds the batch's
 // final numbers; this store carries what the HUD should *show* right now —
-// gauge values, the beat currently playing (the Hunt Pattern chip it
+// gauge values, the beat currently playing (the Boss Beat chip it
 // lights), the moment's board effects, and what has not happened on screen
 // yet (ground scorched or Whelps spawned by unplayed moments).
 //
 // Pacing: the first moment plays when the batch lands. Between moments the
-// playout pauses on a Continue prompt so the player can read each part of
-// the boss's turn — except in auto mode (the scripted first turn, which
-// gates its own controls), where moments advance on a timer as before.
+// playout pauses on a Continue prompt so the player can read each Boss
+// Beat as it resolves — except in auto mode (the scripted first turn,
+// which gates its own controls), where moments advance on a timer.
 //
 // Presentation only: nothing reads these values back into the rules, and
 // clearing the store (a new batch, time travel, unmount) always lands
@@ -23,11 +23,14 @@ interface PlayoutStore {
   // True while a batch that ended the Encounter is still replaying: the
   // outcome presentation (banner, Restart control) waits for it.
   outcomeHeld: boolean
-  // The beat playing right now, for the Hunt Pattern chip and the prompt.
+  // The beat playing right now, for the Boss Beat chip and the prompt.
   activeBeatId: string | null
   activeBeatTitle: string | null
   // True while the playout is paused between moments, waiting for a tap.
   awaitingContinue: boolean
+  // True while a prompt-paced (non-auto) playout is running: Next defers to
+  // it instead of resolving another batch over unplayed moments.
+  paced: boolean
   // The channel the board reads: momentSeq bumps once per fired moment and
   // momentEffects carries that moment's feedback (delays already stripped).
   momentSeq: number
@@ -79,6 +82,7 @@ const IDLE = {
   activeBeatId: null,
   activeBeatTitle: null,
   awaitingContinue: false,
+  paced: false,
   pendingScorchKeys: [],
   pendingSpawnIds: [],
   pendingFacings: {},
@@ -119,7 +123,7 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
       cancelTimers()
       moments = script.moments
       autoMode = autoAdvance
-      set({ ...IDLE, overrides: { ...script.initial }, outcomeHeld: script.endsEncounter })
+      set({ ...IDLE, overrides: { ...script.initial }, outcomeHeld: script.endsEncounter, paced: !autoAdvance })
       fireMoment(0)
     },
     continuePlayout: () => {

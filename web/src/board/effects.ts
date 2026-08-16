@@ -16,7 +16,8 @@ export const BEAT_STAGGER_MS = 700
 
 // How long after the last beat starts before staggered presentation (the
 // HUD's gauge overrides) settles back onto the authoritative state: the
-// longest single effect duration, so nothing is reclaimed mid-animation.
+// longest single effect duration (BoardScene's EFFECT_DURATION.blast —
+// change them together), so nothing is reclaimed mid-animation.
 export const EFFECT_SETTLE_MS = 560
 
 export interface BoardEffect {

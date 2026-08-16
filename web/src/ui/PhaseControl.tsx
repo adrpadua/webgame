@@ -105,6 +105,19 @@ export function PhaseControl() {
   // The scripted first turn narrates every press itself, so its Nexts skip
   // the warning.
   const onNext = () => {
+    // While a prompt-paced boss track is replaying, Next serves the playout:
+    // it stands in for the Continue bar between moments and waits out a
+    // moment still playing — it must never silently fast-forward unplayed
+    // beats. Auto playouts (the scripted first turn) keep Next as the
+    // script's own control.
+    const playout = usePlayout.getState()
+    if (playout.awaitingContinue) {
+      playout.continuePlayout()
+      return
+    }
+    if (playout.paced && playout.activeBeatId !== null) {
+      return
+    }
     if (step === null && state.active) {
       const warning = skipWarning(useWorkbench.getState(), state)
       if (warning) {

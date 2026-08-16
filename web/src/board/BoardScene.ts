@@ -61,7 +61,8 @@ const TONE_TEXT: Record<EffectTone, string> = {
 
 // How long each beat of feedback stays on the board. Short enough that a
 // player tapping quickly is never waiting on the animation, long enough to
-// be read: nothing here gates input.
+// be read: nothing here gates input. The longest entry (blast) is mirrored
+// by EFFECT_SETTLE_MS in effects.ts — change them together.
 const EFFECT_DURATION: Record<BoardEffect['kind'], number> = {
   strike: 320,
   hit: 420,
