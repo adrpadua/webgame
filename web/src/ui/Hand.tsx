@@ -98,8 +98,14 @@ export function Hand() {
   // 0.375rem is the row's gap-1.5; change them together.
   const cardWidth = `calc((100% - ${(slotCount - 1) * 0.375}rem) / ${slotCount})`
 
+  // min-h-30 reserves the full-hand row height (min-h-24 cards + py-3) even
+  // as the Hand empties: the board above sizes to the space the HUD leaves,
+  // and playing out the Hand must not make the board grow mid-Encounter.
   return (
-    <div className="flex flex-wrap justify-center gap-1.5 border-t border-zinc-800 bg-zinc-950/90 px-3 py-3" data-testid="hand">
+    <div
+      className="flex min-h-30 flex-wrap content-center justify-center gap-1.5 border-t border-zinc-800 bg-zinc-950/90 px-3 py-3"
+      data-testid="hand"
+    >
       {hero.hand.map((instance) => {
         // The script points at one card at a time; the rest of the Hand
         // waits its turn.
