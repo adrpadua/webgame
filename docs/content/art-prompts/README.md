@@ -34,7 +34,12 @@ The exception is the tile and crest blocks in [board-and-tiles.md](board-and-til
 
 Supporting files: [`_style-preamble.md`](_style-preamble.md) holds the locked style contract, [`_tools.md`](_tools.md) holds the tool decisions.
 
-Pre-composed and ready to send: [elian-voss-card-prompts.md](elian-voss-card-prompts.md) — all eleven authored Elian cards with every slot filled, sequenced for a single generation session. Regenerate it from the preamble and card template if either changes.
+Pre-composed and ready to send:
+
+- [elian-voss-card-prompts.md](elian-voss-card-prompts.md) — all eleven authored Elian cards with every slot filled, sequenced for a single generation session.
+- [board-art-prompts.md](board-art-prompts.md) — hover tile, target tile, and boss crest, with export sizes and wiring steps.
+
+Regenerate either from the preamble and its class template if those change.
 
 ## Generation Order
 
