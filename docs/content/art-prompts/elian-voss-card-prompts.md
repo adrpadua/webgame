@@ -48,7 +48,9 @@ THIS IS NOT A CHARACTER SHEET. Do not produce a neutral standing pose, a turnaro
 
 CROP CLOSE. The figure and its effect fill the frame edge to edge, with minimal headroom and no empty floor. Vertical portrait framing, roughly 3:4.
 
-THE BACKGROUND CARRIES NO DETAIL. No architecture, no arches, no columns, no banners, no patterned floors, no environment. Abstract value and a few simple geometric shapes only — enough to suggest space, never enough to read as a place. If a viewer could describe the location, it is too busy.
+THE BACKGROUND CARRIES NO DETAIL. No architecture, no arches, no columns, no walls, no banners, no tiled or patterned floors, no environment. Abstract value and a few simple geometric shapes only — enough to suggest space, never enough to read as a place. If a viewer could describe the location, it is too busy. Blurring or defocusing a detailed background does not satisfy this: the structures must not be drawn at all, not drawn softly.
+
+DRAW ARMS AND HANDS CLEARLY. Every arm must read as one unbroken line from shoulder through elbow to hand, and the viewer must be able to tell where it connects to the body. Do not let armor plates, panels, or cloth cross an arm in a way that hides the joint or breaks the limb into disconnected pieces. Hands gripping the gateblade baton must be fully drawn and correctly attached. This is the most common way these images fail.
 
 KEEP THE SILHOUETTE READABLE. Translucent runeglass panels must not cover the head or the mass of the torso. Place them so the body still reads as a clear shape. These are viewed as small phone thumbnails, where a large transparent rectangle across the figure becomes an unreadable blob.
 
@@ -195,6 +197,14 @@ That is still a standing character-sheet pose against a detailed environment. Re
 ```
 
 The reference image is the likely culprit when this recurs: it is a calm full-body concept sheet, and attaching it pulls toward that composition. Identity and pose come from the same attachment, so the prompt has to work against it on purpose.
+
+## Known Failure Mode: Broken Arms And Blurred Scenery
+
+The second run fixed the pose but surfaced two more, both since addressed in the rules above.
+
+**Arm geometry breaks where armor crosses a limb.** The result had a forearm vanish behind a shoulder plate and rejoin at the baton grip at an angle the shoulder could not produce. Expect this on every card — all eleven have arms doing something specific with the baton or the panels — which is why the composition rules now demand an unbroken shoulder-to-hand line. Anatomy faults usually clear on a re-roll rather than on more words, so re-roll first and only rewrite if two in a row break the same way.
+
+**Blur is not absence.** Told to drop the background, the model kept the architecture and defocused it — walls, columns, and a tiled floor grid still fully legible behind a depth-of-field haze. The rule now says outright that the structures must not be drawn at all, not drawn softly. Watch for the same move on any negative instruction: compliance-by-attenuation rather than compliance.
 
 ## Accepting Each Result
 
