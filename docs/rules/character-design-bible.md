@@ -1,6 +1,6 @@
 # Character Design Bible
 
-Status: active content-authoring guidance. This document guides Hero identity and deck design. It does not create executable rules; `EncounterEngine` remains authoritative.
+Status: active content-authoring guidance. This document guides Hero identity and deck design. It does not create executable rules; `EncounterEngine` remains authoritative. Its Boss-side counterpart is the [Encounter Design Bible](encounter-design-bible.md), which carries the role contract ("three questions about the same Boss problem") every Hero here answers one of.
 
 ## Design Promise
 

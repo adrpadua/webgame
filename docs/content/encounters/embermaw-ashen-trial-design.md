@@ -45,7 +45,7 @@ Impact and counterplay scale together (see the [champion design research note](.
 
 ### Role-Load-Bearing Beats (Party-scale rule)
 
-When Party-scale encounters are authored, each encounter must name which Beats are load-bearing for which role: pressure whose intended counter tags only that role's kit executes well. In particular, apply the healer's no-healer-clear test from the [Healer Design Principles](../../rules/character-design-bible.md): some authored pressure (raid-wide damage, sustained attrition, hits sized beyond tank mitigation) must genuinely demand a healer, and off-role sustain is budgeted so a no-healer Party feels the absence. This is a forward rule; the current solo Tank slice has exactly one role and already satisfies it trivially.
+When Party-scale encounters are authored, each encounter must name which Beats are load-bearing for which role: pressure that role is the structural answer to. Prefer problems another role is **structurally suited** to solve over counter tags that arbitrarily role-lock — "no stat total occupies two hexes" beats "requires Healer" (see the [Encounter Design Bible](../../rules/encounter-design-bible.md)). In particular, apply the healer's no-healer-clear test from the [Healer Design Principles](../../rules/character-design-bible.md): some authored pressure (raid-wide damage, sustained attrition, hits sized beyond tank mitigation) must genuinely demand a healer because it is shaped for a healer's economy — not because others are forbidden to answer it — and off-role sustain is budgeted so a no-healer Party feels the absence. This is a forward rule; the current solo Tank slice has exactly one role and already satisfies it trivially.
 
 ## Core Mechanics
 
