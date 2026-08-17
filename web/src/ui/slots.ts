@@ -1,4 +1,4 @@
-import { cardWindowSpeed, type EncounterState, type SlotState } from '@/engine'
+import { cardChargeCap, cardWindowSpeed, type EncounterState, type SlotState } from '@/engine'
 import type { WorkbenchCatalog } from '@/store/workbench'
 
 // One definition of "this Slot can fire right now": loaded, holding at least
@@ -10,6 +10,36 @@ export function slotCanFire(catalog: WorkbenchCatalog, state: EncounterState, sl
     return false
   }
   return cardWindowSpeed(catalog.cards[slot.topCard.cardId]) === state.phase
+}
+
+// The Keywords this Slot's Top Card is hunting for: every Keyword its Charge
+// Modifiers name. A modifier that counts every charge alike (Charged Assault)
+// names none and asks for none — any card in hand suits it equally, so there
+// is nothing to look for. Authored order, no duplicates.
+export function slotWantedKeywords(catalog: WorkbenchCatalog, slot: SlotState): string[] {
+  if (slot.topCard === null) {
+    return []
+  }
+  const wanted: string[] = []
+  for (const modifierId of catalog.cards[slot.topCard.cardId].charge_modifiers) {
+    const keywordId = catalog.chargeModifiers[modifierId]?.keyword_id ?? ''
+    if (keywordId !== '' && !wanted.includes(keywordId)) {
+      wanted.push(keywordId)
+    }
+  }
+  return wanted
+}
+
+// One definition of "this Slot can take another Charge right now", mirroring
+// the engine's charge_slot rule: it holds a Top Card, has not activated in
+// this window, and its Charge Stack is not already at the Top Card's Charge
+// Value. The Slot's own want marks and the Hand's live Keywords both read
+// this, so the two ends of the same offer can never disagree.
+export function slotTakesCharge(catalog: WorkbenchCatalog, state: EncounterState, slot: SlotState): boolean {
+  if (slot.topCard === null || slot.activatedWindow === state.phase) {
+    return false
+  }
+  return slot.charges.length < cardChargeCap(catalog.cards[slot.topCard.cardId])
 }
 
 // One definition of "the Hand can act right now": the current phase is a

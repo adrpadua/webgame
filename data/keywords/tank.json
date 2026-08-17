@@ -1,5 +1,6 @@
 {
   "id": "tank",
   "title": "Tank",
-  "rules_text": "Marks cards belonging to the Tank role."
+  "rules_text": "Marks cards belonging to the Tank role.",
+  "role_marker": true
 }

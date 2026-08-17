@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { facingName, hexKey, parseHexKey, type Axial, type EncounterState } from '@/engine'
+import { facingName, hexKey, parseHexKey, type Axial, type EncounterState, type HexKey } from '@/engine'
 import { axialToPixel, hexCorners, pixelToAxial, BOARD_CENTER_X, BOARD_CENTER_Y, BOARD_HEIGHT, BOARD_WIDTH, HEX_SIZE } from './layout'
 import { BACKDROP_DEPTH, BACKDROPS, backdropFor } from './backdrop'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
@@ -40,6 +40,9 @@ export interface BoardSceneCallbacks {
   onHexClicked: (coords: Axial) => void
   // Pressing and holding the Hero previews legal routes; release ends it.
   onHeroPressChange: (pressed: boolean) => void
+  // Which hex the pointer is over, by key, or null once it is off the grid.
+  // The scene reports it and holds no opinion about what it means.
+  onHexHoverChange: (key: HexKey | null) => void
   // A press that began on the Hero and released on another hex: the third
   // way to ask for a move, beside dragging a hand card and the tap path.
   // The scene reports the destination only — what a move costs is a rules
@@ -245,7 +248,16 @@ export class BoardScene extends Phaser.Scene {
     // gesture is abandoned, never resolved against whatever hex the pointer
     // was last over.
     this.input.on('pointerupoutside', () => this.endHeroPress(null))
-    this.input.on('gameout', () => this.endHeroPress(null))
+    this.input.on('gameout', () => {
+      this.endHeroPress(null)
+      this.callbacks.onHexHoverChange(null)
+    })
+    // A hex only counts as hovered if it is a hex: the canvas is a hexagon's
+    // bounding box, so its corners are off the grid entirely.
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      const key = hexKey(pixelToAxial(pointer.x, pointer.y))
+      this.callbacks.onHexHoverChange(this.snapshot?.state.board.hexes[key] === undefined ? null : key)
+    })
     this.renderSnapshot()
   }
 

@@ -213,7 +213,7 @@ Cards remain in hand until they are prepared, tucked as charges, discarded by an
 _Avoid_: End-turn discard, rotating hand
 
 **Charge Modifier**:
-An explicit Top Card rule that changes its effect according to the Keywords on cards in its Charge Stack. A tucked card always adds one Charge, but grants no universal numerical bonus.
+An explicit Top Card rule that changes its effect according to the Keywords on cards in its Charge Stack. A tucked card always adds one Charge, but grants no universal numerical bonus. A modifier that names a Keyword is shown on both ends of the choice it creates: the Slot carries that Keyword's mark beside its tumblers, and a hand card carrying the Keyword marks it live while that Slot can still take a Charge. A modifier that counts every charge alike names no Keyword and shows no mark, because no card in hand answers it better than another.
 _Avoid_: Default charge bonus, hidden synergy
 
 **Keyword**:
@@ -233,7 +233,7 @@ The player's currently available cards, presented as compact cards in the bottom
 _Avoid_: Hand row, card tray
 
 **Compact Card**:
-A hand-sized card that exposes only its name, timing, and Charge Value for rapid scanning. It is not the canonical full-card reading surface.
+A hand-sized card that exposes only what the card is for in the current window, for rapid scanning. It is not the canonical full-card reading surface. In the `Loadout Step` — and in the Boss rows, where it is inert — it shows the card as a prospective Top Card: name, timing, and Charge Value. In either player window it shows the card's `Keywords` instead, because tucking and moving are the only things a hand card does there and neither reads its timing or Charge Value; a Keyword a loaded Top Card's `Charge Modifier` would pay off is marked as live. While a move is being lined up — held over a hex the Hero could enter, with nothing committed — it shows one `Stamina` mark and nothing else, because the question there is only whether a step is available and any card answers it. Once a destination is committed and the Hand is offering to pay for it, the Keyword face returns: that question is which card to burn, and the live Keywords are what make one of them the wrong answer. Presentation only: which face is showing is derived from the phase and the in-flight gesture, and creates no legal action.
 _Avoid_: Full card, tooltip card
 
 **Detail Popup**:

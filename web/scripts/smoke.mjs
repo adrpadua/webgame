@@ -384,6 +384,9 @@ try {
   }
   // The card the scripted turn is pointing at is the only live card in Hand.
   const scriptedCard = () => page.locator('[data-testid="hand-card"][data-scripted="true"]')
+  // Which face the Hand is wearing: the card as itself, its Keywords, or
+  // movement currency. See web/src/ui/handFace.ts.
+  const handFace = () => page.locator('[data-testid="hand"]').getAttribute('data-face')
   const slot0 = page.locator('[data-testid="slot-0"]')
   const slot1 = page.locator('[data-testid="slot-1"]')
 
@@ -395,6 +398,7 @@ try {
   assert((await page.locator('[data-testid="coach-mark"]').count()) === 0, 'the scripted turn owns the prompt row alone')
   assert((await page.locator('[data-testid="hand-card"]').count()) === 5, 'the First Turn Hand holds 5 Compact Cards')
   assert((await scriptedCard().count()) === 1, 'exactly one Hand card is scripted at a time')
+  assert((await handFace()) === 'card', 'the Loadout Step shows each card as itself')
 
   // Detail popups are where the words went. A mouse gets them by hovering,
   // one element at a time: a Compact Card explains the card...
@@ -455,6 +459,10 @@ try {
 
   // Step 5-6: charge the quick Slot, then fire it in its matching window.
   assert((await cueStep()) === 'charge-quick', 'the Quick Window opens on the charge step')
+  // A hand card in the Quick Window is a Charge and its Keywords, so the
+  // Hand leads with the Keyword marks rather than with the card's own timing
+  // and Charge Value — both of which describe it as a Top Card.
+  assert((await handFace()) === 'keywords', 'the Quick Window turns the Hand to its Keyword face')
   await scriptedCard().dragTo(slot0)
   assert((await slot0.getAttribute('data-charges')) === '1', 'a tucked hand card adds one Charge')
   assert((await cueStep()) === 'fire-quick', 'a charged Slot moves the script to firing')
@@ -508,6 +516,12 @@ try {
   )
   const offerAnimation = await page.evaluate(() => getComputedStyle(document.querySelector('[data-testid="hand-card"]')).animationName)
   assert(offerAnimation.includes('wb-card-offer'), `the offered cards run the rise animation (${offerAnimation})`)
+  // An offer asks a different question than lining a move up does — not
+  // "have I got a step" but "which card do I burn" — so the Hand keeps its
+  // Keyword face here instead of collapsing to interchangeable Stamina
+  // marks: the gold Keywords are exactly the cards a Slot is waiting for,
+  // which is what makes one of them the wrong card to spend.
+  assert((await handFace()) === 'keywords', 'a Hand offering to pay for a step still names what each card is for')
   await page.locator('[data-testid="cancel-move"]').click()
   await page.waitForSelector('[data-testid="move-payment-cue"]', { state: 'detached' })
   assert((await page.locator('[data-testid="hand-card"]').count()) === handBeforeMove, 'a dismissed move offer spends no card')
@@ -515,8 +529,19 @@ try {
   const stepsAfterDragCancel = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
   assert(stepsAfterDragCancel === stepsBeforeDrag, 'a dismissed move offer records no Scenario step')
 
-  await scriptedCard().dragTo(boardCanvas, { targetPosition: await hexPosition(boardCanvas, -1, 0) })
+  // Held over a hex the Hero can step to, with nothing committed yet, every
+  // card in hand is one Stamina and nothing else — and the Hand says so
+  // while the card is still in flight.
+  const dropAt = await hexPosition(boardCanvas, -1, 0)
+  const cardBox = await scriptedCard().boundingBox()
+  await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(boardBox.x + dropAt.x, boardBox.y + dropAt.y, { steps: 12 })
   await page.waitForTimeout(150)
+  assert((await handFace()) === 'stamina', 'lining up a move turns the Hand to movement currency')
+  await page.mouse.up()
+  await page.waitForTimeout(150)
+  assert((await handFace()) === 'keywords', 'the Hand returns to its Keyword face once the move lands')
   assert((await page.locator('[data-testid="hand-card"]').count()) === handBeforeMove - 1, 'the Stamina discard left the Hand')
   const factLog = await page.locator('[data-testid="fact-log"]').textContent()
   assert(factLog?.includes('Move to (-1, 0)'), 'the fact log records the Hero move')
@@ -535,6 +560,10 @@ try {
 
   // Step 8: charge and fire the slow Slot before the Round turns.
   assert((await cueStep()) === 'charge-slow', 'the Slow Window opens on the slow charge step')
+  // Charge Timing puts any card in either window, so a hand card is Keywords
+  // here for the same reason it was in Quick — minus the Stamina it can no
+  // longer pay, movement being a Quick Window action.
+  assert((await handFace()) === 'keywords', 'the Slow Window keeps the Hand on its Keyword face')
   await scriptedCard().dragTo(slot1)
   assert((await cueStep()) === 'fire-slow', 'a charged slow Slot moves the script to firing')
   await inspectTile(1, -1)

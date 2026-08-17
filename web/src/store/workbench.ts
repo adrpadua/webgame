@@ -64,6 +64,11 @@ export interface WorkbenchStore {
   // (submits, advances) leaves it up as a live gauge.
   inspectedEntityId: string | null
   heroRoutePreview: boolean
+  // The hex the pointer is currently over, or null when it is off the board.
+  // Presentation only: the board already paints where the Hero may step, and
+  // this is what the Hand reads to know a move is being lined up at one of
+  // those hexes rather than merely available.
+  hoveredHexKey: string | null
   showCoordinates: boolean
   lastRejection: string | null
   submit: (action: EncounterActionInput) => void
@@ -87,6 +92,7 @@ export interface WorkbenchStore {
   cancelReplacement: () => void
   dismissInspect: () => void
   setDraggingCard: (cardInstanceId: string | null) => void
+  setHoveredHex: (key: string | null) => void
   selectCard: (cardInstanceId: string) => void
   setHeroRoutePreview: (previewing: boolean) => void
   toggleCoordinates: () => void
@@ -133,6 +139,7 @@ const CLEARED_INTERACTION = {
   pendingReplacement: null,
   pendingMove: null,
   lastRejection: null,
+  hoveredHexKey: null,
 } as const
 
 export const useWorkbench = create<WorkbenchStore>((set, get) => {
@@ -158,6 +165,7 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
     pendingMove: null,
     inspectedEntityId: null,
     heroRoutePreview: false,
+    hoveredHexKey: null,
     showCoordinates: false,
     lastRejection: null,
 
@@ -301,7 +309,7 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
       // when the dragged element unmounts under it, so the drop itself is
       // what ends the gesture — otherwise the HUD keeps offering to place a
       // card that has already landed.
-      set({ selectedCardId: null, draggingCardId: null })
+      set({ selectedCardId: null, draggingCardId: null, hoveredHexKey: null })
       get().submit({ kind: 'move_hero', sourceId: state.primaryHeroId, destination: coords, cardInstanceId })
     },
 
@@ -311,7 +319,7 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
       const state = selectState(get())
       const hero = state.heroes[state.primaryHeroId]
       const slot = hero.actionBar[slotIndex]
-      set({ selectedCardId: null, draggingCardId: null })
+      set({ selectedCardId: null, draggingCardId: null, hoveredHexKey: null })
       if (slot.topCard !== null && state.phase !== 'loadout') {
         get().submit({ kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId })
         return
@@ -396,7 +404,12 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
 
     cancelTargeting: () => set({ targetingSlotIndex: null }),
     dismissInspect: () => set({ inspectedEntityId: null }),
-    setDraggingCard: (cardInstanceId) => set({ draggingCardId: cardInstanceId, ...(cardInstanceId !== null ? { selectedCardId: null } : {}) }),
+    setDraggingCard: (cardInstanceId) =>
+      set({ draggingCardId: cardInstanceId, ...(cardInstanceId !== null ? { selectedCardId: null } : { hoveredHexKey: null }) }),
+    // Pointer motion reports every frame it moves and dragover repeats on the
+    // same hex; only a change is a change, or the board would re-render on
+    // events that said nothing.
+    setHoveredHex: (key) => set((store) => (store.hoveredHexKey === key ? store : { hoveredHexKey: key })),
     selectCard: (cardInstanceId) =>
       set((store) => ({
         selectedCardId: store.selectedCardId === cardInstanceId ? null : cardInstanceId,
