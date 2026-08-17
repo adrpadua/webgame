@@ -28,6 +28,7 @@ Current starter docs:
 - [world-style-bible.md](world-style-bible.md)
 - [hand-drawn-character-art-style.md](hand-drawn-character-art-style.md)
 - [oathcraft-interface-direction.md](oathcraft-interface-direction.md)
+- [oathcraft-board-direction.md](oathcraft-board-direction.md)
 - [art-prompts/README.md](art-prompts/README.md)
 - [../artifacts/encounter-records.md](../artifacts/encounter-records.md)
 
