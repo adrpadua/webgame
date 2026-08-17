@@ -2,6 +2,7 @@ import { emptyHexes, facingToward, firstEmptyHexes, forwardCone, frontArc, isGua
 import { escalationModifiers } from './escalation'
 import { normalizeFacing } from './facing'
 import { containsHex, hexKey, type Axial } from './hex'
+import { shuffle, type RngState } from './rng'
 import type { BossBeat, BossProgram } from './content/schemas'
 import type { ContentCatalog } from './content/catalog'
 import type { EncounterActionInput } from './actions'
@@ -207,11 +208,55 @@ export function phaseBreakDue(state: EncounterState, round: number): boolean {
 // every Scorched hex already on the board. The break deals no damage of its
 // own — it is a readability beat that changes what the board means, not a hit
 // the party has to survive.
+// The order the Boss runs its programs in, resolved once from the encounter
+// seed (D-037). Two properties matter and they pull against each other.
+//
+// Index 0 is the authored opener, pinned. Round 1 is the teaching Round and the
+// one Round the Forecast Row can never have disclosed (ADR 0026), so it must
+// stay the Round the author chose — and it is why the first program of every
+// phase has to be free of `severe` Beats.
+//
+// Everything after it is drawn in bags: shuffle the whole pool, deal it out,
+// shuffle again. A bag keeps each program appearing about as often as an
+// authored rotation would, so this changes *when* a demand lands without
+// changing how much of it the fight contains.
+export function buildProgramSequence(rng: RngState, pool: string[], length: number, label: string): string[] {
+  if (pool.length === 0) {
+    return []
+  }
+  const sequence = [pool[0]]
+  const remainder = pool.slice(1)
+  shuffle(rng, remainder, `${label}_opening`)
+  sequence.push(...remainder)
+  while (sequence.length < length) {
+    const bag = [...pool]
+    shuffle(rng, bag, label)
+    // No back-to-back repeat across a bag boundary: the same program twice in a
+    // row reads as the rotation having stalled rather than varied. Applied only
+    // to pools of three or more — with two programs the rule is not a
+    // safeguard, it forces strict alternation and removes the variance this
+    // function exists to add.
+    if (pool.length > 2 && bag[0] === sequence[sequence.length - 1]) {
+      const swapped = bag[1]
+      bag[1] = bag[0]
+      bag[0] = swapped
+    }
+    for (const programId of bag) {
+      if (sequence.length >= length) {
+        break
+      }
+      sequence.push(programId)
+    }
+  }
+  return sequence
+}
+
 export function applyPhaseBreak(draft: EncounterState): void {
   draft.bossPhase += 1
   draft.programIds = [...draft.phaseTwoProgramIds]
+  draft.programSequence = [...draft.phaseTwoSequence]
   draft.programIndex = 0
-  draft.currentProgramId = draft.programIds[0] ?? null
+  draft.currentProgramId = draft.programSequence[0] ?? null
   const boss = draft.board.entities[draft.bossId]
   if (boss) {
     // Facings run counter-clockwise from E, so one edge clockwise is one step
@@ -220,15 +265,15 @@ export function applyPhaseBreak(draft: EncounterState): void {
   }
 }
 
+// Walking a sequence that was already resolved, so there is no randomness and
+// no modulo here: the Round boundary only steps a cursor. Running off the end
+// leaves no program, which is the same thing a non-looping encounter did before.
 export function advanceProgram(draft: EncounterState): void {
-  if (draft.programIds.length === 0) {
+  if (draft.programSequence.length === 0) {
     draft.programIndex = 0
     draft.currentProgramId = null
-  } else if (draft.loopPrograms) {
-    draft.programIndex = (draft.programIndex + 1) % draft.programIds.length
-    draft.currentProgramId = draft.programIds[draft.programIndex]
-  } else {
-    draft.programIndex += 1
-    draft.currentProgramId = draft.programIndex < draft.programIds.length ? draft.programIds[draft.programIndex] : null
+    return
   }
+  draft.programIndex += 1
+  draft.currentProgramId = draft.programSequence[draft.programIndex] ?? null
 }

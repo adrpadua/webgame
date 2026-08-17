@@ -15,6 +15,7 @@ import {
   escalationStartRound,
   forecast,
   highestTier,
+  programCounterTags,
   resolve,
   runScenario,
   type EncounterState,
@@ -49,6 +50,20 @@ function immortalHero(state: EncounterState): EncounterState {
   return state
 }
 
+// The Boss's program order is rolled from the seed (D-037), and the pinned
+// opener never calls Whelps — so a test that needs Whelps has to ask for a seed
+// that produces them early rather than assume Round 1 does. Seed 3 puts Brood
+// Pattern second, the earliest a Brood Call can land.
+const BROOD_SECOND_SEED = 3
+
+function startBroodSecond(): EncounterState {
+  const state = start(BROOD_SECOND_SEED)
+  // Guard the fixture here so a bag-ordering change fails in one obvious place
+  // rather than in whichever Whelp test happens to run first.
+  expect(state.programSequence[1]).toBe('embermaw_brood')
+  return state
+}
+
 function stepPhases(state: EncounterState, count: number): { state: EncounterState; facts: ResolvedActionFact[] } {
   let current = state
   const facts: ResolvedActionFact[] = []
@@ -78,7 +93,6 @@ describe('content catalog', () => {
     ])
     expect(catalog.programs.embermaw_embers.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',
-      'cinder_breath',
       'scorch_last_pattern',
     ])
     expect(catalog.encounters.embermaw_prototype.boss_programs).toEqual(['embermaw_hunt', 'embermaw_embers', 'embermaw_brood'])
@@ -105,21 +119,101 @@ describe('content catalog', () => {
   })
 })
 
-describe('Boss Program rotation', () => {
-  it('loops Hunt, Ember, then Brood across Rounds', () => {
+// D-037. A fixed `(index + 1) % length` rotation made the Forecast Row
+// decorative: after one cycle the next program was deducible from the Round
+// number, so the third horizon disclosed nothing a player could not already
+// count. The order is now drawn from the seed, at setup.
+describe('Boss Program order (D-037)', () => {
+  it('walks the resolved sequence, Round by Round', () => {
     let state = start()
-    // Rotation is what is under test: give the idle hero enough Health to
-    // survive the accumulating boss pressure and Whelp bites (D-006).
+    // Order is what is under test: give the idle hero enough Health to survive
+    // the accumulating boss pressure and Whelp bites (D-006).
     hero(state).maxHealth = 500
     hero(state).health = 500
-    expect(state.currentProgramId).toBe('embermaw_hunt')
-    state = stepPhases(state, 5).state
-    expect(state.round).toBe(2)
-    expect(state.currentProgramId).toBe('embermaw_embers')
-    state = stepPhases(state, 5).state
-    expect(state.currentProgramId).toBe('embermaw_brood')
-    state = stepPhases(state, 5).state
-    expect(state.currentProgramId).toBe('embermaw_hunt')
+    expect(state.currentProgramId).toBe(state.programSequence[0])
+    for (let round = 2; round <= 4; round += 1) {
+      state = stepPhases(state, 5).state
+      expect(state.round).toBe(round)
+      expect(state.currentProgramId).toBe(state.programSequence[round - 1])
+    }
+  })
+
+  it('pins Round 1 to the authored opener on every seed', () => {
+    // Round 1 is the teaching Round and the one Round the Forecast Row can
+    // never have disclosed (ADR 0026), so the author keeps it.
+    const opener = catalog.encounters.embermaw_prototype.boss_programs[0]
+    for (const seed of [1, 2, 3, 7, 42, 1337, 20260817]) {
+      const state = start(seed)
+      expect(state.programSequence[0]).toBe(opener)
+      expect(state.currentProgramId).toBe(opener)
+    }
+  })
+
+  it('gives different seeds different orders', () => {
+    // The point of the change. If this ever collapses to one order, the
+    // Forecast Row is decorative again.
+    const orders = new Set([1, 2, 3, 4, 5, 6, 7, 8].map((seed) => start(seed).programSequence.join(',')))
+    expect(orders.size).toBeGreaterThan(1)
+  })
+
+  it('deals each program about as often as a fixed rotation would', () => {
+    // Bags, not independent draws: changing *when* a demand lands must not
+    // change how much of it the fight contains, or this would be a difficulty
+    // change wearing a variety change's clothes.
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const cycle = start(seed).programSequence.slice(0, 3)
+      expect([...cycle].sort()).toEqual(['embermaw_brood', 'embermaw_embers', 'embermaw_hunt'])
+    }
+  })
+
+  it('never repeats a program back to back while three are available', () => {
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+      const sequence = start(seed).programSequence
+      for (let index = 1; index < sequence.length; index += 1) {
+        expect(sequence[index], `seed ${seed} repeated ${sequence[index]} at ${index}`).not.toBe(sequence[index - 1])
+      }
+    }
+  })
+
+  it('resolves the order at setup, so nothing rolls at a Round boundary', () => {
+    // ADR 0025: the Forecast Row shows next Round's program a full Round early,
+    // so the roll has to have happened before any window opened. Advancing must
+    // not change the sequence, only the cursor into it.
+    let state = immortalHero(start(4))
+    const resolved = [...state.programSequence]
+    for (let round = 0; round < 3; round += 1) {
+      state = stepPhases(state, 5).state
+      expect(state.programSequence).toEqual(resolved)
+    }
+  })
+})
+
+// The substance of the differentiation pass: three programs that were the same
+// six Beats under three names now ask for three different answers, which is
+// what gives the Forecast Row something to disclose.
+describe('Program identity (D-036)', () => {
+  it('gives each Phase I program a distinct set of demands', () => {
+    const tags = (id: string) => programCounterTags(catalog.programs[id]).sort().join(',')
+    const hunt = tags('embermaw_hunt')
+    const embers = tags('embermaw_embers')
+    const brood = tags('embermaw_brood')
+    expect(new Set([hunt, embers, brood]).size).toBe(3)
+    // Named explicitly, because "they differ" is weaker than "they differ in
+    // the way the design intends": Armor answers Hunt, footwork answers Ember,
+    // and only Brood asks anyone to kill something.
+    expect(programCounterTags(catalog.programs.embermaw_brood)).toContain('Kill Adds')
+    expect(programCounterTags(catalog.programs.embermaw_embers)).not.toContain('Mitigate')
+    expect(programCounterTags(catalog.programs.embermaw_embers)).not.toContain('Kill Adds')
+    expect(programCounterTags(catalog.programs.embermaw_hunt)).not.toContain('Kill Adds')
+  })
+
+  it('keeps the first program of every phase free of severe Beats', () => {
+    // Round 1 and the Phase Break are both unforecast: no earlier Round could
+    // have shown them, so neither may open on a severe Beat. Phase II's list is
+    // ordered for exactly this reason.
+    const encounter = catalog.encounters.embermaw_prototype
+    expect(highestTier(catalog.programs[encounter.boss_programs[0]])).not.toBe('severe')
+    expect(highestTier(catalog.programs[encounter.phase_two_programs[0]])).not.toBe('severe')
   })
 })
 
@@ -159,11 +253,11 @@ describe('Phase Trigger (ADR 0023)', () => {
     const opened = stepPhases(state, 5)
     expect(opened.state.round).toBe(5)
     expect(opened.state.bossPhase).toBe(2)
-    expect(opened.state.currentProgramId).toBe('embermaw_molting')
+    expect(opened.state.currentProgramId).toBe('embermaw_ashfall')
     // The reveal has something authoritative to read, and it is recorded on
     // the Round's own fact — before any Instant Beat resolves.
     const breakFact = opened.facts.find((fact) => fact.kind === 'round_start' && fact.detail.phaseBreak !== undefined)
-    expect(breakFact?.detail).toMatchObject({ phaseBreak: 2, phaseProgram: 'embermaw_molting' })
+    expect(breakFact?.detail).toMatchObject({ phaseBreak: 2, phaseProgram: 'embermaw_ashfall' })
     const firstBeat = opened.facts.findIndex((fact) => fact.kind === 'boss_beat')
     const breakIndex = opened.facts.indexOf(breakFact as ResolvedActionFact)
     expect(breakIndex).toBeGreaterThanOrEqual(0)
@@ -178,7 +272,7 @@ describe('Phase Trigger (ADR 0023)', () => {
     state = stepPhases(state, 5).state
     expect(state.round).toBe(2)
     expect(state.bossPhase).toBe(2)
-    expect(state.currentProgramId).toBe('embermaw_molting')
+    expect(state.currentProgramId).toBe('embermaw_ashfall')
   })
 
   it('waits for the Round boundary when the Health half is met mid-Round', () => {
@@ -225,11 +319,15 @@ describe('Phase Trigger (ADR 0023)', () => {
     let state = durableStart()
     boss(state).health = 18
     state = stepPhases(state, 5).state
-    expect(state.currentProgramId).toBe('embermaw_molting')
-    state = stepPhases(state, 5).state
+    // Phase II opens on its authored first program for the same reason Round 1
+    // does: a Phase Break is reached mid-fight and was never forecast.
     expect(state.currentProgramId).toBe('embermaw_ashfall')
-    state = stepPhases(state, 5).state
-    expect(state.currentProgramId).toBe('embermaw_molting')
+    const phaseTwo = [...state.phaseTwoSequence]
+    for (let step = 1; step <= 2; step += 1) {
+      state = stepPhases(state, 5).state
+      expect(state.currentProgramId).toBe(phaseTwo[step])
+      expect(catalog.encounters.embermaw_prototype.phase_two_programs).toContain(state.currentProgramId)
+    }
     expect(state.bossPhase).toBe(2)
   })
 
@@ -258,18 +356,28 @@ describe('encounter setup', () => {
     expect(boss(state).facing).toBe(4)
     expect(hero(state).health).toBe(34)
     expect(state.rng.choices.length).toBeGreaterThanOrEqual(19)
-    expect(state.rng.choices[0].label).toBe('initial_deck_shuffle')
+    // The Boss's script is rolled before the party's deck: by the time any
+    // window opens, nothing about its plan is still undecided (ADR 0025).
+    expect(state.rng.choices[0].label).toBe('boss_program_order_opening')
+    expect(state.rng.choices.some((choice) => choice.label === 'initial_deck_shuffle')).toBe(true)
   })
 
   it('telegraphs the Incoming Row at start', () => {
     const state = start()
     expect(state.telegraphs[hexKey({ q: 0, r: 1 })]).toBe('breath')
     expect(state.telegraphs[hexKey({ q: -1, r: 1 })]).toBe('breath')
-    expect(state.telegraphs[hexKey({ q: -2, r: 1 })]).toBe('brood')
-    expect(state.telegraphedSpawnHexes).toEqual([
-      { q: -2, r: 1 },
-      { q: -1, r: 2 },
-    ])
+    // Hunt Pattern calls no Whelps, so the opening Round telegraphs no spawns.
+    // Round 1 asks the Tank to hold and then step out of the cone, nothing else
+    // (D-036).
+    expect(state.telegraphedSpawnHexes).toEqual([])
+    expect(Object.values(state.telegraphs)).not.toContain('brood')
+  })
+
+  it('telegraphs the spawn hexes on the Round that actually calls Whelps', () => {
+    const state = stepPhases(immortalHero(startBroodSecond()), 5).state
+    expect(state.currentProgramId).toBe('embermaw_brood')
+    expect(state.telegraphedSpawnHexes.length).toBeGreaterThan(0)
+    expect(Object.values(state.telegraphs)).toContain('brood')
   })
 
   it('is deterministic for a fixed seed', () => {
@@ -314,11 +422,10 @@ describe('phase cycle', () => {
     state = incoming.state
     expect(state.phase).toBe('incoming')
     expect(hero(state).health).toBe(25)
-    const spawns = incoming.facts.filter((fact) => fact.kind === 'spawn_minion')
-    expect(spawns).toHaveLength(2)
+    // Round 1 is Hunt Pattern, which calls no Whelps (D-036): the opening Round
+    // is the claw and the cone, and nothing else.
+    expect(incoming.facts.filter((fact) => fact.kind === 'spawn_minion')).toHaveLength(0)
     expect(incoming.facts.filter((fact) => fact.kind === 'resolve_boss').every((fact) => fact.phase === 'incoming')).toBe(true)
-    expect(state.board.entities.whelp_1).toMatchObject({ kind: 'minion', health: 2, coords: { q: -2, r: 1 } })
-    expect(state.board.entities.whelp_2).toMatchObject({ kind: 'minion', coords: { q: -1, r: 2 } })
 
     state = advancePhase(catalog, state).state
     expect(state.phase).toBe('slow')
@@ -331,12 +438,32 @@ describe('phase cycle', () => {
     expect(Object.keys(state.board.hazards)).toHaveLength(0)
     expect(wrap.facts.some((fact) => fact.kind === 'round_start')).toBe(true)
   })
+
+  it('spawns the Brood Call Whelps at the telegraphed hexes on a Brood Round', () => {
+    // The spawn half of the Round walk, moved to the Round that actually calls
+    // Whelps now that the opener does not.
+    let state = immortalHero(startBroodSecond())
+    state = stepPhases(state, 7).state
+    expect(state.round).toBe(2)
+    expect(state.phase).toBe('quick')
+    const incoming = advancePhase(catalog, state)
+    state = incoming.state
+    expect(state.phase).toBe('incoming')
+    const spawns = incoming.facts.filter((fact) => fact.kind === 'spawn_minion')
+    expect(spawns).toHaveLength(2)
+    const whelps = Object.values(state.board.entities).filter((entity) => entity.kind === 'minion')
+    expect(whelps).toHaveLength(2)
+    expect(whelps.every((whelp) => whelp.health === 2)).toBe(true)
+  })
 })
 
 describe('Minion end-step intent (D-006)', () => {
   it('a distant Whelp advances toward its Hero; an arrived Whelp bites', () => {
-    // Round 1's Incoming Brood Call spawns two Whelps at distance 2; reach Slow.
-    let state = stepPhases(start(), 4).state
+    // Brood Pattern's Incoming Row spawns two Whelps at distance 2. It runs on
+    // Round 2 for this seed, so reach that Round's Slow Window (D-036: the
+    // pinned opener calls no Whelps).
+    let state = stepPhases(immortalHero(startBroodSecond()), 9).state
+    expect(state.round).toBe(2)
     expect(state.phase).toBe('slow')
     const heroCoords = state.board.entities[state.primaryHeroId].coords
     const spawned = Object.values(state.board.entities)
@@ -350,18 +477,18 @@ describe('Minion end-step intent (D-006)', () => {
     expect(advanceIntents).toHaveLength(2)
     expect(advanceIntents.every((intent) => intent.damage === 0 && intent.destination !== null)).toBe(true)
 
-    // Round 1 wrap: no bites yet — the creep is the deadline.
+    // The spawn Round's wrap: no bites yet — the creep is the deadline.
     const healthBefore = hero(state).health
     const wrap = advancePhase(catalog, state)
     state = wrap.state
-    expect(state.round).toBe(2)
+    expect(state.round).toBe(3)
     expect(wrap.facts.filter((fact) => fact.kind === 'damage' && fact.resolutionFact?.minion_intent === true)).toHaveLength(0)
     expect(hero(state).health).toBe(healthBefore)
     for (const { id } of spawned) {
       expect(hexDistance(state.board.entities[id].coords, heroCoords)).toBe(1)
     }
 
-    // Round 2: the arrived Whelps bite; the Round's fresh Brood spawns only advance.
+    // The following Round: the arrived Whelps bite.
     state = stepPhases(state, 4).state
     expect(state.phase).toBe('slow')
     const round2Health = hero(state).health
@@ -375,7 +502,7 @@ describe('Minion end-step intent (D-006)', () => {
   })
 
   it('a cleared Whelp takes no end-step action', () => {
-    let state = stepPhases(start(), 4).state
+    let state = stepPhases(immortalHero(startBroodSecond()), 9).state
     const whelps = Object.values(state.board.entities).filter((entity) => entity.kind === 'minion')
     state = resolve(catalog, state, {
       kind: 'damage',
@@ -393,8 +520,11 @@ describe('Minion end-step intent (D-006)', () => {
 
 describe('Fortify Slow commitment (D-019)', () => {
   it('lands its Armor at the next Round start, after the wipe, in time for the Instant Row', () => {
-    // Reach Round 1's Slow Window and fire a charged Fortify.
-    let state = stepPhases(start(), 4).state
+    // Reach Round 1's Slow Window and fire a charged Fortify. The seed is fixed
+    // so the next Round is Brood Pattern, whose Instant Row carries the Raking
+    // Claw — the banked Armor has to answer a hit that lands before any Round-2
+    // window opens, and only a claw-carrying program provides one.
+    let state = stepPhases(startBroodSecond(), 4).state
     expect(state.phase).toBe('slow')
     hero(state).hand = [card('f1', 'fortify'), card('f2', 'steady_strike')]
     state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'f1' }).state
@@ -413,15 +543,15 @@ describe('Fortify Slow commitment (D-019)', () => {
     expect(hero(state).armor).toBe(6)
     expect(state.statusEffects[state.primaryHeroId] ?? []).toHaveLength(0)
 
-    // The banked Armor answers Round 2's INSTANT row (Ember Pattern opens
-    // with Cinder Breath): 5 requested, fully blocked, zero Health loss —
-    // pressure nothing fired inside Round 2 could have pre-blocked.
+    // The banked Armor answers Round 2's INSTANT row (Brood Pattern's Raking
+    // Claw): 4 requested, fully blocked, zero Health loss — pressure nothing
+    // fired inside Round 2 could have pre-blocked.
     const healthBefore = hero(state).health
     const instant = advancePhase(catalog, state)
     state = instant.state
     expect(state.phase).toBe('instant')
     expect(hero(state).health).toBe(healthBefore)
-    expect(hero(state).armor).toBe(1)
+    expect(hero(state).armor).toBe(2)
 
     // The leftover Armor is ordinary Armor: the next Round start wipes it.
     state = stepPhases(state, 4).state
@@ -545,30 +675,38 @@ describe('Authored Status Effects (D-032 to D-034)', () => {
 
 describe('Forecast Row (D-021, ADR 0026)', () => {
   it('previews the next Round\'s whole program at family level', () => {
-    const state = start()
+    const state = startBroodSecond()
     expect(state.currentProgramId).toBe('embermaw_hunt')
     const ahead = forecast(catalog, state)!
     // Family level only: a title, the union of counter tags, and a tier. No
     // target, magnitude, or hex — those belong to Incoming and Instant.
     expect(ahead).toMatchObject({
-      programId: 'embermaw_embers',
-      title: catalog.programs.embermaw_embers.title,
-      tier: 'structural',
+      programId: 'embermaw_brood',
+      title: catalog.programs.embermaw_brood.title,
+      tier: 'severe',
     })
-    expect(ahead.counterTags).toEqual(['Position', 'Move', 'Interrupt', 'Kill Adds', 'Mitigate'])
+    expect(ahead.counterTags).toEqual(['Position', 'Mitigate', 'Kill Adds'])
     expect(Object.keys(ahead)).not.toContain('damage')
   })
 
-  it('follows the rotation a Round ahead, and loops with it', () => {
-    let state = immortalHero(start())
-    expect(forecast(catalog, state)?.programId).toBe('embermaw_embers')
-    state = stepPhases(state, 5).state
-    expect(state.currentProgramId).toBe('embermaw_embers')
-    expect(forecast(catalog, state)?.programId).toBe('embermaw_brood')
-    state = stepPhases(state, 5).state
-    expect(state.currentProgramId).toBe('embermaw_brood')
-    // Looping: the Forecast wraps to the first program rather than emptying.
-    expect(forecast(catalog, state)?.programId).toBe('embermaw_hunt')
+  it('tells the party something the Round number does not (D-037)', () => {
+    // The whole reason the order is seeded. Under the old fixed rotation this
+    // set had exactly one member on every seed, which made the third horizon
+    // decorative: a player could read the next program off the Round counter.
+    const secondRoundForecasts = new Set(
+      [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => forecast(catalog, start(seed))!.programId),
+    )
+    expect(secondRoundForecasts.size).toBeGreaterThan(1)
+  })
+
+  it('follows the resolved order a Round ahead', () => {
+    let state = immortalHero(start(4))
+    const sequence = [...state.programSequence]
+    for (let index = 0; index < 3; index += 1) {
+      expect(state.currentProgramId).toBe(sequence[index])
+      expect(forecast(catalog, state)?.programId).toBe(sequence[index + 1])
+      state = stepPhases(state, 5).state
+    }
   })
 
   it('is a pure read: asking for it never changes the Encounter', () => {
@@ -584,10 +722,9 @@ describe('Forecast Row (D-021, ADR 0026)', () => {
     expect(forecast(catalog, state)).toBeNull()
   })
 
-  it('empties rather than wrapping when a program list does not loop', () => {
+  it('empties at the end of the resolved order rather than wrapping', () => {
     const state = start()
-    state.loopPrograms = false
-    state.programIndex = state.programIds.length - 1
+    state.programIndex = state.programSequence.length - 1
     expect(forecast(catalog, state)).toBeNull()
   })
 })
@@ -634,24 +771,19 @@ describe('Consequence Tier ladder (D-021, ADR 0026)', () => {
     }
   })
 
-  it('rates no Embermaw Beat severe, in either phase, and records why', () => {
-    // Phase II hits harder (Raking Claw 4->6, Cinder Breath 5->7) but no single
-    // Beat is a spike: the largest is Raking Claw at 9 against an unheld
-    // Guarded Front, a quarter of a Hero's health. Phase II is deadlier because
-    // attrition has already run, which is a balance property rather than a tier
-    // one. If this test starts failing, content has earned the tier.
+  it('rates Brood Call severe on the Escalation clause, not on its damage', () => {
+    // Content earned the tier, which the previous version of this test invited:
+    // Brood Call is now priced (D-036), and a Beat that can add Escalation is
+    // severe by definition because a Threshold crossing is one of D-025's
+    // run-ending outcomes. Every severe Beat here is severe for that reason —
+    // Embermaw still has no single hit that downs a Hero from full health.
     const severe = everyBeat.filter(({ beat }) => beat.consequence_tier === 'severe')
-    expect(severe.map(({ beat }) => beat.id)).toEqual([])
+    expect(severe.map(({ beat }) => beat.id).sort()).toEqual(['brood_call', 'brood_call'])
+    expect(severe.every(({ beat }) => beat.escalation_if_unanswered > 0)).toBe(true)
     const worst = Math.max(...everyBeat.map(({ beat }) => beat.damage + beat.unguarded_bonus))
     expect(worst).toBeLessThan(catalog.encounters.embermaw_prototype.player_health)
   })
 
-  it('keeps the first program free of severe Beats, because Round 1 is never forecast', () => {
-    // The one honest hole in the ladder: at the pull there is no earlier Round
-    // to have forecast Round 1, so its program may not carry a severe Beat.
-    const firstProgramId = catalog.encounters.embermaw_prototype.boss_programs[0]
-    expect(highestTier(catalog.programs[firstProgramId])).not.toBe('severe')
-  })
 })
 
 describe('Escalation as the single clock (D-023, ADR 0027)', () => {
@@ -660,6 +792,12 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
   function immortal(seed?: number): EncounterState {
     return immortalHero(start(seed))
   }
+
+  // Whelps only arrive on a Brood Round, and the pinned opener is not one
+  // (D-036), so tests about the Whelp demand step to Round 2 on a seed that
+  // schedules Brood Pattern there. Slow of Round 2 is nine phase steps in.
+  const PHASES_TO_BROOD_SLOW = 9
+  const PHASES_TO_BROOD_QUICK = 7
 
   function clearMinions(state: EncounterState): void {
     for (const entity of Object.values(state.board.entities)) {
@@ -739,28 +877,42 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     expect(state.escalation).toBe(ESCALATION_MAX)
   })
 
-  it('leaves the live encounter unaccelerated while no Whelp answer exists (D-003)', () => {
-    // A demand the deck cannot answer must not be priced: every authored
-    // Brood Call carries 0 until the Whelp-clearing card ships.
-    for (const program of Object.values(catalog.programs)) {
-      for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
-        if (beat.kind === 'brood_call') {
-          expect(beat.escalation_if_unanswered).toBe(0)
-        }
-      }
-    }
+  it('prices Brood Call only because the deck can answer it (D-003)', () => {
+    // D-003 forbids pricing a demand the deck cannot answer. The old form of
+    // this test asserted a blanket `0`, which read as the rule but was really a
+    // snapshot of one encounter's tuning — and it hid the fact that the premise
+    // had gone stale: the starter deck carries Sweeping Blow, which one-shots a
+    // Whelp. State the rule instead, so pricing and answerability can never
+    // drift apart.
+    const encounter = catalog.encounters.embermaw_prototype
+    const priced = Object.values(catalog.programs)
+      .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
+      .filter((beat) => beat.kind === 'brood_call' && beat.escalation_if_unanswered > 0)
+    expect(priced.length).toBeGreaterThan(0)
+    const whelpHealth = catalog.minions.whelp.max_health
+    const answers = encounter.player_deck.filter((entry) => {
+      const card = catalog.cards[entry.card]
+      return card.target_type === 'piece' && card.damage >= whelpHealth
+    })
+    expect(
+      answers.length,
+      `Brood Call is priced but no card in the deck deals ${whelpHealth}+ to a piece`,
+    ).toBeGreaterThan(0)
   })
 
   it('does not count a Whelp that arrived this Round as unanswered', () => {
     // Whelps spawn in the Incoming Row, so no player window can reach them
     // before the Round-end step: counting them would be a second automatic
     // tick rather than earned acceleration.
-    let state = immortal()
-    state = stepPhases(state, 4).state
+    let state = immortalHero(startBroodSecond())
+    state = stepPhases(state, PHASES_TO_BROOD_SLOW).state
     expect(state.phase).toBe('slow')
+    expect(state.round).toBe(2)
     expect(Object.values(state.board.entities).some((entity) => entity.kind === 'minion')).toBe(true)
     state = stepPhases(state, 1).state
-    expect(state.round).toBe(2)
+    expect(state.round).toBe(3)
+    // Automatic ticks have not begun either, so a nonzero value here could only
+    // have come from the Whelps that just landed.
     expect(state.escalation).toBe(0)
   })
 
@@ -806,7 +958,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
   })
 
   it('raises Whelp bite damage at threshold 3', () => {
-    const biting = stepPhases(immortal(), 4).state
+    const biting = stepPhases(immortalHero(startBroodSecond()), PHASES_TO_BROOD_SLOW).state
     biting.escalation = 3
     const heroCoords = biting.board.entities[biting.primaryHeroId].coords
     const whelp = Object.values(biting.board.entities).find((entity) => entity.kind === 'minion')!
@@ -817,10 +969,12 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
   })
 
   it('widens the Brood Call at threshold 2, and the telegraph does not lie', () => {
-    const state = start()
+    const state = immortalHero(startBroodSecond())
     state.escalation = 2
-    // refreshTelegraphs runs on the way into a player window; step to Quick.
-    const quick = stepPhases(state, 2).state
+    // refreshTelegraphs runs on the way into a player window; step to the Brood
+    // Round's Quick Window.
+    const quick = stepPhases(state, PHASES_TO_BROOD_QUICK).state
+    expect(quick.currentProgramId).toBe('embermaw_brood')
     expect(quick.telegraphedSpawnHexes).toHaveLength(3)
     const incoming = advancePhase(catalog, quick)
     expect(incoming.facts.filter((fact) => fact.kind === 'spawn_minion')).toHaveLength(3)
@@ -1173,8 +1327,8 @@ describe('damage and Resolution Facts', () => {
   })
 
   it('removes a Minion the moment damage defeats it', () => {
-    let state = start()
-    state = stepPhases(state, 4).state
+    let state = immortalHero(startBroodSecond())
+    state = stepPhases(state, 9).state
     expect(state.board.entities.whelp_1).toBeDefined()
     const kill = resolve(catalog, state, {
       kind: 'damage',
@@ -1234,15 +1388,16 @@ describe('legality edges', () => {
     const noTarget = legality(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
     expect(noTarget).toMatchObject({ legal: false, reason: 'The Top Card needs a Minion target.' })
 
-    // Spawn the whelps (they arrive at range > 1 from the hero start).
-    let played = start()
+    // Spawn the whelps (they arrive at range > 1 from the hero start), which
+    // now means reaching the Brood Round rather than Round 1.
+    let played = immortalHero(startBroodSecond())
     played.heroes[played.primaryHeroId].actionBar[0] = {
       topCard: card('s1', 'sweeping_blow'),
       charges: [card('s2', 'iron_guard')],
       activatedWindow: null,
       placedThisLoadout: false,
     }
-    played = stepPhases(played, 4).state
+    played = stepPhases(played, 9).state
     played.phase = 'quick'
     const outOfRange = legality(catalog, played, {
       kind: 'fire_slot',
@@ -1326,13 +1481,16 @@ describe('Scenarios', () => {
     expect(replay.state.active).toBe(false)
   })
 
-  it('lands the Round 3 jump point mid-Encounter with Whelps on the board', () => {
-    const scenario = catalog.scenarios.embermaw_round3_brood
+  it('lands the jump point mid-Encounter with Whelps on the board', () => {
+    // Asserted by the property the fixture exists for, not by a Round number:
+    // program order is seeded (D-037), so which Round carries a Brood Call is
+    // not a fact this fixture can pin.
+    const scenario = catalog.scenarios.embermaw_brood_pressure
     expect(scenario).toBeDefined()
     const replay = runScenario(catalog, scenario)
     expect(replay.state.active).toBe(true)
-    expect(replay.state.round).toBe(3)
-    expect(replay.state.currentProgramId).toBe('embermaw_brood')
+    expect(replay.state.round).toBeGreaterThan(1)
+    expect(replay.state.phase).toBe('loadout')
     expect(Object.values(replay.state.board.entities).filter((entity) => entity.kind === 'minion').length).toBeGreaterThan(0)
   })
 
@@ -1363,7 +1521,11 @@ describe('Encounter Records (schema_version 2)', () => {
     expect(record.schema_version).toBe(2)
     expect(record.seed).toBe(scenario.seed)
     expect(record.outcome).toBe('defeat')
-    expect(record.end_kind).toBe('defeat')
+    // The solo ceiling now ends at the clock rather than at zero Health: with
+    // Brood Call priced (D-036), the deepest surviving push runs out of Rounds
+    // before it runs out of Hero. `outcome` stays `defeat`; `end_kind` is what
+    // distinguishes the two ways to lose.
+    expect(record.end_kind).toBe('end_of_clock')
     expect(record.abandon_reason).toBe('')
     expect(record.content_identity.fingerprint).toMatch(/^[0-9a-f]{64}$/)
     expect(record.content_identity.ids).toContain('encounter:embermaw_prototype')

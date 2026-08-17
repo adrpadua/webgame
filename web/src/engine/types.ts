@@ -125,8 +125,14 @@ export interface EncounterState {
   statusEffects: Record<string, StatusInstance[]>
   bossId: string
   primaryHeroId: string
+  // `programIds` stays the authored pool — what this Boss can do. The order it
+  // does them in is `programSequence`, resolved once at setup from the seed
+  // (D-037): a fixed `(index + 1) % length` rotation made the Forecast Row
+  // decorative, because after one cycle the next program was deducible from the
+  // Round number alone.
   programIds: string[]
   loopPrograms: boolean
+  programSequence: string[]
   programIndex: number
   currentProgramId: string | null
   // Phase II (ADR 0023). bossPhase is 1 until the Phase Trigger's condition
@@ -137,6 +143,10 @@ export interface EncounterState {
   bossPhase: number
   phaseTrigger: PhaseTrigger | null
   phaseTwoProgramIds: string[]
+  // Phase II's order is rolled at setup too, not at the break. The break is
+  // reached mid-fight, so rolling it there would resolve randomness after the
+  // Forecast Row had already had to show it (ADR 0025).
+  phaseTwoSequence: string[]
   phaseBreakText: string
   broodSpawnCandidates: Axial[]
   telegraphedSpawnHexes: Axial[]

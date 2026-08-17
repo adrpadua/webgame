@@ -39,7 +39,7 @@ export {
   FACING_SW,
   FACING_SE,
 } from './facing'
-export { currentProgram } from './timeline'
+export { buildProgramSequence, currentProgram } from './timeline'
 export { getStatuses } from './statuses'
 export { getEntityIdAt, isLegalMove, neighbors, isGuardedFront } from './board'
 export { minionIntent, minionIntents, type MinionIntent } from './minions'

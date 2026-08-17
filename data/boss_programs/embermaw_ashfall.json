@@ -1,7 +1,7 @@
 {
   "id": "embermaw_ashfall",
   "title": "Ashfall Pattern",
-  "rules_text": "Embermaw floods the floor first and swings second, so the safe hexes run out before the blow lands.",
+  "rules_text": "Ash falls faster than the party can walk. Footwork answers this Round; Armor does not.",
   "instant_beats": [
     {
       "id": "turn_to_tank",
@@ -14,64 +14,37 @@
       "consequence_tier": "chip"
     },
     {
+      "id": "ember_scar",
+      "title": "Ember Scar",
+      "rules_text": "The ground under the last pattern stays Scorched.",
+      "kind": "scorch_last_pattern",
+      "counter_tags": [
+        "Move"
+      ],
+      "consequence_tier": "structural",
+      "duration_rounds": 1,
+      "hazard": "scorched"
+    }
+  ],
+  "incoming_beats": [
+    {
       "id": "cinder_breath",
       "title": "Cinder Breath",
-      "rules_text": "Forward cone, range 1-2. Deal 7 damage.",
+      "rules_text": "Forward cone, range 1-2. Deal 13 damage.",
       "kind": "cinder_breath",
       "counter_tags": [
         "Move",
         "Interrupt"
       ],
       "consequence_tier": "structural",
-      "damage": 7,
-      "duration_rounds": 2,
+      "damage": 13,
+      "duration_rounds": 1,
       "hazard": "scorched"
-    },
-    {
-      "id": "ember_scar",
-      "title": "Ember Scar",
-      "rules_text": "The cone remains Scorched for two Rounds.",
-      "kind": "scorch_last_pattern",
-      "counter_tags": [
-        "Move"
-      ],
-      "consequence_tier": "structural",
-      "duration_rounds": 2,
-      "hazard": "scorched"
-    }
-  ],
-  "incoming_beats": [
-    {
-      "id": "brood_call",
-      "title": "Brood Call",
-      "rules_text": "Three Whelps emerge at the marked edge hexes.",
-      "kind": "brood_call",
-      "counter_tags": [
-        "Kill Adds"
-      ],
-      "consequence_tier": "structural",
-      "minion": "whelp",
-      "count": 3
-    },
-    {
-      "id": "raking_claw",
-      "title": "Rending Claw",
-      "rules_text": "Target: Tank. Deal 6 damage. Movement does not evade this hit. An unheld Guarded Front suffers +5.",
-      "kind": "raking_claw",
-      "counter_tags": [
-        "Mitigate",
-        "Position"
-      ],
-      "consequence_tier": "chip",
-      "target_selector": "tank",
-      "damage_classification": "tank_hit",
-      "damage": 6,
-      "unguarded_bonus": 5
     },
     {
       "id": "ash_warning",
       "title": "Keep a Safe Hex",
-      "rules_text": "Scorched ground blocks voluntary movement.",
+      "rules_text": "Scorched ground blocks voluntary movement. Leave yourself somewhere to stand.",
       "kind": "warning",
       "counter_tags": [
         "Move"

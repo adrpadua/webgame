@@ -224,7 +224,7 @@ describe('board effects', () => {
     expect(move?.at).toEqual(destination)
   })
 
-  it('flares the telegraphed cone and pops the Whelps the Incoming beats produced', () => {
+  it('flares the telegraphed cone the Incoming beats produced', () => {
     // The Incoming Row rides the batch that opens Boss Incoming: two
     // advances reach the Quick Window, the third carries the beats.
     let state = openedRound()
@@ -233,7 +233,25 @@ describe('board effects', () => {
     const { effects } = advance(state)
     const blast = effects.find((effect) => effect.kind === 'blast')
     expect(blast?.hexes?.length).toBeGreaterThan(0)
-    expect(effects.filter((effect) => effect.kind === 'spawn')).toHaveLength(2)
+  })
+
+  it('pops the Whelps a Brood Call produced', () => {
+    // Split from the cone case: program order is seeded (D-037) and the pinned
+    // opener calls no Whelps (D-036), so this walks forward to the first
+    // Incoming Row that actually spawns rather than assuming Round 1 does.
+    let state = openedRound()
+    state.heroes[state.primaryHeroId].maxHealth = 500
+    state.heroes[state.primaryHeroId].health = 500
+    for (let step = 0; step < 25; step += 1) {
+      const advanced = advance(state)
+      state = advanced.state
+      const spawns = advanced.effects.filter((effect) => effect.kind === 'spawn')
+      if (spawns.length > 0) {
+        expect(spawns).toHaveLength(2)
+        return
+      }
+    }
+    throw new Error('no Brood Call spawned within 25 phase steps')
   })
 
   it('shows Armor a guard actually granted rather than the number printed on the card', () => {

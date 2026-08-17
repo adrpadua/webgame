@@ -4,7 +4,7 @@
   "version": 1,
   "description": "The deepest solo push the policy search can manage, ending short of Boss defeat. Proves the solo ceiling holds (D-016): a lone Guardian cannot win the Ashen Trial.",
   "encounter": "embermaw_prototype",
-  "seed": 30,
+  "seed": 37,
   "steps": [
     {
       "action": {
@@ -28,7 +28,7 @@
           "q": 1,
           "r": 0
         },
-        "cardInstanceId": "fortify_18"
+        "cardInstanceId": "sweeping_blow_16"
       }
     },
     {
@@ -36,7 +36,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "fortify_17"
+        "cardInstanceId": "shield_slam_19"
       }
     },
     {
@@ -44,7 +44,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "iron_guard_13"
+        "cardInstanceId": "iron_guard_9"
       }
     },
     {
@@ -68,53 +68,8 @@
         "kind": "load_slot",
         "sourceId": "guardian",
         "slotIndex": 1,
-        "cardInstanceId": "steady_strike_5"
+        "cardInstanceId": "steady_strike_7"
       }
-    },
-    {
-      "advance": true
-    },
-    {
-      "advance": true
-    },
-    {
-      "action": {
-        "kind": "charge_slot",
-        "sourceId": "guardian",
-        "slotIndex": 1,
-        "cardInstanceId": "shield_slam_19"
-      }
-    },
-    {
-      "action": {
-        "kind": "charge_slot",
-        "sourceId": "guardian",
-        "slotIndex": 1,
-        "cardInstanceId": "shield_slam_20"
-      }
-    },
-    {
-      "action": {
-        "kind": "fire_slot",
-        "sourceId": "guardian",
-        "slotIndex": 0
-      }
-    },
-    {
-      "action": {
-        "kind": "fire_slot",
-        "sourceId": "guardian",
-        "slotIndex": 1
-      }
-    },
-    {
-      "advance": true
-    },
-    {
-      "advance": true
-    },
-    {
-      "advance": true
     },
     {
       "advance": true
@@ -130,8 +85,53 @@
           "q": 2,
           "r": -1
         },
-        "cardInstanceId": "sweeping_blow_16"
+        "cardInstanceId": "fortify_18"
       }
+    },
+    {
+      "action": {
+        "kind": "charge_slot",
+        "sourceId": "guardian",
+        "slotIndex": 1,
+        "cardInstanceId": "shield_slam_20"
+      }
+    },
+    {
+      "action": {
+        "kind": "charge_slot",
+        "sourceId": "guardian",
+        "slotIndex": 1,
+        "cardInstanceId": "iron_guard_10"
+      }
+    },
+    {
+      "action": {
+        "kind": "fire_slot",
+        "sourceId": "guardian",
+        "slotIndex": 0
+      }
+    },
+    {
+      "action": {
+        "kind": "fire_slot",
+        "sourceId": "guardian",
+        "slotIndex": 1
+      }
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
     },
     {
       "action": {
@@ -168,6 +168,46 @@
         "sourceId": "guardian",
         "destination": {
           "q": 2,
+          "r": -2
+        },
+        "cardInstanceId": "fortify_17"
+      }
+    },
+    {
+      "action": {
+        "kind": "fire_slot",
+        "sourceId": "guardian",
+        "slotIndex": 0
+      }
+    },
+    {
+      "action": {
+        "kind": "fire_slot",
+        "sourceId": "guardian",
+        "slotIndex": 1
+      }
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "action": {
+        "kind": "move_hero",
+        "sourceId": "guardian",
+        "destination": {
+          "q": 1,
           "r": -2
         },
         "cardInstanceId": "iron_guard_14"
@@ -204,33 +244,6 @@
     },
     {
       "action": {
-        "kind": "move_hero",
-        "sourceId": "guardian",
-        "destination": {
-          "q": 1,
-          "r": -2
-        },
-        "cardInstanceId": "iron_guard_11"
-      }
-    },
-    {
-      "action": {
-        "kind": "charge_slot",
-        "sourceId": "guardian",
-        "slotIndex": 0,
-        "cardInstanceId": "iron_guard_9"
-      }
-    },
-    {
-      "action": {
-        "kind": "charge_slot",
-        "sourceId": "guardian",
-        "slotIndex": 1,
-        "cardInstanceId": "iron_guard_12"
-      }
-    },
-    {
-      "action": {
         "kind": "fire_slot",
         "sourceId": "guardian",
         "slotIndex": 0
@@ -248,25 +261,6 @@
     },
     {
       "advance": true
-    },
-    {
-      "advance": true
-    },
-    {
-      "action": {
-        "kind": "load_slot",
-        "sourceId": "guardian",
-        "slotIndex": 0,
-        "cardInstanceId": "steady_strike_1"
-      }
-    },
-    {
-      "action": {
-        "kind": "load_slot",
-        "sourceId": "guardian",
-        "slotIndex": 1,
-        "cardInstanceId": "steady_strike_7"
-      }
     },
     {
       "advance": true

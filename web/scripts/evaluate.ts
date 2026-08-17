@@ -46,7 +46,11 @@ interface PolicyKnobs {
   // Window, Fortify in the Slow Window, no offense at all. Its job is to reach
   // the Encounter Clock so Escalation — not attrition — is what ends the run,
   // which is the only way the solo slice can measure the enrage wall.
-  slotPlan: 'dual_steady' | 'sword_shield' | 'turtle'
+  // `culler` is the Whelp-answering plan (D-036): Sweeping Blow in the Quick
+  // Window, Iron Guard in the Slow. It exists because Brood Call's Escalation
+  // penalty is only measurable against a policy that can actually pay it —
+  // without one, pricing the demand just measures an unavoidable tick.
+  slotPlan: 'dual_steady' | 'sword_shield' | 'turtle' | 'culler'
   position: 'far' | 'dodge' | 'stay'
   spike: boolean
 }
@@ -67,6 +71,7 @@ interface RunMetrics {
   riposteFull: number
   riposteEarly: number
   rejected: number
+  minionsKilled: number
 }
 
 // Same policy shape as generateScenarios.ts, instrumented for metrics instead
@@ -100,6 +105,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     dual_steady: { 0: 'steady_strike', 1: 'steady_strike' },
     sword_shield: { 0: 'steady_strike', 1: 'iron_guard' },
     turtle: { 0: 'iron_guard', 1: 'fortify' },
+    culler: { 0: 'sweeping_blow', 1: 'iron_guard' },
   }
   const wanted: Record<number, string> = WANTED_BY_PLAN[knobs.slotPlan]
   const hand = () => state.heroes[heroId].hand
@@ -187,11 +193,60 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     }
   }
 
+  // Living Minions, nearest first. Ordering by distance is what lets the
+  // culler pick a reachable target instead of the first one the board happens
+  // to enumerate.
+  const minionsByRange = () => {
+    const here = state.board.entities[heroId].coords
+    return Object.values(state.board.entities)
+      .filter((entity) => entity.kind === 'minion')
+      .sort((a, b) => hexDistance(a.coords, here) - hexDistance(b.coords, here))
+  }
+
+  // Walk toward the nearest Whelp until it is in the Top Card's range. Each
+  // step spends a card as move fuel, which is the real price of answering the
+  // demand: the Sweeping Blow slot and the hand both pay for it.
+  const closeOnMinion = (range: number) => {
+    for (let step = 0; step < 2; step += 1) {
+      const target = minionsByRange()[0]
+      if (!target) {
+        return
+      }
+      const here = state.board.entities[heroId].coords
+      if (hexDistance(here, target.coords) <= range) {
+        return
+      }
+      const destination = neighbors(state.board.hexes, here)
+        .filter((coords: Axial) => isLegalMove(state.board, heroId, coords))
+        .sort((a: Axial, b: Axial) => hexDistance(a, target.coords) - hexDistance(b, target.coords))[0]
+      const fuel = moveFuel()
+      if (!destination || !fuel || hexDistance(destination, target.coords) >= hexDistance(here, target.coords)) {
+        return
+      }
+      if (!submit({ kind: 'move_hero', sourceId: heroId, destination, cardInstanceId: fuel.instanceId })) {
+        return
+      }
+    }
+  }
+
   const fireReadySlots = () => {
     for (const slotIndex of [0, 1]) {
-      if (slot(slotIndex).topCard && slot(slotIndex).charges.length > 0) {
-        submit({ kind: 'fire_slot', sourceId: heroId, slotIndex })
+      const top = slot(slotIndex).topCard
+      if (!top || slot(slotIndex).charges.length === 0) {
+        continue
       }
+      // A piece-targeting Top Card is illegal without a Minion in range, so
+      // supply one rather than firing into a rejection.
+      const card = catalog.cards[top.cardId]
+      if (card.damage > 0) {
+        const here = state.board.entities[heroId].coords
+        const target = minionsByRange().find((entity) => hexDistance(entity.coords, here) <= card.range_tiles)
+        if (target) {
+          submit({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetId: target.id })
+        }
+        continue
+      }
+      submit({ kind: 'fire_slot', sourceId: heroId, slotIndex })
     }
   }
 
@@ -244,6 +299,14 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
         }
         loadWantedSlots()
         chargeSlots()
+        // Closing happens after positioning and charging: the culler only
+        // spends fuel walking once it has a charged Sweeping Blow to fire.
+        if (knobs.slotPlan === 'culler') {
+          const top = slot(0).topCard
+          if (top && slot(0).charges.length > 0) {
+            closeOnMinion(catalog.cards[top.cardId].range_tiles)
+          }
+        }
         fireReadySlots()
         advance()
         break
@@ -290,6 +353,15 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     }
   }
 
+  // Whelps defeated, read from the damage fact that removes them. This is the
+  // evidence that a priced Brood Call is answerable rather than a tax.
+  let minionsKilled = 0
+  for (const fact of facts) {
+    if (fact.succeeded && (fact.resolutionFact as Record<string, unknown> | undefined)?.target_removed === true) {
+      minionsKilled += 1
+    }
+  }
+
   let escalationFromDemands = 0
   for (const fact of facts) {
     if (fact.kind === 'gain_escalation' && fact.succeeded) {
@@ -313,6 +385,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     riposteFull,
     riposteEarly,
     rejected,
+    minionsKilled,
   }
 }
 
@@ -322,7 +395,7 @@ if (POLICY) {
   const [slotPlan, position, spike] = POLICY.split(',')
   variants.push({ slotPlan: slotPlan as PolicyKnobs['slotPlan'], position: position as PolicyKnobs['position'], spike: spike === 'true' })
 } else {
-  for (const slotPlan of ['dual_steady', 'sword_shield', 'turtle'] as const) {
+  for (const slotPlan of ['dual_steady', 'sword_shield', 'turtle', 'culler'] as const) {
     for (const position of ['far', 'dodge', 'stay'] as const) {
       for (const spike of [true, false]) {
         variants.push({ slotPlan, position, spike })
@@ -339,6 +412,13 @@ const redFlags: string[] = []
 // gate. The count is what must stay above zero; which policies produce it, and
 // how often, is a dated observation.
 let wallRuns = 0
+// The checkpoint gate, restated structurally. ADR 0027 used to state it as a
+// literal percentage string, which is the same defect its own correction section
+// warns about: the moment Boss content changed, the string went stale and the
+// gate protected nothing. What actually has to hold is that the Round-4
+// checkpoint *discriminates* — some policies clear it, some do not. All-pass
+// means the teaching Rounds ask nothing; all-fail means they are lethal.
+const checkpointPercentages: number[] = []
 for (const knobs of variants) {
   const runs: RunMetrics[] = []
   for (let seed = 1; seed <= SEEDS; seed += 1) {
@@ -346,7 +426,16 @@ for (const knobs of variants) {
   }
   const pct = (predicate: (run: RunMetrics) => boolean) => Math.round((100 * runs.filter(predicate).length) / runs.length)
   const avg = (value: (run: RunMetrics) => number) => (runs.reduce((sum, run) => sum + value(run), 0) / runs.length).toFixed(2)
+  // Spread, not just the mean. An average hides the failure this sweep is worst
+  // at spotting: 30 different seeds producing one identical fight. `5-5` in the
+  // round column means the draw order changed nothing about when the run ended.
+  const spread = (value: (run: RunMetrics) => number) => {
+    const values = runs.map(value)
+    return `${Math.min(...values)}-${Math.max(...values)}`
+  }
   const label = `${knobs.slotPlan}/${knobs.position}${knobs.spike ? '/spike' : ''}`
+  const checkpointPct = pct((run) => run.checkpoint)
+  checkpointPercentages.push(checkpointPct)
   const victoryPct = pct((run) => run.outcome === 'victory')
   if (victoryPct > 0) {
     redFlags.push(`${label}: ${victoryPct}% solo victories`)
@@ -358,15 +447,18 @@ for (const knobs of variants) {
   ).length
   rows.push({
     policy: label,
-    'checkpoint%': pct((run) => run.checkpoint),
+    'checkpoint%': checkpointPct,
     'victory%⚠': victoryPct,
     'hpDeath%': pct((run) => run.outcome === 'defeat' && run.outcomeReason === 'A Hero has fallen.'),
     'enrage%': pct((run) => run.outcome === 'defeat' && run.outcomeReason !== 'A Hero has fallen.'),
     avgRound: avg((run) => run.finalRound),
+    roundSpread: spread((run) => run.finalRound),
     'reachedR8%': pct((run) => run.finalRound >= 8),
     escalation: avg((run) => run.escalation),
     escFromAdds: avg((run) => run.escalationFromDemands),
+    whelpKills: avg((run) => run.minionsKilled),
     bossDmg: avg((run) => run.bossDamage),
+    dmgSpread: spread((run) => run.bossDamage),
     ripGrant: avg((run) => run.riposteGranted),
     ripFull: avg((run) => run.riposteFull),
     ripEarly: avg((run) => run.riposteEarly),
@@ -387,6 +479,20 @@ if (POLICY) {
   )
 } else {
   console.log(`\nADR 0027 enrage wall: ${wallRuns} run(s) reached the Clock and died to Escalation at 0 Boss damage.`)
+}
+if (!POLICY) {
+  const clears = checkpointPercentages.filter((value) => value === 100).length
+  const fails = checkpointPercentages.filter((value) => value < 100).length
+  if (clears === 0) {
+    redFlags.push('Round-4 checkpoint is lethal to every policy: the teaching Rounds no longer teach.')
+  } else if (fails === 0) {
+    redFlags.push(
+      'Round-4 checkpoint is free for every policy: no live demand outruns the solo Hero economy by the halfway ' +
+        'mark, which is Tank Principle 4 losing its evidence.',
+    )
+  } else {
+    console.log(`Round-4 checkpoint discriminates: ${clears} policy/policies clear it, ${fails} do not.`)
+  }
 }
 if (redFlags.length > 0) {
   console.log(`\nRED FLAGS — a solo victory is a tuning defect (D-016), and the enrage wall must hold (ADR 0027):`)
