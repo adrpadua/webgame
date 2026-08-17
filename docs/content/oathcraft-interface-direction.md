@@ -206,6 +206,59 @@ A Boss Stat Panel is a different object on purpose: dark oathsteel housing an em
 
 That distinction carries more weight than it would have as two persistent panels. One Stat Panel is open at a time and it occupies the same place on screen whichever piece is tapped, so the difference between reading your own state and reading the thing trying to kill you is **temporal, not spatial** — the player has no side-by-side comparison to fall back on. The two must be unmistakable in the first glance after a tap, at the same coordinates, with no label read.
 
+## Layout: The Board Is The Interface
+
+Measured in the running Workbench at 390×844, not estimated: **the board canvas gets 318 of 844 points — 38%.** Four chrome bands stack top to bottom and the board takes what is left.
+
+| Region | Points | Share |
+| --- | --- | --- |
+| Boss program strip | 102 | 12% |
+| Phase strip | 61 | 7% |
+| Board container | 463 | 55% |
+| — hex grid actually drawn | 318 | 38% |
+| Action Bar | 97 | 11% |
+| Hand | 121 | 14% |
+
+**145 points sit empty inside the board's own container**, because the hex grid is centred in a box taller than it needs. That is a fit defect rather than a layout decision, and reclaiming it is the largest single gain available at no cost to information.
+
+The target is **roughly 80% board**, which is what comparable hex tactics on the same screen size give it.
+
+### Bands Divide, Overlays Do Not
+
+The structural change is not making the bands smaller. It is that **chrome floats over the board instead of displacing it.** A full-width band costs its height plus a border and forces the board into the remainder; an overlay costs only the pixels it actually covers, and can leave entirely when it has nothing to say.
+
+Reference for the pattern: Tacticus keeps one strip at the top of the frame. With nothing selected it carries match state — rounds left, turn order, clock. Tap a unit and the same strip becomes that unit's card with its abilities beneath. Nothing is added to the layout; one slot changes what it is about, and everything else is terrain. Legal moves are painted onto the hexes rather than described in a panel — which this project already does, and should extend rather than replace.
+
+### The Disclosure Rules
+
+Each rule keys to something the engine already knows, so none of this needs new state — only a decision about what to draw.
+
+| Surface | Today | Appears when | Recovers |
+| --- | --- | --- | --- |
+| Boss program, both rows | 102pt band, always | The strip is tapped, or a Phase Reveal fires | ~62pt |
+| Resolving beat | Inside that band | Always, as one floating chip line | — |
+| Phase strip, five chips | 61pt band, always | Folded into the state bar as the current phase name | ~61pt |
+| Hand, four cards | 121pt band, always | A player window is open — Loadout, Quick, or Slow. Otherwise a 26pt peek strip | ~95pt when idle |
+| Action Bar, two Slots | 97pt band, always | Compact 44pt plates floating bottom-left; full width only while loading or charging | ~53pt |
+| Stat Panel | Already on demand | A piece is tapped — no change | — |
+
+**The Hand rule is the one to defend, because it is rules-derived rather than borrowed.** Boss Rows resolve in the Instant and Incoming phases, and a player cannot play a card in either — the window model and the Slot Activation Limit already say so. A Hand at full height through a phase where every card is illegal is the interface asserting something the rules deny.
+
+### Where The Comparison Breaks
+
+**Tacticus has no hand.** Its units carry abilities as icons that appear on selection, so its bottom chrome is two floating buttons. A card game has to show four cards well enough to choose between them, and a card is a wider, denser object than an ability icon. The Hand's ~104pt is a real floor: the win is that it is absent for the phases where it is inert, not that it gets smaller.
+
+**Unit state on the token cuts the other way.** Tacticus puts health bars and status pips on every unit. This project moved the opposite direction, taking the mini bars off tiles so the Stat Panel is the only readout. With two or three pieces on the board that is defensible; a game managing ten needs state on the token. Board-first argues for putting it back, the Stat Panel decision argues against, and the tension should be resolved deliberately rather than drifted through.
+
+### Sequence
+
+1. **Reclaim the 145pt of container slack.** No disclosure decision, no information removed, largest single gain.
+2. **Fold the phase strip into the state bar.** One band disappears and nothing is hidden — the current phase is named instead of all five being listed.
+3. **Float the chrome rather than banding it**, and collapse the boss program to its resolving beat with the full breakdown on tap.
+4. **Make the Hand phase-aware.** The only step that removes something a player can currently see, so the one to playtest rather than assume.
+
+The smoke suite already asserts that the whole board is on screen at 390×844, that every enabled control meets 44 points, and that the surface never scrolls sideways — which is what makes these safe to attempt. Step four needs a new assertion of its own: a Hand that hides has to be provably reachable.
+
 ## Correction To The Shipped Theme
 
 `web/src/ui/theme.ts` codes the Quick window as `emerald-400`, the Slow window as `sky-400`, and the keyboard focus ring as emerald. **Green appears nowhere in the material language or the core palette.** It arrived as a framework default rather than a decision.
@@ -238,7 +291,7 @@ Neither number is an argument against the direction. They are the reason to adop
 
 ## What This Does Not Decide
 
-Typography for the game itself, status-effect iconography, and motion are all open.
+Typography for the game itself, status-effect iconography, and motion beyond the Primed seat are all open. The Layout section above decides how much of the frame the board gets and what may float over it, but not what the board itself draws.
 
 So is the board's own rendering, and it is not a blank slate. Telegraphs and hazards already have canon — pattern projectors in runeglass, hazards in ember coral — but the board also carries an inherited tint language documented in [art-prompts/board-and-tiles.md](art-prompts/board-and-tiles.md): the hover tile is green and the target tile is orange, applied as runtime `modulate` rather than baked into the art. Both sit outside this palette, and the orange target is close enough to ember to be a real collision — ember is supposed to mean *this hurts you*, and a target marker means the opposite. Reconciling that needs a pass against the Phaser scene, which draws on a different surface under different constraints than the React chrome, and which cannot simply inherit these values.
 
@@ -255,4 +308,6 @@ Before approving a new interface element, ask:
 - Does its accent run parallel to the cut, along that edge's full length?
 - Does it carry at most one texture and at most one gradient?
 - If it shows a Slot, can a player tell Primed from a full Slot that already fired?
+- Does it float over the board rather than adding a band that displaces it?
+- If it is persistent, is it useful in every phase — or should it recede in the ones where it is inert?
 - Does it still read at 390 points wide?
