@@ -8,6 +8,42 @@ interface IconProps {
   className?: string
 }
 
+// The lock head on a Slot: living gold, keyhole cut, inside a ward ring.
+// The ring is the glance-distance Primed signal — broken while the Slot
+// charges, closed at full stack with a second faint ring outside it. That
+// outer ring is bloom drawn as a concentric line rather than a blur, which is
+// how it survives flat cel shading: a lock seating is the one gold bloom the
+// interface direction permits. A ring closing is a shape change, so it reads
+// in peripheral vision and without colour, where a brighter gold would not.
+//
+// Spent — fired this window — reopens the ring, dulls the head, and draws one
+// runeglass strike across it: what a player is about to lose, not what they
+// are holding. Primed and Spent share a full Charge Stack and mean opposite
+// things, so they cannot share a picture (CONTEXT.md, Primed).
+export type LockState = 'empty' | 'open' | 'charging' | 'primed' | 'spent'
+
+export function LockHead({ state, className }: IconProps & { state: LockState }) {
+  const head = state === 'primed' ? '#c8a344' : state === 'charging' ? '#a98b39' : state === 'spent' ? '#6a5a2e' : '#6e7b93'
+  const ring = state === 'primed' ? '#c8a344' : state === 'charging' ? '#c8a344' : state === 'spent' ? '#5a5238' : '#5e6b82'
+  return (
+    <svg viewBox="0 0 22 22" className={className} aria-hidden="true" data-lock-state={state}>
+      {state === 'primed' && <circle cx="11" cy="11" r="10" fill="none" stroke="#c8a344" strokeWidth="1" opacity="0.34" />}
+      <circle
+        cx="11"
+        cy="11"
+        r="8.4"
+        fill="none"
+        stroke={ring}
+        strokeWidth="1.5"
+        strokeDasharray={state === 'primed' ? undefined : state === 'charging' ? '8 4' : '7 5'}
+      />
+      <circle cx="11" cy="11" r="6.2" fill={head} />
+      <path d="M11 7.6a1.7 1.7 0 0 0-.8 3.2l-.7 3.4h3l-.7-3.4A1.7 1.7 0 0 0 11 7.6Z" fill="#141b27" />
+      {state === 'spent' && <path d="M4 18 18 4" stroke="#62d2e6" strokeWidth="1.4" opacity="0.85" />}
+    </svg>
+  )
+}
+
 // Embermaw the Broodmother: a horned drake head over a flame.
 export function BossEmblem({ className }: IconProps) {
   return (
