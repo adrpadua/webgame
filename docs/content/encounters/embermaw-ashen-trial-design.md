@@ -47,11 +47,15 @@ Impact and counterplay scale together (see the [champion design research note](.
 | --- | --- | --- |
 | `Chip` | Routine attrition the party absorbs and recovers from. | Any row, including `Instant`. |
 | `Structural` | Spawns entities, changes the board, or applies a lasting Status Effect. | No later than the `Incoming` row. |
-| `Severe` | Can down a Hero, or crosses an Escalation Threshold. | The `Forecast` row, first. |
+| `Severe` | Can down a Hero **from full health**, or crosses an Escalation Threshold. | The `Forecast` row, first. |
 
 Round 1 is the ladder's one exception: it is never forecast, because no earlier Round could have shown it, so **the first program in the rotation may carry no `Severe` Beat**. Embermaw's `Hunt Pattern` satisfies this without effort — the encounter has no `Severe` Beat at all yet, so the tier is enforced but unexercised.
 
-The `Severe` tier has **no justification clause**. The old rule allowed a top-tier hit to ship from the `Instant` row with an explicit design justification, because there was no earlier horizon to send it to; the Forecast Row removes that excuse. The tier is authored on each Beat rather than computed — "can down a Hero" depends on Hero health and would be fragile to derive — but its implications are enforced by tests over live content: a Beat that can add Escalation must be `Severe`, and a Beat that spawns a Minion or leaves a Hazard must be at least `Structural`.
+The `Severe` tier has **no justification clause**. The old rule allowed a top-tier hit to ship from the `Instant` row with an explicit design justification, because there was no earlier horizon to send it to; the Forecast Row removes that excuse. **The floor in `Severe` is load-bearing, and it was added after measurement.** "Can down a Hero" with no floor is not a per-Beat property at all: it depends on accumulated attrition, so the same Beat qualifies or not depending on when it lands. A 30-seed survival-policy run through Phase II makes that concrete — Heroes enter Phase II at `9.7` health on average (min `2`, max `17`) against a `34` maximum, where Phase II's Raking Claw (`6`) and Cinder Breath (`7`) are each routinely lethal, and where Phase I's Cinder Breath (`5`) is equally lethal to a Hero at `4`. Reading the test that way makes nearly every Beat `Severe` by the late Rounds and the tier stops discriminating. Anchoring it to full health keeps it stable per Beat, which is what an authored tier needs.
+
+Consequence for Embermaw: **no Beat is `Severe`, in either phase.** Its largest single hit is Phase II's Raking Claw at `11` against an unheld Guarded Front (`6` plus a `+5` unguarded bonus, up from Phase I's `4` plus `+3`) — nearly a third of a Hero's health, real pressure, but not a spike that needs a Round of banked preparation. Phase II is more dangerous than Phase I because attrition has already run, not because its Beats changed kind, and that is a balance observation rather than a tier one. The `Severe` tier stays unexercised until content earns it.
+
+The tier is authored on each Beat rather than computed — "can down a Hero" depends on Hero health and would be fragile to derive — but its implications are enforced by tests over live content: a Beat that can add Escalation must be `Severe`, and a Beat that spawns a Minion or leaves a Hazard must be at least `Structural`.
 
 ### Role-Load-Bearing Beats (Party-scale rule)
 

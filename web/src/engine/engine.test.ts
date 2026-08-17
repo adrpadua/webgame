@@ -616,6 +616,36 @@ describe('Consequence Tier ladder (D-021, ADR 0026)', () => {
     }
   })
 
+  it('holds severe to its measured floor: lethal from full health, or Escalation-adding', () => {
+    // The floor is what makes the tier a per-Beat property. Without it, "can
+    // down a Hero" depends on accumulated attrition — measured at 9.7 average
+    // health entering Phase II against a 34 maximum, which would make nearly
+    // every Beat severe by the late Rounds and the tier meaningless.
+    const encounter = catalog.encounters.embermaw_prototype
+    for (const { beat } of everyBeat) {
+      if (beat.consequence_tier !== 'severe') {
+        continue
+      }
+      const lethalFromFull = beat.damage + beat.unguarded_bonus >= encounter.player_health
+      expect(
+        lethalFromFull || beat.escalation_if_unanswered > 0,
+        `${beat.id} is authored severe but neither downs a Hero from full health (${beat.damage}+${beat.unguarded_bonus} vs ${encounter.player_health}) nor adds Escalation`,
+      ).toBe(true)
+    }
+  })
+
+  it('rates no Embermaw Beat severe, in either phase, and records why', () => {
+    // Phase II hits harder (Raking Claw 4->6, Cinder Breath 5->7) but no single
+    // Beat is a spike: the largest is Raking Claw at 9 against an unheld
+    // Guarded Front, a quarter of a Hero's health. Phase II is deadlier because
+    // attrition has already run, which is a balance property rather than a tier
+    // one. If this test starts failing, content has earned the tier.
+    const severe = everyBeat.filter(({ beat }) => beat.consequence_tier === 'severe')
+    expect(severe.map(({ beat }) => beat.id)).toEqual([])
+    const worst = Math.max(...everyBeat.map(({ beat }) => beat.damage + beat.unguarded_bonus))
+    expect(worst).toBeLessThan(catalog.encounters.embermaw_prototype.player_health)
+  })
+
   it('keeps the first program free of severe Beats, because Round 1 is never forecast', () => {
     // The one honest hole in the ladder: at the pull there is no earlier Round
     // to have forecast Round 1, so its program may not carry a severe Beat.
