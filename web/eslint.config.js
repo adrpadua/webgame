@@ -2,7 +2,10 @@ import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['dist'] },
+  // prototypes/ holds throwaway simulation harnesses — CommonJS scripts run
+  // with node directly, not shipped code. They are not held to the app's
+  // rules; the engine-purity boundary below is what the lint is for.
+  { ignores: ['dist', 'prototypes'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
 import { advancePhase, createEncounterState, resolve, type EncounterActionInput, type EncounterState } from '@/engine'
-import { BEAT_STAGGER_MS, deriveBoardEffects, deriveHealthPlayout, derivePlayoutScript, type BoardEffect } from './effects'
+import { BEAT_STAGGER_MS, deriveBoardEffects, deriveHealthPlayout, derivePlayoutScript, freeFloaterLane, type BoardEffect } from './effects'
 
 // Board feedback is derived from Resolution Facts, never from intent: if the
 // Encounter did not resolve it, the board must not animate it.
@@ -255,5 +255,38 @@ describe('board effects', () => {
     const cast = effects.find((effect) => effect.kind === 'cast')
     expect(cast?.tone).toBe('guard')
     expect(cast?.label).toBe(`+${after.heroes[hero.id].armor - before}`)
+  })
+})
+
+describe('floater lanes', () => {
+  const at = { q: 0, r: -1 }
+  const elsewhere = { q: 2, r: 0 }
+
+  it('gives the first label at a hex the lowest lane', () => {
+    expect(freeFloaterLane([], at)).toBe(0)
+  })
+
+  it('stacks a second and third label at the same hex above the first', () => {
+    // Turn to the Tank, Raking Claw, Ash Trail all resolve at the Boss. Left
+    // to one lane they overprint into one unreadable word.
+    const live = [{ label: 'Turn to the Tank', at, lane: 0 }]
+    expect(freeFloaterLane(live, at)).toBe(1)
+    live.push({ label: 'Raking Claw', at, lane: 1 })
+    expect(freeFloaterLane(live, at)).toBe(2)
+  })
+
+  it('does not count labels at other hexes, or unlabelled effects', () => {
+    const live = [
+      { label: 'Cinder Breath', at: elsewhere, lane: 0 },
+      { at, lane: 0 }, // a strike or a hit flash: motion, no text
+    ]
+    expect(freeFloaterLane(live, at)).toBe(0)
+  })
+
+  it('reuses a lane once the label in it has aged out', () => {
+    // The scene filters expired effects out of the live list; a new label
+    // then takes the freed lane rather than climbing forever.
+    const live = [{ label: 'Ash Trail', at, lane: 1 }]
+    expect(freeFloaterLane(live, at)).toBe(0)
   })
 })
