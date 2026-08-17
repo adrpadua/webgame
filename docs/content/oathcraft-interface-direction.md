@@ -91,7 +91,9 @@ Below roughly 20px, switch from `clip-path` to `skewX`. A 3px offset on a 12px-w
 
 ### Accents Run Parallel To The Cut
 
-An accent bar inside a raked clip is not a bar — the clip shaves it into a tapering wedge, which reads as a rendering fault rather than a decision. **Every leading-edge accent is skewed to the same 8°** so it stays parallel to the edge it belongs to, and it **insets from both ends** rather than running corner to corner.
+An accent bar inside a raked clip is not a bar — the clip shaves it into a tapering wedge, which reads as a rendering fault rather than a decision. **Every leading-edge accent is skewed to the same 8°** so it stays parallel to the edge it belongs to, and it **runs that edge's full length**.
+
+Skew it from the bottom-left origin and the bar's left face lands exactly on the plate's raked edge at every height, so it needs no inset: the notch trims its top and the clip trims the rest. An inset version was tried and rejected — pulling the accent back from both ends leaves it reading as a floating tick mark in the middle of an edge rather than as the edge itself.
 
 With every plate carrying one, that edge becomes the status channel: gold on a Primed Slot and on the control that advances the encounter, steel-grey when idle, signal cloth on the Hero's panel, ember on the Boss, and cyan or gold for a card's window speed. One reading position answers *what is this, and is it live.*
 
@@ -99,7 +101,7 @@ With every plate carrying one, that edge becomes the status channel: gold on a P
 
 A cut corner needs acknowledging or it trails off into nothing. The first attempt stuck a short perpendicular tick along the top edge; at real size that tick met the leaning accent and read as an L-shaped bracket hooked onto every plate — an addition fighting the silhouette.
 
-**Subtract instead.** The top-left corner is notched out of the plate itself, scaled with the element: 6px on a panel, 4px on a Slot or card, 3px on a lever. Combined with the inset accent, nothing reaches a corner to hook around, and the cut is acknowledged by the shape rather than by an ornament stuck to it.
+**Subtract instead.** The top-left corner is notched out of the plate itself, scaled with the element: 6px on a panel, 4px on a Slot or card, 3px on a lever. The notch alone removes the corner the accent would hook around, which is why the accent can still run full length. The cut is acknowledged by the shape rather than by an ornament stuck to it.
 
 ### The Risk To Watch
 
@@ -190,6 +192,6 @@ Before approving a new interface element, ask:
 - Does every glow have a physical source?
 - Does it survive flat cel shading — no shadow, no blur, no rounded corner?
 - Is it raked at 8°, with its offset derived from its height rather than chosen?
-- Does its accent run parallel to the cut and inset from both ends?
+- Does its accent run parallel to the cut, along that edge's full length?
 - Does it carry at most one texture and at most one gradient?
 - Does it still read at 390 points wide?
