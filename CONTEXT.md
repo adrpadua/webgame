@@ -69,8 +69,12 @@ A temporary rule attached to a combatant that responds to an explicit trigger, s
 _Avoid_: Passive, invisible buff
 
 **Riposte Ready**:
-A non-stacking, non-refreshing Elian Voss Status Effect. When a Boss Tank Hit resolves against Captain Elian Voss while they occupy the Guarded Front and causes `0` Health loss, grant Riposte Ready if they do not already have it. It expires at the end of the first Quick Window after that qualifying hit, whether the hit occurred in an Instant Row or an Incoming Row. A legal Shield Slam consumes Riposte Ready and deals `2` additional Boss damage. The effect must show its qualifying trigger, expiry, and consumption; it is not a general posture category or a resource meter.
+A non-stacking, non-refreshing Elian Voss Status Effect. When a Boss Tank Hit resolves against Captain Elian Voss while they occupy the Guarded Front and causes `0` Health loss, grant Riposte Ready if they do not already have it. It expires at the end of the first Quick Window after that qualifying hit, whether the hit occurred in an Instant Row or an Incoming Row. The first card that deals Boss damage while it is active consumes it: a legal Shield Slam gains `2` additional Boss damage, and any other Boss-damage card gains `1` (D-015). Cards that deal no Boss damage never consume it. The effect must show its qualifying trigger, expiry, and consumption; it is not a general posture category or a resource meter.
 _Avoid_: Awakening, stacking buff, generic stance
+
+**Fortified**:
+An Elian Voss Status Effect created by firing Fortify in the Slow Window (D-019). At the start of the next Round, immediately after the Armor wipe, it grants its stored Armor and expires; the granted Armor is ordinary Armor thereafter. Multiple Fortified commitments stack additively. Because it lands before the next Instant Row, it is the one way to pre-block Instant-row pressure.
+_Avoid_: Delayed buff, second Armor pool
 
 **Hazard**:
 A temporary board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex.
@@ -141,7 +145,7 @@ The state of a Slot whose Charge Stack equals its Top Card's Charge Value and ha
 _Avoid_: Fully charged, ready by default
 
 **Slot Replacement**:
-Replacing a Top Card is a free beginning-of-Round action, before new charges are committed. Replacing a Slot discards its old Top Card and every card in its existing Charge Stack, then moves the chosen hand card into the Slot at `0 Charge`.
+Replacing a Top Card is a free beginning-of-Round action, before new charges are committed. Replacing a Slot discards its old Top Card and every card in its existing Charge Stack, then moves the chosen hand card into the Slot at `0 Charge`. Exception: re-loading a Slot that began the current Loadout Step empty is a Swap — the tentative Top Card and its Charge Stack return to hand rather than discarding, so a decision made moments ago can be reconsidered without cost.
 _Avoid_: Respec, paid swap
 
 **Loadout Step**:

@@ -60,23 +60,20 @@ Current slot rules:
 - A full, unactivated Slot is `Primed` and persists for a later activation or an explicit special interaction
 - If a full Slot activates, discard its Top Card and Charge Stack at the end of that matching player window
 - During the beginning-of-Round Loadout Step, freely replace any Slot: discard its old Top Card and Charge Stack, then load a hand card at `0 Charge`
+- Re-loading a Slot that began this Loadout empty is a Swap: the tentative Top Card and its charges return to hand instead of discarding, so a decision made this Loadout can be reconsidered freely
 - An empty Slot may receive a Top Card for free during either player window
 - Preparing, charging, and activating cost no resource. Each one-hex move discards one hand card for `1 Stamina`; repeat that gesture to sprint
 
-## Touch Controls
+## Interaction Model
 
-The portrait HUD is driven primarily by direct manipulation rather than a command row:
+The playable surface is the web Encounter Workbench (ADR 0019): the portrait play surface in a desktop frame, with the hex board as the central canvas and the Action Bar above the Hand in the Bottom Interaction Zone. The canonical interaction vocabulary lives in [CONTEXT.md](../../CONTEXT.md) — `Compact Card`, `Detail Popup`, `Stat Panel`, `Board Feedback`, `Scripted First Turn` — and the evolving presentation direction in [oathcraft-interface-direction.md](../content/oathcraft-interface-direction.md).
 
-- Drag a hand card onto an empty action-bar slot to prepare it.
-- During Loadout, drag a hand card onto an occupied Slot to replace its whole bundle. During either player window, the same gesture charges it.
-- Hold a card in hand to inspect its full-art, full-text card view; release to dismiss it. The current low-fidelity art is the supplied Paladin placeholder, shared by the prototype cards until per-card art is authored.
-- Tap a prepared action-bar slot during its matching window to activate its top card.
-- Drag a hand card to an adjacent legal hex during the Quick Window to discard it for `1 Stamina` and move the Hero; drag the Hero itself to preview legal routes.
-- Tap the compact boss-program strip to expand or collapse its three-beat `Instant` and `Incoming` tracks.
-
-The only persistent mobile buttons are `Next` for phase progression, `Restart` after an encounter ends, and the coordinate debug toggle. The desktop inspector retains selected-card feedback, but the same direct actions work there too.
-
-The hand is anchored to the bottom of the portrait HUD as four equal Compact Cards. The board remains the central play surface, the action bar sits directly above the hand, and phase controls remain above the board rather than displacing cards from the thumb-reachable zone. A Compact Card shows its name, timing, and Charge Value; Card Inspection owns full art and rules text.
+- A Compact Card in the Hand shows name, timing, and Charge Value; complete numbers and authored text live one gesture away in its Detail Popup (touch presses and holds, a mouse hovers, the keyboard holds `Enter` or `Space`).
+- A Slot offers its legal action in place: Prepare when empty, Charge during a player window, and during Loadout either Swap (a Slot placed this Loadout — cards return to hand) or Replace (a carried Slot — its bundle discards).
+- Tapping a piece's tile opens its persistent Stat Panel over the board's lower edge; a tap on an empty hex closes it.
+- Movement spends a hand card for `1 Stamina` toward an adjacent legal hex during the Quick Window.
+- `Next` drives phase progression. Board Feedback derives every motion from Resolution Facts, so the board never shows a blow the Encounter did not resolve.
+- A first-time player's Round 1 runs the Scripted First Turn, gating input to one control at a time; it carries a `Skip` and retires once finished or skipped.
 
 ## Resources
 
