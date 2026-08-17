@@ -66,6 +66,19 @@ export function handFace(state: EncounterState, prepped: boolean): HandFace {
   return state.active && (state.phase === 'quick' || state.phase === 'slow') ? 'keywords' : 'card'
 }
 
+// The Keywords worth drawing on a card in hand: the authored order, minus the
+// Role markers. Every card in a Hero's deck carries their Role's Keyword, so
+// its mark appears on all of them at once and separates none of them — it
+// costs a glyph's worth of the face to say what the Hero already says. The
+// full list stays on the Detail Popup, which is a read rather than a glance.
+//
+// A card that is nothing but its Role marker keeps it: an empty row would
+// read as a card with no Keywords at all, which is a different claim.
+export function shownKeywords(catalog: ContentCatalog, tags: string[]): string[] {
+  const shown = tags.filter((tag) => !catalog.keywords[tag]?.role_marker)
+  return shown.length > 0 ? shown : tags
+}
+
 // The Keywords that would pay off if a card carrying one were tucked right
 // now: every keyword-specific Charge Modifier on a Top Card whose Slot can
 // still take a Charge. A Slot that has activated this window, or whose stack

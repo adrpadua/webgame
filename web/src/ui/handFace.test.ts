@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
 import { createEncounterState, hexKey, type CardInstance, type EncounterState, type Phase, type SlotState } from '@/engine'
-import { handFace, movePrepped, payingKeywords, type MoveGesture } from './handFace'
+import { handFace, movePrepped, payingKeywords, shownKeywords, type MoveGesture } from './handFace'
 
 // The Hand's face is derived, never set: it has to follow the rules that make
 // a card in hand mean something different in the Quick Window than in the
@@ -93,6 +93,27 @@ describe('move prep', () => {
   it('lines up nothing with an empty gesture', () => {
     const state = opening('quick')
     expect(movePrepped(state, { ...NO_GESTURE, hoveredHexKey: adjacentHexKey(state) })).toBe(false)
+  })
+})
+
+describe('shown keywords', () => {
+  it('leaves the Role marker off a card in hand', () => {
+    // Every Elian card is tagged tank, so the mark tells two cards apart on
+    // none of them.
+    expect(catalog.cards.iron_guard.tags).toEqual(['tank', 'guard'])
+    expect(shownKeywords(catalog, catalog.cards.iron_guard.tags)).toEqual(['guard'])
+  })
+
+  it('keeps the authored order of everything else', () => {
+    expect(shownKeywords(catalog, ['attack', 'tank', 'guard'])).toEqual(['attack', 'guard'])
+  })
+
+  it('keeps a Role marker when it is the only Keyword the card has', () => {
+    expect(shownKeywords(catalog, ['tank'])).toEqual(['tank'])
+  })
+
+  it('passes through a Keyword it has never heard of', () => {
+    expect(shownKeywords(catalog, ['nonesuch'])).toEqual(['nonesuch'])
   })
 })
 

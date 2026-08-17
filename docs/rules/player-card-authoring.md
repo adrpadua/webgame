@@ -67,6 +67,8 @@ Examples:
 
 A Keyword named in a charge sentence must exist in `data/keywords/`; do not author a modifier against an unregistered Keyword.
 
+A Keyword that marks which Role a card belongs to — rather than what the card does — sets `role_marker: true` in its own definition. It stays an ordinary Keyword to the rules and a Charge Modifier may still name it; the flag only tells the HUD to leave it off the glance surfaces, where a mark that every card in the deck carries separates none of them. `tank` is one; `guard` and `attack` are not.
+
 `Charged card` means a card tucked under the same Top Card's Charge Stack. A charged card does not resolve as its own effect. A card may have multiple Keywords; it counts once for each explicit matching check on the Top Card.
 
 Do not use vague phrases such as `scales with charge`, `becomes stronger`, or `fully charged` without a printed threshold and outcome. `Primed` is a Slot state, not a free card bonus.

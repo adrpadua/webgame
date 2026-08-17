@@ -13,6 +13,12 @@ export const keywordSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   rules_text: z.string().default(''),
+  // A Keyword that marks which Role a card belongs to rather than what it
+  // does. Every card in a Hero's deck carries theirs, so it distinguishes
+  // nothing between two cards in hand and the HUD leaves it off the glance
+  // surfaces. It is still an ordinary Keyword to the rules: a Charge Modifier
+  // may name it, and the Detail Popup still lists it.
+  role_marker: z.boolean().default(false),
 })
 
 export const chargeModifierSchema = z.object({

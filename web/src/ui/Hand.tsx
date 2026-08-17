@@ -3,7 +3,7 @@ import { selectState, useWorkbench } from '@/store/workbench'
 import { blocksTarget } from './firstTurnScript'
 import { useFirstTurnStep } from './useFirstTurn'
 import { handCanAct } from './slots'
-import { handFace, movePrepped, payingKeywords, type HandFace } from './handFace'
+import { handFace, movePrepped, payingKeywords, shownKeywords, type HandFace } from './handFace'
 import { CARD_EFFECT_TONE, cardEffect } from './icons'
 import { keywordIcon, StaminaIcon } from './keywordIcons'
 import { cardDetail } from './holdDetails'
@@ -57,11 +57,11 @@ function CardFace({ card }: { card: Card }) {
 // Timing) — which is also why Slow wears this face as readily as Quick. The
 // name stays, small, because a Slot that is still empty can be prepared in
 // either window and that is the one choice the name is needed for.
-function KeywordFace({ card, heroId, paying }: { card: Card; heroId: string; paying: Set<string> }) {
+function KeywordFace({ card, heroId, keywords, paying }: { card: Card; heroId: string; keywords: string[]; paying: Set<string> }) {
   return (
     <>
       <div className="flex min-h-9 flex-wrap items-center justify-center gap-1.5">
-        {card.tags.map((tag) => {
+        {keywords.map((tag) => {
           const Icon = keywordIcon(heroId, tag)
           return <Icon key={tag} className={`h-5 w-5 shrink-0 ${paying.has(tag) ? 'text-gold-400' : 'text-steel-400'}`} />
         })}
@@ -127,6 +127,7 @@ function CompactCard({
   // With nothing dragged or selected — the Hero is being held instead — no
   // card is committed to the move, so none of them is the one being spent.
   const spending = dragging || selected
+  const keywords = shownKeywords(catalog, card.tags)
 
   return (
     <button
@@ -141,7 +142,7 @@ function CompactCard({
       aria-label={faceLabel(
         face,
         card,
-        card.tags.map((tag) => catalog.keywords[tag]?.title ?? tag),
+        keywords.map((tag) => catalog.keywords[tag]?.title ?? tag),
       )}
       {...hold.holdProps}
       onClick={() => {
@@ -171,7 +172,7 @@ function CompactCard({
       } ${spotlit ? `wb-acc-gold ${SPOTLIGHT_CLASS}` : ''} ${gated ? GATED_CLASS : ''}`}
     >
       {face === 'card' && <CardFace card={card} />}
-      {face === 'keywords' && <KeywordFace card={card} heroId={heroId} paying={paying} />}
+      {face === 'keywords' && <KeywordFace card={card} heroId={heroId} keywords={keywords} paying={paying} />}
       {face === 'stamina' && <StaminaFace card={card} paying={spending} />}
     </button>
   )
