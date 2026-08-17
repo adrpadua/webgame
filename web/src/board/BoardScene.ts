@@ -27,17 +27,35 @@ export interface BoardSceneCallbacks {
   onHeroPressChange: (pressed: boolean) => void
 }
 
-const TILE_FILL = 0x272138
-const TILE_STROKE = 0x4c4368
-const SCORCHED_FILL = 0x7f1d1d
+// The board's colour language runs on two axes.
+//
+// Temperature carries meaning: warm is threat, cool is the player and the
+// ground they stand on. Nothing safe is warm and nothing dangerous is cool,
+// so a glance at the board's temperature is a read on where the danger is.
+//
+// Saturation carries urgency. The most saturated thing on screen is the
+// newest or most dangerous, which is what pulls the eye first: a live
+// telegraph outranks a Minion, and ground already scorched is duller than
+// either, because it is a state rather than news.
+//
+// Cool: the ground, and the Hero on it.
+const TILE_FILL = 0x1e2333
+const TILE_STROKE = 0x39415c
+const HERO_FILL = 0x3b82f6
+// Where the Hero may step. Cyan rather than green: an affordance is not a
+// creature, and it must not share a hue with one.
+const MOVE_OVERLAY = 0x22d3ee
+// Warm, most saturated first: live telegraphs, then the pieces that threaten,
+// then ground that has already burned.
 const BREATH_OVERLAY = 0xf97316
-const BROOD_OVERLAY = 0xa855f7
-const MOVE_OVERLAY = 0x22c55e
+const BROOD_OVERLAY = 0xe11d48
+const BOSS_FILL = 0xdc2626
+const MINION_FILL = 0xb45309
+const SCORCHED_FILL = 0x5e2a1e
+// Neutral instruction, outside both axes: the scripted turn's pointer and the
+// reticle over a Minion the player is about to strike.
 const GUIDED_STROKE = 0xfafafa
 const TARGET_STROKE = 0xfacc15
-const BOSS_FILL = 0xdc2626
-const HERO_FILL = 0x3b82f6
-const MINION_FILL = 0x16a34a
 
 // One light direction for the whole board, from the upper left. Every piece
 // shades and rims against it, and the drop shadow falls the opposite way, so
@@ -59,6 +77,10 @@ const TILE_SKIRT_SHADE = 0.45
 // Range of the per-hex value jitter, centred on 1.
 const TILE_JITTER = 0.12
 
+// Effect tones sit on the same two axes: hero and guard cool, boss and hazard
+// warm. With the move overlay moved to cyan and Minions moved to amber, green
+// is spoken by nothing on the board except healing — so it now means one
+// thing, and a green flash needs no other context to read.
 const TONE_COLOR: Record<EffectTone, number> = {
   hero: 0x60a5fa,
   boss: 0xf87171,
