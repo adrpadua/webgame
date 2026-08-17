@@ -14,7 +14,7 @@ import { create } from 'zustand'
 // focused control repeats keydown, which opens the popup; releasing closes
 // it. A quick press stays a plain tap, so nothing is hidden behind a hold.
 
-export type HoldTone = 'neutral' | 'attack' | 'guard' | 'heal' | 'presence' | 'boss' | 'quick' | 'slow'
+export type HoldTone = 'neutral' | 'attack' | 'guard' | 'heal' | 'boss' | 'quick' | 'slow'
 
 export interface HoldDetail {
   // Stable identity for the popup, used as the animation key and in tests.
@@ -82,7 +82,6 @@ const TONE_CLASS: Record<HoldTone, string> = {
   attack: 'border-rose-500',
   guard: 'border-sky-500',
   heal: 'border-emerald-500',
-  presence: 'border-violet-500',
   boss: 'border-amber-500',
   quick: 'border-emerald-500',
   slow: 'border-sky-500',
@@ -93,7 +92,6 @@ const BADGE_CLASS: Record<HoldTone, string> = {
   attack: 'text-rose-300',
   guard: 'text-sky-300',
   heal: 'text-emerald-300',
-  presence: 'text-violet-300',
   boss: 'text-amber-300',
   quick: 'text-emerald-300',
   slow: 'text-sky-300',

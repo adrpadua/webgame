@@ -47,8 +47,8 @@ function stepPhases(state: EncounterState, count: number): { state: EncounterSta
 
 describe('content catalog', () => {
   it('loads and validates the full content port from data/', () => {
-    expect(Object.keys(catalog.cards)).toHaveLength(14)
-    expect(Object.keys(catalog.keywords)).toHaveLength(10)
+    expect(Object.keys(catalog.cards)).toHaveLength(12)
+    expect(Object.keys(catalog.keywords)).toHaveLength(9)
     expect(Object.keys(catalog.programs).sort()).toEqual(['embermaw_brood', 'embermaw_embers', 'embermaw_hunt'])
     expect(catalog.programs.embermaw_hunt.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',

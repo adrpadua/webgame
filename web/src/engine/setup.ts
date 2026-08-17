@@ -67,7 +67,6 @@ export function createEncounterState(catalog: ContentCatalog, encounterId: strin
     health: encounter.player_health,
     maxHealth: encounter.player_health,
     armor: 0,
-    presence: 1,
     deck,
     hand: [],
     discard: [],

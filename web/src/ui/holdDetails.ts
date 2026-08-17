@@ -20,7 +20,7 @@ const EFFECT_TONE: Record<ReturnType<typeof cardEffect>, HoldTone> = {
   attack: 'attack',
   guard: 'guard',
   heal: 'heal',
-  presence: 'presence',
+  utility: 'neutral',
 }
 
 function cardStats(card: Card): { label: string; value: string }[] {
@@ -36,9 +36,6 @@ function cardStats(card: Card): { label: string; value: string }[] {
   }
   if (card.healing > 0) {
     stats.push({ label: 'Healing', value: `+${card.healing}` })
-  }
-  if (card.presence_delta > 0) {
-    stats.push({ label: 'Presence', value: `+${card.presence_delta}` })
   }
   return stats
 }
@@ -173,7 +170,7 @@ export function beatDetail(beat: BossBeat, track: 'instant' | 'incoming'): HoldD
   }
 }
 
-export const HERO_STAT_DETAILS: Record<'health' | 'armor' | 'presence' | 'cards', Omit<HoldDetail, 'stats'>> = {
+export const HERO_STAT_DETAILS: Record<'health' | 'armor' | 'cards', Omit<HoldDetail, 'stats'>> = {
   health: {
     id: 'hero:health',
     title: 'Health',
@@ -185,12 +182,6 @@ export const HERO_STAT_DETAILS: Record<'health' | 'armor' | 'presence' | 'cards'
     title: 'Armor',
     tone: 'guard',
     text: 'Absorbs damage before Health, and resets to zero at the start of every Round. Spend it or lose it.',
-  },
-  presence: {
-    id: 'hero:presence',
-    title: 'Presence',
-    tone: 'presence',
-    text: 'Your hold on the fight. Presence cards build it for effects that read it.',
   },
   cards: {
     id: 'hero:cards',
