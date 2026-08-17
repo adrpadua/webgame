@@ -1,3 +1,7 @@
+---
+status: accepted; superseded in practice by the web verify workflow (ADR 0019)
+---
+
 # Use a manifest-driven Probe suite with two adapters
 
 Probe registration lives in one data file, `scripts/debug/probes.manifest` (`lane|name|script|marker`), read by two thin runner adapters: `run_probes.sh` for POSIX machines and CI, and `run_probes.ps1` for the Windows authoring machine. A full run executes the `default` and `scenario` lanes and reports the skipped `manual` (needs a real window) and `tool` lanes, so bounded coverage is always visible. A Probe passes only when Godot exits `0`, its output contains the manifest's declared success marker, and no engine error or failed assertion appears — an exit code alone is not evidence that anything was asserted, and the adapters' fixture self-test keeps that enforcement honest.

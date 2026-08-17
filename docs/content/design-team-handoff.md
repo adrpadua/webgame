@@ -1,5 +1,7 @@
 # Design Team Handoff
 
+> **Frozen (ADR 0019 / D-018).** This describes authoring against the frozen Godot reference: `.tres` resources, `Main.gd`, and the PowerShell probe runner. The live surface is the Encounter Workbench in `web/`, whose content lives as JSON under `data/` and is validated by `npm run test` and `node scripts/smoke.mjs` in `web/`. The authoring *discipline* below — stable snake_case IDs, complete player-facing text, no content in `legacy/` — still holds; the paths and commands do not.
+
 This build is ready for data-only iteration on Cards, Keywords, Charge Modifiers, Boss Programs and Beats, Hazards, Minions, and Encounters. Ordinary content belongs under `resources/`; do not edit `Main.gd`, scene projections, or SDK resolvers to tune content.
 
 `resources/legacy/` is excluded from authoring and validation. It preserves historical experiments only; do not duplicate content from it into an Encounter.
