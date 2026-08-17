@@ -27,7 +27,7 @@ Starting board state:
 
 `Embermaw` currently runs a deterministic three-card looping Boss Program deck:
 
-- `36` health, tuned as a reachable eight-round target for the tank deck
+- `36` health, sized against the solo tank deck's damage curve so progress is visible each round — **not** a solo kill target. Per D-016, this is a team game: a solo Guardian defeating Embermaw is a tuning defect signal, and a solo run's success criteria are the Round-4 checkpoint and demonstrated Tank role moments. Party-scale content scales Boss health by party size.
 - **Hunt Pattern**: Turn to the Tank, Raking Claw, Ash Trail; then telegraphed Cinder Breath, Brood Call, Close the Lanes
 - **Ember Pattern**: Stalk the Guardian, Cinder Breath, Ember Scar; then telegraphed Brood Call, Raking Claw, Keep a Safe Hex
 - **Brood Pattern**: Turn to the Tank, Raking Claw, Ash Trail; then telegraphed Cinder Breath, Brood Call, Heat Rises
