@@ -165,9 +165,13 @@ The live consumer is the Workbench board, which is a transparent canvas over the
 
 **There is no runtime modulate on the web, so what you generate is what shows.** The two Godot sites multiplied the backdrop to 72% and 14%; nothing does that here. The value discipline the tint used to enforce has to be in the art.
 
-**Its value ceiling is set by the floor it sits behind.** The tile face draws at `steel-900` `#1b2434` and the board sits on `steel-950` `#0f1622`, with `navy-950` `#080d16` as the ground under everything. So: **nothing in the backdrop may be brighter than `#1b2434`**, and its typical value should sit at or below `#0f1622`. Break that and the floor stops reading as the lit plane, which is the one thing the board's whole lighting model depends on.
+**Warm saturation is the constraint that matters.** [oathcraft-board-direction.md](../oathcraft-board-direction.md) ranks warm by imminence, and the least imminent warm thing on the board is scorched ground at `coral-900`. A backdrop is less imminent than that, so any ember in it must sit below `coral-950` `#2c150a`.
 
-**Warm saturation is spoken for.** [oathcraft-board-direction.md](../oathcraft-board-direction.md) ranks warm by imminence, and the least imminent warm thing on the board is scorched ground at `coral-900`. A backdrop is less imminent than that, so any ember presence in it must sit below `coral-950` `#2c150a` in both saturation and value. A glowing horizon competes with a telegraph, and the telegraph is the one that means something.
+The number to hold it against is not a token, because a telegraph is a tint rather than a fill. Cinder Breath paints `coral-300` at 28% over the floor and a Brood Call paints `coral-400` at 32%, so what actually reaches the screen is **`#564443`** and **`#5a3c36`** — far duller than the tokens suggest. That is the loudest warm pixel the game can draw, and it is the hard never-exceed for scenery. The first generated backdrop had lava cores at `#e67c54`: seven times a telegraph's luminance, on a surface that means nothing.
+
+**A value ceiling was tried and is the wrong tool.** The obvious companion rule — keep the whole backdrop under the floor's `steel-900` `#1b2434` — reads well and measures badly. Two things break it. The board covers its own centre with **opaque** tiles, so most of what the ceiling catches is never visible; only the thin gaps between hexes and the surround outside the grid ever show. And the surround is where the illustration does its work, so crushing it flattens the ruins into grey mud while fixing nothing anyone can see. Verified both ways on the first pair: 60% of the centre measured over the ceiling, and with tiles drawn the floor still read correctly as the lit plane.
+
+So the value rule is a soft one — keep the composition dark and let the tiles be the brightest large shape — and the warm rule is the hard one.
 
 ```text
 Create an environment illustration to sit behind a tactical hex board, drawn in the hand-drawn cel-shaded style described above.
@@ -190,7 +194,37 @@ The arena reads as a built raid site — a place with protocols, gates, and evac
 
 Slot `ARENA` from the gazetteer. For the current encounter: `the Embermaw's ashen trial ground — a scorched basalt arena ringed by cooling ember-coral growth and the blackened remains of oathsteel containment rigs`.
 
-Verify by putting it behind the board, not by looking at the image alone. The failure mode is an illustration that is beautiful at full strength and, once the floor is drawn over it, either swallows the tiles or shouts past them.
+Expect the first roll to come back too hot. Models read "dark arena" as "dramatic arena with a glowing horizon", and negative wording will not hold it — the Leonardo run in [`_tools.md`](_tools.md) established that a constraint moved into a negative list stops binding.
+
+### Knocking A Hot Backdrop Down
+
+A re-roll is the library's default, but it is the wrong default here: the fault is one channel, and re-rolling gambles a composition that is already right. The correction is mechanical and reproducible instead.
+
+```bash
+python3 tools/tone_backdrop.py in.png out.png --warm-ceiling '#2c150a'
+```
+
+It applies a soft ceiling to warm pixels in linear light — identity to third order in the shadows, so the basalt keeps its modelling, and asymptotic at the ceiling, so nothing can cross it however hot it started. It reports what moved. On the shipped pair it took the saturated ember peak from 7.4× a telegraph's luminance to none at all, and left the calm version essentially untouched, which is the behaviour to want: a tool that confirms a good asset rather than changing it.
+
+Keep the ungraded generation next to the result as `*-source.png`. It is the input the command reproduces from, and it is what a future re-grade starts from if the ceilings move.
+
+### Verifying It
+
+**In the game if you can, and over the tiles if you cannot.** Looking at the image alone answers nothing, because the failure is a relationship between two surfaces. The centre of the illustration is entirely hidden behind opaque hexes, so an image that is wrong there is not wrong at all, and an image that is right everywhere except the gaps is still wrong.
+
+Drawing the board's own nineteen hexes over a candidate — same `HEX_SIZE`, same fill, same skirt — answers it in one look and needs no dev server.
+
+### The Phase Pair
+
+`assets/art/board/` holds two, and they are the same illustration with one channel changed — same camera, same composition, only the crack glow differs. That is deliberately not a second arena: a boss phase changes what Embermaw does, not where you are standing, and [oathcraft-board-direction.md](../oathcraft-board-direction.md) would want different art only if the place itself changed.
+
+Both are graded to the same warm ceiling, and the **difference** between them is what carries the phase rather than the absolute brightness of either. A player watches the first for five rounds before the Phase Trigger can fire, so a small shift against a remembered state reads clearly. A phase that announces itself by getting louder than the telegraph it is about to fire has inverted the ordering the whole warm side rests on.
+
+| File | Use |
+| --- | --- |
+| `arena-backdrop.png` | Phase I |
+| `arena-backdrop-phase-two.png` | Phase II, once `bossPhase` reaches 2 |
+| `*-source.png` | The ungraded generations, kept as the grade's input |
 
 ### Wiring A Finished Backdrop
 
@@ -204,6 +238,8 @@ No consumer today, and two plausible routes. As a CSS background on the board's 
 - Downsample to the target pixel size and confirm the shape still reads.
 - For hover and target, view both under their runtime tints and confirm they remain distinguishable from each other.
 - For the backdrop, confirm legibility of tile outlines and combat text with it in place.
+- For the backdrop, measure rather than judge: no saturated warm pixel above `#5a3c36` in luminance, which is the loudest a telegraph ever composites to. Judging this by eye is how the first pair shipped at seven times that.
+- For a phase pair, put both mock-ups side by side. Is the phase legible as a *change*, without either one being loud on its own?
 
 For the hex tile floor:
 
