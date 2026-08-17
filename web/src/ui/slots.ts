@@ -11,3 +11,13 @@ export function slotCanFire(catalog: WorkbenchCatalog, state: EncounterState, sl
   }
   return cardWindowSpeed(catalog.cards[slot.topCard.cardId]) === state.phase
 }
+
+// One definition of "the Hand can act right now": the current phase is a
+// player window in which a hand card has at least one legal action. Per the
+// engine's legality rules a card can be loaded in Loadout, Quick, or Slow
+// and charged in Quick or Slow, so the Boss rows — Instant and Incoming —
+// are the phases in which every card in hand is inert. The Hand reads this
+// so it never asserts, at full brightness, a choice the rules deny.
+export function handCanAct(state: EncounterState): boolean {
+  return state.active && (state.phase === 'loadout' || state.phase === 'quick' || state.phase === 'slow')
+}

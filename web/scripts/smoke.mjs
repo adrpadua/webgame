@@ -289,8 +289,17 @@ try {
   assert((await page.locator('[data-testid="playout-continue"]').count()) === 0, 'the last beat needs no prompt and the playout settles')
   // The resolved track waits in the Boss's window; Next moves on.
   assert((await phase()) === 'instant', 'the settled track waits in Boss Instant for Next')
+  // During a Boss row no card in hand has a legal action, so the Hand
+  // recedes — and it must come back the moment a player window opens. A
+  // Hand that hides has to be provably reachable, or the recession is a
+  // trap. Test intent (data-inert) and reality (a card can be selected).
+  assert((await page.locator('[data-testid="hand"]').getAttribute('data-inert')) === 'true', 'the Hand is inert during Boss Instant')
   await next()
   assert((await phase()) === 'quick', 'Next moves on into the Quick Window')
+  assert((await page.locator('[data-testid="hand"]').getAttribute('data-inert')) === null, 'the Hand is live again in the Quick Window')
+  await page.locator('[data-testid="hand-card"]').first().click()
+  assert((await page.locator('[data-testid="hand-card"][data-selected="true"]').count()) === 1, 'a Hand card can be selected once the window opens')
+  await page.locator('[data-testid="hand-card"]').first().click()
 
   // Skipping a window that still holds phase-appropriate actions warns
   // first: nothing has been fired or charged this Quick Window.
