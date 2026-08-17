@@ -38,6 +38,28 @@ Escalation raises the stakes of getting this right rather than softening it: bec
 
 The ladder has exactly one exception, and it is a content rule rather than a code path. **Round 1 is not forecast** — no earlier Round could have shown it — so **a first program may carry no `Severe` Beat.** Everything after Round 1 is forecast automatically, so the tier ladder needs no further enforcement than authoring the tier honestly.
 
+## The Timeline Is Addressable
+
+The Timeline is a zone the party can act on, not a readout it can only consult. A card may become a **Commitment**: an authored effect bound to one named Beat, visible to the Party, resolving when that Beat resolves (D-028).
+
+- **Bind only to disclosed parameters.** A Commitment attaches in the `Incoming` or `Instant` row, never to a `Forecast` entry. Committing against a family you cannot see the parameters of is a bet, not a plan, and it would undo the whole point of staged disclosure.
+- **Prepare, do not rewrite.** Commitments answer a named future problem. They do not redirect its target — that is the Tank's identity mechanism, not a card effect — and they do not transform one mechanic into another.
+- **The metric follows for free.** D-027 asks whether the party acted specifically to prepare for a forecast threat. With Commitments that stops being an observer's judgement and becomes a countable attachment.
+
+The design goal, stated as the research does: **the Boss writes the first draft of the encounter, and the party edits it together.**
+
+## Encounter Responsibilities
+
+Beyond Role, an Encounter may assign a **Responsibility** — a duty like Relic Bearer, Anchor, or Conduit — that is transferable during the fight and never tied to an Archetype (D-029). Encounter roles need not equal classes.
+
+Two rules keep it honest. A Responsibility's answers obey asymmetric efficiency like any other problem, so "only the Relic Bearer may…" never becomes a role lock in a new coat. And no Encounter is required to have one: forcing duties into fights that do not need them is the coloured-keys failure wearing a different label. What Responsibilities buy is repeat-clear variation — "I'll take the Relic this time" — and a natural way to spread decision concentration, since whoever holds one owns a decision.
+
+## Optional: Failure That Changes The Fight
+
+A Boss whose identity is memory may take the **Archive/Echo** option (D-030): unresolved mechanics go to an Archive rather than away, and at each phase transition the Boss schedules one of them again as an Echo. A wipe then reads as "we changed the future encounter," not "we lost 12 health."
+
+It is an option and not a law, for two reasons. Every Boss doing it makes every Boss a death spiral, and it would give us two escalation systems competing to own the same feeling — Escalation counts, an Archive accumulates. Bound it: at most one Echo per phase transition, and every Echo obeys the disclosure contract, so a `Severe` Echo still reaches the Forecast Row. Failure may change the fight; it may not become untelegraphed punishment.
+
 ## The Role Contract
 
 Tank, Healer, and Damage are three questions about the **same Boss problem**, never three parallel minigames:
@@ -101,6 +123,8 @@ A Boss has no separate round-limit timer. It has `Escalation`: one fixed `0`–`
 - **Acceleration is authored per Beat, never global.** A global "any live Minion adds 1" would make every add package equally punishing and flatten Boss identity into one attrition formula. Each Beat says what it costs to ignore it.
 - **Never price a demand the party cannot answer.** Acceleration ignores a demand that arrived too late to act on — a Minion spawned this Round has had no player window — and a Beat's penalty stays at `0` until the deck holds an executable answer (D-003). Acceleration the party cannot avoid is not a consequence; it is a second automatic tick wearing a costume. Embermaw's Brood Call sits at `0` today for exactly that reason.
 - **A Beat that can add Escalation discloses it in Forecast.** That is what keeps per-Beat authoring legible instead of requiring players to memorize a table.
+- **Prefer structural thresholds to numeric ones.** A threshold that permanently closes part of the arena is felt; a threshold that adds `+1` damage is arithmetic, and it is the same inflation the Difficulty Layer test forbids one section down. Embermaw's thresholds `1` and `4` were `+1` damage each until D-031 replaced them with permanent Scorch that closes the ground away from the Boss.
+- **A structural threshold may never remove a role's own answer.** No authored Scorch hex sits adjacent to the Boss, because burning the Guarded Front would leave the Tank unable to reach the place their kit is built to hold. Same defect as pricing an unanswerable demand, arriving from the other direction.
 - **Damage owns the acceleration, not the base tick.** The automatic tick guarantees the fight terminates; the acceleration is where throughput becomes a strategic responsibility — how much of the encounter's worst state ever happens at all.
 
 This is also the structural form of the stalemate wall. D-016 requires that a solo Hero cannot kill a Boss, and a health value holding that line is a number that better play erodes (the Rextroy lesson). Under Escalation, indefinite defense fails because the encounter's economic assumptions become impossible, which optimization cannot repair. The solo sweep now shows it directly: the survival-biased policy reaches Round 8 on most seeds, dies to Escalation on roughly half of them, and deals `0.00` Boss damage doing it. Apply the same test here as for cooperation: *would doubling one Hero's stats break it?* For a health-based ceiling, eventually yes. For Escalation, no.

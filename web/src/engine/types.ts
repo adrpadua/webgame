@@ -59,6 +59,9 @@ export interface HazardInstance {
   remainingRounds: number
   enterDamage: number
   blocksVoluntaryMovement: boolean
+  // A permanent Hazard never expires at a Round boundary. Structural
+  // Escalation Thresholds use this to close the arena for good (D-031).
+  permanent?: boolean
 }
 
 export interface BoardState {

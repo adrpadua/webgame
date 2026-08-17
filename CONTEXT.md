@@ -31,7 +31,7 @@ A counted Boss value on one fixed scale from `0` to `5`, identical on every Boss
 _Avoid_: Enrage timer, dread meter, per-boss scale
 
 **Escalation Threshold**:
-The authored effect a Boss applies on reaching one Escalation value. Values `1` through `4` change how the fight behaves; the threshold at `5` is the hard wipe. A Beat that can add Escalation must disclose it in the Forecast Row, which makes that Beat `Severe`.
+The authored effect a Boss applies on reaching one Escalation value. Values `1` through `4` change how the fight behaves; the threshold at `5` is the hard wipe. A threshold is preferably **structural** — permanently closing part of the arena — rather than numeric, so the collapse is felt as space running out rather than as another damage number (D-031). No structural threshold may touch a hex adjacent to the Boss, because burning the `Guarded Front` would remove the Tank's own answer. A Beat that can add Escalation must disclose it in the Forecast Row, which makes that Beat `Severe`.
 _Avoid_: Soft enrage stage, phase trigger
 
 **Encounter Clock**:
@@ -103,11 +103,11 @@ A non-stacking, non-refreshing Elian Voss Status Effect. When a Boss Tank Hit re
 _Avoid_: Awakening, stacking buff, generic stance
 
 **Fortified**:
-An Elian Voss Status Effect created by firing Fortify in the Slow Window (D-019). At the start of the next Round, immediately after the Armor wipe, it grants its stored Armor and expires; the granted Armor is ordinary Armor thereafter. Multiple Fortified commitments stack additively. Because it lands before the next Instant Row, it is the one way to pre-block Instant-row pressure.
+An Elian Voss Status Effect created by firing Fortify in the Slow Window (D-019). In canon it is a `Commitment` against the next Round's Instant Row (D-028) and will be modelled as one when that seam exists; today it is a Status Effect that happens to land at the right moment. At the start of the next Round, immediately after the Armor wipe, it grants its stored Armor and expires; the granted Armor is ordinary Armor thereafter. Multiple Fortified commitments stack additively. Because it lands before the next Instant Row, it is the one way to pre-block Instant-row pressure.
 _Avoid_: Delayed buff, second Armor pool
 
 **Hazard**:
-A temporary board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex.
+A board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex. Most Hazards are temporary and expire at a Round boundary; a Hazard placed by a structural Escalation Threshold is permanent, because the arena does not recover from it.
 _Avoid_: Surprise damage, ambient effect
 
 **Boss**:
@@ -129,6 +129,16 @@ _Avoid_: Hidden AI, random wander, aggro table
 **Forecast Row**:
 The horizon that previews the next Round's whole Boss Program at family level: its title and the union of its counter tags. It tells the party what kind of raid problem is developing, so resources can be reserved for a category before a specific hit can be answered. It also carries the program's highest Consequence Tier, so the party can size the reserve. A Forecast Row never resolves — it is next Round's program shown early, not a fourth resolution step — so it leaves the per-Round event order untouched. Round `1` is not forecast: at the pull there is no earlier Round to have shown it, which is why a first program may carry no `Severe` Beat.
 _Avoid_: Preview row, hidden row, T+2
+
+**Commitment**:
+An authored card effect bound to one named Boss Beat, visible to the Party, resolving when that Beat resolves (D-028). A Commitment may only bind to a Beat whose parameters are disclosed — one in the `Incoming Row` or `Instant Row` — never to a `Forecast Row` entry, because a family-level entry states no parameters and a Commitment there would be a bet rather than a plan. Commitments prepare for a named future problem; they do not redirect its target or change what it is. Fortify is the first Commitment in canon.
+_Avoid_: Attachment, counterspell, reaction
+_Not yet in the engine_
+
+**Encounter Responsibility**:
+A duty the Encounter assigns to one Hero, transferable during the fight, and never tied to an Archetype (D-029). It is orthogonal to Role: a Tank may hold one, and so may anyone else. Its answers obey the same asymmetric-efficiency rule as any other problem, so a Responsibility never becomes a role lock in disguise. Not every Encounter has one.
+_Avoid_: Role, job, class duty
+_Not yet in the engine_
 
 **Instant Row**:
 The boss actions that resolve before the party's `Quick Window`. These are urgent mechanics that are already live this round.

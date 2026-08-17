@@ -75,9 +75,22 @@
   "escalation_thresholds": [
     {
       "value": 1,
-      "title": "Smouldering",
-      "rules_text": "Embermaw's attacks deal 1 more damage.",
-      "boss_damage_bonus": 1
+      "title": "Ashen Verge",
+      "rules_text": "The western edge of the arena burns away for good.",
+      "scorch_hexes": [
+        {
+          "q": -2,
+          "r": 0
+        },
+        {
+          "q": -2,
+          "r": 1
+        },
+        {
+          "q": -2,
+          "r": 2
+        }
+      ]
     },
     {
       "value": 2,
@@ -93,9 +106,18 @@
     },
     {
       "value": 4,
-      "title": "Furnace Heart",
-      "rules_text": "Embermaw's attacks deal 1 more damage again.",
-      "boss_damage_bonus": 1
+      "title": "Closing Jaws",
+      "rules_text": "The burn spreads around both western corners. Only the ground near Embermaw still holds.",
+      "scorch_hexes": [
+        {
+          "q": -1,
+          "r": -1
+        },
+        {
+          "q": -1,
+          "r": 2
+        }
+      ]
     }
   ]
 }

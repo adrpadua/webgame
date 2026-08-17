@@ -137,11 +137,13 @@ The timeline uses the existing `Instant -> Quick -> Incoming -> Slow` structure.
 
 | Escalation | Threshold | Effect | Lands |
 | --- | --- | --- | --- |
-| `1` | Smouldering | Embermaw's attacks deal `+1`. | End of Round 4 |
+| `1` | Ashen Verge | The western edge burns away permanently: `(-2,0)`, `(-2,1)`, `(-2,2)`. | End of Round 4 |
 | `2` | Wider Brood | Brood Call summons one additional Whelp, and the telegraph shows it. | End of Round 5 |
 | `3` | Fed on Ash | Whelp bites deal `+1`. | End of Round 6 |
-| `4` | Furnace Heart | Embermaw's attacks deal `+1` again. | End of Round 7 |
+| `4` | Closing Jaws | The burn spreads around both western corners: `(-1,-1)`, `(-1,2)`. | End of Round 7 |
 | `5` | `Worldfire` | The party is defeated. | End of Round 8 |
+
+Two of these were `+1` damage each until D-031 replaced them: escalation is felt as the arena closing toward Embermaw, not as a larger number. The ground that burns is always the ground furthest from the Boss, and never a hex adjacent to it — burning the Guarded Front would leave the Tank unable to move into the place their kit exists to hold.
 
 The "Lands" column is the automatic schedule — ticks begin at `Encounter Clock - 4` and run one per Round end. Acceleration can pull every row earlier; Embermaw's Brood Call prices its unanswered demand at `0` until the deck holds a Whelp answer (D-003), so today the schedule is the whole story.
 

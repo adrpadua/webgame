@@ -474,27 +474,48 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     expect(state.escalation).toBe(0)
   })
 
-  it('raises Boss damage at threshold 1 and Whelp bites at threshold 3', () => {
+  it('permanently Scorches the arena at a structural threshold (D-031)', () => {
+    const threshold = catalog.encounters.embermaw_prototype.escalation_thresholds.find((entry) => entry.value === 1)!
+    expect(threshold.scorch_hexes.length).toBeGreaterThan(0)
+    expect(threshold.boss_damage_bonus).toBe(0)
+
+    const state = immortal()
+    state.escalation = 0
+    const crossed = resolve(catalog, state, { kind: 'gain_escalation', sourceId: 'encounter', amount: 1, reason: 'automatic_tick', beatId: '' })
+    for (const coords of threshold.scorch_hexes) {
+      const hazards = crossed.state.board.hazards[hexKey(coords)] ?? []
+      expect(hazards.some((hazard) => hazard.id === 'scorched' && hazard.permanent === true)).toBe(true)
+    }
+    // Permanent means permanent: the Round boundary does not clear it, unlike
+    // the Scorch a Cinder Breath leaves behind.
+    const later = stepPhases(crossed.state, 5).state
+    const first = threshold.scorch_hexes[0]
+    expect((later.board.hazards[hexKey(first)] ?? []).some((hazard) => hazard.permanent === true)).toBe(true)
+  })
+
+  it('never Scorches a hex adjacent to the Boss, so the Guarded Front cannot burn', () => {
+    // The acceleration lesson in another form: an effect that removes the
+    // Tank's own answer is a problem the party cannot answer.
+    const encounter = catalog.encounters.embermaw_prototype
+    for (const threshold of encounter.escalation_thresholds) {
+      for (const coords of threshold.scorch_hexes) {
+        expect(hexDistance(coords, encounter.boss_start)).toBeGreaterThan(1)
+      }
+    }
+  })
+
+  it('still applies a numeric threshold when one is authored', () => {
+    // The read-time modifiers stay supported for Bosses that want them; what
+    // D-031 changed is Embermaw's authored content, not the mechanism.
     const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'raking_claw')!
-    const base = start()
-    const unescalated = resolve(catalog, base, { kind: 'resolve_boss', sourceId: base.bossId, beat: claw, track: 'instant' })
-    expect(unescalated.facts.find((fact) => fact.kind === 'damage')?.resolutionFact).toMatchObject({ requested: 4 })
+    const state = start()
+    state.escalation = 1
+    state.escalationThresholds = [{ value: 1, title: 'Test Band', rules_text: '', boss_damage_bonus: 2, extra_spawn_count: 0, minion_damage_bonus: 0, scorch_hexes: [] }]
+    const hit = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
+    expect(hit.facts.find((fact) => fact.kind === 'damage')?.resolutionFact).toMatchObject({ requested: 6, escalation_bonus: 2 })
+  })
 
-    const smouldering = start()
-    smouldering.escalation = 1
-    const escalated = resolve(catalog, smouldering, { kind: 'resolve_boss', sourceId: smouldering.bossId, beat: claw, track: 'instant' })
-    expect(escalated.facts.find((fact) => fact.kind === 'damage')?.resolutionFact).toMatchObject({
-      requested: 5,
-      escalation_bonus: 1,
-    })
-
-    // Threshold 4 stacks with threshold 1 on the same axis: +2 in total.
-    const furnace = start()
-    furnace.escalation = 4
-    const doubled = resolve(catalog, furnace, { kind: 'resolve_boss', sourceId: furnace.bossId, beat: claw, track: 'instant' })
-    expect(doubled.facts.find((fact) => fact.kind === 'damage')?.resolutionFact).toMatchObject({ requested: 6, escalation_bonus: 2 })
-
-    // Threshold 3 makes the bite hurt more, recorded on the Minion's Raid Hit.
+  it('raises Whelp bite damage at threshold 3', () => {
     const biting = stepPhases(immortal(), 4).state
     biting.escalation = 3
     const heroCoords = biting.board.entities[biting.primaryHeroId].coords
@@ -525,7 +546,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
       escalation_before: 0,
       escalation_after: 1,
       escalation_reason: 'automatic_tick',
-      thresholds_crossed: ['Smouldering'],
+      thresholds_crossed: ['Ashen Verge'],
     })
   })
 })

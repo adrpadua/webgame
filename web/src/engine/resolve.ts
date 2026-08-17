@@ -20,8 +20,8 @@ import {
   statusExpiresOnRoundAdvance,
   TANK_HIT,
 } from './statuses'
-import type { EncounterActionInput } from './actions'
-import type { CardInstance, EncounterState, HeroState, Phase, ResolveResult, ResolvedActionFact } from './types'
+import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
+import type { CardInstance, EncounterState, HazardInstance, HeroState, Phase, ResolveResult, ResolvedActionFact } from './types'
 
 // The reducer seam (ADR 0019): resolve(state, action) returns the next
 // immutable snapshot plus the facts produced. The draft is a structuredClone,
@@ -219,7 +219,7 @@ function resolveOne(
     }
     case 'apply_hazard': {
       const definition = action.hazardId === null ? null : catalog.hazards[action.hazardId]
-      const hazard = definition
+      const hazard: HazardInstance = definition
         ? {
             id: definition.id,
             title: definition.title,
@@ -234,6 +234,9 @@ function resolveOne(
             enterDamage: 1,
             blocksVoluntaryMovement: true,
           }
+      if (action.permanent === true) {
+        hazard.permanent = true
+      }
       if (!addHazard(draft.board, action.coords, hazard)) {
         fail(fact, 'The hazard could not be applied to that hex.')
         break
@@ -372,9 +375,24 @@ function resolveOne(
     case 'gain_escalation': {
       const before = draft.escalation
       draft.escalation = Math.min(ESCALATION_MAX, before + action.amount)
-      const crossed = draft.escalationThresholds
-        .filter((threshold) => threshold.value > before && threshold.value <= draft.escalation)
-        .map((threshold) => threshold.title)
+      const crossedThresholds = draft.escalationThresholds.filter(
+        (threshold) => threshold.value > before && threshold.value <= draft.escalation,
+      )
+      const crossed = crossedThresholds.map((threshold) => threshold.title)
+      // A structural threshold changes the arena for good, so unlike the
+      // read-time modifiers it has to ride generated actions (D-031).
+      for (const threshold of crossedThresholds) {
+        for (const coords of threshold.scorch_hexes) {
+          generated.push({
+            kind: 'apply_hazard',
+            sourceId: ENCOUNTER_SOURCE,
+            coords,
+            hazardId: 'scorched',
+            fallbackDurationRounds: 1,
+            permanent: true,
+          })
+        }
+      }
       fact.resolutionFact = {
         escalation_before: before,
         escalation_after: draft.escalation,

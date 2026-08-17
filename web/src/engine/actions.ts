@@ -13,7 +13,7 @@ export type EncounterActionInput =
   | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string }
   | { kind: 'move_hero'; sourceId: string; destination: Axial; cardInstanceId: string }
   | { kind: 'resolve_boss'; sourceId: string; beat: BossBeat; track: 'instant' | 'incoming' }
-  | { kind: 'apply_hazard'; sourceId: string; coords: Axial; hazardId: string | null; fallbackDurationRounds: number }
+  | { kind: 'apply_hazard'; sourceId: string; coords: Axial; hazardId: string | null; fallbackDurationRounds: number; permanent?: boolean }
   | { kind: 'spawn_minion'; sourceId: string; minionId: string; coords: Axial; minionContentId?: string }
   | { kind: 'move_minion'; sourceId: string; destination: Axial }
   | { kind: 'damage'; sourceId: string; targetId: string; amount: number; reasonText: string; factContext?: Record<string, unknown> }

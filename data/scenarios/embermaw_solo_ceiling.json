@@ -240,6 +240,25 @@
     },
     {
       "advance": true
+    },
+    {
+      "action": {
+        "kind": "load_slot",
+        "sourceId": "guardian",
+        "slotIndex": 0,
+        "cardInstanceId": "steady_strike_1"
+      }
+    },
+    {
+      "action": {
+        "kind": "load_slot",
+        "sourceId": "guardian",
+        "slotIndex": 1,
+        "cardInstanceId": "steady_strike_7"
+      }
+    },
+    {
+      "advance": true
     }
   ]
 }

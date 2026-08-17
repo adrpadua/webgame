@@ -93,6 +93,12 @@ export const escalationThresholdSchema = z.object({
   boss_damage_bonus: z.number().int().min(0).default(0),
   extra_spawn_count: z.number().int().min(0).default(0),
   minion_damage_bonus: z.number().int().min(0).default(0),
+  // Structural thresholds (D-031): hexes permanently Scorched when this
+  // threshold is crossed, so escalation is felt as the arena closing rather
+  // than as another damage number. Authored per hex and validated — no
+  // authored hex may be adjacent to the Boss, or the Guarded Front itself
+  // could burn and the Tank's own answer would become unreachable.
+  scorch_hexes: z.array(axialSchema).default([]),
 })
 
 export const bossProgramSchema = z.object({

@@ -24,7 +24,9 @@ Status labels: `Now` means content/design work can begin after its stated proof;
 | 6 | Multi-Hero party model | Role-targeted raid content has no playable validation path. | Multiple Hero configs, committed intents, selector fallback/ties, Downed/Revive lifecycle, party HUD. |
 | 7 | ~~Escalation as the single clock~~ Shipped 2026-08-17 (D-023, ADR 0027): counted `0`–`5` value, ticks from `Encounter Clock - 4`, authored per-Beat acceleration, four threshold effects, top threshold ends the fight. Remaining: an Escalation gauge on the HUD, and raising Embermaw's Brood Call penalty above `0` once a Whelp answer exists. | The stalemate wall rested on a health value that better play erodes, and Damage owned nothing structural. | Sweep and Scenarios regenerated; `checkpoint%` unchanged on all twelve prior policies; the new `turtle` policy measures the enrage wall. |
 | 8 | ~~Forecast Row and staged Beat disclosure~~ Shipped 2026-08-17 (D-021, ADR 0026): `forecast()` projection, a third row on the strip, `consequence_tier` authored on every Beat with the ladder enforced by tests. Remaining: no `Severe` Beat exists yet, so that tier is unexercised, and the severe styling branch has no content to render. | The `Severe` consequence tier had nowhere to appear, so Telegraph Proportionality was unenforceable. | Engine tests cover the projection, rotation, looping, purity, and the ladder; the row was verified rendering in the built app at portrait width. |
-| 9 | Module Slot and Raid Seed (D-024) | Without bounded variation the Forecast Row carries no information for a returning player, and attempts cannot be compared across groups. | One authored slot per Boss Program, seed-driven module selection settled before Forecast, and a printed seed value. Selection must obey D-022. |
+| 9 | Commitments (D-028) | Preparing for a named future Beat lives in Status Effects rather than on the Timeline, so D-027's Timeline conversion rate stays an observer's judgement instead of a count. | A card effect bound to a named Beat, resolving with it, visible to the Party; Fortify migrated onto it. |
+| 10 | Encounter Responsibilities (D-029) | Repeat clears have no social variation, and decision concentration has no structural lever beyond demand density. | An assignable transferable duty independent of Archetype, plus its handoff action. Needs the Party model. |
+| 11 | Module Slot and Raid Seed (D-024) | Without bounded variation the Forecast Row carries no information for a returning player, and attempts cannot be compared across groups. | One authored slot per Boss Program, seed-driven module selection settled before Forecast, and a printed seed value. Selection must obey D-022. |
 
 ## Later
 
@@ -32,6 +34,7 @@ Status labels: `Now` means content/design work can begin after its stated proof;
 - Class-resource and tank Threat content after multi-Hero targeting exists.
 - Raid-run rewards, branching nodes, and deck evolution after a single encounter has a proven card curve.
 - Per-card art and final VFX after interaction and pattern readability pass mobile tests.
+- Archive/Echo (D-030): a bounded per-Boss option held until a second Boss exists whose identity is memory. Embermaw does not take it.
 
 ## Probe Policy
 

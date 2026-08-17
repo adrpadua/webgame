@@ -143,6 +143,12 @@ What an off-role answer may **cost** is a Hero-design question, and the premium 
 
 The vocabulary is fixed and the pricing is per card, deliberately. A single standardized currency would route every off-role answer through one resource some role does not have; free-form costs with no vocabulary would be unlearnable. A fixed list lets a player recognize the *shape* of an off-role answer on a card they have never seen. Two prohibitions: never price an off-role answer so cheaply that the suited role's ownership stops mattering, and never write a hard lock (`[HEALER ONLY]`) where a premium would do.
 
+## Commitments
+
+A card whose job is to answer a *named future* Boss Beat should be authored as a **Commitment** rather than as a Status Effect that happens to land at the right moment (D-028, see the [Encounter Design Bible](encounter-design-bible.md)). Fortify is the first of them: its fiction is "prepare for what is coming," and binding it to the Beat it answers makes that fiction visible to the whole Party instead of hidden in the Hero's status list.
+
+Two authoring consequences. A Commitment may only bind to a Beat whose parameters are disclosed, so a card cannot promise preparation against something the party can only see at family level. And a Commitment prepares — it never redirects a Beat's target or changes what the Beat is; those belong to positioning and Threat, not to card text.
+
 ## Card Family Guidance
 
 Give every card a deliberate place in the machine. For an initial 20-card deck, aim for five to seven card identities with copies, not twenty isolated mini-rules.
