@@ -54,6 +54,19 @@ Two assignments that follow from that split, settled when the last non-material 
 - **A player's `attack` effect is ember coral, not ember.** It is damage the player *deals*, and it lands on the Boss's body — the board already flashes the Boss in coral when a strike resolves, so the card's effect tone matches what its strike does. Damage *taken* by the player is ember. Dealt and taken are the one warm family at two saturations, the same way Boss and Minion are.
 - **A Status Effect on the Hero is living gold.** Riposte Ready is the Hero's own oathcraft acting — the gate catching a blow and turning — so it wears the material of every mechanism the player operates, not a warning colour.
 
+### A Material Picks Its Step From The Ground It Sits On
+
+A material is one column in the table and several steps in the ramp, and which step is correct is decided by what is behind it, not by the element's name. The Hero emblem is the case that keeps being read as drift: it is `cloth-500` on the Stat Panel and `cloth-300` in the How to Play guide, and both are right.
+
+| Emblem | Ground | Ratio |
+| --- | --- | --- |
+| `cloth-500` | Aether ceramic (`ceramic-300`) | 6.18:1 |
+| `cloth-300` | Aether ceramic | 2.15:1 |
+| `cloth-300` | Void navy / oathsteel well | 7.52:1 |
+| `cloth-500` | Void navy / oathsteel well | 2.62:1 |
+
+Each shade clears 1.4.11 on its own ground and fails on the other, so unifying them would break one of the two. **The dark step goes on ceramic, the light step goes on steel.** The same reading applies to any material used on both a pale read-out and a dark well; the material stays the same, the step follows the ground.
+
 ## Texture, And What Is Banned
 
 This is the constraint that settles most arguments: **the illustrations are flat cel shading with minimal gradients, so the interface must be too.** A UI built from soft shadows and frosted blur sits on top of hand-drawn card art like a different game.
