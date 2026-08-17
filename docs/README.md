@@ -10,6 +10,7 @@ Use this directory for the durable record of how the game works and why it is bu
 - [rules/mechanical-pillars-and-inspirations.md](rules/mechanical-pillars-and-inspirations.md): which reference games inform the design, and what this repo is not trying to import from them
 - [content](content): authored decks, encounters, boss scripts, and role kits
 - [content/oathcraft-interface-direction.md](content/oathcraft-interface-direction.md): the locked interface direction — materials, palette, plate geometry, components
+- [content/oathcraft-board-direction.md](content/oathcraft-board-direction.md): the locked board direction — tints, lighting, and motion, consuming the palette above
 - [content/design-team-handoff.md](content/design-team-handoff.md): supported Resource schemas and the designer validation/playtest loop
 - [artifacts](artifacts): catalog of implementation and gameplay artifacts — see its [README](artifacts/README.md) first, because most of it is a Godot-era record
 - [agents](agents): repository-maintenance material for coding agents, including the [agent recovery kit](agents/recovery-kit.md) and copy-ready role prompts
