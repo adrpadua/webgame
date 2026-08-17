@@ -562,6 +562,15 @@ try {
   // Walk to the Quick Window and select a card, so the measurements below
   // run against the busiest state the phone ever shows: the move pad out
   // beside the board.
+  // Park the cursor somewhere harmless before the touch-only section. Clicking
+  // Skip leaves the mouse resting where that button was, and an element that
+  // later lays out under a stationary cursor gets a real pointerenter — so the
+  // first-turn cue opens its own hover popover, and the singleton popup surface
+  // shows that instead of the card's. A touch device cannot be in that state at
+  // all, so leaving the cursor there makes this section measure something no
+  // player experiences: it broke the moment a row was added above the cue,
+  // 42px being enough to move it under the pointer.
+  await phone.mouse.move(5, 500)
   // Touch has no hover, so it keeps press-and-hold: the same detail, opened
   // by holding a finger down and dismissed on release.
   const phoneCard = phone.locator('[data-testid="hand-card"]').first()

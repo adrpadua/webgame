@@ -90,16 +90,22 @@ export function ProgramStrip() {
   )
 }
 
-// The outer horizon, and it must read as the faintest thing on the strip: a
-// dashed title chip for the program, then its counter tags as secondary text.
-// Giving the tags their own weight keeps the actionable half — what to hold in
-// reserve — from being swallowed by the program's name.
+// The outer horizon: a dashed title chip for the program, then its counter tags
+// as secondary text, so the actionable half — what to hold in reserve — is not
+// swallowed by the program's name.
+//
+// The dashed border is what marks this row as not-yet-real, NOT a dimmer text
+// colour. The first version reached for steel-600 to make Forecast the faintest
+// row on the strip and landed at 2.35:1, well under WCAG AA; steel-500 is the
+// palette's quiet-label step precisely because it is the dimmest value that
+// still clears 4.5:1. A hierarchy built out of unreadable text is not a
+// hierarchy.
 function ForecastRow({ ahead }: { ahead: Forecast }) {
   const hold = useHold(forecastDetail(ahead))
   const severe = ahead.tier === 'severe'
   return (
     <div className="flex items-center gap-2 pb-1" data-testid="forecast-row">
-      <span className="w-16 shrink-0 text-[11px] font-semibold text-zinc-600">Forecast</span>
+      <span className="w-16 shrink-0 text-[11px] font-semibold text-steel-500">Forecast</span>
       <div
         {...hold.holdProps}
         data-testid="forecast-chip"
@@ -109,13 +115,13 @@ function ForecastRow({ ahead }: { ahead: Forecast }) {
       >
         <span
           className={`rounded border border-dashed px-1.5 py-0.5 text-[11px] ${
-            severe ? 'border-coral-700/80 text-coral-300' : 'border-zinc-700 text-zinc-400'
+            severe ? 'border-coral-700/80 text-coral-300' : 'border-steel-700 text-steel-400'
           }`}
         >
           {ahead.title}
         </span>
         {ahead.counterTags.length > 0 && (
-          <span className="text-[9px] tracking-widest text-zinc-600 uppercase">{ahead.counterTags.join(' · ')}</span>
+          <span className="text-[9px] tracking-widest text-steel-500 uppercase">{ahead.counterTags.join(' · ')}</span>
         )}
       </div>
     </div>
