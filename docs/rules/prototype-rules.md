@@ -86,6 +86,7 @@ The playable surface is the web Encounter Workbench (ADR 0019): the portrait pla
 - Movement spends a hand card for `1 Stamina` toward an adjacent legal hex during the Quick Window.
 - `Next` drives phase progression. Board Feedback derives every motion from Resolution Facts, so the board never shows a blow the Encounter did not resolve.
 - A first-time player's Round 1 runs the Scripted First Turn, gating input to one control at a time; it carries a `Skip` and retires once finished or skipped.
+- The Escalation gauge sits in the Boss Program strip's header and stays visible when the strip collapses: five pips, filled for each band crossed, with the top band ringed because it ends the fight. Its Detail Popup names every band, quotes the Encounter's enrage line for the last, and says when automatic ticks begin.
 
 ## Resources
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { currentProgram, forecast, type BossBeat, type BossProgram, type Forecast } from '@/engine'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
+import { EscalationGauge } from './EscalationGauge'
 import { beatDetail, forecastDetail, programDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
 import { FOCUS_RING_CLASS } from './theme'
@@ -64,21 +65,27 @@ export function ProgramStrip() {
   }
   return (
     <div className="border-b border-steel-800 bg-steel-950/60 px-4 py-1" data-testid="program-strip" data-expanded={expanded}>
-      <button
-        type="button"
-        {...headerHold.holdProps}
-        onClick={() => {
-          if (!headerHold.consumeHold()) {
-            setExpanded((current) => !current)
-          }
-        }}
-        aria-expanded={expanded}
-        aria-label={`${program.title}: hold for the full boss program`}
-        className={`flex min-h-11 w-full items-center justify-between text-[10px] tracking-widest text-steel-500 uppercase ${FOCUS_RING_CLASS}`}
-      >
-        <span>{program.title}</span>
-        <span aria-hidden="true">{expanded ? '▾' : '▸'}</span>
-      </button>
+      <div className="flex min-h-11 items-center justify-between gap-3">
+        <button
+          type="button"
+          {...headerHold.holdProps}
+          onClick={() => {
+            if (!headerHold.consumeHold()) {
+              setExpanded((current) => !current)
+            }
+          }}
+          aria-expanded={expanded}
+          aria-label={`${program.title}: hold for the full boss program`}
+          // The caret stays beside the title it collapses. Pushing it to the
+          // button's far edge stranded it mid-row once the gauge took the
+          // right, where it read as part of the gauge's label.
+          className={`flex min-h-11 min-w-0 flex-1 items-center justify-start gap-2 text-[10px] tracking-widest text-steel-500 uppercase ${FOCUS_RING_CLASS}`}
+        >
+          <span className="truncate">{program.title}</span>
+          <span aria-hidden="true">{expanded ? '▾' : '▸'}</span>
+        </button>
+        <EscalationGauge state={state} enrageText={state.enrageText} />
+      </div>
       {expanded && (
         <div {...rowsHold.holdProps}>
           {ahead && <ForecastRow ahead={ahead} />}
