@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { loadCatalog } from '@/content'
+import { cardSchema } from './content/schemas'
 import {
   advancePhase,
   buildEncounterRecord,
@@ -65,6 +66,24 @@ describe('content catalog', () => {
     expect(catalog.encounters.embermaw_prototype.boss_programs).toEqual(['embermaw_hunt', 'embermaw_embers', 'embermaw_brood'])
     expect(catalog.encounters.embermaw_prototype.player_deck.reduce((total, entry) => total + entry.copies, 0)).toBe(20)
     expect(catalog.decks.aegis_controlled_test_deck.encounter).toBe('embermaw_prototype')
+  })
+
+  // ADR 0022 removed Presence. The schema strips keys it does not declare
+  // rather than rejecting them, so a card reintroducing the stat would load
+  // silently and carry a field nothing reads — which is how a deleted
+  // concept comes back. Pin both halves: no card declares it, and a card
+  // that tries does not keep it.
+  it('carries no trace of Presence (ADR 0022)', () => {
+    for (const card of Object.values(catalog.cards)) {
+      expect(Object.keys(card).filter((key) => key.includes('presence'))).toEqual([])
+    }
+    const parsed = cardSchema.parse({
+      id: 'presence_probe',
+      title: 'Presence Probe',
+      speed: 'quick',
+      presence_delta: 2,
+    })
+    expect(parsed).not.toHaveProperty('presence_delta')
   })
 })
 

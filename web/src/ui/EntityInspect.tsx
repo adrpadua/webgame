@@ -240,6 +240,10 @@ export function EntityInspect() {
         {/* A Minion is an Enemy, never a Hero: it wears the Enemy emblem in
             its own tone, not the Hero's blue. */}
         {isHero ? (
+          // cloth-500 here and cloth-300 in the guide is not a disagreement:
+          // the step follows the ground. The dark step reads on this ceramic
+          // face at 6.18:1 where the light one manages 2.15:1, and the two
+          // swap over on the guide's dark wells.
           <HeroEmblem className="h-4 w-4 text-cloth-500" />
         ) : (
           <BossEmblem className={`h-4 w-4 ${isBoss ? 'text-coral-400' : 'text-coral-500'}`} />
