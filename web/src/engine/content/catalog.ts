@@ -131,21 +131,27 @@ function indexById<T extends { id: string }>(entries: ParsedEntry<T>[], label: s
   return result
 }
 
+function sourceAwareLabel<T extends { id: string }>(entries: ParsedEntry<T>[], label: string): (id: string) => string {
+  const sources = new Map(entries.map((entry) => [entry.value.id, entry.source]))
+  return (id) => {
+    const source = sources.get(id)
+    return source === undefined || source === '' ? `${label} ${id}` : `${label} ${id} (${source})`
+  }
+}
+
 // Parses every payload and validates cross-references, taking over the job
 // the frozen ContentValidator.gd did for .tres resources (ADR 0020).
 export function buildCatalog(raw: RawContent): ContentCatalog {
+  const parsedCards = parseAll(raw.cards, cardSchema, 'card')
+  const cardAt = sourceAwareLabel(parsedCards, 'Card')
   // Encounters are parsed to one side so their source files stay reachable
   // below: an Encounter carries the arena rules, so it is where a
   // cross-reference failure most needs to name the file.
   const parsedEncounters = parseAll(raw.encounters, encounterSchema, 'encounter')
-  const encounterSource = new Map(parsedEncounters.map((entry) => [entry.value.id, entry.source]))
-  const encounterAt = (id: string): string => {
-    const source = encounterSource.get(id)
-    return source === undefined || source === '' ? `Encounter ${id}` : `Encounter ${id} (${source})`
-  }
+  const encounterAt = sourceAwareLabel(parsedEncounters, 'Encounter')
 
   const catalog: ContentCatalog = {
-    cards: indexById(parseAll(raw.cards, cardSchema, 'card'), 'card'),
+    cards: indexById(parsedCards, 'card'),
     keywords: indexById(parseAll(raw.keywords, keywordSchema, 'keyword'), 'keyword'),
     chargeModifiers: indexById(parseAll(raw.chargeModifiers, chargeModifierSchema, 'charge modifier'), 'charge modifier'),
     hazards: indexById(parseAll(raw.hazards, hazardSchema, 'hazard'), 'hazard'),
@@ -158,6 +164,16 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
   }
 
   for (const card of Object.values(catalog.cards)) {
+    if (card.push_tiles > 0 && card.pull_tiles > 0) {
+      throw new Error(`${cardAt(card.id)} declares both push_tiles and pull_tiles`)
+    }
+    const displacementField = card.push_tiles > 0 ? 'push_tiles' : card.pull_tiles > 0 ? 'pull_tiles' : ''
+    if (displacementField !== '' && card.target_type !== 'piece') {
+      throw new Error(`${cardAt(card.id)} declares ${displacementField} but does not target a piece`)
+    }
+    if (displacementField !== '' && card.range_tiles < 1) {
+      throw new Error(`${cardAt(card.id)} declares ${displacementField} but has range_tiles below 1`)
+    }
     for (const modifierId of card.charge_modifiers) {
       if (!catalog.chargeModifiers[modifierId]) {
         throw new Error(`Card ${card.id} references unknown charge modifier ${modifierId}`)

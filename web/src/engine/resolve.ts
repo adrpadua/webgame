@@ -1,6 +1,6 @@
-import { addEntity, addHazard, advanceBoardRound, damageEntity, getHazards, isGuardedFront, moveEntity } from './board'
-import { axialSubtract } from './hex'
-import { directionForAxialDelta, FACING_NW } from './facing'
+import { addEntity, addHazard, advanceBoardRound, damageEntity, facingToward, getHazards, isGuardedFront, isOccupied, isOnBoard, moveEntity } from './board'
+import { axialAdd, axialSubtract, type Axial } from './hex'
+import { axialDeltaFor, directionForAxialDelta, FACING_NW } from './facing'
 import type { ContentCatalog } from './content/catalog'
 import type { Card } from './content/schemas'
 import { resolveFire } from './cardResolver'
@@ -206,6 +206,16 @@ function resolveOne(
           reasonText: card.title,
         })
       }
+      if (effects.pushTiles > 0 || effects.pullTiles > 0) {
+        generated.push({
+          kind: 'displace_piece',
+          sourceId: action.sourceId,
+          targetId: action.targetId ?? '',
+          distance: effects.pushTiles > 0 ? effects.pushTiles : effects.pullTiles,
+          movement: effects.pushTiles > 0 ? 'push' : 'pull',
+          reasonText: card.title,
+        })
+      }
       generated.push(...slotFiredStatusActions(draft, action.sourceId))
       break
     }
@@ -217,17 +227,11 @@ function resolveOne(
       moveEntity(draft.board, action.sourceId, action.destination)
       draft.board.entities[action.sourceId].facing = directionForAxialDelta(axialSubtract(action.destination, fromCoords))
       succeed(fact)
-      for (const hazard of getHazards(draft.board, action.destination)) {
-        if (hazard.enterDamage > 0) {
-          generated.push({
-            kind: 'damage',
-            sourceId: 'hazard',
-            targetId: action.sourceId,
-            amount: hazard.enterDamage,
-            reasonText: hazard.id,
-          })
-        }
-      }
+      generated.push(...hazardEntryActions(draft, action.sourceId, action.destination))
+      break
+    }
+    case 'displace_piece': {
+      resolveDisplacement(draft, action, fact, generated)
       break
     }
     case 'resolve_boss': {
@@ -443,6 +447,66 @@ function resolveOne(
   }
 }
 
+function resolveDisplacement(
+  draft: EncounterState,
+  action: Extract<EncounterActionInput, { kind: 'displace_piece' }>,
+  fact: ResolvedActionFact,
+  generated: EncounterActionInput[],
+): void {
+  const source = draft.board.entities[action.sourceId]
+  const target = draft.board.entities[action.targetId]
+  if (!source || !target) {
+    fail(fact, 'The displacement target is unavailable.')
+    return
+  }
+
+  const from = { ...target.coords }
+  const entered: Axial[] = []
+  const requestedDistance = Math.max(Math.floor(action.distance), 0)
+  let stopReason: 'complete' | 'edge' | 'occupied' = 'complete'
+  for (let step = 0; step < requestedDistance; step += 1) {
+    const direction =
+      action.movement === 'pull'
+        ? facingToward(target.coords, source.coords, target.facing)
+        : facingToward(source.coords, target.coords, target.facing)
+    const destination = axialAdd(target.coords, axialDeltaFor(direction))
+    if (!isOnBoard(draft.board, destination)) {
+      stopReason = 'edge'
+      break
+    }
+    if (isOccupied(draft.board, destination, action.targetId)) {
+      stopReason = 'occupied'
+      break
+    }
+    moveEntity(draft.board, action.targetId, destination)
+    entered.push({ ...destination })
+  }
+
+  fact.resolutionFact = {
+    from,
+    to: { ...target.coords },
+    requested_distance: requestedDistance,
+    actual_distance: entered.length,
+    stop_reason: stopReason,
+  }
+  succeed(fact)
+  for (const coords of entered) {
+    generated.push(...hazardEntryActions(draft, action.targetId, coords))
+  }
+}
+
+function hazardEntryActions(draft: EncounterState, targetId: string, coords: Axial): EncounterActionInput[] {
+  return getHazards(draft.board, coords)
+    .filter((hazard) => hazard.enterDamage > 0)
+    .map((hazard) => ({
+      kind: 'damage' as const,
+      sourceId: 'hazard',
+      targetId,
+      amount: hazard.enterDamage,
+      reasonText: hazard.id,
+    }))
+}
+
 function succeed(fact: ResolvedActionFact): void {
   fact.succeeded = true
   fact.reason = ''
@@ -628,6 +692,8 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: `Fire Slot ${action.slotIndex + 1}`, detail }
     case 'move_hero':
       return { title: `Move to (${action.destination.q}, ${action.destination.r})`, detail }
+    case 'displace_piece':
+      return { title: `${action.movement === 'push' ? 'Push' : 'Pull'} ${action.targetId} ${action.distance}`, detail }
     case 'resolve_boss':
       return { title: `Boss Beat: ${action.beat.title}`, detail: { beatId: action.beat.id, beatTitle: action.beat.title, track: action.track } }
     case 'apply_hazard':

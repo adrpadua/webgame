@@ -274,6 +274,47 @@ describe('board effects', () => {
     expect(cast?.tone).toBe('guard')
     expect(cast?.label).toBe(`+${after.heroes[hero.id].armor - before}`)
   })
+
+  it('shows a pure shove as a Hero lunge followed by the target move', () => {
+    const variant = structuredClone(catalog)
+    variant.cards.shove_test = {
+      ...variant.cards.sweeping_blow,
+      id: 'shove_test',
+      title: 'Shove Test',
+      damage: 0,
+      range_tiles: 2,
+      push_tiles: 1,
+      pull_tiles: 0,
+    }
+    let state = createEncounterState(variant, FIRST_TURN_ENCOUNTER_ID)
+    state = resolve(variant, state, {
+      kind: 'spawn_minion',
+      sourceId: state.bossId,
+      minionId: 'shove_target',
+      coords: { q: -1, r: 0 },
+      minionContentId: 'ember_whelp',
+    }).state
+    state.phase = 'quick'
+    state.heroes[state.primaryHeroId].actionBar[0] = {
+      topCard: { instanceId: 'shove', cardId: 'shove_test' },
+      charges: [{ instanceId: 'charge', cardId: 'iron_guard' }],
+      activatedWindow: null,
+      placedThisLoadout: false,
+    }
+    const result = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetId: 'shove_target',
+    })
+    const effects = deriveBoardEffects(variant, state, result.state, result.facts)
+    expect(effects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'strike', entityId: state.primaryHeroId, toward: { q: -1, r: 0 }, tone: 'hero' }),
+        expect.objectContaining({ kind: 'move', entityId: 'shove_target', from: { q: -1, r: 0 }, at: { q: -2, r: 0 }, tone: 'hero' }),
+      ]),
+    )
+  })
 })
 
 describe('floater lanes', () => {

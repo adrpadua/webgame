@@ -43,6 +43,8 @@ export const cardSchema = z.object({
   boss_damage: z.number().int().default(0),
   range_tiles: z.number().int().default(0),
   damage: z.number().int().default(0),
+  push_tiles: z.number().int().min(0).default(0),
+  pull_tiles: z.number().int().min(0).default(0),
   tags: z.array(z.string()).default([]),
   charge_modifiers: z.array(z.string()).default([]),
   // The status this card applies, if any (D-033). Where it lands comes from

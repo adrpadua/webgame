@@ -7,6 +7,8 @@ export interface FireEffects {
   healing: number
   bossDamage: number
   targetDamage: number
+  pushTiles: number
+  pullTiles: number
 }
 
 function matchingCount(modifier: ChargeModifier, chargeStack: Card[]): number {
@@ -25,6 +27,8 @@ export function resolveFire(catalog: ContentCatalog, card: Card, chargeStack: Ca
     healing: card.healing,
     bossDamage: card.boss_damage,
     targetDamage: card.damage,
+    pushTiles: card.push_tiles,
+    pullTiles: card.pull_tiles,
   }
   for (const modifierId of card.charge_modifiers) {
     const modifier = catalog.chargeModifiers[modifierId]

@@ -5,13 +5,14 @@ import type { Phase } from './types'
 export const ENCOUNTER_SOURCE = 'encounter'
 
 // Every mutation rides one of these action kinds. The first seventeen mirror
-// the frozen reference EncounterAction catalog one-for-one; `gain_escalation`
-// is the one addition past it (ADR 0027).
+// the frozen reference EncounterAction catalog one-for-one; generated
+// Escalation and Forced Movement actions extend it (ADRs 0027 and 0029).
 export type EncounterActionInput =
   | { kind: 'load_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
   | { kind: 'charge_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
   | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string }
   | { kind: 'move_hero'; sourceId: string; destination: Axial; cardInstanceId: string }
+  | { kind: 'displace_piece'; sourceId: string; targetId: string; distance: number; movement: 'push' | 'pull'; reasonText: string }
   | { kind: 'resolve_boss'; sourceId: string; beat: BossBeat; track: 'instant' | 'incoming' }
   | { kind: 'apply_hazard'; sourceId: string; coords: Axial; hazardId: string | null; fallbackDurationRounds: number; permanent?: boolean }
   | { kind: 'spawn_minion'; sourceId: string; minionId: string; coords: Axial; minionContentId?: string }

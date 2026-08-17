@@ -54,7 +54,11 @@ function detailString(fact: ResolvedActionFact, key: string): string {
 }
 
 function detailAxial(fact: ResolvedActionFact, key: string): Axial | null {
-  const value = fact.detail[key] as Axial | undefined
+  return axialFrom(fact.detail, key)
+}
+
+function axialFrom(source: Record<string, unknown> | undefined, key: string): Axial | null {
+  const value = source?.[key] as Axial | undefined
   return value && typeof value.q === 'number' && typeof value.r === 'number' ? { q: value.q, r: value.r } : null
 }
 
@@ -96,7 +100,7 @@ export function deriveBoardEffects(
         if (!card || !from) {
           break
         }
-        if (card.boss_damage > 0 || card.damage > 0) {
+        if (card.boss_damage > 0 || card.damage > 0 || card.push_tiles > 0 || card.pull_tiles > 0) {
           const targetId = detailString(fact, 'targetId')
           const toward = (targetId !== '' ? coordsOf(before, targetId) : bossCoords) ?? bossCoords ?? undefined
           add({ kind: 'strike', entityId: fact.sourceId, at: from, toward: toward ?? undefined, tone: 'hero' })
@@ -170,6 +174,16 @@ export function deriveBoardEffects(
         const origin = coordsOf(before, fact.sourceId)
         if (destination && origin) {
           add({ kind: 'move', entityId: fact.sourceId, at: destination, from: origin, tone: 'hero' })
+        }
+        break
+      }
+
+      case 'displace_piece': {
+        const from = axialFrom(fact.resolutionFact, 'from')
+        const to = axialFrom(fact.resolutionFact, 'to')
+        const targetId = detailString(fact, 'targetId')
+        if (from && to && targetId !== '' && numberFrom(fact.resolutionFact, 'actual_distance') > 0) {
+          add({ kind: 'move', entityId: targetId, at: to, from, tone: 'hero' })
         }
         break
       }

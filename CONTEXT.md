@@ -110,6 +110,10 @@ _Avoid_: Delayed buff, second Armor pool
 A board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex. Most Hazards are temporary and expire at a Round boundary; a Hazard placed by a structural Escalation Threshold is permanent, because the arena does not recover from it.
 _Avoid_: Surprise damage, ambient effect
 
+**Forced Movement**:
+Movement imposed on a target by an effect rather than paid for with Stamina. A Push moves the target away from the effect's source; a Pull moves it toward that source. Forced Movement advances one hex at a time, stops before an occupied or off-board hex, and may partially succeed or succeed at zero distance. It ignores restrictions that block voluntary movement, but every entered Hazard still resolves. It never changes the moved piece's facing and grants no immunity to a piece on the Guarded Front (ADR 0029).
+_Avoid_: Free move, teleport, knockback
+
 **Boss**:
 The primary Enemy that owns the Boss Timeline and is the encounter's victory target. A Boss is never a Minion.
 _Avoid_: Enemy, boss enemy

@@ -153,6 +153,64 @@ describe('content catalog', () => {
         'Duplicate keyword id "guard": defined in data/keywords/guard.json and again in data/keywords/guard_copy.json',
       )
     })
+
+    it('rejects forced movement without a ranged piece target and names its file', () => {
+      const bad = {
+        source: 'data/cards/bulwark_shove.json',
+        payload: { id: 'bulwark_shove', title: 'Bulwark Shove', speed: 'quick', push_tiles: 2 },
+      }
+      expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow(
+        'Card bulwark_shove (data/cards/bulwark_shove.json) declares push_tiles but does not target a piece',
+      )
+    })
+
+    it('rejects a card that declares both push and pull', () => {
+      const bad = {
+        source: 'data/cards/indecisive_shove.json',
+        payload: {
+          id: 'indecisive_shove',
+          title: 'Indecisive Shove',
+          speed: 'quick',
+          target_type: 'piece',
+          range_tiles: 1,
+          push_tiles: 1,
+          pull_tiles: 1,
+        },
+      }
+      expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow(
+        'Card indecisive_shove (data/cards/indecisive_shove.json) declares both push_tiles and pull_tiles',
+      )
+    })
+
+    it('rejects forced movement with no authored range', () => {
+      const bad = {
+        source: 'data/cards/short_shove.json',
+        payload: { id: 'short_shove', title: 'Short Shove', speed: 'quick', target_type: 'piece', push_tiles: 1 },
+      }
+      expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow(
+        'Card short_shove (data/cards/short_shove.json) declares push_tiles but has range_tiles below 1',
+      )
+    })
+
+    it('loads a data-only shove Card with no engine registration step', () => {
+      const authored = {
+        source: 'data/cards/bulwark_shove.json',
+        payload: {
+          id: 'bulwark_shove',
+          title: 'Bulwark Shove',
+          speed: 'quick',
+          target_type: 'piece',
+          range_tiles: 2,
+          push_tiles: 1,
+        },
+      }
+      expect(buildCatalog({ ...empty, cards: [authored] }).cards.bulwark_shove).toMatchObject({
+        target_type: 'piece',
+        range_tiles: 2,
+        push_tiles: 1,
+        pull_tiles: 0,
+      })
+    })
   })
 })
 
@@ -1325,6 +1383,196 @@ describe('Stamina movement', () => {
       cardInstanceId: hero(state).hand[0]?.instanceId ?? 'missing',
     })
     expect(backOntoScorched.legal).toBe(false)
+  })
+})
+
+describe('forced movement cards', () => {
+  function withDisplacementCard(patch: Record<string, unknown>) {
+    const variant = structuredClone(catalog)
+    variant.cards.shove_test = {
+      ...variant.cards.sweeping_blow,
+      id: 'shove_test',
+      title: 'Shove Test',
+      damage: 0,
+      range_tiles: 2,
+      push_tiles: 0,
+      pull_tiles: 0,
+      ...patch,
+    }
+    return variant
+  }
+
+  function readyToFire(variant: ReturnType<typeof withDisplacementCard>, targetCoords: { q: number; r: number }) {
+    let state = start()
+    state = resolve(variant, state, {
+      kind: 'spawn_minion',
+      sourceId: state.bossId,
+      minionId: 'shove_target',
+      coords: targetCoords,
+      minionContentId: 'ember_whelp',
+    }).state
+    state.phase = 'quick'
+    hero(state).actionBar[0] = {
+      topCard: card('shove', 'shove_test'),
+      charges: [card('charge', 'iron_guard')],
+      activatedWindow: null,
+      placedThisLoadout: false,
+    }
+    return state
+  }
+
+  it('pushes a piece away from the firing Hero one hex at a time', () => {
+    const variant = withDisplacementCard({ push_tiles: 1 })
+    const state = readyToFire(variant, { q: -1, r: 0 })
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetId: 'shove_target',
+    })
+    expect(fired.facts[0].succeeded).toBe(true)
+    expect(fired.state.board.entities.shove_target.coords).toEqual({ q: -2, r: 0 })
+    expect(fired.facts.find((fact) => fact.kind === 'displace_piece')?.resolutionFact).toMatchObject({
+      from: { q: -1, r: 0 },
+      to: { q: -2, r: 0 },
+      requested_distance: 1,
+      actual_distance: 1,
+      stop_reason: 'complete',
+    })
+  })
+
+  it('requires a piece target within the Card range', () => {
+    const variant = withDisplacementCard({ range_tiles: 1, push_tiles: 1 })
+    const state = readyToFire(variant, { q: -2, r: 0 })
+    expect(legality(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })).toMatchObject({
+      legal: false,
+      reason: 'The Top Card needs another piece target.',
+    })
+    expect(
+      legality(variant, state, {
+        kind: 'fire_slot',
+        sourceId: state.primaryHeroId,
+        slotIndex: 0,
+        targetId: 'shove_target',
+      }),
+    ).toMatchObject({ legal: false, reason: "The chosen piece is outside the Top Card's range.", targetRange: 2 })
+  })
+
+  it('still enforces an enemy Status target when the same Card displaces', () => {
+    const variant = withDisplacementCard({ push_tiles: 1, applies_status: 'sundered' })
+    const state = readyToFire(variant, { q: -2, r: 0 })
+    state.board.entities.ally = {
+      id: 'ally',
+      kind: 'hero',
+      coords: { q: -1, r: 0 },
+      health: 10,
+      maxHealth: 10,
+      facing: 3,
+      team: 'party',
+      title: 'Ally',
+    }
+    expect(
+      legality(variant, state, {
+        kind: 'fire_slot',
+        sourceId: state.primaryHeroId,
+        slotIndex: 0,
+        targetId: 'ally',
+      }),
+    ).toMatchObject({ legal: false, reason: 'The Top Card needs an Enemy target.' })
+  })
+
+  it('pulls a piece toward the Hero and stops one hex short', () => {
+    const variant = withDisplacementCard({ pull_tiles: 3 })
+    const state = readyToFire(variant, { q: -2, r: 0 })
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetId: 'shove_target',
+    })
+    expect(fired.state.board.entities.shove_target.coords).toEqual({ q: -1, r: 0 })
+    expect(fired.facts.find((fact) => fact.kind === 'displace_piece')?.resolutionFact).toMatchObject({
+      requested_distance: 3,
+      actual_distance: 1,
+      stop_reason: 'occupied',
+    })
+  })
+
+  it('stops a push at the board edge and records the partial distance', () => {
+    const variant = withDisplacementCard({ push_tiles: 3 })
+    const state = readyToFire(variant, { q: -1, r: 0 })
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetId: 'shove_target',
+    })
+    expect(fired.state.board.entities.shove_target.coords).toEqual({ q: -2, r: 0 })
+    expect(fired.facts.find((fact) => fact.kind === 'displace_piece')?.resolutionFact).toMatchObject({
+      requested_distance: 3,
+      actual_distance: 1,
+      stop_reason: 'edge',
+    })
+  })
+
+  it('treats a fully occupied push as a successful zero-distance displacement', () => {
+    const variant = withDisplacementCard({ push_tiles: 2 })
+    let state = readyToFire(variant, { q: -1, r: 0 })
+    state = resolve(variant, state, {
+      kind: 'spawn_minion',
+      sourceId: state.bossId,
+      minionId: 'blocker',
+      coords: { q: -2, r: 0 },
+      minionContentId: 'ember_whelp',
+    }).state
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetId: 'shove_target',
+    })
+    const displacement = fired.facts.find((fact) => fact.kind === 'displace_piece')
+    expect(displacement).toMatchObject({ succeeded: true })
+    expect(displacement?.resolutionFact).toMatchObject({ actual_distance: 0, stop_reason: 'occupied' })
+    expect(fired.state.board.entities.shove_target.coords).toEqual({ q: -1, r: 0 })
+  })
+
+  it('applies enter damage from a Hazard on the destination hex', () => {
+    const variant = withDisplacementCard({ push_tiles: 1 })
+    let state = readyToFire(variant, { q: -1, r: 0 })
+    state = resolve(variant, state, {
+      kind: 'apply_hazard',
+      sourceId: state.bossId,
+      coords: { q: -2, r: 0 },
+      hazardId: 'scorched',
+      fallbackDurationRounds: 1,
+    }).state
+    const healthBefore = state.board.entities.shove_target.health
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetId: 'shove_target',
+    })
+    expect(fired.state.board.entities.shove_target.health).toBe(healthBefore - 1)
+    expect(fired.facts.some((fact) => fact.kind === 'damage' && fact.sourceId === 'hazard')).toBe(true)
+  })
+
+  it('resolves damage before push so a defeated Minion is never displaced', () => {
+    const variant = withDisplacementCard({ damage: 2, push_tiles: 2 })
+    const state = readyToFire(variant, { q: -1, r: 0 })
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetId: 'shove_target',
+    })
+    expect(fired.state.board.entities.shove_target).toBeUndefined()
+    expect(fired.facts.map((fact) => fact.kind).slice(1, 3)).toEqual(['damage', 'displace_piece'])
+    expect(fired.facts.find((fact) => fact.kind === 'displace_piece')).toMatchObject({
+      succeeded: false,
+      reason: 'The displacement target is unavailable.',
+    })
   })
 })
 
