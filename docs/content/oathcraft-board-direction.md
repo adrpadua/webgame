@@ -65,9 +65,12 @@ Two kinds, and `CONTEXT.md` names both.
 - **two pixels** of travel at most
 - **one Hz** at most
 - **deterministic per piece**, phased from the piece id so no two share a beat and the board never reads as metronomic
-- the body moves while its cast shadow stays on the ground, which is what reads as a lift rather than a slide
 - **yields to Board Feedback** for any piece an effect currently owns, or it layers into a strike as a wobble
 - **off entirely under reduced motion**
+
+**A piece rests the way it moves.** The ambience of a piece that stands is the idle cycle its sheet draws: heat swelling along its veins, a throat brightening, loose plates settling — all of it inside a silhouette whose feet, base, and centre of mass never leave the tile. The bob is a separate thing and belongs only to a piece that **flies**: it raises the body while the cast shadow stays on the ground, and the gap that opens between the two is not a lift, it is flight. Give it to a piece that walks and the piece comes unstuck from the floor. Nothing in the Embermaw encounter flies.
+
+Locomotion is not a state, so this does not break the rule that ambience never distinguishes one piece from another: a piece flies for the whole Encounter or never, and a property that cannot change cannot be misread as a status signal.
 
 The general rule the interface direction states: motion that carries state fires once; ambient motion may loop, but must never distinguish one element from another.
 

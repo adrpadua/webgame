@@ -253,7 +253,7 @@ The transient motion the board plays for a resolved batch of actions: a lunge to
 _Avoid_: Animation state, VFX layer, Board Ambience
 
 **Board Ambience**:
-Continuous board motion that carries no rules information and applies uniformly to every piece, such as the slow bob of a piece at rest. It is never derived from Resolution Facts and never distinguishes one piece from another, which is what keeps it from being read as a state signal. It yields to Board Feedback for any piece an effect currently owns, and it stops entirely under reduced motion.
+Continuous board motion that carries no rules information and applies uniformly to every piece, such as the idle cycle a piece plays at rest. It is never derived from Resolution Facts and never distinguishes one piece from another, which is what keeps it from being read as a state signal. A piece that stands takes its ambience entirely from its idle sheet, which animates inside the silhouette and leaves the feet on the tile; the bob that raises a body off its cast shadow is reserved for a piece that flies, because that gap between body and shadow is what flight looks like. It yields to Board Feedback for any piece an effect currently owns, and it stops entirely under reduced motion.
 _Avoid_: Idle animation, Board Feedback, juice
 
 **Bottom Interaction Zone**:
