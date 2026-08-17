@@ -127,6 +127,8 @@ At round 9, `Worldfire` ends the encounter. It is an explicit end-of-clock failu
 
 ## Phase Break: Molting Roar
 
+> **What ships today (ADR 0023).** The Phase Trigger below is implemented — 18 Health or the start of Round 5, whichever comes first — but Phase II is built from the six Beat kinds the engine already has, at harder values plus the unguarded-Guarded-Front bonus: `embermaw_molting` and `embermaw_ashfall`. The Conflagration package in the round table above (Ashen Brand, Cinderstorm, Molten Tail) is deferred with its delayed markers, board-origin patterns, and rear arcs, and stays authored here for when those land.
+
 At the phase break, Embermaw loses its brittle outer scales:
 
 - turn Embermaw one legal hex edge clockwise;
