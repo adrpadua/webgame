@@ -12,7 +12,7 @@ Every player card has these authored fields:
 | `title` | Short action name, ideally one to three words. It describes what the hero does, not the current encounter. |
 | `rules_text` | Complete, encounter-neutral mechanical text. It is the canonical card rules text. |
 | `speed` | `quick` for basics, setup, movement-adjacent effects, and low-commitment responses; `slow` for larger commitments and signature effects. |
-| `max_charge` | The Top Card's Charge Value: the maximum number of tucked cards it can hold. The default dummy-deck cap is `3`. |
+| `max_charge` | The Top Card's Charge Value: the maximum number of tucked cards it can hold. The engine default is `2`; the foundation cards `Steady Strike` and `Iron Guard` use `3`. |
 | `target_type` and `range_tiles` | Define what must be selected and where it is legal to use the card. Never imply a target in text that the data model does not enforce. |
 | Effect fields | State the base effect in the corresponding data field: Boss damage, Armor, healing, Presence, or targeted Minion damage. |
 | `tags` | Registered Keyword IDs from `resources/keywords/`. |
@@ -57,12 +57,14 @@ Use a clear second sentence such as:
 
 or:
 
-> Gain +1 [effect] for each charged `Shield` card.
+> Gain +1 [effect] for each charged `Guard` card.
 
 Examples:
 
 - `Deal 2 damage to the boss. Gain +1 damage for each charged card.`
-- `Gain 3 Armor. Gain +1 Armor for each charged Shield card.`
+- `Gain 3 Armor. Gain +1 Armor for each charged Guard card.`
+
+A Keyword named in a charge sentence must exist in `resources/keywords/`; do not author a modifier against an unregistered Keyword.
 
 `Charged card` means a card tucked under the same Top Card's Charge Stack. A charged card does not resolve as its own effect. A card may have multiple Keywords; it counts once for each explicit matching check on the Top Card.
 
@@ -79,7 +81,7 @@ A starter card should have one primary role:
 - enemy control
 - resource setup
 
-An incidental rider is acceptable only when it reinforces that job. The dummy deck keeps this deliberately strict: `Steady Strike` is damage and `Iron Guard` is mitigation.
+An incidental rider is acceptable only when it reinforces that job. The default deck keeps this deliberately strict: each of its five identities owns one job (`Steady Strike` damage, `Iron Guard` mitigation, `Sweeping Blow` Minion clearing, `Fortify` Slow preparation, `Shield Slam` the defensive payoff).
 
 ## Action Bar Semantics
 
@@ -110,16 +112,19 @@ Hold a Compact Card to reveal Card Inspection, which shows shared placeholder or
 
 Timing must be visible as text as well as color. Full card art must not encode a rule needed for legal play.
 
-## Dummy Deck Baseline
+## Default Deck Baseline
 
-The first playable deck remains intentionally narrow:
+The live/default deck is the approved five-identity Elian Voss Shield Wall list, specified in [elian-voss-starter.md](../content/decks/elian-voss-starter.md):
 
-| Card | Copies | Base effect | Charge effect |
+| Card | Copies | Base effect | Modifier |
 | --- | ---: | --- | --- |
-| `Steady Strike` | 10 | Deal 2 damage to the boss. | +1 damage per charged card. |
-| `Iron Guard` | 10 | Gain 3 Armor. | +1 Armor per charged `Guard` card. |
+| `Steady Strike` | 8 | Deal 2 damage to the boss. | +1 damage per charged card. |
+| `Iron Guard` | 6 | Gain 3 Armor. | +1 Armor per charged `Guard` card. |
+| `Sweeping Blow` | 2 | Deal 2 damage to a selected adjacent Minion. | — |
+| `Fortify` | 2 | Slow. Gain 6 Armor. | — |
+| `Shield Slam` | 2 | Deal 3 damage to the boss. | A legal activation consumes Riposte Ready for +2 damage. |
 
-This deck tests the choice between firing a reusable Top Card immediately and saving cards to build its Charge Stack. Do not add a third card identity until the two-card loop produces useful slot tension in playtests.
+The deck tests the choice between firing a reusable Top Card immediately and saving cards to build its Charge Stack, plus the Shield Wall role decisions layered on that loop. The historical `10x Steady Strike` / `10x Iron Guard` dummy deck is baseline evidence for the old mechanics shell only. Adding a sixth card identity requires the deck-evaluation evidence in [deck-evaluation-rubric.md](../content/deck-evaluation-rubric.md).
 
 ## Authoring Checklist
 

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = &"sweeping_blow"
 title = "Sweeping Blow"
-rules_text = "Deal 2 damage to a minion on the selected hex."
+rules_text = "Deal 2 damage to a Minion on the selected hex."
 speed = &"quick"
 target_type = 3
 damage = 2

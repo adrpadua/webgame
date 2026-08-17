@@ -1,7 +1,7 @@
 {
   "id": "taunting_challenge",
   "title": "Taunting Challenge",
-  "rules_text": "Deal 1 damage to the boss and gain 2 armor.",
+  "rules_text": "Deal 1 damage to the boss and gain 2 Armor.",
   "speed": "quick",
   "max_charge": 2,
   "target_type": "none",

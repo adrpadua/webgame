@@ -45,6 +45,7 @@ Every authored Hero must name the following before its deck grows beyond the tea
 | Recovery | How can the Hero restart after a bad hand, forced replacement, or disrupted position? | A setback delays the plan; it does not make the Hero nonfunctional. |
 | Spatial expression | Which range, adjacency, facing, or tile relationship reinforces the job? | Ignoring the board makes the Hero noticeably worse. |
 | Counterpressure | Which Boss pressure asks this Hero to choose a different line? | There is no universal best charging sequence. |
+| Signature weakness | What price does this Hero's strength pattern pay? | The weakness is stated up front, visible in play, and not quietly compensated away by another card. A design doc that lists only strengths is half-finished. |
 | Team handoff | What does the Hero enable, protect, or create for another role? | The benefit is actionable and visible, not a vague aura. |
 
 ## Machine Shape
@@ -94,6 +95,10 @@ The role has at least one pressure it addresses more reliably than another role.
 
 When the role responds well, the board makes success visible. Examples include an Armor bar absorbing a Tank Hit, a cleared Minion reopening a route, an ally surviving a telegraphed attack, or a prepared burst window visibly lowering the Boss's health.
 
+## Second Hero Of A Role
+
+A second Hero of an existing role must claim a distinct strength-and-price pattern, not a re-skinned copy of the first. The subclass grammar in the [champion design research note](../content/research/2026-08-16-lol-champion-design-lessons.md) is the working vocabulary: Elian Voss is the Warden-style tank (hold the line, lock the front, protect), so a second tank should claim a different pattern such as the Vanguard (initiation and tempo — forcing Boss facing, opening windows — paid for with weaker sustained mitigation). The same rule applies to future Healers (augment-and-shield versus control-and-deny) and Damage Heroes. Both siblings must still pass the same Role recognition test; what differs is the machine, its signature weakness, and the pressure it answers best.
+
 ## Card Family Guidance
 
 Give every card a deliberate place in the machine. For an initial 20-card deck, aim for five to seven card identities with copies, not twenty isolated mini-rules.
@@ -119,6 +124,9 @@ Captain Elian Voss's machine is currently **Shield Wall**, not holy spellcasting
 | Convert | A `Guard` charge improves a defensive installed module; a Boss Tank Hit that causes `0` Health loss in the Guarded Front grants one Riposte Ready. |
 | Payoff | Consume Riposte Ready with Shield Slam for `+2` Boss damage, absorb the hit that would break the line, or clear a nearby Minion. |
 | Recovery | Replace a Slot during Loadout, retain a partially charged plan where legal, or discard a hand card for Stamina and reposition. |
+| Spatial expression | The Guarded Front: the Boss-facing adjacent hex is where Elian's mitigation and the Riposte loop live. Leaving it costs the payoff condition. |
+| Counterpressure | Targeted Tank Hits (`Raking Claw`) cannot be dodged, only mitigated, so Armor sizing competes with damage progress every Round; telegraphed cones and Whelp spawns pull Elian between holding the Front and answering the board. |
+| Signature weakness | Warden's price: low personal tempo. Elian has no initiation, burst, or cheap repositioning — movement costs a card, and damage beyond Steady Strike must be earned through correct defense. |
 | Team handoff | Deferred until multi-Hero rules exist: Interception is the intended visible rescue tool, but must not enter the live deck before its engine/UI contract passes. |
 
 The key play-feel test: Elian should occasionally choose a lower-damage line because it creates the correct defense for the next known mechanic, then feel smart when that preparation earns a visible Riposte Ready opening. Riposte Ready is one short, non-stacking Status Effect, not a general posture system or extra resource meter. Elian must not build Armor only because larger numbers are generically good, and Shield Slam must not become the automatic next action.
@@ -160,6 +168,7 @@ Before a Hero card or deck enters a controlled playtest, record:
 - role contribution and what Boss pressure makes it relevant;
 - edge cases and invalid actions;
 - Encounter Record facts and focused probe required;
-- a new-player test question that reveals whether the combo was understood.
+- a new-player test question that reveals whether the combo was understood;
+- a completed Design Value Review pass (the section above), with any failed value either resolved or named as an open conversation.
 
 Before promoting a future deck into the default encounter, require the scorecard evidence in `docs/content/deck-evaluation-rubric.md`: both Viability and Play-feel need at least `3/5`; the deck must not be promoted on subjective enthusiasm alone. The Elian Voss Shield Wall migration is a user-approved product exception recorded in `.scratch/product-backlog/issues/04-promote-aegis-starter-deck-to-shield-wall-kit.md`; it does not weaken this rule for later decks.
