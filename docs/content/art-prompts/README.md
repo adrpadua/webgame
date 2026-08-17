@@ -41,8 +41,9 @@ Pre-composed and ready to send:
 
 - [elian-voss-card-prompts.md](elian-voss-card-prompts.md) — all eleven authored Elian cards with every slot filled, sequenced for a single generation session.
 - [board-art-prompts.md](board-art-prompts.md) — hover tile, target tile, and boss crest, with export sizes and wiring steps.
+- [embermaw-sprite-prompts.md](embermaw-sprite-prompts.md) — the Embermaw, Embermaw Phase II, and Whelp idle sheets. **Generated, never hand-edited**: run `python3 tools/compose_sprite_prompts.py` after editing the preamble or the sprite template.
 
-Regenerate either from the preamble and its class template if those change.
+Regenerate any of these from the preamble and their class template if those change.
 
 ## Generation Order
 
