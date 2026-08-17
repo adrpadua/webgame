@@ -133,6 +133,21 @@ Complexity belongs in interactions, not in basic input handling.
 - Make each declared target, range, and timing rejection visible before commitment.
 - Keep long-term mastery in reading the Boss script and choosing a machine configuration, not in discovering hidden rules.
 
+## Design Value Review
+
+Riot's League of Legends champion design names six standing design values — Mastery, Meaningful Choices, Counterplay, Teamplay, Clarity, and Evolution — as a shared review vocabulary. The sourcing and rationale are in the [champion design research note](../content/research/2026-08-16-lol-champion-design-lessons.md). Check every Hero proposal and deck revision against all six, in this project's terms:
+
+| Value | Project test |
+| --- | --- |
+| Mastery | The Hero rewards practiced play — reading the Boss script and choosing a machine configuration — beyond memorizing one rotation. Veteran over-performance is the intended reward, not automatically a balance defect. |
+| Meaningful Choices | Firing versus Charging, holding versus replacing a Slot, and cashing a payoff each have no dominant line. If a decision is a no-brainer, redesign the decision rather than the numbers. |
+| Counterplay | Every Boss pressure the Hero is expected to own has an answer the Hero can actually execute, and every Hero payoff has a condition the Boss design can pressure. |
+| Teamplay | The Hero's job creates or protects something visible for another role (the Team handoff row of the Hero Design Contract). |
+| Clarity | The danger, the legal answer, and the payoff condition are readable from the Boss Timeline, board, and Action Bar without hidden rules or card-text archaeology. |
+| Evolution | The kit leaves authored room to grow — new converters, encounter-specific pressure, later party interactions — without rewriting its settled rules. |
+
+A review that fails one value is not an automatic rejection; it is a named conversation the proposal must resolve before promotion.
+
 ## Content Approval Checklist
 
 Before a Hero card or deck enters a controlled playtest, record:

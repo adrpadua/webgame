@@ -245,5 +245,6 @@ After each first-character session, collect:
 - Did they understand that a zero-Health-loss Tank Hit created a short Shield Slam opening, and why it did or did not trigger?
 - Did Riposte Ready improve a Slot decision rather than make Shield Slam the automatic next action?
 - In party tests, did they predict the Intercept target and one-event expiry correctly?
+- Could the player state Elian's fantasy in one sentence after the session (for example, "I hold the line and turn a perfectly blocked hit into a counterattack")? Treat a miss as a failed theme test even when every mechanical question above scored well; an evocative kit is testable, not an art-pass afterthought.
 
 Promote only results observed in at least three new-player sessions to a balance decision. Keep damage values provisional until then.

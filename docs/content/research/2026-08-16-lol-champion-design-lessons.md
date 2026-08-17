@@ -134,7 +134,7 @@ Source: /dev: On Champion Prototypes, 2016
 - Material spans 2014–2021 and describes Riot's *stated historical* philosophy. Balance-framework numbers were revised in 2020 and no post-2021 primary statement was verified — treat numeric thresholds as illustrative of the method, not current values.
 - Community critiques of Riot target execution, not the philosophy; the claims here are about the philosophy.
 - All "Application" paragraphs are our inference for this project, clearly separated from Riot's statements.
-- Notably absent from surviving evidence (searched, but sources failed fetch or quality checks): Riot's 2016 class/subclass taxonomy (Vanguard/Warden, Juggernaut/Diver, etc.), explicit "power budget" terminology, and a literal champion-design checklist. These parts of the question are answered only indirectly.
+- Notably absent from the adversarially verified evidence (searched, but sources failed fetch or quality checks): Riot's 2016 class/subclass taxonomy, explicit "power budget" terminology, and a literal champion-design checklist. The taxonomy gap was later closed at medium confidence via secondary sources — see the follow-up section at the end of this document; the other two remain answered only indirectly.
 
 ## Open Questions
 
@@ -143,9 +143,43 @@ Source: /dev: On Champion Prototypes, 2016
 3. Does Riot use concrete numeric heuristics for telegraph/windup time versus payoff size? That would directly inform how many Timeline rows of lead each boss-damage tier should get.
 4. Is there an explicit rubric for the uniqueness-vs-accessibility tradeoff per champion at concept stage (target mastery-curve shape, intended audience size) transferable to deciding how hard each hero's deck should be?
 
-## Suggested Next Steps (not yet actioned)
+## Suggested Next Steps (applied 2026-08-16)
 
-1. Add the six design values as a named checklist section in `docs/rules/character-design-bible.md` for hero reviews.
-2. Add a boss-authoring rule to the encounter design docs: damage tier maps to telegraph lead (Instant < Incoming < multi-round), and every Beat must carry at least one counter-tag.
-3. Add the "articulate the fantasy in one sentence" question to the playtest scorecard in `docs/content/heroes/elian-voss-design.md`.
-4. Archive-fetch the 2016 Classes & Subclasses dev blog before starting the second hero, to close the taxonomy gap above.
+1. **Done.** Six design values added as the `Design Value Review` section in `docs/rules/character-design-bible.md`.
+2. **Done.** `Telegraph Proportionality` authoring rules added to the Boss Language section of `docs/content/encounters/embermaw-ashen-trial-design.md`.
+3. **Done.** Fantasy-articulation question added to the Playtest Scorecard in `docs/content/heroes/elian-voss-design.md`.
+4. **Done, with a sourcing caveat.** The 2016 Classes & Subclasses taxonomy is captured in the follow-up section below. The primary URL is dead and every high-quality mirror (Surrender@20, the LoL wikis, Rift Herald) is egress-blocked from this environment, so the definitions were assembled from search-index snippets and secondary coverage rather than a verified primary fetch — treat them as medium confidence and re-verify against an archived primary copy if a design decision ever hinges on exact wording.
+
+## Follow-Up: Riot's 2016 Class/Subclass Taxonomy (medium confidence)
+
+From James "Statikk" Bach's April 2016 dev blog "Classes & Subclasses," via secondary coverage ([The Rift Herald](https://www.riftherald.com/2016/4/19/11460542/league-of-legends-classes-subclasses-riot-games), [ComicBook.com](https://comicbook.com/gaming/news/an-updated-look-at-league-of-legends-subclasses/), [MOBAFire](https://www.mobafire.com/league-of-legends/forum/news/taking-another-look-at-subclasses-41262)). This closes open question 2 above at the taxonomy level; the "power budget" operationalization remains open.
+
+**Stated purpose:** a shared language "to facilitate better, more informed conversations" about "how to make healthy champions and how to better differentiate amongst them." Statikk's own boundary: it is a framework for assessing and comparing champions, "not a set of rules champions need to conform to," and most champions "should break the expectations of their subclass in at least one way" — many are hybrids, and a few fit no subclass.
+
+### The taxonomy
+
+Each subclass is a signature strength paid for by an explicit weakness — the taxonomy is a strengths/weaknesses grammar, not a content list.
+
+| Class | Subclass | Identity | Paid for by |
+| --- | --- | --- | --- |
+| Tank | Vanguard | Offensive tank: leads the charge, explosive fight initiation that catches enemies out of position for allies to follow up (Malphite). | Less sustained lockdown and protection than a Warden. |
+| Tank | Warden | Defensive tank: stands steadfast, holds the line, persistently locks down oncomers, keeps allies out of harm's way (Braum). | Little initiation or kill threat of their own. |
+| Fighter | Juggernaut | Melee titan; the only subclass that excels at both dealing and taking heavy damage. | Low range and extremely limited mobility — struggles to reach targets. |
+| Fighter | Diver | Mobile fighter that singles out a high-priority target and forces the enemy to deal with its presence. | Less durable than tanks or juggernauts. |
+| Slayer | Assassin | Mobile, bursty melee killer of squishy priority targets. | High downtime, situational target selection, personal squishiness. |
+| Slayer | Skirmisher | Shreds any nearby enemy with extreme sustained damage plus situational defensive tools. | Lacks high-end burst and reliable gap-closing onto priority targets. |
+| Mage | Burst | Locks down one vulnerable target and deletes it with a full-combo barrage from range. | Weakest when the full suite cannot be delivered. |
+| Mage | Battlemage | Mid-fray sustained area damage at short-but-not-melee range, with significant defenses or sustain. | Must survive extended exposure to do its job. |
+| Mage | Artillery | Master of extreme range, whittling opponents down from safety. | Severely punished when closed on: extreme fragility, limited mobility. |
+| Controller | Enchanter | Amplifies and defends allies directly. | Fragile and low-damage alone; shines only grouped. |
+| Controller | Catcher | Ranged pick and zone tools that lock down a target or an area for the team to punish. | Fragile; needs allies to capitalize and to deter danger. |
+| Marksman | — | Ranged sustained attacker poking from just outside the main battle line. | Positioning-dependent fragility. |
+| Specialist | — | Deliberate misfits whose unique kits break the standard classes. | Each carries bespoke weaknesses instead of a class template. |
+
+### Application to this game
+
+- **The second tank problem is already solved by the Vanguard/Warden split.** Elian Voss is a Warden — hold the Guarded Front, lock the line, protect the party, punish only after the line holds. A second tank should be a Vanguard: initiation-flavored — forcing Boss facing, opening damage windows, dragging the fight to the party's chosen ground — trading Elian's sustained mitigation for tempo. Same role recognition test, visibly different machine.
+- **The healer roadmap has the same natural split:** an Enchanter-style healer (augment and shield allies through predictable damage windows) versus a Catcher-style controller (zone denial, Minion lockdown, board control). Both pass the Healer recognition test while playing differently.
+- **DPS archetypes map onto existing board systems:** Burst (setup-then-window barrages keyed to Boss vulnerability states), Skirmisher (adjacency-based sustained damage with defensive valves), Artillery (range paid for with fragility — which interacts directly with the authored counter-pressure against range camping already tracked in the product backlog).
+- **"Break the subclass expectation in at least one way" is this project's Signature Exception row** in the character design bible's card family guidance — the taxonomy names the baseline the exception deviates from.
+- **Author the weakness, not just the strength.** Every subclass definition above is strength *plus* the price. A hero design doc that states only what the hero is good at is half-finished; the Counterpressure row of the Hero Design Contract is where the price belongs.
