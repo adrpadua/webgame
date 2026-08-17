@@ -2,7 +2,7 @@ import { currentProgram, getStatuses, type BoardEntity, type HeroState, type Sta
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { useDamageFlash } from './useDamageFlash'
-import { BossEmblem, HeartIcon, HeroEmblem, PresenceIcon, ShieldIcon } from './icons'
+import { BossEmblem, HeartIcon, HeroEmblem, ShieldIcon } from './icons'
 import { encounterTerms, HERO_STAT_DETAILS } from './holdDetails'
 import { useHold, type HoldDetail } from './HoldPopover'
 import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS, healthBarScale } from './theme'
@@ -14,11 +14,6 @@ import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLAS
 // staggered values, so it can sit open through a Boss Row's telling as a
 // live readout. It closes from its ✕, from a tap on an empty hex, or with
 // the session transitions.
-
-// Presence has no hard cap, so its bar fills against a display scale: the
-// value a strong round realistically reaches. Past it the bar pins full and
-// the number keeps counting.
-const PRESENCE_BAR_SCALE = 6
 
 function StatBar({
   detail,
@@ -147,16 +142,6 @@ function HeroRows({ heroId }: { heroId: string }) {
   return (
     <>
       <HeroHealthBar hero={shownHero} flashing={flashing} flashKey={flashKey} />
-      <StatBar
-        detail={HERO_STAT_DETAILS.presence}
-        icon={PresenceIcon}
-        fillClass="bg-violet-500/70"
-        textClass="text-violet-50"
-        widthClass="w-14"
-        label="Presence"
-        value={String(hero.presence)}
-        fraction={hero.presence / PRESENCE_BAR_SCALE}
-      />
       {statuses.map((status) => (
         <StatusChip key={status.id} status={status} />
       ))}
