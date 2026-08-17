@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useOnboarding } from '@/store/onboarding'
 import { selectState, useWorkbench, type FactEntry } from '@/store/workbench'
 import { FRAME_HEIGHT_CLASS } from './theme'
 
@@ -21,6 +22,25 @@ function factSummary(fact: FactEntry): string | null {
     parts.push(`${statusEvent.status_id}: ${statusEvent.event}`)
   }
   return parts.length > 0 ? parts.join(' · ') : null
+}
+
+// The How to Play guide still opens on a first visit; with the '?' gone
+// from the play surface, reopening it on demand lives on the rail.
+function GuideControl() {
+  const openGuide = useOnboarding((store) => store.openGuide)
+  return (
+    <div className="flex items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+      <h2 className="text-xs font-bold tracking-widest text-zinc-400 uppercase">How to play</h2>
+      <button
+        type="button"
+        data-testid="open-guide"
+        onClick={openGuide}
+        className="min-h-11 rounded-lg bg-zinc-700 px-4 text-sm font-semibold text-zinc-100 transition hover:bg-zinc-600"
+      >
+        Open guide
+      </button>
+    </div>
+  )
 }
 
 function SeedControl() {
@@ -223,6 +243,7 @@ export function DebugRail() {
       <ScenarioPicker />
       <TimeTravel />
       <SeedControl />
+      <GuideControl />
       <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
         <h2 className="text-xs font-bold tracking-widest text-zinc-400 uppercase">Fact log</h2>
         <div ref={logRef} className="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1 font-mono text-[11px]" data-testid="fact-log">

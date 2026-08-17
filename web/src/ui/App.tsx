@@ -6,6 +6,7 @@ import { BossEmblem, HeroEmblem } from './icons'
 import { ActionBar } from './ActionBar'
 import { CoachMark } from './CoachMark'
 import { DebugRail } from './DebugRail'
+import { EntityInspect } from './EntityInspect'
 import { FirstTurnCue } from './FirstTurnCue'
 import { GuideModal } from './GuideModal'
 import { Hand } from './Hand'
@@ -13,10 +14,8 @@ import { HoldPopoverLayer } from './HoldPopover'
 import { MovePad } from './MovePad'
 import { PhaseBanner } from './PhaseBanner'
 import { PhaseControl } from './PhaseControl'
-import { PlayerPanel } from './PlayerPanel'
 import { ProgramStrip } from './ProgramStrip'
 import { ReplaceConfirmModal } from './ReplaceConfirmModal'
-import { TopBar } from './TopBar'
 import { FOCUS_RING_CLASS, FRAME_HEIGHT_CLASS } from './theme'
 
 function RejectionToast() {
@@ -56,7 +55,7 @@ function PlayoutContinue() {
       type="button"
       data-testid="playout-continue"
       onClick={continuePlayout}
-      className={`wb-slide-up flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border-2 border-amber-500 bg-amber-950/95 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
+      className={`wb-slide-up pointer-events-auto flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border-2 border-amber-500 bg-amber-950/95 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
     >
       <span className="text-xs font-bold text-amber-100">{beatTitle ?? 'Boss beat'}</span>
       <span className="animate-pulse text-xs font-black tracking-widest text-amber-300 uppercase motion-reduce:animate-none">
@@ -129,7 +128,6 @@ export default function App() {
         className={`relative flex ${FRAME_HEIGHT_CLASS} w-full max-w-full shrink-0 touch-manipulation flex-col overflow-hidden bg-zinc-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-2xl select-none sm:w-[420px] sm:rounded-3xl sm:border sm:border-zinc-700`}
         data-testid="play-surface"
       >
-        <TopBar />
         <ProgramStrip />
         <PhaseControl />
         {/* overflow-hidden: the fixed-size Phaser canvas centers here and must
@@ -141,16 +139,22 @@ export default function App() {
           <PhaserBoard />
           <MovePad />
           {/* Transient guidance — the scripted cue, coach tips, the playout's
-              Continue bar — floats over the board's lower edge instead of
-              stacking beneath it: bars appearing and disappearing must never
-              resize the board mid-Encounter. */}
-          <div className="absolute inset-x-2 bottom-2 z-10 flex flex-col gap-1.5">
+              Continue bar — floats over the board's top edge: bars appearing
+              and disappearing must never resize the board mid-Encounter, and
+              the top edge keeps them out of the thumb path between the board
+              and the Hand. pointer-events pass through the stack's empty
+              space so the hexes underneath stay tappable. */}
+          <div className="pointer-events-none absolute inset-x-2 top-2 z-10 flex flex-col gap-1.5">
             <FirstTurnCue />
             <CoachMark />
             <PlayoutContinue />
           </div>
+          {/* The tapped piece's Stat Panel floats over the board's lower
+              edge — the persistent Boss and Hero bars left the HUD. */}
+          <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10">
+            <EntityInspect />
+          </div>
         </div>
-        <PlayerPanel />
         <ActionBar />
         <Hand />
         <RejectionToast />
