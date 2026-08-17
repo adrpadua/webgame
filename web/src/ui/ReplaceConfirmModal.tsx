@@ -23,13 +23,13 @@ export function ReplaceConfirmModal() {
   const chargeCount = slot.charges.length
   return (
     <Modal onDismiss={cancelReplacement} labelledBy="replace-confirm-title" accentBorderClass="wb-acc-ember" testId="replace-confirm">
-      <h2 id="replace-confirm-title" className="text-sm font-bold text-amber-300">
+      <h2 id="replace-confirm-title" className="text-sm font-bold text-ember-300">
         Replace this Slot?
       </h2>
       {/* The trade, as two lines rather than a paragraph: what leaves, what
           lands. */}
       <div className="mt-3 space-y-1 text-xs">
-        <div className="flex items-center justify-between gap-2 bg-ember-950/60 px-2 py-1.5 text-red-200">
+        <div className="flex items-center justify-between gap-2 bg-ember-950/60 px-2 py-1.5 text-ember-100">
           <span className="font-bold">{oldCard?.title ?? 'Top Card'}</span>
           <span className="text-[10px] uppercase">discarded{chargeCount > 0 ? ` + ${chargeCount} charged` : ''}</span>
         </div>

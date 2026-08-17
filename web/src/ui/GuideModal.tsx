@@ -16,9 +16,9 @@ import { FOCUS_RING_CLASS } from './theme'
 function TimelineDiagram() {
   const beats = [
     { label: 'Loadout', tone: 'bg-zinc-600', delay: '0s' },
-    { label: 'Instant', tone: 'bg-amber-500', delay: '0.8s' },
+    { label: 'Instant', tone: 'bg-coral-400', delay: '0.8s' },
     { label: 'Quick', tone: 'bg-glass-400', delay: '1.6s' },
-    { label: 'Incoming', tone: 'bg-amber-500', delay: '2.4s' },
+    { label: 'Incoming', tone: 'bg-coral-400', delay: '2.4s' },
     { label: 'Slow', tone: 'bg-gold-400', delay: '3.2s' },
   ]
   return (
@@ -102,9 +102,9 @@ export function GuideModal() {
           </div>
           <span className="text-lg font-black text-zinc-600">VS</span>
           <div className="flex flex-col items-center gap-1">
-            <BossEmblem className="wb-float h-16 w-16 text-red-500" />
-            <span className="text-[9px] font-semibold text-red-300">{boss?.title ?? 'Boss'}</span>
-            <span className="bg-red-900/70 px-1.5 text-[9px] text-red-200">{boss?.maxHealth ?? '–'} HP</span>
+            <BossEmblem className="wb-float h-16 w-16 text-coral-400" />
+            <span className="text-[9px] font-semibold text-coral-300">{boss?.title ?? 'Boss'}</span>
+            <span className="bg-coral-900 px-1.5 text-[9px] text-coral-200">{boss?.maxHealth ?? '–'} HP</span>
           </div>
         </div>
       ),

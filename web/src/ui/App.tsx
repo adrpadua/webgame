@@ -55,10 +55,10 @@ function PlayoutContinue() {
       type="button"
       data-testid="playout-continue"
       onClick={continuePlayout}
-      className={`wb-slide-up pointer-events-auto wb-plate wb-plate-sm wb-face-steel wb-acc-ember flex min-h-12 w-full items-center justify-between gap-2 bg-amber-950/95 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
+      className={`wb-slide-up pointer-events-auto wb-plate wb-plate-sm wb-face-steel wb-acc-ember flex min-h-12 w-full items-center justify-between gap-2 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
     >
-      <span className="text-xs font-bold text-amber-100">{beatTitle ?? 'Boss beat'}</span>
-      <span className="animate-pulse text-xs font-black tracking-widest text-amber-300 uppercase motion-reduce:animate-none">
+      <span className="text-xs font-bold text-coral-100">{beatTitle ?? 'Boss beat'}</span>
+      <span className="animate-pulse text-xs font-black tracking-widest text-coral-300 uppercase motion-reduce:animate-none">
         Continue ▸
       </span>
     </button>
@@ -73,7 +73,7 @@ function TargetingBanner() {
   }
   return (
     <div className="absolute top-40 right-3 left-3 z-10" data-testid="targeting-banner">
-      <div className="wb-plate wb-plate-sm wb-face-steel wb-acc-gold flex items-center justify-between py-2 text-xs font-semibold text-yellow-200 shadow-lg">
+      <div className="wb-plate wb-plate-sm wb-face-steel wb-acc-gold flex items-center justify-between py-2 text-xs font-semibold text-gold-100 shadow-lg">
         <span>Pick a Minion</span>
         <button
           type="button"
@@ -106,7 +106,7 @@ function OutcomeBanner() {
         {victory ? (
           <HeroEmblem className="wb-float mx-auto h-12 w-12 text-gold-400" />
         ) : (
-          <BossEmblem className="wb-float mx-auto h-12 w-12 text-red-500" />
+          <BossEmblem className="wb-float mx-auto h-12 w-12 text-coral-400" />
         )}
         <div className="mt-2 text-2xl font-black tracking-widest uppercase">{victory ? 'Victory' : 'Defeat'}</div>
         <div className="mt-2 text-sm">{state.outcomeReason}</div>

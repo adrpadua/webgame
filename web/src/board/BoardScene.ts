@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { facingName, hexKey, parseHexKey, type Axial, type EncounterState } from '@/engine'
 import { axialToPixel, hexCorners, pixelToAxial, HEX_SIZE } from './layout'
-import type { BoardEffect, EffectTone } from './effects'
+import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 
 // The board snapshot the scene renders. Phaser owns no game state: it draws
 // what it is handed and reports hex-level intents upward (ADR 0019).
@@ -121,6 +121,10 @@ const TONE_TEXT: Record<EffectTone, string> = {
   hazard: '#f3c8ad',
 }
 
+// Vertical spacing between stacked floaters at one hex. A label is 15px
+// bold; 18 clears the line below at any point in both labels' rise.
+const FLOATER_LANE_PX = 18
+
 // How long each beat of feedback stays on the board. Short enough that a
 // player tapping quickly is never waiting on the animation, long enough to
 // be read: nothing here gates input. The longest entry (blast) is mirrored
@@ -141,6 +145,10 @@ const EFFECT_DURATION: Record<BoardEffect['kind'], number> = {
 // An effect whose `delay` has not elapsed yet holds negative `elapsed` and
 // stays invisible; `started` flips once, the moment it crosses zero.
 interface ActiveEffect extends BoardEffect {
+  // Which vertical lane this effect's floater rises in, 0 being the lowest.
+  // Assigned at ingest so two labels at the same hex never share a lane —
+  // however fast the playout is advanced — and never recomputed.
+  lane: number
   elapsed: number
   duration: number
   started: boolean
@@ -242,7 +250,14 @@ export class BoardScene extends Phaser.Scene {
       }
     }
     for (const effect of effects) {
-      this.active.push({ ...effect, elapsed: -(effect.delay ?? 0), duration: EFFECT_DURATION[effect.kind], started: false })
+      // A labelled effect takes the lowest lane not held by another live
+      // label at its hex. Beats that resolve at the Boss in quick succession
+      // — Turn to the Tank, Raking Claw, Ash Trail — each spawn a title at
+      // the same point, and left to a single lane they overprint into one
+      // unreadable word. Stacking them keeps each readable and keeps the
+      // order legible: the older beat is lower, the newer above it.
+      const lane = effect.label === undefined ? 0 : freeFloaterLane(this.active, effect.at)
+      this.active.push({ ...effect, lane, elapsed: -(effect.delay ?? 0), duration: EFFECT_DURATION[effect.kind], started: false })
     }
     this.startDueEffects()
     this.renderSnapshot()
@@ -412,7 +427,7 @@ export class BoardScene extends Phaser.Scene {
       const { x, y } = axialToPixel(effect.at)
       this.labels.push(
         this.add
-          .text(x, y - 26 - (this.reducedMotion ? 0 : easeOutCubic(t) * 26), effect.label, {
+          .text(x, y - 26 - effect.lane * FLOATER_LANE_PX - (this.reducedMotion ? 0 : easeOutCubic(t) * 26), effect.label, {
             fontFamily: 'monospace',
             fontSize: '15px',
             fontStyle: 'bold',

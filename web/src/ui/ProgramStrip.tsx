@@ -27,9 +27,9 @@ function BeatChip({ beat, track, active }: { beat: BossBeat; track: 'instant' | 
       aria-label={`${beat.title}: ${beat.rules_text}`}
       className={`wb-plate wb-plate-xs wb-face-dim wb-acc-none py-0.5 text-[11px] transition-colors ${
         playing
-          ? 'animate-pulse bg-amber-500 font-bold text-amber-950 shadow-md shadow-amber-900 motion-reduce:animate-none'
+          ? 'animate-pulse bg-coral-400 font-bold text-coral-950 shadow-md shadow-coral-900 motion-reduce:animate-none'
           : active
-            ? 'bg-amber-950 text-amber-200'
+            ? 'bg-coral-950 text-coral-200'
             : 'bg-zinc-800 text-zinc-400'
       }`}
     >
@@ -82,7 +82,7 @@ function Track({ program, track, label, active }: { program: BossProgram; track:
   const beats = track === 'instant' ? program.instant_beats : program.incoming_beats
   return (
     <div className="flex items-center gap-2 pb-1">
-      <span className={`w-16 shrink-0 text-[11px] font-semibold ${active ? 'text-amber-400' : 'text-zinc-500'}`}>{label}</span>
+      <span className={`w-16 shrink-0 text-[11px] font-semibold ${active ? 'text-coral-400' : 'text-zinc-500'}`}>{label}</span>
       <div className="flex flex-wrap gap-1">
         {beats.map((beat, index) => (
           <BeatChip key={`${beat.id}-${index}`} beat={beat} track={track} active={active} />
