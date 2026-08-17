@@ -44,6 +44,12 @@ const STATE_LABEL: Record<SlotStateName, string> = {
   fired: 'Fired',
 }
 
+// Loaded carries no subtitle: a card sitting in the Slot already says it, and
+// a word that only restates what the eye sees is noise the other states have
+// to be read past. The label is kept for the aria-label, where the card's
+// presence is not a visible fact.
+const SUBTITLE_STATES: ReadonlySet<SlotStateName> = new Set<SlotStateName>(['charged', 'primed', 'fired'])
+
 // Only Primed wears gold in the label: it is the state that can fire.
 // Fired is the state that cannot, and it must not borrow the live colour.
 const STATE_TONE: Record<SlotStateName, string> = {
@@ -215,7 +221,9 @@ function Slot({ slotIndex }: { slotIndex: number }) {
               />
             ))}
           </div>
-          <div className={`mt-1 text-[10px] font-semibold tracking-wide uppercase ${STATE_TONE[stateName]}`}>{STATE_LABEL[stateName]}</div>
+          {SUBTITLE_STATES.has(stateName) && (
+            <div className={`mt-1 text-[10px] font-semibold tracking-wide uppercase ${STATE_TONE[stateName]}`}>{STATE_LABEL[stateName]}</div>
+          )}
         </>
       ) : (
         <div className="flex h-full items-center justify-center text-2xl leading-none font-light text-steel-700" aria-hidden="true">
