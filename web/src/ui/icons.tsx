@@ -138,7 +138,7 @@ export function CardArt({ card, className }: { card: Card; className?: string })
   const Glyph = CARD_EFFECT_TONE[effect].icon
   return (
     <div
-      className={`relative flex items-center justify-center overflow-hidden rounded-lg bg-linear-to-br ${tone.from} via-zinc-900 to-zinc-950 ${className ?? ''}`}
+      className={`relative flex items-center justify-center overflow-hidden bg-linear-to-br ${tone.from} via-zinc-900 to-zinc-950 ${className ?? ''}`}
     >
       <Glyph className={`h-14 w-14 ${tone.glyph} opacity-70`} />
       <div className="absolute inset-x-0 bottom-1 text-center text-[9px] tracking-[0.3em] text-zinc-600 uppercase">{effect}</div>

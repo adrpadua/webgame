@@ -128,7 +128,7 @@ export function CoachMark() {
   // hexes rather than shrinking the board when it appears.
   return (
     <div data-testid="coach-mark" data-tip={visibleTip.id}>
-      <div {...hold.holdProps} className={`wb-slide-up pointer-events-auto flex items-center gap-2 rounded-lg border px-2.5 py-1.5 shadow-xl ${visibleTip.tone}`}>
+      <div {...hold.holdProps} className={`wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-gold pointer-events-auto flex items-center gap-2 py-1.5 ${visibleTip.tone}`}>
         <Icon className="h-4 w-4 shrink-0 opacity-80" />
         <p className="flex-1 text-xs font-semibold">{visibleTip.cue}</p>
         <button
@@ -136,7 +136,7 @@ export function CoachMark() {
           data-testid="coach-dismiss"
           aria-label="Dismiss tip"
           onClick={() => dismissTip(visibleTip.id)}
-          className={`min-h-11 min-w-11 shrink-0 rounded-md px-2 text-[10px] font-bold tracking-wide uppercase opacity-70 transition hover:opacity-100 ${FOCUS_RING_CLASS}`}
+          className={`min-h-11 min-w-11 shrink-0 px-2 text-[10px] font-bold tracking-wide uppercase opacity-70 transition hover:opacity-100 ${FOCUS_RING_CLASS}`}
         >
           Got it
         </button>
