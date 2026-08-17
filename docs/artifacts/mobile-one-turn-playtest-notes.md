@@ -1,5 +1,8 @@
 # Mobile One-Turn Playtest Notes
 
+Historical artifact: a point-in-time record from 2026-08-13, taken against the Godot client that is now frozen (ADR 0019). Kept as evidence of what was observed, not as a description of the current build. The live surface is the Encounter Workbench in `web/`; the current interface direction is [oathcraft-interface-direction.md](../content/oathcraft-interface-direction.md).
+
+
 Historical artifact: this predates card-fueled Stamina and the current direct-manipulation controls.
 
 Date: 2026-08-13

@@ -7,17 +7,22 @@ This document catalogs the major gameplay artifacts currently present in the rep
 - [assets](../../assets)
   - Source art, audio, fonts, and UI media; see its README for the layout
 - [resources](../../resources)
-  - Designer-authored Cards, Keywords, Charge Modifiers, Boss Programs, Hazards, Minions, and Encounters
+  - Frozen Godot `.tres` copies of the same content, kept as reference only (ADR 0019/0020). `data/` is authoritative
 - [data](../../data)
-  - Reserved for structured authored data when a loader needs it
+  - The live content root: schema-validated JSON for cards, keywords, charge modifiers, boss programs, encounters, hazards, minions, decks, and Scenarios (ADR 0020)
 - [notes](../../notes)
   - Working notes, research, and prototype screenshots
 
-## Scenes
+## Clients
+
+- [web](../../web)
+  - The Encounter Workbench, the live playable surface: a TypeScript encounter engine with a React HUD and a Phaser board (ADR 0019)
+
+### Frozen
 
 - [scenes/Main.tscn](../../scenes/Main.tscn)
-  - Main playable prototype scene
-  - Wires the top bar, hand, action bar, board, status panel, movement button, and phase controls
+  - The Godot prototype scene, frozen with the rest of the Godot codebase (ADR 0019)
+  - Wired a top bar, hand, action bar, board, status panel, movement button, and phase controls. The web HUD has since replaced the persistent top bar and status panel with a Stat Panel opened by tapping a piece
 
 ## Domain and Decision Docs
 

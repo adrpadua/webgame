@@ -4,10 +4,10 @@ This prototype follows a practical WCAG-oriented interaction baseline for its pl
 
 ## Pointer Targets
 
-- Every visible, enabled `Button` and `CheckBox` in the player HUD has a minimum rendered target of `44x44` pixels.
+- Every visible, enabled interactive control in the player HUD has a minimum rendered target of `44x44` pixels. *(Originally written against Godot `Button` and `CheckBox` nodes; the contract carried over to the web HUD unchanged and is asserted by the smoke suite.)*
 - Primary command buttons use a `48` pixel minimum height to make the action grid easier to hit during play.
 - Cards and action-bar slots exceed the minimum target so drag and tap interactions remain comfortable on touch screens.
-- Mobile prompt text, `Play`, and Help retain separate readable/interactive lanes below the board-state header. Required prompt-adjacent controls must stay fully inside the physical portrait viewport with explicit edge padding, readable unclipped labels/icons, and preserved target sizes across the supported portrait viewport matrix. The Help-hidden state visibly renders the `?` glyph plus a `Help` tooltip/name on its own tappable target; it is not satisfied by a hidden, clipped, or merely programmatically openable Control node. Under horizontal pressure, Help wraps to a second controls row rather than shrinking or clipping the required targets. Attention feedback changes color only and cannot enlarge either control into its neighbor.
+- *Godot-era.* Mobile prompt text, `Play`, and Help retain separate readable/interactive lanes below the board-state header. Required prompt-adjacent controls must stay fully inside the physical portrait viewport with explicit edge padding, readable unclipped labels/icons, and preserved target sizes across the supported portrait viewport matrix. The Help-hidden state visibly renders the `?` glyph plus a `Help` tooltip/name on its own tappable target; it is not satisfied by a hidden, clipped, or merely programmatically openable Control node. Under horizontal pressure, Help wraps to a second controls row rather than shrinking or clipping the required targets. Attention feedback changes color only and cannot enlarge either control into its neighbor.
 - Hexes are validated after their responsive board scaling, not merely at their authored size.
 - Controlled Hand overlap never shrinks the underlying Compact Card targets; selection raises one card and keeps adjacent cards partially visible.
 - Every drag destination also has a tap path: select a Compact Card, then tap a labeled legal Slot or `MOVE` hex.
@@ -40,12 +40,16 @@ This prototype follows a practical WCAG-oriented interaction baseline for its pl
 
 ## Verification
 
-Run the following from `D:\dev\webgame`:
+Run from `web/`, against a build:
 
-```powershell
-& "C:\Users\adrpa\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64.exe" --headless --path "D:\dev\webgame" --script res://scripts/debug/accessibility_probe.gd
-
-& "C:\Users\adrpa\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64_console.exe" --headless --path "D:\dev\webgame" --script res://scripts/debug/board_navigation_probe.gd
+```bash
+npm run build && node scripts/smoke.mjs
 ```
 
-The probe instantiates the portrait HUD, measures each enabled interactive control after layout, checks the minimum target contract, verifies that every control has a non-empty focus style, and calculates the command-state contrast ratios. The mobile HUD probe separately validates the `390x844` logical canvas projected to the `488x1056` default presentation, explicit safe padding, unclipped required-control labels, and the rendered/discoverable Help affordance in the Help-hidden state. `tutorial_prompt_ui` verifies the projected tutorial card, full-text fallback, dismissal/history/reopen flow, and preserved portrait action-bar and hand visibility.
+The smoke suite asserts the pointer-target and portrait contracts directly in a real browser at the canonical `390x844` canvas: the whole board on screen with nothing cropped, every enabled control at `44x44` or larger, no sideways scroll, no move-pad button overlapping the board, and the full HUD fitting without scrolling. It also replays the session's Encounter Record headlessly and compares fingerprints.
+
+Since 2026-08-16 this runs in CI on every pull request touching `web/` or `data/` (`.github/workflows/verify-workbench.yml`), so the contract is enforced rather than merely documented.
+
+## Historical: The Godot Probe Suite
+
+The clauses above marked *Godot-era* were verified by a probe suite run against the Godot client — `accessibility_probe.gd`, `mobile_hud_probe.gd`, and `tutorial_prompt_ui` — invoked through `run_probes.ps1` on a Windows checkout. That client is frozen (ADR 0019) and those probes no longer run. They are recorded here because the contracts they enforced were real, not because the commands can be reused.
