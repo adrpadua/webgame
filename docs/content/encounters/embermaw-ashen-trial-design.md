@@ -41,7 +41,15 @@ Damage is a consequence of a pattern. A timeline card must not be authored as a 
 Impact and counterplay scale together (see the [champion design research note](../research/2026-08-16-lol-champion-design-lessons.md)). Two authoring rules apply to every timeline entry, on this and future Bosses:
 
 - **Every entry carries at least one counter tag.** A Beat with no meaningful answer is a design defect, not a difficulty setting. `Mitigate` on an unavoidable Tank Hit counts: the answer is preparation, not evasion.
-- **Telegraph lead scales with consequence.** Routine chip pressure may resolve from the `Instant` row. A hit that can down a Hero, spawn entities, or permanently change the board belongs in the `Incoming` row or on a longer delayed marker, so the party always has at least one full player window to answer the largest threats. Authoring a top-tier hit as an `Instant` requires an explicit design justification.
+- **Telegraph lead scales with consequence.** Each Beat carries one of three named Consequence Tiers, and the tier sets the earliest horizon the Beat may appear in (D-021, ADR 0026):
+
+| Tier | What qualifies | Earliest legal horizon |
+| --- | --- | --- |
+| `Chip` | Routine attrition the party absorbs and recovers from. | Any row, including `Instant`. |
+| `Structural` | Spawns entities, changes the board, or applies a lasting Status Effect. | No later than the `Incoming` row. |
+| `Severe` | Can down a Hero, or crosses an Escalation Threshold. | The `Forecast` row, first. |
+
+The `Severe` tier has **no justification clause**. The old rule allowed a top-tier hit to ship from the `Instant` row with an explicit design justification, because there was no earlier horizon to send it to; the Forecast Row removes that excuse. Note the tier is derived, not merely declared: because an Escalation Threshold crossing is one of the run-ending outcomes, any Beat that can add Escalation is `Severe` and must be forecast.
 
 ### Role-Load-Bearing Beats (Party-scale rule)
 

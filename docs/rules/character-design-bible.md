@@ -126,6 +126,23 @@ Any Hero whose raid job is preserving allies must satisfy all five principles be
 
 The Second Hero Of A Role rule applies to healers from the first one: the planned Enchanter (augment and shield through pre-placed wards) and a future Catcher-style controller (zones, denial, lockdown) must not converge. The same rule applies to future Healers (augment-and-shield versus control-and-deny) and Damage Heroes. Both siblings must still pass the same Role recognition test; what differs is the machine, its signature weakness, and the pressure it answers best.
 
+## Off-Role Answers
+
+Role identity is expressed as **superiority, not exclusivity** (D-025). One role answers a given problem cheapest; the others may keep an expensive line to the same answer. This preserves specialization, creates clutch saves, and stops one exhausted or Downed player from turning every mistake into deterministic failure — while off-role deckbuilding stays possible without making party composition meaningless.
+
+Where an off-role answer is **required** is an encounter-side question, decided by the run-ending test in the [Encounter Design Bible](encounter-design-bible.md): a problem is run-ending if one unanswered Round causes unavoidable defeat, permanent Hero loss, or an Escalation Threshold crossing. Those problems must carry at least one off-role line. Elsewhere it is optional.
+
+What an off-role answer may **cost** is a Hero-design question, and the premium is drawn from this fixed vocabulary:
+
+| Cost | Shape |
+| --- | --- |
+| Extra actions | The same answer takes more of the Round than the suited role spends. |
+| A card discard | The answer is paid for out of the Hero's own economy. |
+| A Class Resource | The answer spends what the Hero's signature actions need. |
+| Partial damage | The answer lands, but some consequence still resolves. |
+
+The vocabulary is fixed and the pricing is per card, deliberately. A single standardized currency would route every off-role answer through one resource some role does not have; free-form costs with no vocabulary would be unlearnable. A fixed list lets a player recognize the *shape* of an off-role answer on a card they have never seen. Two prohibitions: never price an off-role answer so cheaply that the suited role's ownership stops mattering, and never write a hard lock (`[HEALER ONLY]`) where a premium would do.
+
 ## Card Family Guidance
 
 Give every card a deliberate place in the machine. For an initial 20-card deck, aim for five to seven card identities with copies, not twenty isolated mini-rules.

@@ -22,6 +22,9 @@ Status labels: `Now` means content/design work can begin after its stated proof;
 | 4 | Delayed markers and board-origin patterns | Ashen Brand and Cinderstorm cannot be represented honestly. | Marker state, delayed resolution trigger, origin/pattern schema, board overlay. |
 | 5 | Rear arcs, displacement, and collision | Molten Tail and meaningful flanking are unavailable. | Rear-arc target query, forced movement action, deterministic collision policy. |
 | 6 | Multi-Hero party model | Role-targeted raid content has no playable validation path. | Multiple Hero configs, committed intents, selector fallback/ties, Downed/Revive lifecycle, party HUD. |
+| 7 | Escalation as the single clock (D-023, ADR 0027) | The stalemate wall still rests on a health value that better play erodes, and Damage owns nothing structural. | Counted `0`–`5` Boss value, automatic Round-end tick, authored per-Beat acceleration, threshold effects with the top one as the wipe, `End-of-Clock Behavior` restated onto it, plus a regenerated sweep and Scenarios. |
+| 8 | Forecast Row and staged Beat disclosure (D-021, ADR 0026) | The `Severe` consequence tier has nowhere to appear, so Telegraph Proportionality is unenforceable. | Next-Round program projection at family level, a third Timeline row on the portrait HUD, and a Beat disclosure state the projection respects. |
+| 9 | Module Slot and Raid Seed (D-024) | Without bounded variation the Forecast Row carries no information for a returning player, and attempts cannot be compared across groups. | One authored slot per Boss Program, seed-driven module selection settled before Forecast, and a printed seed value. Selection must obey D-022. |
 
 ## Later
 

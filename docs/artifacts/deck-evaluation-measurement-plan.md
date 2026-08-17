@@ -81,6 +81,16 @@ Preserve the existing probe suite. Add only focused coverage when a metric becom
 
 Do not make these probes default until the scenario data and report fields are deterministic.
 
+## Decision-Concentration Proxy
+
+Decision concentration is one of the four required encounter metrics (D-027) and it is the only accountability accepted in exchange for rejecting face-down commitment (D-026). Its real instrument needs several humans, which the solo slice cannot supply — so measure a structural proxy now through the policy sweep rather than deferring the metric entirely:
+
+> At the Round-4 checkpoint, does any single policy's action budget cover every live demand?
+
+If it does, one player could quarterback the fight, and that is a finding available with no human playtest at all. This is the same shape as Tank Design Principle 4's existing test — by the checkpoint, at least one live demand the solo Hero had no economy to answer — so the proxy adds no new machinery, only a second reading of a sweep already run.
+
+The human instrument — recording which player proposed or selected each significant response — becomes required the moment real Parties play, and supersedes the proxy rather than joining it.
+
 ## Minimal Engineering / Reporting Gaps
 
 1. Add a scenario/run label to Encounter Records or the aggregate report command. **Implemented for Evidence Cohorts** through `EncounterRecord.begin(..., metadata = {})`.

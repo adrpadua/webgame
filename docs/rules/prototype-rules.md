@@ -4,6 +4,8 @@ This document describes the current playable rules of the prototype as they exis
 
 Use [CONTEXT.md](../../CONTEXT.md) for canonical terms and the ADRs for why the model exists.
 
+**Adopted but not yet in the engine.** Three rules decisions are canon and are not described below, because nothing implements them yet: the three-horizon Timeline with staged Beat disclosure (D-021, [ADR 0026](../adr/0026-disclose-boss-beats-in-stages-across-three-timeline-horizons.md)), randomize-before-commitment (D-022, [ADR 0025](../adr/0025-randomize-before-the-window-that-answers-it.md)), and Escalation as the encounter's single clock (D-023, [ADR 0027](../adr/0027-make-escalation-the-encounters-single-clock.md)). Until they ship, the two-row Timeline and the fixed eight-Round clock described here are the live rules.
+
 Use [player-card-authoring.md](player-card-authoring.md) when creating or editing player cards.
 
 ## Encounter Structure
