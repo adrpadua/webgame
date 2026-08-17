@@ -37,7 +37,7 @@ Do not include card frames, borders, text, numbers, cost pips, icons, or any int
 | `BOARD_RELATIONSHIP` | One of: single target, straight line, cone, ring, adjacency, zone, or self |
 | `BEAT` | One of: setup, conversion, payoff, recovery, or emergency response |
 
-`FICTION` is the slot that carries the work. `Gain 6 armor` is a rule, not an image; `gate plates sliding and locking into place around the Hero's body, seams flaring cyan as they seat` is an image. Translate every time.
+`FICTION` is the slot that carries the work. `Gain 6 Armor` is a rule, not an image; `gate plates sliding and locking into place around the Hero's body, seams flaring cyan as they seat` is an image. Translate every time.
 
 ## Current Elian Voss Deck
 
@@ -45,16 +45,16 @@ The eleven authored cards in `resources/cards/tank/`, with the fiction and beat 
 
 | Card | Rules text | Fiction to draw | Relationship | Beat |
 | --- | --- | --- | --- | --- |
-| `guard_stance` | Gain 4 armor | Gate panels swinging up and seating into a braced front | Self | Setup |
+| `guard_stance` | Gain 4 Armor | Gate panels swinging up and seating into a braced front | Self | Setup |
 | `iron_guard` | Gain 3 Armor, +1 per charged Guard card | The same brace, but with additional panels stacking and locking in layers | Self | Setup |
-| `fortify` | Gain 6 armor | The Gate Rig fully deployed, every panel seated, living-gold locks visibly thrown | Self | Recovery |
+| `fortify` | Gain 6 Armor at the next Round start | The Gate Rig fully deployed, every panel seated, living-gold locks visibly thrown | Self | Recovery |
 | `anchor_presence` | Gain 1 Presence | Boots setting hard into the ground, a low ring of runeglass light spreading from the stance | Self | Setup |
 | `unyielding_step` | Gain 2 Armor and deal 2 damage to the boss | A braced step forward into pressure, shield edge leading | Single target | Conversion |
 | `steady_strike` | Deal 2 damage, +1 per charged card | A controlled gateblade baton strike, precise rather than heavy | Single target | Conversion |
-| `shield_slam` | Deal 3 damage to the raid boss | A deployed gate panel driven edge-first as a weapon | Single target | Payoff |
-| `sweeping_blow` | Deal 2 damage to a minion on the selected hex | A wide horizontal sweep clearing a lane, motion arc drawn as one clean line | Cone | Conversion |
-| `intercept` | Gain 3 armor and deal 1 damage to a minion on the selected hex | A straight safe-passage line projected toward an ally, the hit pulled onto the shield gate | Straight line | Emergency response |
-| `taunting_challenge` | Deal 1 damage to the boss and gain 2 armor | Baton raised in a formal challenge, gate seams flaring to draw attention | Single target | Setup |
+| `shield_slam` | Deal 3 damage to the boss; consume Riposte Ready for +2 | A deployed gate panel driven edge-first as a weapon | Single target | Payoff |
+| `sweeping_blow` | Deal 2 damage to a Minion on the selected hex | A wide horizontal sweep clearing a lane, motion arc drawn as one clean line | Cone | Conversion |
+| `intercept` | Gain 3 Armor and deal 1 damage to a Minion on the selected hex | A straight safe-passage line projected toward an ally, the hit pulled onto the shield gate | Straight line | Emergency response |
+| `taunting_challenge` | Deal 1 damage to the boss and gain 2 Armor | Baton raised in a formal challenge, gate seams flaring to draw attention | Single target | Setup |
 | `rallying_cry` | Heal 2 | Signal cloth snapping outward, a warm restorative pulse crossing the runeglass panels | Zone | Recovery |
 
 Two visual jobs sit underneath that table and are worth holding deliberately. The Guard family (`guard_stance`, `iron_guard`, `fortify`) must read as one escalating series — same brace, more panels, more locks thrown — so a player can see the ladder without reading numbers. And Riposte Ready, the payoff state, should look like a lock releasing after a perfect block: the gate catches force, turns, and opens a narrow counter-strike.

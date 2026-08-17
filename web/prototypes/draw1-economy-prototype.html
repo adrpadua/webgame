@@ -1,0 +1,520 @@
+<!doctype html>
+<!-- PROTOTYPE — THROWAWAY. Answers one design question; not production code. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draw-1 Economy Prototype</title>
+<style>
+  :root { --accent:#d9622b; --ink:#26211c; --dim:#7a7168; --line:#e5ded6; --bg:#faf7f2; --card:#ffffff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink); background:var(--bg); padding:24px 16px 80px; }
+  main { max-width:880px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:15px; margin:20px 0 8px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim);}
+  .q { border-left:3px solid var(--accent); padding:8px 12px; background:var(--card); margin:12px 0 20px; }
+  .q b { color:var(--accent); }
+  .deviations { font-size:13px; color:var(--dim); margin:8px 0 0; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:14px; }
+  .row { display:flex; flex-wrap:wrap; gap:18px; }
+  .stat { min-width:110px; } .stat .k { font-size:12px; color:var(--dim); } .stat .v { font-size:19px; font-weight:600; }
+  .stat .v.warn { color:var(--accent); }
+  .timeline { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;}
+  .beat { border:1px dashed var(--line); border-radius:8px; padding:6px 10px; font-size:13px; background:#fffdf9;}
+  .beat.done { opacity:.45; text-decoration:line-through; }
+  .beat .tag { font-size:11px; color:var(--dim); display:block; }
+  .hand { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+  .cardbtn { border:1.5px solid var(--line); background:var(--card); border-radius:8px; padding:8px 10px; cursor:pointer; text-align:left; font:inherit; font-size:13px; min-width:118px;}
+  .cardbtn.sel { border-color:var(--accent); box-shadow:0 0 0 2px rgba(217,98,43,.2); }
+  .cardbtn .sp { font-size:11px; color:var(--dim); display:block;}
+  .slots { display:flex; gap:12px; flex-wrap:wrap; margin-top:6px;}
+  .slot { border:1px solid var(--line); border-radius:10px; padding:10px 12px; min-width:200px; background:#fffdf9;}
+  .slot h3 { margin:0 0 4px; font-size:13px; }
+  .slot .chg { font-size:12px; color:var(--dim); }
+  button.act { border:1px solid var(--line); background:var(--card); border-radius:8px; padding:7px 12px; font:inherit; font-size:13px; cursor:pointer; }
+  button.act:hover:not(:disabled) { border-color:var(--accent); }
+  button.act:disabled { opacity:.35; cursor:default; }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600;}
+  .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;}
+  .log { font-size:13px; max-height:180px; overflow-y:auto; }
+  .log div { padding:2px 0; border-bottom:1px dotted var(--line);}
+  .log .new { color:var(--accent); }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;}
+  .tabs button { border:1px solid var(--line); background:var(--card); border-radius:999px; padding:6px 14px; font:inherit; font-size:13px; cursor:pointer;}
+  .tabs button.on { background:var(--ink); color:#fff; border-color:var(--ink);}
+  .steps { display:flex; flex-direction:column; gap:6px; margin-top:10px;}
+  .steps button { text-align:left; }
+  .steps button.done { opacity:.4; text-decoration:line-through;}
+  .steps button.cur { border-color:var(--accent); box-shadow:0 0 0 2px rgba(217,98,43,.2);}
+  .knobs { display:flex; gap:14px; flex-wrap:wrap; font-size:13px; align-items:center;}
+  .counters { font-size:13px; color:var(--dim); }
+  .outcome { font-size:17px; font-weight:700; color:var(--accent); }
+  .whelps { color:var(--accent); font-weight:600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Draw-1 Economy Prototype <span style="font-size:12px;color:var(--dim)">(throwaway)</span></h1>
+  <div class="q"><b>The question:</b> if Elian's deck is tiny and you draw exactly <b>one card per round</b> (instead of refilling to 4), does routing that scarce hand — fire it, tuck it as a charge, install it, or burn it to move — feel <b>tense</b> or just <b>starved</b> against Embermaw's telegraphed script? Play both economies and compare.</div>
+  <p class="deviations"><b>Prototype simplifications</b> (flagged, not real rules): the hex board is abstracted to two positions (Guarded Front / Flank); Whelps chip 1 damage at round end instead of blocking routes; Armor gained in the Slow window survives one round-start wipe (toggle below); full-charge cleanup happens immediately after firing. Blockable Raking Claws arrive on the Incoming row, matching the ember-pattern and the Riposte carry rule.</p>
+
+  <h2>Guided walkthroughs</h2>
+  <div class="panel">
+    <div class="tabs" id="tabs"></div>
+    <div id="scenarioBlurb" style="font-size:14px;"></div>
+    <div class="steps" id="steps"></div>
+  </div>
+
+  <h2>Current state</h2>
+  <div class="panel" id="statePanel"></div>
+
+  <h2>Free play</h2>
+  <div class="panel">
+    <div class="knobs">
+      <label>Economy:
+        <select id="kEconomy"><option value="draw1">Draw 1 per round</option><option value="draw2">Draw 2 per round</option><option value="refill3">Refill to 3</option><option value="refill4">Refill to 4 (current game)</option></select>
+      </label>
+      <label>Deck:
+        <select id="kDeck"><option value="tiny">Tiny (12 cards)</option><option value="full">Current (20 cards)</option></select>
+      </label>
+      <label><input type="checkbox" id="kCarry" checked> Slow Armor survives one wipe</label>
+      <button class="act primary" id="btnRestart">Restart free play</button>
+    </div>
+    <div style="margin-top:10px; font-size:13px; color:var(--dim)">Click a hand card to select it, then choose where it goes. <b>Every destination is a different currency.</b></div>
+    <div class="hand" id="hand"></div>
+    <div class="actions" id="cardActions"></div>
+    <div class="actions" id="phaseActions"></div>
+  </div>
+
+  <h2>What just happened</h2>
+  <div class="panel log" id="log"></div>
+</main>
+
+<script>
+/*MODULE-START*/
+// Pure economy model — no DOM in here. Liftable if the idea survives.
+const Proto = (() => {
+  const CARDS = {
+    steady_strike: { name:'Steady Strike', speed:'quick', cap:3, guard:false, text:'Deal 2 to the Boss, +1 per charged card.' },
+    iron_guard:    { name:'Iron Guard',    speed:'quick', cap:3, guard:true,  text:'Gain 3 Armor, +1 per charged Guard card.' },
+    sweeping_blow: { name:'Sweeping Blow', speed:'quick', cap:2, guard:false, text:'Destroy one Whelp.' },
+    fortify:       { name:'Fortify',       speed:'slow',  cap:2, guard:true,  text:'Gain 6 Armor. (Slow window)' },
+    shield_slam:   { name:'Shield Slam',   speed:'quick', cap:2, guard:false, text:'Deal 3 to the Boss. Full Riposte payoff (+2).' },
+  }
+  const DECKS = {
+    tiny: { steady_strike:4, iron_guard:3, sweeping_blow:2, fortify:1, shield_slam:2 },
+    full: { steady_strike:8, iron_guard:6, sweeping_blow:2, fortify:2, shield_slam:2 },
+  }
+  // Boss script. Blockable Tank Hits ride the Incoming row (ember pattern), so
+  // Armor built in Quick can meet them and earn Riposte Ready.
+  const SCRIPT = [
+    { instant:[{id:'ash',   name:'Ash Trail',     raid:1 }], incoming:[{id:'claw', name:'Raking Claw', tank:4 }] },
+    { instant:[{id:'stalk', name:'Stalk',         raid:0 }], incoming:[{id:'breath',name:'Cinder Breath', cone:3 }, {id:'brood', name:'Brood Call', spawn:2 }] },
+    { instant:[{id:'ash',   name:'Ash Trail',     raid:1 }], incoming:[{id:'claw', name:'Raking Claw', tank:4 }] },
+    { instant:[{id:'ember', name:'Ember Scar',    raid:2 }], incoming:[{id:'breath',name:'Cinder Breath', cone:3 }] },
+    { instant:[{id:'ash',   name:'Ash Trail',     raid:1 }], incoming:[{id:'claw', name:'Raking Claw', tank:5 }] },
+    { instant:[{id:'stalk', name:'Stalk',         raid:0 }], incoming:[{id:'brood', name:'Brood Call', spawn:2 }, {id:'breath',name:'Cinder Breath', cone:3 }] },
+    { instant:[{id:'ember', name:'Ember Scar',    raid:2 }], incoming:[{id:'claw', name:'Raking Claw', tank:5 }] },
+    { instant:[{id:'ash',   name:'Ash Trail',     raid:2 }], incoming:[{id:'claw', name:'Raking Claw', tank:6 }] },
+  ]
+
+  function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+  function buildDeck(listId){ const out=[]; for(const [id,n] of Object.entries(DECKS[listId])) for(let i=0;i<n;i++) out.push(id); return out }
+  function shuffle(arr, seed){ const rng=mulberry32(seed), a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a }
+
+  // economy: 'drawN' (flat income of N per round, opening hand 5)
+  //          'refillN' (draw back up to N per round, opening hand N)
+  function economyRule(economy){
+    const m = /^(draw|refill)(\d)$/.exec(economy)
+    return m ? { kind:m[1], n:+m[2] } : { kind:'refill', n:4 }
+  }
+
+  function initial(config){
+    const cfg = { economy:'draw1', deck:'tiny', carrySlowArmor:true, seed:7, stack:null, ...config }
+    const eco = economyRule(cfg.economy)
+    const order = cfg.stack ? [...cfg.stack] : shuffle(buildDeck(cfg.deck), cfg.seed)
+    const opening = eco.kind==='draw' ? 5 : eco.n
+    const state = {
+      cfg, round:1, phase:'loadout', outcome:null, checkpoint:null,
+      hero:{ hp:34, armor:0, slowArmor:0, pos:'front', riposte:null },
+      boss:{ hp:36 }, whelps:0,
+      deck:order.slice(opening), hand:order.slice(0,opening), discard:[],
+      slots:[ {top:null,charges:[],activated:false}, {top:null,charges:[],activated:false} ],
+      resolvedThisRound:{instant:false,incoming:false},
+      counters:{ drawn:opening, movedCards:0, tucked:0, fired:0, riposteEarned:0, riposteCashed:0, riposteWasted:0, bossDamage:0 },
+      log:[ `Round 1 begins. Opening hand of ${opening}. Deck has ${order.length-opening} cards left.` ],
+    }
+    return state
+  }
+
+  const beatRow = s => SCRIPT[Math.min(s.round, SCRIPT.length) - 1]
+
+  function draw(s, n){
+    for(let i=0;i<n;i++){
+      if(s.deck.length===0){
+        if(s.discard.length===0){ s.log.push('Nothing left to draw — deck and discard are both empty.'); return }
+        s.deck = shuffle(s.discard, s.cfg.seed + s.round*31 + i)
+        s.discard = []
+        s.log.push(`Discard pile shuffled back in (${s.deck.length} cards).`)
+      }
+      s.hand.push(s.deck.shift()); s.counters.drawn++
+    }
+  }
+
+  function totalArmor(s){ return s.hero.armor + s.hero.slowArmor }
+  function spendArmor(s, dmg){
+    let left = dmg
+    const useMain = Math.min(s.hero.armor, left); s.hero.armor -= useMain; left -= useMain
+    const useSlow = Math.min(s.hero.slowArmor, left); s.hero.slowArmor -= useSlow; left -= useSlow
+    return left
+  }
+
+  function heroHit(s, dmg, label){
+    const before = s.hero.hp
+    const through = spendArmor(s, dmg)
+    s.hero.hp -= through
+    s.log.push(`${label}: ${dmg} damage — ${dmg-through} blocked by Armor, ${through} to Health (${before} → ${s.hero.hp}).`)
+    if(s.hero.hp<=0){ s.outcome='DEFEAT — Elian falls.'; s.log.push('DEFEAT. Elian is down.') }
+    return through
+  }
+
+  function resolveInstant(s){
+    for(const b of beatRow(s).instant){
+      if(b.raid>0) heroHit(s, b.raid, `${b.name} (Instant)`)
+      else s.log.push(`${b.name} (Instant): the Boss repositions. No damage.`)
+    }
+    s.resolvedThisRound.instant = true
+  }
+
+  function resolveIncoming(s){
+    for(const b of beatRow(s).incoming){
+      if(b.tank){
+        const through = heroHit(s, b.tank, `${b.name} (Incoming Tank Hit — cannot be dodged)`)
+        if(s.outcome) return
+        if(through===0 && s.hero.pos==='front' && !s.hero.riposte){
+          s.hero.riposte = { grantedRound:s.round }
+          s.counters.riposteEarned++
+          s.log.push('★ RIPOSTE READY — perfect block in the Guarded Front. Any Boss-damage card cashes it (+1); Shield Slam takes the full +2. Lasts through next round’s Quick.')
+        } else if(through===0 && s.hero.pos!=='front'){
+          s.log.push('Fully blocked, but you were not holding the Guarded Front — no Riposte.')
+        }
+      }
+      if(b.cone){
+        if(s.hero.pos==='front') heroHit(s, b.cone, `${b.name} (cone — you were in it)`)
+        else s.log.push(`${b.name}: the cone scorches the Front. You watched from the Flank. 0 damage.`)
+      }
+      if(b.spawn){ s.whelps = Math.min(4, s.whelps + b.spawn); s.log.push(`${b.name}: ${b.spawn} Whelps crawl out (now ${s.whelps}). Each chips 1 Health at round end.`) }
+      if(s.outcome) return
+    }
+    s.resolvedThisRound.incoming = true
+  }
+
+  function expireRiposte(s, when){
+    if(s.hero.riposte && s.round > s.hero.riposte.grantedRound){
+      s.hero.riposte = null; s.counters.riposteWasted++
+      s.log.push(`Riposte Ready expired ${when} — the opening closed uncashed.`)
+    }
+  }
+
+  function endRound(s){
+    if(s.whelps>0){ heroHit(s, s.whelps, `${s.whelps} Whelp${s.whelps>1?'s':''} gnaw at the line`); if(s.outcome) return }
+    if(s.round===4) s.checkpoint = s.hero.hp>0
+    if(s.round>=SCRIPT.length){ if(!s.outcome){ s.outcome='ENRAGE DEFEAT — the clock ran out.'; s.log.push('Round 8 ends. Embermaw enrages. Defeat.') } return }
+    const eco = economyRule(s.cfg.economy)
+    const income = eco.kind==='draw' ? eco.n : Math.max(0, eco.n - s.hand.length)
+    draw(s, income)
+    s.log.push(eco.kind==='draw' ? `You draw ${eco.n} card${eco.n>1?'s':''}. Hand: ${s.hand.length}.` : `You refill to ${eco.n} (drew ${income}). Hand: ${s.hand.length}.`)
+    s.round++
+    // Round-start wipe. Slow Armor optionally survives exactly one wipe.
+    const wiped = s.hero.armor
+    s.hero.armor = s.cfg.carrySlowArmor ? s.hero.slowArmor : 0
+    s.hero.slowArmor = 0
+    if(wiped>0) s.log.push(`Round start: ${wiped} Armor rusts away.${s.hero.armor>0? ' '+s.hero.armor+' fortified Armor holds one more round.':''}`)
+    s.slots.forEach(sl=>sl.activated=false)
+    s.resolvedThisRound = {instant:false,incoming:false}
+    s.log.push(`— Round ${s.round}. Loadout: swap any Slot for free. —`)
+  }
+
+  function findInHand(s, cardId){ const i = s.hand.indexOf(cardId); return i }
+
+  function reduce(state, action){
+    const s = structuredClone(state)
+    s.log = []
+    if(s.outcome && action.type!=='reset') { s.log.push('The encounter is over — restart to keep playing.'); return s }
+    switch(action.type){
+      case 'install': {
+        const i = findInHand(s, action.card); if(i<0){ s.log.push('That card is not in hand.'); return s }
+        const slot = s.slots[action.slot]
+        if(slot.top && s.phase!=='loadout'){ s.log.push('An occupied Slot can only be replaced during Loadout.'); return s }
+        if(slot.top){ s.discard.push(slot.top, ...slot.charges); s.log.push(`Replaced ${CARDS[slot.top].name} and its ${slot.charges.length} charge(s) — all discarded.`) }
+        s.hand.splice(i,1); s.slots[action.slot] = { top:action.card, charges:[], activated:false }
+        s.log.push(`${CARDS[action.card].name} installed in Slot ${action.slot+1} at 0 Charge. (Installing is free — but the card is now a machine, not a spell.)`)
+        return s }
+      case 'tuck': {
+        if(s.phase!=='quick' && s.phase!=='slow'){ s.log.push('Charging happens during the Quick or Slow window.'); return s }
+        const i = findInHand(s, action.card); if(i<0){ s.log.push('That card is not in hand.'); return s }
+        const slot = s.slots[action.slot]
+        if(!slot.top){ s.log.push('That Slot is empty — install something first.'); return s }
+        if(slot.activated){ s.log.push('That Slot already fired this window — no more charges until next window.'); return s }
+        if(slot.charges.length >= CARDS[slot.top].cap){ s.log.push('That Slot is at full Charge.'); return s }
+        s.hand.splice(i,1); slot.charges.push(action.card); s.counters.tucked++
+        const isGuardMod = slot.top==='iron_guard'
+        const worth = isGuardMod ? (CARDS[action.card].guard ? '+1 Armor when fired' : 'a Charge, but NO Armor (not a Guard card)') : (slot.top==='steady_strike' ? '+1 Boss damage when fired' : 'a Charge')
+        s.log.push(`${CARDS[action.card].name} tucked under ${CARDS[slot.top].name} — worth ${worth}. (${slot.charges.length}/${CARDS[slot.top].cap})`)
+        return s }
+      case 'move': {
+        if(s.phase!=='quick'){ s.log.push('Movement happens during the Quick window.'); return s }
+        const i = findInHand(s, action.card); if(i<0){ s.log.push('That card is not in hand.'); return s }
+        s.hand.splice(i,1); s.discard.push(action.card); s.counters.movedCards++
+        s.hero.pos = s.hero.pos==='front' ? 'flank' : 'front'
+        s.log.push(`${CARDS[action.card].name} burned as Stamina. You step to the ${s.hero.pos==='front'?'GUARDED FRONT':'FLANK'}. (The card is gone — that was its whole value this round.)`)
+        return s }
+      case 'fire': {
+        const slot = s.slots[action.slot]
+        if(!slot.top){ s.log.push('That Slot is empty.'); return s }
+        const card = CARDS[slot.top]
+        if(s.phase!==card.speed){ s.log.push(`${card.name} is a ${card.speed.toUpperCase()} card — wrong window.`); return s }
+        if(slot.activated){ s.log.push('That Slot already fired this window.'); return s }
+        if(slot.charges.length===0){ s.log.push('A Slot needs at least one charged card before it can fire.'); return s }
+        if(slot.top==='sweeping_blow' && s.whelps===0){ s.log.push('No Whelp to hit — Sweeping Blow needs a target.'); return s }
+        slot.activated = true; s.counters.fired++
+        let bossDmg = 0
+        if(slot.top==='steady_strike') bossDmg = 2 + slot.charges.length
+        if(slot.top==='shield_slam') bossDmg = 3
+        if(slot.top==='iron_guard'){ const g = slot.charges.filter(c=>CARDS[c].guard).length; s.hero.armor += 3+g; s.log.push(`Iron Guard: +${3+g} Armor (3 base, +${g} from Guard charges). Armor now ${totalArmor(s)}.`) }
+        if(slot.top==='fortify'){ s.hero.slowArmor += 6; s.log.push(`Fortify: +6 Armor, banked in the Slow window. Armor now ${totalArmor(s)}.`) }
+        if(slot.top==='sweeping_blow'){ s.whelps--; s.log.push(`Sweeping Blow clears a Whelp (${s.whelps} left).`) }
+        if(bossDmg>0){
+          let bonus = 0
+          if(s.hero.riposte){ bonus = slot.top==='shield_slam' ? 2 : 1; s.hero.riposte=null; s.counters.riposteCashed++
+            s.log.push(bonus===2 ? '★ Riposte cashed by Shield Slam — the FULL +2.' : '★ Riposte cashed early for +1. (Shield Slam would have taken +2 — spend-order is a choice.)') }
+          s.boss.hp -= bossDmg+bonus; s.counters.bossDamage += bossDmg+bonus
+          s.log.push(`${card.name}: ${bossDmg+bonus} damage to Embermaw (${s.boss.hp} left).`)
+          if(s.boss.hp<=0){ s.outcome='VICTORY — Embermaw falls!'; s.log.push('VICTORY. Embermaw is down.') }
+        }
+        if(slot.charges.length >= card.cap){
+          s.discard.push(slot.top, ...slot.charges)
+          s.log.push(`Full-charge cleanup: ${card.name} and its ${slot.charges.length} charges are discarded. The Slot is empty.`)
+          s.slots[action.slot] = { top:null, charges:[], activated:false }
+        }
+        return s }
+      case 'next': {
+        if(s.phase==='loadout'){ s.phase='quick'; resolveInstant(s)
+          // A Riposte granted last round survives THROUGH this Quick; it expires only when this Quick closes.
+          if(!s.outcome) s.log.push('— QUICK window. Fire Quick Slots, charge, or move. —')
+          return s }
+        if(s.phase==='quick'){ expireRiposte(s,'as the Quick window closed'); resolveIncoming(s); if(!s.outcome) { s.phase='slow'; s.log.push('— SLOW window. Fire Slow Slots or charge. —') } return s }
+        if(s.phase==='slow'){ s.phase='loadout'; endRound(s); return s }
+        return s }
+      case 'reset': return initial(action.config||{})
+      default: return s
+    }
+  }
+
+  return { CARDS, DECKS, SCRIPT, initial, reduce, totalArmor, beatRow, economyRule }
+})()
+/*MODULE-END*/
+
+// ——— Page shell (throwaway) ———
+let S = Proto.initial({})
+let selected = null
+let fullLog = [...S.log]
+let scenario = null, stepIndex = 0
+
+const SCENARIOS = [
+  {
+    id:'starved', title:'1 · One card a round',
+    blurb:'Draw-1 economy, 12-card deck. Route the opening five cards through rounds 1–2 and watch the hand empty. The question to sit with at the end: round 3 gives you ONE card — what is it even for? (This walkthrough deliberately cannot afford the perfect block: Iron Guard fires at 3 Armor against a 4-damage Claw.)',
+    config:{ economy:'draw1', deck:'tiny', stack:['iron_guard','steady_strike','steady_strike','shield_slam','sweeping_blow','iron_guard','steady_strike','fortify','iron_guard','steady_strike','sweeping_blow','shield_slam'] },
+    steps:[
+      { label:'Install Iron Guard in Slot 1', action:{type:'install',card:'iron_guard',slot:0} },
+      { label:'Install Steady Strike in Slot 2', action:{type:'install',card:'steady_strike',slot:1} },
+      { label:'Next — Ash Trail chips you; Quick opens', action:{type:'next'} },
+      { label:'Tuck Steady Strike under Slot 2 (+1 damage)', action:{type:'tuck',card:'steady_strike',slot:1} },
+      { label:'Tuck Shield Slam under Slot 1 (a Charge — but no Armor: not a Guard card)', action:{type:'tuck',card:'shield_slam',slot:0} },
+      { label:'Fire Slot 1 — Iron Guard, only 3 Armor', action:{type:'fire',slot:0} },
+      { label:'Fire Slot 2 — Steady Strike for 3', action:{type:'fire',slot:1} },
+      { label:'Next — the Claw lands on 3 Armor: 1 Health lost, NO Riposte', action:{type:'next'} },
+      { label:'Next — end the round. You draw exactly 1 card', action:{type:'next'} },
+      { label:'Next — round 2 Quick. Hand is 2 cards: Breath AND Brood are coming', action:{type:'next'} },
+      { label:'Burn Sweeping Blow to step to the Flank (dodge the cone… with your Whelp answer)', action:{type:'move',card:'sweeping_blow'} },
+      { label:'Next — cone misses you; Whelps spawn anyway; Slow opens', action:{type:'next'} },
+      { label:'Next — round 2 ends. One draw. Feel the hole you are in.', action:{type:'next'} },
+    ],
+  },
+  {
+    id:'perfect', title:'2 · The perfect block on a budget',
+    blurb:'Same economy — but the stacked hand affords the exact-4 block. Count what the full Riposte combo costs: four of your six cards and both Slots. Under draw-1, one perfect round spends four rounds of income.',
+    config:{ economy:'draw1', deck:'tiny', stack:['iron_guard','iron_guard','shield_slam','steady_strike','steady_strike','sweeping_blow','fortify','iron_guard','steady_strike','steady_strike','sweeping_blow','shield_slam'] },
+    steps:[
+      { label:'Install Iron Guard in Slot 1', action:{type:'install',card:'iron_guard',slot:0} },
+      { label:'Install Shield Slam in Slot 2', action:{type:'install',card:'shield_slam',slot:1} },
+      { label:'Next — Quick opens', action:{type:'next'} },
+      { label:'Tuck the second Iron Guard under Slot 1 — a GUARD charge: +1 Armor', action:{type:'tuck',card:'iron_guard',slot:0} },
+      { label:'Fire Slot 1 — exactly 4 Armor vs the incoming 4-damage Claw', action:{type:'fire',slot:0} },
+      { label:'Tuck Steady Strike under Slot 2 (readies the Slam)', action:{type:'tuck',card:'steady_strike',slot:1} },
+      { label:'Next — the Claw is fully blocked: ★ RIPOSTE READY', action:{type:'next'} },
+      { label:'Next — round ends; the Riposte holds through next Quick. Draw 1.', action:{type:'next'} },
+      { label:'Next — round 2 Quick opens, Riposte still lit', action:{type:'next'} },
+      { label:'Fire Slot 2 — Shield Slam cashes the FULL +2: 5 damage', action:{type:'fire',slot:1} },
+      { label:'Next — Breath and Brood resolve (you are still in the Front…)', action:{type:'next'} },
+      { label:'Next — end round 2. Count the cards this glory cost.', action:{type:'next'} },
+    ],
+  },
+  {
+    id:'dodgetax', title:'3 · The dodge tax',
+    blurb:'Cinder Breath is dodgeable — for the price of a card out and a card back. Under draw-1 that is TWO ROUNDS of income to stand still, and while you are on the Flank a blocked Claw earns no Riposte. Feel whether the tax reads as a decision or a punishment.',
+    config:{ economy:'draw1', deck:'tiny', stack:['iron_guard','steady_strike','iron_guard','steady_strike','sweeping_blow','shield_slam','fortify','iron_guard','steady_strike','steady_strike','sweeping_blow','shield_slam'] },
+    steps:[
+      { label:'Install Iron Guard in Slot 1', action:{type:'install',card:'iron_guard',slot:0} },
+      { label:'Install Steady Strike in Slot 2', action:{type:'install',card:'steady_strike',slot:1} },
+      { label:'Next — Quick opens (Claw incoming)', action:{type:'next'} },
+      { label:'Tuck Iron Guard under Slot 1, fire-ready', action:{type:'tuck',card:'iron_guard',slot:0} },
+      { label:'Fire Slot 1 — 4 Armor, perfect block prepared', action:{type:'fire',slot:0} },
+      { label:'Next — Claw blocked: ★ Riposte. Round 1 ends next.', action:{type:'next'} },
+      { label:'Next — draw 1. Round 2: Breath AND Brood on the Incoming row', action:{type:'next'} },
+      { label:'Next — Quick opens. Riposte is lit but the cone is aimed at you', action:{type:'next'} },
+      { label:'Tuck Steady Strike under Slot 2 (the Slam is stranded in your deck — Steady Strike will have to cash the opening)', action:{type:'tuck',card:'steady_strike',slot:1} },
+      { label:'Fire Slot 2 — Steady Strike cashes the Riposte early: +1, not +2', action:{type:'fire',slot:1} },
+      { label:'Burn Sweeping Blow to step to the Flank (dodge the 3-damage cone)', action:{type:'move',card:'sweeping_blow'} },
+      { label:'Next — cone misses; Whelps spawn; Slow opens', action:{type:'next'} },
+      { label:'Next — round ends: draw 1. You must now pay AGAIN to reach the Front', action:{type:'next'} },
+      { label:'Next — round 3 Quick opens (another Claw is already telegraphed)', action:{type:'next'} },
+      { label:'Burn Shield Slam to step back to the Guarded Front. (Yes. The Slam. That is the tax.)', action:{type:'move',card:'shield_slam'} },
+    ],
+  },
+  {
+    id:'contrast', title:'4 · Contrast: today’s economy',
+    blurb:'Same boss script, current rules: 20-card deck, refill to 4 every round. Play the same opening and feel the difference — the routing choices are the same, but the income forgives. Free-play from step 6 onward.',
+    config:{ economy:'refill4', deck:'full', stack:['iron_guard','iron_guard','steady_strike','shield_slam','steady_strike','steady_strike','iron_guard','sweeping_blow','fortify','steady_strike','iron_guard','steady_strike','shield_slam','iron_guard','steady_strike','sweeping_blow','iron_guard','steady_strike','fortify','iron_guard'] },
+    steps:[
+      { label:'Install Iron Guard in Slot 1', action:{type:'install',card:'iron_guard',slot:0} },
+      { label:'Install Shield Slam in Slot 2', action:{type:'install',card:'shield_slam',slot:1} },
+      { label:'Next — Quick opens', action:{type:'next'} },
+      { label:'Tuck Iron Guard under Slot 1 (+1 Armor)', action:{type:'tuck',card:'iron_guard',slot:0} },
+      { label:'Fire Slot 1 — exactly 4 Armor', action:{type:'fire',slot:0} },
+      { label:'Tuck Steady Strike under Slot 2', action:{type:'tuck',card:'steady_strike',slot:1} },
+      { label:'Next — Claw blocked: ★ Riposte. Slow window opens', action:{type:'next'} },
+      { label:'Next — end round 1: you refill to FOUR. Riposte still lit — play on freely.', action:{type:'next'} },
+    ],
+  },
+]
+
+function dispatch(action){
+  S = Proto.reduce(S, action)
+  fullLog = [...fullLog.map(l=>typeof l==='string'?l:l.t), ...S.log].slice(-60)
+  render(S.log)
+}
+
+function el(id){ return document.getElementById(id) }
+function h(tag, attrs, ...kids){ const e=document.createElement(tag); for(const [k,v] of Object.entries(attrs||{})){ if(k==='class')e.className=v; else if(k.startsWith('on'))e.addEventListener(k.slice(2),v); else e.setAttribute(k,v) } for(const kid of kids){ e.append(kid) } return e }
+
+function render(newLines=[]) {
+  const c = Proto.CARDS
+  // state panel
+  const row = Proto.beatRow(S)
+  const p = el('statePanel'); p.innerHTML=''
+  if(S.outcome) p.append(h('div',{class:'outcome'}, S.outcome))
+  const stats = h('div',{class:'row'})
+  const stat = (k,v,warn)=>{ const d=h('div',{class:'stat'}); d.append(h('div',{class:'k'},k), h('div',{class:'v'+(warn?' warn':'')},String(v))); return d }
+  stats.append(
+    stat('Round', `${S.round} / 8`),
+    stat('Window', S.phase.toUpperCase()),
+    stat('Elian', `${S.hero.hp} HP`, S.hero.hp<=10),
+    stat('Armor', Proto.totalArmor(S)),
+    stat('Position', S.hero.pos==='front'?'Guarded Front':'Flank', S.hero.pos!=='front'),
+    stat('Riposte', S.hero.riposte?'READY ★':'—', !!S.hero.riposte),
+    stat('Embermaw', `${S.boss.hp} HP`),
+    stat('Whelps', S.whelps, S.whelps>0),
+    stat('Deck / Hand / Discard', `${S.deck.length} / ${S.hand.length} / ${S.discard.length}`, S.hand.length===0),
+  )
+  p.append(stats)
+  const tl = h('div',{class:'timeline'})
+  for(const b of row.instant) tl.append(h('div',{class:'beat'+(S.resolvedThisRound.instant?' done':'')}, h('span',{class:'tag'},'INSTANT'), `${b.name}${b.raid?` — ${b.raid} dmg`:''}`))
+  for(const b of row.incoming) tl.append(h('div',{class:'beat'+(S.resolvedThisRound.incoming?' done':'')}, h('span',{class:'tag'},'INCOMING'), `${b.name}${b.tank?` — Tank Hit ${b.tank} (block it)`:''}${b.cone?` — cone ${b.cone} (dodge it)`:''}${b.spawn?` — spawns ${b.spawn} Whelps`:''}`))
+  p.append(h('h2',{},'Boss timeline — this round'), tl)
+  const sl = h('div',{class:'slots'})
+  S.slots.forEach((slot,i)=>{
+    const d = h('div',{class:'slot'})
+    d.append(h('h3',{}, `Slot ${i+1}: ${slot.top ? c[slot.top].name + (slot.activated?' (fired)':'') : 'empty'}`))
+    if(slot.top) d.append(h('div',{class:'chg'}, `${c[slot.top].text} Charges: ${slot.charges.length}/${c[slot.top].cap}` + (slot.charges.length?` (${slot.charges.map(x=>c[x].name).join(', ')})`:'')))
+    const fire = h('button',{class:'act',onclick:()=>dispatch({type:'fire',slot:i})},'Fire')
+    fire.disabled = !slot.top || slot.activated || slot.charges.length===0 || S.phase!==(slot.top?c[slot.top].speed:'') || !!S.outcome
+    d.append(h('div',{class:'actions'},fire))
+    sl.append(d)
+  })
+  p.append(h('h2',{},'Action bar'), sl)
+  p.append(h('div',{class:'counters'}, `Cards drawn ${S.counters.drawn} · tucked ${S.counters.tucked} · burned to move ${S.counters.movedCards} · Slots fired ${S.counters.fired} · Boss damage ${S.counters.bossDamage} · Riposte earned ${S.counters.riposteEarned} / cashed ${S.counters.riposteCashed} / wasted ${S.counters.riposteWasted}` + (S.checkpoint!==null?` · Round-4 checkpoint: ${S.checkpoint?'ALIVE':'DOWN'}`:'')))
+
+  // hand + actions
+  const hd = el('hand'); hd.innerHTML=''
+  if(S.hand.length===0) hd.append(h('div',{style:'color:var(--dim);font-size:13px'},'Hand is empty.'))
+  S.hand.forEach((id,i)=>{
+    const b = h('button',{class:'cardbtn'+(selected===i?' sel':''),onclick:()=>{selected=selected===i?null:i;render()}},
+      c[id].name, h('span',{class:'sp'}, `${c[id].speed.toUpperCase()} · ${c[id].text}`))
+    hd.append(b)
+  })
+  const ca = el('cardActions'); ca.innerHTML=''
+  if(selected!==null && S.hand[selected]){
+    const id = S.hand[selected]
+    const mk=(label,action,dis)=>{ const b=h('button',{class:'act',onclick:()=>{const a={...action,card:id};selected=null;dispatch(a)}},label); b.disabled=!!dis||!!S.outcome; return b }
+    ca.append(
+      mk(`Install → Slot 1${S.slots[0].top?' (replace)':''}`,{type:'install',slot:0}, S.slots[0].top&&S.phase!=='loadout'),
+      mk(`Install → Slot 2${S.slots[1].top?' (replace)':''}`,{type:'install',slot:1}, S.slots[1].top&&S.phase!=='loadout'),
+      mk('Tuck → Slot 1',{type:'tuck',slot:0}, !S.slots[0].top||S.phase==='loadout'),
+      mk('Tuck → Slot 2',{type:'tuck',slot:1}, !S.slots[1].top||S.phase==='loadout'),
+      mk(`Burn to move → ${S.hero.pos==='front'?'Flank':'Guarded Front'}`,{type:'move'}, S.phase!=='quick'),
+    )
+  } else {
+    ca.append(h('div',{style:'color:var(--dim);font-size:13px'},'Select a card to see its four destinations.'))
+  }
+  const pa = el('phaseActions'); pa.innerHTML=''
+  const nextLabel = S.phase==='loadout'?'Next: resolve Boss Instant → Quick window' : S.phase==='quick'?'Next: resolve Incoming row → Slow window' : 'Next: end round (draw, Whelps bite, new round)'
+  const nb = h('button',{class:'act primary',onclick:()=>{selected=null;dispatch({type:'next'})}}, nextLabel)
+  nb.disabled=!!S.outcome
+  pa.append(nb)
+
+  // log
+  const lg = el('log'); lg.innerHTML=''
+  const newSet = new Set(newLines)
+  fullLog.slice().reverse().forEach(line=>lg.append(h('div',{class:newSet.has(line)?'new':''},line)))
+
+  // walkthrough
+  renderScenarios()
+}
+
+function renderScenarios(){
+  const tabs = el('tabs'); tabs.innerHTML=''
+  SCENARIOS.forEach(sc=>{
+    tabs.append(h('button',{class:scenario===sc?'on':'',onclick:()=>{startScenario(sc)}}, sc.title))
+  })
+  const blurb = el('scenarioBlurb')
+  const stepsEl = el('steps'); stepsEl.innerHTML=''
+  if(!scenario){ blurb.textContent = 'Pick a walkthrough — each resets to a stacked, repeatable deal — or just free-play below.'; return }
+  blurb.textContent = scenario.blurb
+  scenario.steps.forEach((st,i)=>{
+    const b = h('button',{class:'act '+(i<stepIndex?'done':i===stepIndex?'cur':''),onclick:()=>{ if(i===stepIndex){ dispatch(st.action); stepIndex++; render() } }}, `${i+1}. ${st.label}`)
+    b.disabled = i!==stepIndex || !!S.outcome
+    stepsEl.append(b)
+  })
+  if(stepIndex>=scenario.steps.length) stepsEl.append(h('div',{style:'color:var(--accent);font-weight:600;font-size:14px;padding-top:6px'},'Walkthrough done — keep free-playing this state, or pick another tab.'))
+}
+
+function startScenario(sc){
+  scenario = sc; stepIndex = 0; selected=null
+  S = Proto.initial(sc.config)
+  fullLog = [...S.log]
+  el('kEconomy').value = sc.config.economy; el('kDeck').value = sc.config.deck
+  render(S.log)
+}
+
+el('btnRestart').addEventListener('click',()=>{
+  scenario=null; stepIndex=0; selected=null
+  S = Proto.initial({ economy:el('kEconomy').value, deck:el('kDeck').value, carrySlowArmor:el('kCarry').checked, seed:Math.floor(Math.random()*100000) })
+  fullLog=[...S.log]
+  render(S.log)
+})
+
+render(S.log)
+</script>
+</body>
+</html>

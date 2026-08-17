@@ -2,51 +2,15 @@
   "id": "embermaw_round3_brood",
   "title": "Round 3: Brood Pattern opens",
   "version": 1,
-  "description": "The victory line paused entering Round 3: Whelps on the board, Brood Pattern up, slot engines running.",
+  "description": "The solo-ceiling line paused entering Round 3: Whelps on the board, Brood Pattern up, slot engines running.",
   "encounter": "embermaw_prototype",
-  "seed": 1,
+  "seed": 30,
   "steps": [
     {
       "action": {
         "kind": "load_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "steady_strike_8"
-      }
-    },
-    {
-      "action": {
-        "kind": "load_slot",
-        "sourceId": "guardian",
-        "slotIndex": 1,
-        "cardInstanceId": "steady_strike_6"
-      }
-    },
-    {
-      "advance": true
-    },
-    {
-      "advance": true
-    },
-    {
-      "action": {
-        "kind": "move_hero",
-        "sourceId": "guardian",
-        "destination": {
-          "q": -1,
-          "r": 0
-        },
-        "cardInstanceId": "fortify_18"
-      }
-    },
-    {
-      "action": {
-        "kind": "move_hero",
-        "sourceId": "guardian",
-        "destination": {
-          "q": -2,
-          "r": 0
-        },
         "cardInstanceId": "steady_strike_4"
       }
     },
@@ -57,20 +21,14 @@
       "advance": true
     },
     {
-      "advance": true
-    },
-    {
-      "advance": true
-    },
-    {
-      "advance": true
-    },
-    {
       "action": {
-        "kind": "charge_slot",
+        "kind": "move_hero",
         "sourceId": "guardian",
-        "slotIndex": 0,
-        "cardInstanceId": "iron_guard_12"
+        "destination": {
+          "q": 1,
+          "r": 0
+        },
+        "cardInstanceId": "fortify_18"
       }
     },
     {
@@ -78,7 +36,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "steady_strike_3"
+        "cardInstanceId": "fortify_17"
       }
     },
     {
@@ -86,7 +44,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "steady_strike_1"
+        "cardInstanceId": "iron_guard_13"
       }
     },
     {
@@ -94,6 +52,59 @@
         "kind": "fire_slot",
         "sourceId": "guardian",
         "slotIndex": 0
+      }
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "action": {
+        "kind": "load_slot",
+        "sourceId": "guardian",
+        "slotIndex": 1,
+        "cardInstanceId": "steady_strike_5"
+      }
+    },
+    {
+      "advance": true
+    },
+    {
+      "advance": true
+    },
+    {
+      "action": {
+        "kind": "charge_slot",
+        "sourceId": "guardian",
+        "slotIndex": 1,
+        "cardInstanceId": "shield_slam_19"
+      }
+    },
+    {
+      "action": {
+        "kind": "charge_slot",
+        "sourceId": "guardian",
+        "slotIndex": 1,
+        "cardInstanceId": "shield_slam_20"
+      }
+    },
+    {
+      "action": {
+        "kind": "fire_slot",
+        "sourceId": "guardian",
+        "slotIndex": 0
+      }
+    },
+    {
+      "action": {
+        "kind": "fire_slot",
+        "sourceId": "guardian",
+        "slotIndex": 1
       }
     },
     {

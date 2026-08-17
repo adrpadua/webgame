@@ -9,6 +9,7 @@ import { resolveBossBeat, advanceProgram } from './timeline'
 import { shuffle } from './rng'
 import {
   addStatus,
+  createFortified,
   createRiposteReady,
   getStatuses,
   hasStatus,
@@ -145,10 +146,17 @@ function resolveOne(
       hero.health = Math.min(hero.maxHealth, hero.health + effects.healing)
       slot.activatedWindow = draft.phase
       syncHeroEntity(draft, action.sourceId)
-      const consumed = consumeStatusesForSlot(draft, action.sourceId, card)
+      const consumed = consumeStatusesForSlot(draft, action.sourceId, card, effects.bossDamage > 0)
       effects.bossDamage += consumed.bonusBossDamage
       if (consumed.events.length > 0) {
         fact.resolutionFact = { status_event: consumed.events[0] }
+      }
+      if (effects.armorNextRound > 0) {
+        const fortified = createFortified(card.id, effects.armorNextRound, draft.round, draft.phase)
+        addStatus(draft, action.sourceId, fortified)
+        if (consumed.events.length === 0) {
+          fact.resolutionFact = { status_event: statusEvent(fortified, 'granted', fortified.triggerReason) }
+        }
       }
       succeed(fact)
       if (effects.bossDamage > 0) {
@@ -242,6 +250,18 @@ function resolveOne(
       if (minion) {
         draft.board.entities[action.minionId].contentId = minion.id
       }
+      succeed(fact)
+      break
+    }
+    case 'move_minion': {
+      const entity = draft.board.entities[action.sourceId]
+      if (!entity) {
+        fail(fact, 'The Minion no longer exists.')
+        break
+      }
+      const fromCoords = entity.coords
+      moveEntity(draft.board, action.sourceId, action.destination)
+      entity.facing = directionForAxialDelta(axialSubtract(action.destination, fromCoords))
       succeed(fact)
       break
     }
@@ -397,18 +417,23 @@ interface ConsumedStatuses {
   events: Record<string, unknown>[]
 }
 
-function consumeStatusesForSlot(draft: EncounterState, entityId: string, card: Card): ConsumedStatuses {
+// A consumable payoff status (consumeOnCardId set) is cashed by ANY card that
+// deals Boss damage: the named payoff card takes the full bonus, every other
+// Boss-damage card takes the smaller off-payoff bonus. Cards that deal no Boss
+// damage never consume it.
+function consumeStatusesForSlot(draft: EncounterState, entityId: string, card: Card, dealsBossDamage: boolean): ConsumedStatuses {
   const result: ConsumedStatuses = { bonusBossDamage: 0, events: [] }
   const remaining = []
   for (const effect of getStatuses(draft, entityId)) {
-    const consumes = effect.consumeOnCardId !== '' && effect.consumeOnCardId === card.id && effect.triggers.includes('on_slot_fired')
+    const consumes = effect.consumeOnCardId !== '' && dealsBossDamage && effect.triggers.includes('on_slot_fired')
     if (!consumes) {
       remaining.push(effect)
       continue
     }
-    const bonus = effect.bonusBossDamageOnSlotFired
+    const isPayoffCard = effect.consumeOnCardId === card.id
+    const bonus = isPayoffCard ? effect.bonusBossDamageOnSlotFired : effect.bonusBossDamageOffPayoff
     result.bonusBossDamage += bonus
-    const event = statusEvent(effect, 'consumed', 'matching_card_fired')
+    const event = statusEvent(effect, 'consumed', isPayoffCard ? 'matching_card_fired' : 'boss_damage_card_fired')
     event.card_id = card.id
     event.bonus_boss_damage = bonus
     result.events.push(event)
@@ -527,6 +552,8 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: `Hazard at (${action.coords.q}, ${action.coords.r})`, detail }
     case 'spawn_minion':
       return { title: `Spawn ${action.minionId}`, detail }
+    case 'move_minion':
+      return { title: `${action.sourceId} advances to (${action.destination.q}, ${action.destination.r})`, detail }
     case 'damage':
       return { title: `Damage ${action.amount} to ${action.targetId} (${action.reasonText})`, detail }
     case 'discard_for_stamina':

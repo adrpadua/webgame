@@ -19,6 +19,7 @@ func _initialize() -> void:
 	_test_instant_expiry()
 	_test_incoming_expiry()
 	_test_shield_slam_consumption()
+	_test_off_payoff_consumption()
 	_test_replay_equality()
 	if failures.is_empty():
 		print("RIPOSTE_READY_PROBE_OK")
@@ -132,13 +133,34 @@ func _test_shield_slam_consumption() -> void:
 	_assert(payoff_fact.get("requested") == 5 and payoff_fact.get("base_amount") == 3 and payoff_fact.get("status_bonus") == 2, "The Boss damage fact must separate Shield Slam base damage from the Riposte payoff.")
 	_assert(payoff_fact.get("status_id") == &"riposte_ready" and payoff_fact.get("payoff_card_id") == &"shield_slam", "The payoff fact must identify its Status Effect and Card.")
 
-	var nonmatching = _engine(_tank_program(&"instant"), 8, Vector2i(0, 0), [STEADY_STRIKE, IRON_GUARD])
-	nonmatching.apply(EncounterActionModel.load_slot(&"guardian", 0, STEADY_STRIKE))
-	nonmatching.advance_phase()
-	nonmatching.advance_phase()
-	nonmatching.apply(EncounterActionModel.charge_slot(&"guardian", 0, IRON_GUARD))
-	nonmatching.apply(EncounterActionModel.fire_slot(&"guardian", 0))
-	_assert(nonmatching.has_status(&"guardian", &"riposte_ready"), "A legal non-Shield-Slam fire must not consume Riposte Ready.")
+	# The non-Shield-Slam consumption boundary moved under D-015: a Boss-damage
+	# card now consumes Riposte Ready for the off-payoff +1, and only a card
+	# with no Boss damage leaves it untouched. Both paths are covered by
+	# _test_off_payoff_consumption.
+
+func _test_off_payoff_consumption() -> void:
+	var engine = _engine(_tank_program(&"instant"), 8, Vector2i(0, 0), [STEADY_STRIKE, IRON_GUARD, SHIELD_SLAM])
+	_assert(engine.apply(EncounterActionModel.load_slot(&"guardian", 0, STEADY_STRIKE)).succeeded, "Steady Strike must load during Loadout.")
+	engine.advance_phase()
+	engine.advance_phase()
+	_assert(engine.has_status(&"guardian", &"riposte_ready"), "The qualifying Tank Hit must grant Riposte Ready before the off-payoff fire.")
+	_assert(engine.apply(EncounterActionModel.charge_slot(&"guardian", 0, IRON_GUARD)).succeeded, "Steady Strike must accept its Charge.")
+	var boss_health_before: int = engine.board.get_entity(&"embermaw")["health"]
+	var fired = engine.apply(EncounterActionModel.fire_slot(&"guardian", 0))
+	_assert(fired.succeeded, "A charged Steady Strike must fire legally in Quick.")
+	_assert(not engine.has_status(&"guardian", &"riposte_ready"), "A non-payoff Boss-damage card must consume Riposte Ready.")
+	_assert(boss_health_before - int(engine.board.get_entity(&"embermaw")["health"]) == 4, "An off-payoff consumption must add exactly 1 Boss damage (2 base + 1 charge + 1 Riposte).")
+	var event: Dictionary = fired.payload.get("resolution_fact", {}).get("status_event", {})
+	_assert(event.get("event", &"") == &"consumed" and event.get("reason", &"") == &"boss_damage_card_fired", "An off-payoff consumption must record its distinct lifecycle reason.")
+	_assert(event.get("card_id", &"") == &"steady_strike" and int(event.get("bonus_boss_damage", 0)) == 1, "The off-payoff consumption event must name the consuming card and the +1 bonus.")
+
+	var guard_engine = _engine(_tank_program(&"instant"), 8, Vector2i(0, 0), [IRON_GUARD, STEADY_STRIKE, SHIELD_SLAM])
+	_assert(guard_engine.apply(EncounterActionModel.load_slot(&"guardian", 0, IRON_GUARD)).succeeded, "Iron Guard must load during Loadout.")
+	guard_engine.advance_phase()
+	guard_engine.advance_phase()
+	_assert(guard_engine.apply(EncounterActionModel.charge_slot(&"guardian", 0, STEADY_STRIKE)).succeeded, "Iron Guard must accept its Charge.")
+	_assert(guard_engine.apply(EncounterActionModel.fire_slot(&"guardian", 0)).succeeded, "A charged Iron Guard must fire legally in Quick.")
+	_assert(guard_engine.has_status(&"guardian", &"riposte_ready"), "A card with no Boss damage must not consume Riposte Ready.")
 
 func _test_replay_equality() -> void:
 	var first: String = JSON.stringify(_normalized_riposte_trace())

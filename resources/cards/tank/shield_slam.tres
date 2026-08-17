@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = &"shield_slam"
 title = "Shield Slam"
-rules_text = "Deal 3 damage to the raid boss."
+rules_text = "Deal 3 damage to the boss. If you have Riposte Ready, consume it and gain +2 damage."
 speed = &"quick"
 target_type = 0
 boss_damage = 3

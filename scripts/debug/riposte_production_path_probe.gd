@@ -17,8 +17,8 @@ func _initialize() -> void:
 	if authored_claw != null:
 		_assert(authored_claw.damage_classification == &"tank_hit" and authored_claw.damage == 4, "The production Incoming Raking Claw must remain an authored 4-damage Tank Hit.")
 		_assert(authored_claw.target_selector == &"tank", "The production Incoming Raking Claw must target the Tank.")
-		_assert(authored_claw.rules_text == "Target: Tank. Deal 4 damage. Movement does not evade this hit.", "The production Incoming Raking Claw must use the approved targeted-hit rules text.")
-		_assert(authored_claw.counter_tags == [&"Mitigate"], "The production Incoming Raking Claw must expose Mitigate as its only counter tag.")
+		_assert(authored_claw.rules_text == "Target: Tank. Deal 4 damage. Movement does not evade this hit. An unheld Guarded Front suffers +3.", "The production Incoming Raking Claw must use the approved targeted-hit rules text.")
+		_assert(authored_claw.counter_tags == [&"Mitigate", &"Position"], "The production Incoming Raking Claw must expose Mitigate and Position as its counter tags (D-017).")
 
 	var engine := EncounterEngineModel.new()
 	engine.start(_config())

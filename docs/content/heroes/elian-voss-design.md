@@ -118,7 +118,7 @@ Elian is calm under pressure. Their voice is practical and spare: "Behind me." "
 2. Spend hand cards to Charge the right Slot or discard a card to take the Guarded Front or leave a telegraph.
 3. Use Armor to absorb Tank Hits.
 4. When a Boss Tank Hit causes `0` Health loss in the Guarded Front, gain Riposte Ready until the end of the first following Quick Window.
-5. Fire Shield Slam to consume Riposte Ready for its `+2` Boss-damage payoff, or take another role-appropriate action before the opening closes.
+5. Cash Riposte Ready before the opening closes: any Boss-damage card consumes it for `+1`, and a legal Shield Slam takes the full `+2` payoff. Spend-ordering is deliberate mastery — firing a lesser attack first spends the opening cheaply.
 6. Use one-event Interception to save a selected ally from an otherwise bad hit.
 
 The first Embermaw Tutorial Prompt set teaches the early parts of this loop as existing facts: Boss Timeline, Guarded Front, Charge, Iron Guard/Armor, Riposte Ready, Slow/Fortify, and Whelp pressure. Its exact trigger contracts and unresolved presentation policies are in [embermaw-prototype.md](../encounters/embermaw-prototype.md#contextual-teaching-contracts). Prompts explain these rules; they do not modify Elian's Cards or create a new action.
@@ -133,7 +133,7 @@ The first Embermaw Tutorial Prompt set teaches the early parts of this loop as e
 | Interception duration | It expires after the redirected event or at the end of the Round if unused. |
 | Positioning | The Guardian's primary positional responsibility is the Guarded Front: the Boss-facing adjacent hex. |
 | Riposte Ready | A qualifying Boss Tank Hit in the Guarded Front that causes `0` Health loss grants one non-stacking, non-refreshing Riposte Ready. It expires at the end of the first following Quick Window. |
-| Riposte payoff | A legal Shield Slam consumes Riposte Ready and gains `2` additional Boss damage. |
+| Riposte payoff | A card that deals Boss damage consumes Riposte Ready when it resolves: Shield Slam gains `2` additional Boss damage; any other Boss-damage card gains `1`. Cards that deal no Boss damage never consume it. |
 | Action Bar | The Guardian uses the shared Top Card, Charge Stack, Primed, and Full-Charge Cleanup rules. |
 | Movement | A card discarded to move creates 1 Stamina for that adjacent move. The card does not resolve its rules text. |
 | Class resource | No active Guardian-specific resource is required for the first playable pass. `Guard` remains a Keyword, not a meter. |
@@ -163,7 +163,7 @@ The former `10x Steady Strike` / `10x Iron Guard` baseline remains historical ev
 
 **Precise rule:** Gain 3 Armor. Gain 1 additional Armor for each charged `Guard` card.
 
-**Affected content:** Existing `iron_guard.tres`, the default Shield Wall deck, `guard` Keyword, and its Charge Modifier.
+**Affected content:** Existing `data/cards/iron_guard.json`, the default Shield Wall deck, `guard` Keyword, and its Charge Modifier.
 
 **Edge cases:** Armor may exceed the next hit and does not carry into the next Round. Non-Guard charged cards add Charge but do not improve Armor.
 
@@ -175,7 +175,7 @@ The former `10x Steady Strike` / `10x Iron Guard` baseline remains historical ev
 
 **Precise rule:** Deal 2 damage to one selected adjacent Minion after the Slot has at least one Charge.
 
-**Affected content:** Existing `sweeping_blow.tres`, Whelp content, default Shield Wall deck, Minion targeting affordance.
+**Affected content:** Existing `data/cards/sweeping_blow.json`, Whelp content, default Shield Wall deck, Minion targeting affordance.
 
 **Edge cases:** The card can be prepared with no Minion in range but cannot fire without a legal selected Minion. It cannot target the Boss.
 
@@ -185,11 +185,11 @@ The former `10x Steady Strike` / `10x Iron Guard` baseline remains historical ev
 
 **Player-facing intent:** Turn the Slow Window into a deliberate preparation window instead of an empty wait.
 
-**Precise rule:** Gain 6 Armor during Slow after the Slot has at least one Charge.
+**Precise rule:** Fire during Slow after the Slot has at least one Charge: gain a `Fortified` commitment that grants 6 Armor at the start of the next Round, landing after the Round-start Armor wipe (D-019).
 
-**Affected content:** Existing `fortify.tres` and the default Shield Wall deck.
+**Affected content:** Existing `data/cards/fortify.json`, the `Fortified` Status Effect, and the default Shield Wall deck.
 
-**Edge cases:** It cannot repair an Incoming hit that has already resolved. Its Armor expires at next Round start. Full-charge cleanup remains standard.
+**Edge cases:** It cannot repair a hit that has already resolved. The granted Armor is ordinary Armor once it lands: it expires at the following Round start. Because it lands before the next Instant Row, Fortify is the only card that can pre-block Instant-row pressure — including earning Riposte Ready from a fully blocked Instant Tank Hit in the Guarded Front. Two Fortified commitments in one Slow Window stack additively. Full-charge cleanup remains standard.
 
 **Required evidence:** `slow_window_card` probe that checks wrong-window rejection, legal Slow activation, damage absorption, and cleanup.
 
@@ -197,13 +197,13 @@ The former `10x Steady Strike` / `10x Iron Guard` baseline remains historical ev
 
 **Player-facing intent:** A correct Tank response creates a brief opening, so Elian's damage follows from holding the line rather than replacing that job.
 
-**Precise rule:** When a Boss Tank Hit resolves against Elian while they occupy the Guarded Front and causes `0` Health loss, grant one Riposte Ready if they do not already have it. Riposte Ready never stacks or refreshes. It expires at the end of the first Quick Window after the qualifying hit. A legal Shield Slam consumes Riposte Ready and deals `2` additional Boss damage.
+**Precise rule:** When a Boss Tank Hit resolves against Elian while they occupy the Guarded Front and causes `0` Health loss, grant one Riposte Ready if they do not already have it. Riposte Ready never stacks or refreshes. It expires at the end of the first Quick Window after the qualifying hit. The first card that deals Boss damage while it is active consumes it: a legal Shield Slam gains `2` additional Boss damage, and any other Boss-damage card gains `1`. Consumption records the consuming card and its distinct lifecycle reason (`matching_card_fired` for Shield Slam, `boss_damage_card_fired` otherwise).
 
-**Affected content:** Elian Voss Status Effect content, Tank Hit authored identity on the relevant Boss Beat, `shield_slam.tres`, the Shield Wall HUD state, and Encounter Record facts for grant, expiry, and consumption.
+**Affected content:** Elian Voss Status Effect content, Tank Hit authored identity on the relevant Boss Beat, `data/cards/shield_slam.json`, the Shield Wall HUD state, and Encounter Record facts for grant, expiry, and consumption.
 
-**Edge cases:** Hazards, Minions, incidental Boss damage, and a non-Tank-Hit Boss Beat never grant Riposte Ready. A qualifying hit while Riposte Ready already exists does not add a second effect or extend its expiry. A rejected Shield Slam does not consume it. A qualifying Incoming-Row hit leaves Riposte Ready available through the next Round's Quick Window.
+**Edge cases:** Hazards, Minions, incidental Boss damage, and a non-Tank-Hit Boss Beat never grant Riposte Ready. A qualifying hit while Riposte Ready already exists does not add a second effect or extend its expiry. A rejected activation does not consume it. Cards that deal only Minion damage (`Sweeping Blow`) or no damage (`Iron Guard`, `Fortify`) never consume it, so defensive play inside the window is free. Firing a non-Slam Boss-damage card while it is active consumes it for the smaller `+1` — spend-order is a real decision, not a trap to be patched. A qualifying Incoming-Row hit leaves Riposte Ready available through the next Round's Quick Window.
 
-**Required evidence:** Focused deterministic coverage for grant, non-grant, non-refreshing behavior, expiry after the first following Quick Window, legal Shield Slam consumption and `+2` Boss damage, visible state explanation, and Encounter Record lifecycle facts. The deck-evaluation scorecard must show improved Shield Wall identity and meaningful Slot decisions without a dominant always-Shield-Slam line.
+**Required evidence:** Focused deterministic coverage for grant, non-grant, non-refreshing behavior, expiry after the first following Quick Window, legal Shield Slam consumption and `+2` Boss damage, off-payoff consumption by a non-Slam Boss-damage card for `+1`, non-consumption by cards without Boss damage, visible state explanation, and Encounter Record lifecycle facts. The deck-evaluation scorecard must show improved Shield Wall identity and meaningful Slot decisions without a dominant always-Shield-Slam line.
 
 ### Intercept
 
@@ -211,7 +211,7 @@ The former `10x Steady Strike` / `10x Iron Guard` baseline remains historical ev
 
 **Precise rule:** Select one ally within the authored range. Until the next one damage event to that ally or Round end, redirect the full event to Elian Voss. Apply Armor and any Guardian mitigation after redirection.
 
-**Affected content:** `intercept.tres`, player-card target schema, Status Effect behavior, Target Selector display, and party UI.
+**Affected content:** `data/cards/intercept.json`, player-card target schema, Status Effect behavior, Target Selector display, and party UI.
 
 **Edge cases:** Raid-wide damage produces a separate event per Hero. Intercept only redirects the selected ally's event. A Downed, defeated, absent, or out-of-range ally cannot be selected. If the Guardian is Downed before the event, the effect expires rather than redirecting to an invalid target.
 
@@ -245,5 +245,6 @@ After each first-character session, collect:
 - Did they understand that a zero-Health-loss Tank Hit created a short Shield Slam opening, and why it did or did not trigger?
 - Did Riposte Ready improve a Slot decision rather than make Shield Slam the automatic next action?
 - In party tests, did they predict the Intercept target and one-event expiry correctly?
+- Could the player state Elian's fantasy in one sentence after the session (for example, "I hold the line and turn a perfectly blocked hit into a counterattack")? Treat a miss as a failed theme test even when every mechanical question above scored well; an evocative kit is testable, not an art-pass afterthought.
 
 Promote only results observed in at least three new-player sessions to a balance decision. Keep damage values provisional until then.

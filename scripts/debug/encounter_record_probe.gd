@@ -31,7 +31,7 @@ func _initialize() -> void:
 	_assert(record["rejected_actions"].size() == 1, "Rejected submitted actions must be preserved with their reason.")
 	var damage_action: Dictionary = record["submitted_actions"].filter(func(action): return action["kind"] == "damage")[0]
 	var fact: Dictionary = damage_action["payload"].get("resolution_fact", {})
-	_assert(fact == {"requested": 999, "prevented": 0, "health_loss": 36, "target_available": true}, "Damage Resolution Facts must state requested damage, prevention, and health loss.")
+	_assert(fact == {"requested": 999, "prevented": 0, "health_loss": 48, "target_available": true}, "Damage Resolution Facts must state requested damage, prevention, and health loss.")
 	_assert(FileAccess.file_exists(record["paths"]["json"]) and FileAccess.file_exists(record["paths"]["markdown"]), "A sealed Encounter Record must atomically create JSON and Markdown artifacts.")
 	var sealed_again := recorder.seal(engine)
 	_assert(sealed_again["record_id"] == record["record_id"], "Encounter Record sealing must be idempotent.")

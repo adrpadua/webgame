@@ -5,8 +5,10 @@ import {
   buildEncounterRecord,
   contentIdentity,
   createEncounterState,
+  hexDistance,
   hexKey,
   legality,
+  minionIntents,
   replayRecord,
   resolve,
   runScenario,
@@ -69,6 +71,10 @@ describe('content catalog', () => {
 describe('Boss Program rotation', () => {
   it('loops Hunt, Ember, then Brood across Rounds', () => {
     let state = start()
+    // Rotation is what is under test: give the idle hero enough Health to
+    // survive the accumulating boss pressure and Whelp bites (D-006).
+    hero(state).maxHealth = 500
+    hero(state).health = 500
     expect(state.currentProgramId).toBe('embermaw_hunt')
     state = stepPhases(state, 5).state
     expect(state.round).toBe(2)
@@ -89,7 +95,7 @@ describe('encounter setup', () => {
     expect(hero(state).hand).toHaveLength(4)
     expect(hero(state).deck).toHaveLength(16)
     expect(hero(state).actionBar).toHaveLength(2)
-    expect(boss(state).health).toBe(36)
+    expect(boss(state).health).toBe(48)
     expect(boss(state).facing).toBe(4)
     expect(hero(state).health).toBe(34)
     expect(state.rng.choices.length).toBeGreaterThanOrEqual(19)
@@ -165,6 +171,122 @@ describe('phase cycle', () => {
     expect(hero(state).hand).toHaveLength(4)
     expect(Object.keys(state.board.hazards)).toHaveLength(0)
     expect(wrap.facts.some((fact) => fact.kind === 'round_start')).toBe(true)
+  })
+})
+
+describe('Minion end-step intent (D-006)', () => {
+  it('a distant Whelp advances toward its Hero; an arrived Whelp bites', () => {
+    // Round 1's Incoming Brood Call spawns two Whelps at distance 2; reach Slow.
+    let state = stepPhases(start(), 4).state
+    expect(state.phase).toBe('slow')
+    const heroCoords = state.board.entities[state.primaryHeroId].coords
+    const spawned = Object.values(state.board.entities)
+      .filter((entity) => entity.kind === 'minion')
+      .map((entity) => ({ id: entity.id, distance: hexDistance(entity.coords, heroCoords) }))
+    expect(spawned).toHaveLength(2)
+    expect(spawned.every(({ distance }) => distance === 2)).toBe(true)
+
+    // The projection derives from the live state: both intend to advance.
+    const advanceIntents = minionIntents(catalog, state)
+    expect(advanceIntents).toHaveLength(2)
+    expect(advanceIntents.every((intent) => intent.damage === 0 && intent.destination !== null)).toBe(true)
+
+    // Round 1 wrap: no bites yet — the creep is the deadline.
+    const healthBefore = hero(state).health
+    const wrap = advancePhase(catalog, state)
+    state = wrap.state
+    expect(state.round).toBe(2)
+    expect(wrap.facts.filter((fact) => fact.kind === 'damage' && fact.resolutionFact?.minion_intent === true)).toHaveLength(0)
+    expect(hero(state).health).toBe(healthBefore)
+    for (const { id } of spawned) {
+      expect(hexDistance(state.board.entities[id].coords, heroCoords)).toBe(1)
+    }
+
+    // Round 2: the arrived Whelps bite; the Round's fresh Brood spawns only advance.
+    state = stepPhases(state, 4).state
+    expect(state.phase).toBe('slow')
+    const round2Health = hero(state).health
+    const wrap2 = advancePhase(catalog, state)
+    const bites = wrap2.facts.filter((fact) => fact.kind === 'damage' && fact.resolutionFact?.minion_intent === true)
+    expect(bites).toHaveLength(2)
+    expect(bites.every((fact) => fact.resolutionFact?.damage_classification === 'raid_hit')).toBe(true)
+    expect(hero(wrap2.state).health).toBe(round2Health - 2)
+    // A Raid Hit from a Minion never grants Riposte Ready.
+    expect((wrap2.state.statusEffects[state.primaryHeroId] ?? []).some((effect) => effect.id === 'riposte_ready')).toBe(false)
+  })
+
+  it('a cleared Whelp takes no end-step action', () => {
+    let state = stepPhases(start(), 4).state
+    const whelps = Object.values(state.board.entities).filter((entity) => entity.kind === 'minion')
+    state = resolve(catalog, state, {
+      kind: 'damage',
+      sourceId: state.primaryHeroId,
+      targetId: whelps[0].id,
+      amount: 2,
+      reasonText: 'test clear',
+    }).state
+    const wrap = advancePhase(catalog, state)
+    const moves = wrap.facts.filter((fact) => fact.kind === 'move_minion')
+    expect(moves).toHaveLength(1)
+    expect(moves[0].sourceId).toBe(whelps[1].id)
+  })
+})
+
+describe('Fortify Slow commitment (D-019)', () => {
+  it('lands its Armor at the next Round start, after the wipe, in time for the Instant Row', () => {
+    // Reach Round 1's Slow Window and fire a charged Fortify.
+    let state = stepPhases(start(), 4).state
+    expect(state.phase).toBe('slow')
+    hero(state).hand = [card('f1', 'fortify'), card('f2', 'steady_strike')]
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'f1' }).state
+    state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'f2' }).state
+    const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+    state = fired.state
+    expect(fired.facts[0].succeeded).toBe(true)
+    // No Armor yet: the commitment is banked as the Fortified status.
+    expect(hero(state).armor).toBe(0)
+    expect(fired.facts[0].resolutionFact).toMatchObject({ status_event: { status_id: 'fortified', event: 'granted', reason: 'slow_commitment' } })
+
+    // Round start wipes Armor first, then the commitment lands.
+    const wrap = advancePhase(catalog, state)
+    state = wrap.state
+    expect(state.round).toBe(2)
+    expect(hero(state).armor).toBe(6)
+    expect(state.statusEffects[state.primaryHeroId] ?? []).toHaveLength(0)
+
+    // The banked Armor answers Round 2's INSTANT row (Ember Pattern opens
+    // with Cinder Breath): 5 requested, fully blocked, zero Health loss —
+    // pressure nothing fired inside Round 2 could have pre-blocked.
+    const healthBefore = hero(state).health
+    const instant = advancePhase(catalog, state)
+    state = instant.state
+    expect(state.phase).toBe('instant')
+    expect(hero(state).health).toBe(healthBefore)
+    expect(hero(state).armor).toBe(1)
+
+    // The leftover Armor is ordinary Armor: the next Round start wipes it.
+    state = stepPhases(state, 4).state
+    expect(state.round).toBe(3)
+    expect(hero(state).armor).toBe(0)
+  })
+})
+
+describe('Raking Claw counter-pressure (D-017)', () => {
+  it('adds the unguarded bonus only when the Guarded Front is unheld', () => {
+    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'raking_claw')!
+    // Holding the front: the authored 4 lands with no bonus recorded.
+    let state = start()
+    const held = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
+    const heldFact = held.facts.find((fact) => fact.kind === 'damage')
+    expect(heldFact?.resolutionFact).toMatchObject({ requested: 4, guarded_front: true })
+    expect(heldFact?.resolutionFact?.unguarded_bonus).toBeUndefined()
+    // Abandoning the front: the same claw still lands (movement does not
+    // evade it) and rakes for the authored 4 + 3.
+    state = start()
+    state.board.entities[state.primaryHeroId].coords = { q: -2, r: 0 }
+    const unheld = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
+    const unheldFact = unheld.facts.find((fact) => fact.kind === 'damage')
+    expect(unheldFact?.resolutionFact).toMatchObject({ requested: 7, unguarded_bonus: 3, guarded_front: false })
   })
 })
 
@@ -416,6 +538,51 @@ describe('damage and Resolution Facts', () => {
     expect(damageFact?.resolutionFact).toMatchObject({ base_amount: 3, status_bonus: 2, payoff_card_id: 'shield_slam' })
   })
 
+  it('consumes Riposte Ready for +1 when a non-Shield-Slam Boss-damage card fires', () => {
+    let state = start()
+    hero(state).armor = 5
+    state = resolve(catalog, state, {
+      kind: 'damage',
+      sourceId: state.bossId,
+      targetId: state.primaryHeroId,
+      amount: 4,
+      reasonText: 'Raking Claw',
+      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_classification: 'tank_hit' },
+    }).state
+    expect(state.statusEffects[state.primaryHeroId]?.[0]?.id).toBe('riposte_ready')
+
+    state.phase = 'quick'
+    hero(state).actionBar[0] = { topCard: card('s1', 'steady_strike'), charges: [card('s2', 'iron_guard')], activatedWindow: null, placedThisLoadout: false }
+    const bossHealthBefore = boss(state).health
+    const strike = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+    state = strike.state
+    // Steady Strike: 2 base + 1 per charged card + 1 off-payoff Riposte bonus.
+    expect(boss(state).health).toBe(bossHealthBefore - 4)
+    expect(state.statusEffects[state.primaryHeroId] ?? []).toHaveLength(0)
+    const damageFact = strike.facts.find((fact) => fact.kind === 'damage')
+    expect(damageFact?.resolutionFact).toMatchObject({ base_amount: 3, status_bonus: 1, payoff_card_id: 'steady_strike' })
+  })
+
+  it('does not consume Riposte Ready when a card with no Boss damage fires', () => {
+    let state = start()
+    hero(state).armor = 5
+    state = resolve(catalog, state, {
+      kind: 'damage',
+      sourceId: state.bossId,
+      targetId: state.primaryHeroId,
+      amount: 4,
+      reasonText: 'Raking Claw',
+      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_classification: 'tank_hit' },
+    }).state
+    expect(state.statusEffects[state.primaryHeroId]?.[0]?.id).toBe('riposte_ready')
+
+    state.phase = 'quick'
+    hero(state).actionBar[0] = { topCard: card('g1', 'iron_guard'), charges: [card('g2', 'steady_strike')], activatedWindow: null, placedThisLoadout: false }
+    const guard = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+    state = guard.state
+    expect(state.statusEffects[state.primaryHeroId]?.[0]?.id).toBe('riposte_ready')
+  })
+
   it('expires an unconsumed Riposte Ready at the end of the Quick Window', () => {
     let state = start()
     hero(state).armor = 5
@@ -562,15 +729,19 @@ describe('legality edges', () => {
 })
 
 describe('Scenarios', () => {
-  it('replays the committed victory line to Victory', () => {
-    const scenario = catalog.scenarios.embermaw_victory_line
+  it('replays the committed solo-ceiling line: deep, legal, and short of Boss defeat (D-016)', () => {
+    const scenario = catalog.scenarios.embermaw_solo_ceiling
     expect(scenario).toBeDefined()
     const replay = runScenario(catalog, scenario)
-    expect(replay.state.outcome).toBe('victory')
+    // The solo ceiling holds: the strongest searched line loses without killing the Boss.
+    expect(replay.state.outcome).toBe('defeat')
     expect(replay.state.active).toBe(false)
-    expect(replay.state.board.entities[replay.state.bossId].health).toBe(0)
-    // Every scenario step must have resolved legally.
-    const submitted = replay.facts.filter((fact) => fact.depth === 0)
+    expect(replay.state.board.entities[replay.state.bossId].health).toBeGreaterThan(0)
+    // Every player-submitted step must have resolved legally. Boss-row beats
+    // may be legitimately refused after the killing hit resolves the fight.
+    const playerKinds = new Set(['load_slot', 'charge_slot', 'fire_slot', 'move_hero'])
+    const submitted = replay.facts.filter((fact) => fact.depth === 0 && playerKinds.has(fact.kind))
+    expect(submitted.length).toBeGreaterThan(0)
     expect(submitted.every((fact) => fact.succeeded)).toBe(true)
   })
 
@@ -593,7 +764,7 @@ describe('Scenarios', () => {
   })
 
   it('replays deterministically', () => {
-    const scenario = catalog.scenarios.embermaw_victory_line
+    const scenario = catalog.scenarios.embermaw_solo_ceiling
     const first = runScenario(catalog, scenario)
     const second = runScenario(catalog, scenario)
     expect(second.state).toEqual(first.state)
@@ -606,7 +777,7 @@ describe('Encounter Records (schema_version 2)', () => {
   const meta = { recordId: 'rec_test', startedAt: '2026-08-15T00:00:00Z', endedAt: '2026-08-15T00:10:00Z' }
 
   it('seals a completed Scenario run and replays it to an identical final state', async () => {
-    const scenario = catalog.scenarios.embermaw_victory_line
+    const scenario = catalog.scenarios.embermaw_solo_ceiling
     const replay = runScenario(catalog, scenario)
     const record = await buildEncounterRecord(catalog, {
       encounterId: scenario.encounter,
@@ -618,8 +789,8 @@ describe('Encounter Records (schema_version 2)', () => {
     })
     expect(record.schema_version).toBe(2)
     expect(record.seed).toBe(scenario.seed)
-    expect(record.outcome).toBe('victory')
-    expect(record.end_kind).toBe('victory')
+    expect(record.outcome).toBe('defeat')
+    expect(record.end_kind).toBe('defeat')
     expect(record.abandon_reason).toBe('')
     expect(record.content_identity.fingerprint).toMatch(/^[0-9a-f]{64}$/)
     expect(record.content_identity.ids).toContain('encounter:embermaw_prototype')

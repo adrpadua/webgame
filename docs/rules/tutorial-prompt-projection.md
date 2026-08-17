@@ -1,5 +1,7 @@
 # Tutorial Prompt Projection
 
+> **Implementation frozen; contracts live (ADR 0019 / D-018).** The GDScript projection seam described here belongs to the frozen Godot reference. The seven authored Tutorial Prompt Contracts in [embermaw-prototype.md](../content/encounters/embermaw-prototype.md) remain design canon, and a web implementation must satisfy the same authoritative-projection requirements this document defines — treat it as the specification a web seam re-implements, not as living GDScript guidance.
+
 `EncounterEngine.get_tutorial_prompt_projection(presentation_state = {})` is the scene-free teaching seam for the seven authored Embermaw Tutorial Prompt Contracts. It derives relevance from existing authoritative Encounter facts; it never creates a legal action, changes phase progression, changes a Card or Boss Program, or records prompt exposure as an Encounter outcome.
 
 The interface returns a stable priority-ordered `prompts` list plus `current_prompt_id`. Every prompt carries its `id`, `priority`, `surface`, `anchor`, `authoritative_basis`, `show_once`, `dismissal`, `completion`, and `accessible_full_text`. `current_prompt_id` is the highest-priority relevant prompt whose caller-owned show-once state remains available; `one_at_a_time` is always `true`.

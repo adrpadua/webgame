@@ -1,5 +1,7 @@
 # Headless Rules SDK
 
+> **Frozen (ADR 0019 / D-018).** This document describes the GDScript `EncounterEngine` seam of the frozen Godot reference. The living equivalent is the web Encounter Engine's reducer seam — `resolve(state, action)` in `web/src/engine` — documented by ADR 0019. Kept as reference for the frozen codebase; do not build new work against it.
+
 `EncounterEngine` is the authoritative rules module for both headless simulation and the playable scene. Its public seam is intentionally small:
 
 ```gdscript

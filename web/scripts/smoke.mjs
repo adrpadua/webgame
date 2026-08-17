@@ -328,7 +328,7 @@ try {
 
   // M2 debug tooling: load the committed victory Scenario and walk its line
   // with time travel.
-  await page.selectOption('[data-testid="scenario-select"]', 'embermaw_victory_line')
+  await page.selectOption('[data-testid="scenario-select"]', 'embermaw_solo_ceiling')
   await page.locator('[data-testid="load-scenario"]').click()
   await page.waitForSelector('[data-testid="outcome-banner"][data-outcome="victory"]')
   assert(

@@ -1,6 +1,6 @@
 # Character Design Bible
 
-Status: active content-authoring guidance. This document guides Hero identity and deck design. It does not create executable rules; `EncounterEngine` remains authoritative.
+Status: active content-authoring guidance. This document guides Hero identity and deck design. It does not create executable rules; `EncounterEngine` remains authoritative. Its Boss-side counterpart is the [Encounter Design Bible](encounter-design-bible.md), which carries the role contract ("three questions about the same Boss problem") every Hero here answers one of.
 
 ## Design Promise
 
@@ -45,6 +45,7 @@ Every authored Hero must name the following before its deck grows beyond the tea
 | Recovery | How can the Hero restart after a bad hand, forced replacement, or disrupted position? | A setback delays the plan; it does not make the Hero nonfunctional. |
 | Spatial expression | Which range, adjacency, facing, or tile relationship reinforces the job? | Ignoring the board makes the Hero noticeably worse. |
 | Counterpressure | Which Boss pressure asks this Hero to choose a different line? | There is no universal best charging sequence. |
+| Signature weakness | What price does this Hero's strength pattern pay? | The weakness is stated up front, visible in play, and not quietly compensated away by another card. A design doc that lists only strengths is half-finished. |
 | Team handoff | What does the Hero enable, protect, or create for another role? | The benefit is actionable and visible, not a vague aura. |
 
 ## Machine Shape
@@ -94,6 +95,37 @@ The role has at least one pressure it addresses more reliably than another role.
 
 When the role responds well, the board makes success visible. Examples include an Armor bar absorbing a Tank Hit, a cleared Minion reopening a route, an ally surviving a telegraphed attack, or a prepared burst window visibly lowering the Boss's health.
 
+## Second Hero Of A Role
+
+A second Hero of an existing role must claim a distinct strength-and-price pattern, not a re-skinned copy of the first. The subclass grammar in the [champion design research note](../content/research/2026-08-16-lol-champion-design-lessons.md) is the working vocabulary: Elian Voss is the Warden-style tank (hold the line, lock the front, protect), so the second tank claims the Vanguard pattern (initiation and tempo — forcing Boss facing, opening windows — paid for with weaker sustained mitigation); the proposed Vanguard, Kessa Varn, is designed in [kessa-varn-design.md](../content/heroes/kessa-varn-design.md).
+
+## Tank Design Principles
+
+Any Hero whose raid job is holding dangerous space must satisfy all six principles below, in addition to the Hero Design Contract and Design Value Review. They are distilled from the [tank solo-ceiling research note](../content/research/2026-08-17-tank-solo-ceiling-design.md) and enforce D-016: the tank must be excellent at its axis yet structurally unable to solo the raid.
+
+| Principle | Rule | Design test |
+| --- | --- | --- |
+| Sustain is a stream, not a budget | The tank's kit converts hits into survivable form (Armor sized to the hit, cleared each Round) but owns no meaningful Health income. Authored attrition per Round exceeds what mitigation can fully blank on average: perfect play slows the bleed, never stops it. | Across an evaluation cohort, a solo tank's Health trend is monotonically downward under optimal play. The Warden makes a hit survivable; only a Healer makes it sustainable. |
+| Both failure walls stay live | The Encounter Clock closes the survive-forever stalemate; authored attrition closes the damage race. Solo optimal play must lose to both. | No evaluation policy reaches Boss defeat (D-016 red flag) and none survives the full clock comfortably. A policy that dodges one wall by refusing an axis (for example, range camping) is an encounter authoring defect. |
+| Structural over numeric ceilings | The solo ceiling is built from demands a single body cannot meet — role-locked counter tags, simultaneous positional demands, occupy-or-pay hexes — never from numbers alone, because numeric ceilings erode under optimization. | Ask of every solo-ceiling mechanism: would doubling the tank's stats break it? If yes, it is a numeric patch, not a ceiling. |
+| Escalation outpaces one actor's economy | Threat per Round grows with the encounter (Minion accumulation, phase pressure, added demands); actions per Round grow only with Party size. One Hero's Slots and card income must be visibly insufficient for the full demand set by mid-encounter. | By the Round-4 checkpoint, the board carries at least one live demand the solo tank had no economy to answer. |
+| The loss reads "I need my team" | The solo tank's own axis is visibly won — prevented damage and held position credited in the HUD and Encounter Records — while unanswered demands are labeled for absent roles. Defeat is attributed to empty Party slots, never to tank weakness. | A playtester who loses the solo slice names a missing role, not a personal failure, when asked why the run ended. |
+| Party scaling raises the walls, not the tank | Boss health and demand density scale with Party size; the tank's own numbers stay constant across Party sizes so mastery transfers and the solo slice stays an honest diagnostic. | The same tank line plays identically in solo and Party cohorts; only the encounter around it changes. |
+
+## Healer Design Principles
+
+Any Hero whose raid job is preserving allies must satisfy all five principles below, in addition to the Hero Design Contract and Design Value Review. They are distilled from the [support/healer design research note](../content/research/2026-08-17-healer-support-design-lessons.md), whose strongest evidence is what happens when they are violated.
+
+| Principle | Rule | Design test |
+| --- | --- | --- |
+| Load-bearing or optional | Authored encounter content must demand the healer's kit: some Boss pressure carries counter tags only healer cards execute. Other roles' self-sustain reduces the healer's load but never replaces it. | The no-healer-clear test: if a Party can comfortably clear the encounter with no healer, the encounter or the sustain budget is misauthored. |
+| Half the kit is not healing | A healer is a threat that also preserves, not a health-bar janitor. The deck carries real Boss pressure, augmentation, or control alongside its preservation cards. | A healer player can name a moment they threatened the Boss, not only a moment they undid damage. |
+| The damage sub-game converts | Whatever the healer does when healing is not needed must feed the healing machine — pre-placed, decision-rich, scaling conversion, not a flat passive link. | Removing the conversion decisions (who carries the ward, when to commit) would visibly weaken the healer's output. If the link is automatic wallpaper, redesign it. |
+| Proactive is a puzzle, reactive is a treadmill | Healer decisions key off the visible Boss Timeline: cover a named future window, not repair a surprise. Round-clearing effects renew the triage decision instead of letting a solved state persist. | The player can say which Incoming Beat a preservation card was played against. A healer turn spent purely undoing untelegraphed damage is an authoring defect, not a difficulty knob. |
+| No blame-sink | The healer must not be sized to cover everything (triage is the skill), and their prevention must be visible: Encounter Records and the HUD credit damage prevented and windows covered, the way the Tank's earned Riposte is credited. | A failed Round produces a readable shared lesson, not a default verdict of "the healer was slow." |
+
+The Second Hero Of A Role rule applies to healers from the first one: the planned Enchanter (augment and shield through pre-placed wards) and a future Catcher-style controller (zones, denial, lockdown) must not converge. The same rule applies to future Healers (augment-and-shield versus control-and-deny) and Damage Heroes. Both siblings must still pass the same Role recognition test; what differs is the machine, its signature weakness, and the pressure it answers best.
+
 ## Card Family Guidance
 
 Give every card a deliberate place in the machine. For an initial 20-card deck, aim for five to seven card identities with copies, not twenty isolated mini-rules.
@@ -117,8 +149,11 @@ Captain Elian Voss's machine is currently **Shield Wall**, not holy spellcasting
 | Engine nouns | Armor, `Guard` Keyword count in a Charge Stack, Riposte Ready, and the prepared Quick/Slow Slot. |
 | Setup | Install a defense or attack, then Charge it with cards that establish useful `Guard` interactions and take the Guarded Front. |
 | Convert | A `Guard` charge improves a defensive installed module; a Boss Tank Hit that causes `0` Health loss in the Guarded Front grants one Riposte Ready. |
-| Payoff | Consume Riposte Ready with Shield Slam for `+2` Boss damage, absorb the hit that would break the line, or clear a nearby Minion. |
+| Payoff | Cash Riposte Ready — any Boss-damage card for `+1`, Shield Slam for the full `+2` — absorb the hit that would break the line, or clear a nearby Minion. |
 | Recovery | Replace a Slot during Loadout, retain a partially charged plan where legal, or discard a hand card for Stamina and reposition. |
+| Spatial expression | The Guarded Front: the Boss-facing adjacent hex is where Elian's mitigation and the Riposte loop live. Leaving it costs the payoff condition. |
+| Counterpressure | Targeted Tank Hits (`Raking Claw`) cannot be dodged, only mitigated, so Armor sizing competes with damage progress every Round; telegraphed cones and Whelp spawns pull Elian between holding the Front and answering the board. |
+| Signature weakness | Warden's price: low personal tempo. Elian has no initiation, burst, or cheap repositioning — movement costs a card, and damage beyond Steady Strike must be earned through correct defense. |
 | Team handoff | Deferred until multi-Hero rules exist: Interception is the intended visible rescue tool, but must not enter the live deck before its engine/UI contract passes. |
 
 The key play-feel test: Elian should occasionally choose a lower-damage line because it creates the correct defense for the next known mechanic, then feel smart when that preparation earns a visible Riposte Ready opening. Riposte Ready is one short, non-stacking Status Effect, not a general posture system or extra resource meter. Elian must not build Armor only because larger numbers are generically good, and Shield Slam must not become the automatic next action.
@@ -133,6 +168,21 @@ Complexity belongs in interactions, not in basic input handling.
 - Make each declared target, range, and timing rejection visible before commitment.
 - Keep long-term mastery in reading the Boss script and choosing a machine configuration, not in discovering hidden rules.
 
+## Design Value Review
+
+Riot's League of Legends champion design names six standing design values — Mastery, Meaningful Choices, Counterplay, Teamplay, Clarity, and Evolution — as a shared review vocabulary. The sourcing and rationale are in the [champion design research note](../content/research/2026-08-16-lol-champion-design-lessons.md). Check every Hero proposal and deck revision against all six, in this project's terms:
+
+| Value | Project test |
+| --- | --- |
+| Mastery | The Hero rewards practiced play — reading the Boss script and choosing a machine configuration — beyond memorizing one rotation. Veteran over-performance is the intended reward, not automatically a balance defect. |
+| Meaningful Choices | Firing versus Charging, holding versus replacing a Slot, and cashing a payoff each have no dominant line. If a decision is a no-brainer, redesign the decision rather than the numbers. |
+| Counterplay | Every Boss pressure the Hero is expected to own has an answer the Hero can actually execute, and every Hero payoff has a condition the Boss design can pressure. |
+| Teamplay | The Hero's job creates or protects something visible for another role (the Team handoff row of the Hero Design Contract). |
+| Clarity | The danger, the legal answer, and the payoff condition are readable from the Boss Timeline, board, and Action Bar without hidden rules or card-text archaeology. |
+| Evolution | The kit leaves authored room to grow — new converters, encounter-specific pressure, later party interactions — without rewriting its settled rules. |
+
+A review that fails one value is not an automatic rejection; it is a named conversation the proposal must resolve before promotion.
+
 ## Content Approval Checklist
 
 Before a Hero card or deck enters a controlled playtest, record:
@@ -145,6 +195,7 @@ Before a Hero card or deck enters a controlled playtest, record:
 - role contribution and what Boss pressure makes it relevant;
 - edge cases and invalid actions;
 - Encounter Record facts and focused probe required;
-- a new-player test question that reveals whether the combo was understood.
+- a new-player test question that reveals whether the combo was understood;
+- a completed Design Value Review pass (the section above), with any failed value either resolved or named as an open conversation.
 
 Before promoting a future deck into the default encounter, require the scorecard evidence in `docs/content/deck-evaluation-rubric.md`: both Viability and Play-feel need at least `3/5`; the deck must not be promoted on subjective enthusiasm alone. The Elian Voss Shield Wall migration is a user-approved product exception recorded in `.scratch/product-backlog/issues/04-promote-aegis-starter-deck-to-shield-wall-kit.md`; it does not weaken this rule for later decks.

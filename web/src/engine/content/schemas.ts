@@ -32,6 +32,7 @@ export const cardSchema = z.object({
   max_charge: z.number().int().min(0).default(2),
   target_type: z.enum(['none', 'hex', 'board_slot', 'piece']).default('none'),
   armor_delta: z.number().int().default(0),
+  armor_next_round: z.number().int().min(0).default(0),
   healing: z.number().int().default(0),
   boss_damage: z.number().int().default(0),
   range_tiles: z.number().int().default(0),
@@ -54,6 +55,7 @@ export const minionSchema = z.object({
   title: z.string().min(1),
   rules_text: z.string().default(''),
   max_health: z.number().int().min(1),
+  attack_damage: z.number().int().min(0).default(0),
 })
 
 export const bossBeatSchema = z.object({
@@ -65,6 +67,7 @@ export const bossBeatSchema = z.object({
   target_selector: z.string().default(''),
   damage_classification: z.string().default(''),
   damage: z.number().int().default(0),
+  unguarded_bonus: z.number().int().min(0).default(0),
   duration_rounds: z.number().int().min(1).default(1),
   hazard: z.string().optional(),
   minion: z.string().optional(),

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = &"intercept"
 title = "Intercept"
-rules_text = "Gain 3 armor and deal 1 damage to a minion on the selected hex."
+rules_text = "Gain 3 Armor and deal 1 damage to a Minion on the selected hex."
 speed = &"quick"
 target_type = 3
 armor_delta = 3

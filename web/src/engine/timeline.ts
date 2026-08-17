@@ -1,4 +1,4 @@
-import { emptyHexes, facingToward, firstEmptyHexes, forwardCone, frontArc } from './board'
+import { emptyHexes, facingToward, firstEmptyHexes, forwardCone, frontArc, isGuardedFront } from './board'
 import { containsHex, hexKey, type Axial } from './hex'
 import type { BossBeat, BossProgram } from './content/schemas'
 import type { ContentCatalog } from './content/catalog'
@@ -44,6 +44,7 @@ export function resolveBossBeat(
   let scorchedHexes: Axial[] = []
   let scorchedDurationRounds = 0
   let spawnHexes: Axial[] = []
+  let unguardedBonusApplied = 0
   switch (beat.kind) {
     case 'turn_toward_player':
       if (boss) {
@@ -53,6 +54,12 @@ export function resolveBossBeat(
     case 'raking_claw':
       patternHexes = frontArc(draft.board.hexes, bossCoords, bossFacing)
       playerDamage = beat.damage
+      // Authored counter-pressure (D-017): the targeted hit cannot be evaded,
+      // and an unheld Guarded Front suffers the beat's unguarded bonus.
+      if (beat.unguarded_bonus > 0 && !isGuardedFront(draft.board, bossId, draft.primaryHeroId)) {
+        unguardedBonusApplied = beat.unguarded_bonus
+        playerDamage += unguardedBonusApplied
+      }
       impactedHexes.push(playerCoords)
       break
     case 'scorch_last_pattern':
@@ -92,6 +99,9 @@ export function resolveBossBeat(
     }
     if (beat.damage_classification !== '') {
       factContext.damage_classification = beat.damage_classification
+    }
+    if (unguardedBonusApplied > 0) {
+      factContext.unguarded_bonus = unguardedBonusApplied
     }
     actions.push({
       kind: 'damage',

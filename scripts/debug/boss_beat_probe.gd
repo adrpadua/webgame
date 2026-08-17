@@ -24,7 +24,7 @@ func run_probe() -> void:
 	var brood = HUNT.incoming_beats[1]
 
 	_assert(claw.target_selector == &"tank", "Raking Claw must author the Tank selector.")
-	_assert(claw.counter_tags == [&"Mitigate"], "Raking Claw must no longer advertise movement evasion.")
+	_assert(claw.counter_tags == [&"Mitigate", &"Position"], "Raking Claw must advertise Mitigate and Position counterplay (D-017), never movement evasion.")
 
 	var engine = _engine(Vector2i(0, 0))
 	var claw_action = engine.apply(EncounterActionModel.resolve_boss(&"embermaw", claw, &"instant"))
@@ -36,7 +36,7 @@ func run_probe() -> void:
 
 	var off_arc_engine = _engine(Vector2i(0, -1))
 	var off_arc_damage = _generated_damage(off_arc_engine.apply(EncounterActionModel.resolve_boss(&"embermaw", claw, &"instant")))
-	_assert(off_arc_damage != null and int(off_arc_damage.payload.get("amount", 0)) == 4, "Raking Claw must damage the Tank even when off the former front arc.")
+	_assert(off_arc_damage != null and int(off_arc_damage.payload.get("amount", 0)) == 7, "Raking Claw must damage the Tank off the Guarded Front for 4 base plus the +3 unguarded bonus (D-017).")
 	_assert(off_arc_engine.previous_impacted_hexes == ([Vector2i(0, -1)] as Array[Vector2i]), "Raking Claw must record the targeted Tank hex when movement leaves the former arc.")
 
 	engine.apply(EncounterActionModel.resolve_boss(&"embermaw", scar, &"instant"))

@@ -16,9 +16,9 @@ The party faces an eight-round clock. The first half teaches Embermaw's three co
 | --- | --- |
 | Boss | Embermaw, the Ashen Wyrm |
 | Board | Radius-2 hex arena, with Embermaw initially at `1,-1`, facing `SW` |
-| Health | 36 in the single-tank demo; scale health by party size and difficulty, not by adding opaque defenses |
+| Health | 48 in the single-tank demo (raised from 36 by D-017 so the solo damage race fails); scale health by party size and difficulty, not by adding opaque defenses |
 | Encounter Clock | 8 rounds; enrage begins at round 9 |
-| Phase Break | At 18 health, or at the start of round 5 if the party is ahead of the health threshold |
+| Phase Break | At half health (24 in the single-tank demo), or at the start of round 5 if the party is ahead of the health threshold |
 | Phase I | `Hunt`: teach frontal pressure, breath cones, and add control |
 | Phase II | `Conflagration`: preserve Phase I problems while combining them with marks and arena hazards |
 
@@ -36,15 +36,26 @@ Each timeline entry has five authored fields:
 
 Damage is a consequence of a pattern. A timeline card must not be authored as a generic `Tank Hit` or `Raid Hit` with no board relationship.
 
+### Telegraph Proportionality
+
+Impact and counterplay scale together (see the [champion design research note](../research/2026-08-16-lol-champion-design-lessons.md)). Two authoring rules apply to every timeline entry, on this and future Bosses:
+
+- **Every entry carries at least one counter tag.** A Beat with no meaningful answer is a design defect, not a difficulty setting. `Mitigate` on an unavoidable Tank Hit counts: the answer is preparation, not evasion.
+- **Telegraph lead scales with consequence.** Routine chip pressure may resolve from the `Instant` row. A hit that can down a Hero, spawn entities, or permanently change the board belongs in the `Incoming` row or on a longer delayed marker, so the party always has at least one full player window to answer the largest threats. Authoring a top-tier hit as an `Instant` requires an explicit design justification.
+
+### Role-Load-Bearing Beats (Party-scale rule)
+
+When Party-scale encounters are authored, each encounter must name which Beats are load-bearing for which role: pressure that role is the structural answer to. Prefer problems another role is **structurally suited** to solve over counter tags that arbitrarily role-lock — "no stat total occupies two hexes" beats "requires Healer" (see the [Encounter Design Bible](../../rules/encounter-design-bible.md)). In particular, apply the healer's no-healer-clear test from the [Healer Design Principles](../../rules/character-design-bible.md): some authored pressure (raid-wide damage, sustained attrition, hits sized beyond tank mitigation) must genuinely demand a healer because it is shaped for a healer's economy — not because others are forbidden to answer it — and off-role sustain is budgeted so a no-healer Party feels the absence. This is a forward rule; the current solo Tank slice has exactly one role and already satisfies it trivially.
+
 ## Core Mechanics
 
 ### Raking Claw
 
 - **Pattern:** the three hexes in Embermaw's forward arc, range 1.
 - **Origin:** Embermaw's current facing.
-- **Answer:** tank occupies the center-front hex and mitigates; other party members leave the arc.
-- **Failure:** the frontmost target takes a Tank Hit; every additional target in the arc takes a Raid Hit.
-- **Teaching value:** facing defines a front and position changes who is responsible for the hit.
+- **Answer:** tank occupies the center-front hex (the Guarded Front) and mitigates; other party members leave the arc.
+- **Failure:** the frontmost target takes a Tank Hit; every additional target in the arc takes a Raid Hit. If no Hero holds the Guarded Front, the targeted Tank Hit rakes deeper for `+3` (D-017) — the claw cannot be outrun, only braced.
+- **Teaching value:** facing defines a front, position changes who is responsible for the hit, and abandoning the front has a price.
 
 This is the baseline tank check. It is deliberately survivable in the one-player demo, where Elian Voss is always the frontmost target.
 
@@ -74,7 +85,7 @@ This is a future human-readable example only, not current Embermaw resource cont
 - **Pattern:** one spawn hex adjacent to each party member, selected from legal empty neighboring hexes; in solo, two edge spawns.
 - **Origin:** each party member or the arena edge.
 - **Answer:** clear Whelps before they occupy safe movement routes; use cleaves and targeted attacks efficiently.
-- **Failure:** each living Whelp contributes one Raid Hit at the next `End` step, then advances one hex toward its nearest player.
+- **Failure:** each living Whelp acts at the next `End` step: it advances one hex toward its nearest player, and bites for one Raid Hit once adjacent. The D-006 implementation gates the bite on adjacency — evaluation showed an unconditional same-round bite made the solo Round-4 checkpoint unreachable in principle, while the creep-then-bite form makes the advance itself the deadline.
 - **Teaching value:** adds are board pressure and route blockers, not merely extra health bars.
 
 Whelps must visibly show their next movement/attack intent. Their number scales with party size; their behavior does not change with difficulty.

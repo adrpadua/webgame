@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "headless": "vite-node scripts/runHeadless.ts --"
+    "headless": "vite-node scripts/runHeadless.ts --",
+    "evaluate": "vite-node scripts/evaluate.ts --"
   },
   "dependencies": {
     "phaser": "3.90.0",

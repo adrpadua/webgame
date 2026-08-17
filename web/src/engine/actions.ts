@@ -14,6 +14,7 @@ export type EncounterActionInput =
   | { kind: 'resolve_boss'; sourceId: string; beat: BossBeat; track: 'instant' | 'incoming' }
   | { kind: 'apply_hazard'; sourceId: string; coords: Axial; hazardId: string | null; fallbackDurationRounds: number }
   | { kind: 'spawn_minion'; sourceId: string; minionId: string; coords: Axial; minionContentId?: string }
+  | { kind: 'move_minion'; sourceId: string; destination: Axial }
   | { kind: 'damage'; sourceId: string; targetId: string; amount: number; reasonText: string; factContext?: Record<string, unknown> }
   | { kind: 'discard_for_stamina'; sourceId: string; cardInstanceId: string }
   | { kind: 'expire_status'; sourceId: string; targetId: string; statusId: string; window: Phase; statusEvent: Record<string, unknown> }

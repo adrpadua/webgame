@@ -4,7 +4,7 @@ Status: accepted first-pass Design source of truth. Use this to compare early pr
 
 ## Goal
 
-Evaluate whether a player **Starting Deck** is both effective and fun in the current Godot boss-raid prototype. The evaluation produces two top-level outputs:
+Evaluate whether a player **Starting Deck** is both effective and fun in the current boss-raid prototype (the web Encounter Workbench, per ADR 0019). The evaluation produces two top-level outputs:
 
 - **Viability score**: can the deck survive, stabilize, and make progress against a seeded Encounter without requiring unsupported rules?
 - **Play-feel score**: does the deck create clear, satisfying decisions that express the Hero's Archetype without becoming repetitive?
@@ -13,7 +13,7 @@ Evaluate whether a player **Starting Deck** is both effective and fun in the cur
 
 ### Solo Tank Slice Boundary
 
-The current playable prototype is a one-Hero diagnostic slice of a game designed for a three-to-four-Hero Party. A solo Elian Voss is expected to hold Boss pressure until the **end of Round 4** and demonstrate Tank responsibilities; the Guardian is **not** expected to defeat the Boss alone or survive beyond that halfway checkpoint without healing. Perfect avoidance of telegraphed board patterns must not remove the required Targeted Boss Hit attrition. For this slice, Viability asks whether every seeded run has a living Guardian at the end of Round 4 and shows the required Tank role moments under that attrition. Record behavior after that checkpoint for diagnosis, but do not score it as solo-slice success. Boss victory, full encounter completion, and end-of-clock success are future multi-Hero Party evaluation criteria.
+The current playable prototype is a one-Hero diagnostic slice of a game designed for a three-to-four-Hero Party. A solo Elian Voss is expected to hold Boss pressure until the **end of Round 4** and demonstrate Tank responsibilities; the Guardian is **not** expected to defeat the Boss alone or survive beyond that halfway checkpoint without healing. This is a team game: **a solo Boss kill in any evaluation cohort is a negative signal, not a success** — record it as a red-flag finding (over-rich economy, under-tuned attrition, or an unintended dominant line), never as evidence of deck strength (D-016). Perfect avoidance of telegraphed board patterns must not remove the required Targeted Boss Hit attrition. For this slice, Viability asks whether every seeded run has a living Guardian at the end of Round 4 and shows the required Tank role moments under that attrition. Record behavior after that checkpoint for diagnosis, but do not score it as solo-slice success. Boss victory, full encounter completion, and end-of-clock success are future multi-Hero Party evaluation criteria.
 
 ## Evidence Consumer Contract
 
@@ -104,7 +104,16 @@ Score each output from `0` to `5`, then record the evidence used.
 | 4 | Wins or reaches the intended end state on most seeds with understandable failure cases. | Decisions are varied, class-fantasy expression is clear, and repeated runs remain tolerable. |
 | 5 | Consistently wins the intended teaching slice without trivializing its mechanics. | The deck produces strong, repeatable "I chose well" moments with low fatigue. |
 
-For future prototype approval, prefer a deck with both scores at `3` or higher. A score below `3` in either output blocks default-deck promotion unless the user approves a specific product exception.
+For future prototype approval, prefer a deck with both scores at `3` or higher. A score below `3` in either output blocks default-deck promotion unless the user approves a specific product exception. Run the Design Value Review in [character-design-bible.md](../rules/character-design-bible.md) alongside this scorecard; a failed value is a named conversation to resolve before promotion, not an automatic rejection.
+
+### Audience Tiers And The Buff Asymmetry
+
+The solo teaching slice evaluates one audience: a first-session player learning the Tank job. When playtests broaden, score each deck separately per audience — at minimum a first-session player and a practiced player who knows the Boss script — rather than averaging them into one number.
+
+Two asymmetric rules then apply, adapted from the champion balance framework in the [champion design research note](research/2026-08-16-lol-champion-design-lessons.md):
+
+- **Tune down when a deck is overpowered for any audience.** A line that trivializes the encounter for practiced players is a defect even if first-session players struggle with it.
+- **Tune up only when a deck is underpowered for every audience.** A mastery-rewarding Hero may legitimately score low with first-session players while shining for invested ones; do not buff it into pub-stomping accessibility on first-session evidence alone. Practiced-player over-performance is the promised reward of mastery, not automatically a balance defect.
 
 ## Minimum Metrics
 
@@ -135,13 +144,15 @@ After each run, ask the player or observer to answer each item from `1` to `5`.
 | Did dead draws feel acceptable? | They blocked play | They appeared but had alternatives | They created useful tension or were rare |
 | Did charge decisions feel rewarding? | Tucking felt arbitrary | Some charges mattered | Charge choices shaped the run |
 | Did repeated runs feel fresh enough? | Fatiguing by run 2 | Tolerable for 3 runs | Interesting across 3 or more runs |
+| Could you state the Hero's fantasy in one sentence? | Could not describe it | Described the role generically | Named this Hero's specific fantasy unprompted |
 
 Record one short free-text note for:
 
 - best decision of the run;
 - most confusing decision;
 - card that felt weakest;
-- card that best expressed the Hero.
+- card that best expressed the Hero;
+- the player's one-sentence description of the Hero's fantasy, verbatim. A miss is a failed theme test even when the mechanical prompts scored well.
 
 ## First-Pass Good-Deck Target
 

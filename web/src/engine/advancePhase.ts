@@ -1,6 +1,7 @@
 import { cardChargeCap } from './content/catalog'
 import type { ContentCatalog } from './content/catalog'
 import { applyAction, checkResolution } from './resolve'
+import { minionIntent } from './minions'
 import { actionsForTrack, refreshTelegraphs } from './timeline'
 import { getStatuses, statusEvent } from './statuses'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
@@ -93,6 +94,38 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
     case 'slow': {
       for (const action of cleanupActions(catalog, draft, 'slow')) {
         submit(action)
+      }
+      // The Minion end step (D-006): each living Minion, in spawn order,
+      // bites its nearest Hero when adjacent or advances one hex toward
+      // them — before the Round wraps, so bites meet the Round's remaining
+      // Armor. Each intent is recomputed from the live draft, so a later
+      // Minion sees the positions its predecessors just took.
+      const minionIds = Object.values(draft.board.entities)
+        .filter((entity) => entity.kind === 'minion')
+        .map((entity) => entity.id)
+      for (const minionId of minionIds) {
+        if (!draft.active) {
+          break
+        }
+        const intent = minionIntent(catalog, draft, minionId)
+        if (!intent) {
+          continue
+        }
+        if (intent.damage > 0) {
+          submit({
+            kind: 'damage',
+            sourceId: minionId,
+            targetId: intent.targetHeroId,
+            amount: intent.damage,
+            reasonText: `${draft.board.entities[minionId].title} bites`,
+            factContext: { minion_intent: true, damage_classification: 'raid_hit' },
+          })
+        } else if (intent.destination) {
+          submit({ kind: 'move_minion', sourceId: minionId, destination: intent.destination })
+        }
+      }
+      if (!draft.active) {
+        return { state: draft, facts }
       }
       const nextRound = draft.round + 1
       if (nextRound > draft.roundLimit) {

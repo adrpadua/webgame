@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = &"guard_stance"
 title = "Guard Stance"
-rules_text = "Gain 4 armor."
+rules_text = "Gain 4 Armor."
 speed = &"quick"
 target_type = 0
 armor_delta = 4

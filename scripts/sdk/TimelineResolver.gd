@@ -29,12 +29,18 @@ func resolve_boss_beat(engine, boss_id: StringName, beat, track: StringName = &"
 	var scorched_hexes: Array[Vector2i] = []
 	var scorched_duration_rounds: int = 0
 	var spawn_hexes: Array[Vector2i] = []
+	var unguarded_bonus_applied: int = 0
 	match beat.kind:
 		BossProgramBeat.Kind.TURN_TOWARD_PLAYER:
 			engine.board.set_entity_facing(boss_id, BoardQueryModel.facing_toward(boss_coords, player_coords, boss_facing))
 		BossProgramBeat.Kind.RAKING_CLAW:
 			pattern_hexes = BoardQueryModel.front_arc(engine.board.hexes, boss_coords, boss_facing)
 			player_damage = beat.damage
+			# Authored counter-pressure (D-017): the targeted hit cannot be
+			# evaded, and an unheld Guarded Front suffers the unguarded bonus.
+			if beat.unguarded_bonus > 0 and not BoardQueryModel.is_guarded_front(engine.board, boss_id, engine.primary_hero_id):
+				unguarded_bonus_applied = beat.unguarded_bonus
+				player_damage += unguarded_bonus_applied
 			impacted_hexes.append(player_coords)
 		BossProgramBeat.Kind.SCORCH_LAST_PATTERN:
 			scorched_hexes = engine.previous_impacted_hexes.duplicate()
@@ -63,6 +69,8 @@ func resolve_boss_beat(engine, boss_id: StringName, beat, track: StringName = &"
 			damage_context["target_selector"] = beat.target_selector
 		if beat.damage_classification != &"":
 			damage_context["damage_classification"] = beat.damage_classification
+		if unguarded_bonus_applied > 0:
+			damage_context["unguarded_bonus"] = unguarded_bonus_applied
 		actions.append(EncounterActionModel.damage(boss_id, engine.primary_hero_id, player_damage, beat.title, damage_context))
 	for coords in scorched_hexes:
 		var hazard = beat.hazard.create_effect() if beat.hazard != null else HazardEffectModel.new(&"scorched", scorched_duration_rounds, 1, true)

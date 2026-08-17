@@ -147,12 +147,14 @@ func _validate_program(program: Resource) -> void:
 						_error(beat_path, "Raking Claw needs positive damage.")
 					if beat.target_selector != BossBeatModel.TARGET_SELECTOR_TANK:
 						_error(beat_path, "Raking Claw must use Target Selector `tank`.")
-					if beat.rules_text != "Target: Tank. Deal 4 damage. Movement does not evade this hit.":
-						_error(beat_path, "Raking Claw rules text must be `Target: Tank. Deal 4 damage. Movement does not evade this hit.`")
+					if beat.rules_text != "Target: Tank. Deal 4 damage. Movement does not evade this hit. An unheld Guarded Front suffers +3.":
+						_error(beat_path, "Raking Claw rules text must be `Target: Tank. Deal 4 damage. Movement does not evade this hit. An unheld Guarded Front suffers +3.`")
 					if beat.damage_classification != &"tank_hit":
 						_error(beat_path, "Raking Claw must retain `tank_hit` damage classification.")
-					if beat.counter_tags != [&"Mitigate"]:
-						_error(beat_path, "Raking Claw counter tags must be exactly `Mitigate`.")
+					if beat.counter_tags != [&"Mitigate", &"Position"]:
+						_error(beat_path, "Raking Claw counter tags must be exactly `Mitigate, Position`.")
+					if beat.unguarded_bonus != 3:
+						_error(beat_path, "Raking Claw must carry the +3 unguarded Guarded Front bonus (D-017).")
 				BossBeatModel.Kind.CINDER_BREATH:
 					if beat.damage < 1:
 						_error(beat_path, "Cinder Breath needs positive damage.")

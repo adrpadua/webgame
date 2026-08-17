@@ -17,7 +17,7 @@ Status labels: `Now` means content/design work can begin after its stated proof;
 | Rank | Gap | Why it blocks content | Minimum extension |
 | --- | --- | --- | --- |
 | 1 | Deck-evaluation reporting facts | Deck quality cannot be compared repeatably without viability and play-feel evidence. | Scenario/run label, report aggregation for viability basics, and per-Round hand/Slot summaries listed in [deck-evaluation-measurement-plan.md](../artifacts/deck-evaluation-measurement-plan.md). |
-| 2 | Minion end-of-Round intent | Whelps cannot pressure or advance, so `Kill Adds` has no deadline. | Authored Minion behavior, deterministic move/attack resolver, visible intent projection. |
+| 2 | ~~Minion end-of-Round intent~~ Shipped 2026-08-17 (D-006): Whelps advance and bite at the end step; `minionIntents` is the visible projection awaiting board UI wiring. | Whelps cannot pressure or advance, so `Kill Adds` has no deadline. | Authored Minion behavior, deterministic move/attack resolver, visible intent projection. |
 | 3 | Phase triggers and program swaps | Embermaw cannot enter the approved Conflagration package. | Encounter phase condition, post-Round transition, program selection, phase reveal UI. |
 | 4 | Delayed markers and board-origin patterns | Ashen Brand and Cinderstorm cannot be represented honestly. | Marker state, delayed resolution trigger, origin/pattern schema, board overlay. |
 | 5 | Rear arcs, displacement, and collision | Molten Tail and meaningful flanking are unavailable. | Rear-arc target query, forced movement action, deterministic collision policy. |
@@ -25,10 +25,11 @@ Status labels: `Now` means content/design work can begin after its stated proof;
 
 ## Later
 
+- Kessa Varn, the Vanguard second tank ([design](heroes/kessa-varn-design.md), D-014): held until her required engine seams exist — Momentum resource, card-granted movement, printed activation costs, and Boss facing manipulation with a `Braced` guard. Her `Breach` party window additionally waits on the multi-Hero model.
 - Class-resource and tank Threat content after multi-Hero targeting exists.
 - Raid-run rewards, branching nodes, and deck evolution after a single encounter has a proven card curve.
 - Per-card art and final VFX after interaction and pattern readability pass mobile tests.
 
 ## Probe Policy
 
-The existing nine-probe suite remains required for every batch. Each new mechanic gets one focused headless probe and, where it changes player comprehension, one scene/mobile parity check. A content description alone is never a substitute for an executable probe.
+Per ADR 0019, the web Encounter Engine is the rules source of truth and the Godot probe suite is frozen. Every new mechanic gets focused Vitest coverage in `web/src/engine`, and every encounter or balance change re-runs the evaluation sweep (`npm run evaluate`) and the Scenario generator (which exits red-flag on any solo victory, D-016). A content description alone is never a substitute for an executable test.

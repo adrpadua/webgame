@@ -1,7 +1,7 @@
 {
   "id": "guard_stance",
   "title": "Guard Stance",
-  "rules_text": "Gain 4 armor.",
+  "rules_text": "Gain 4 Armor.",
   "speed": "quick",
   "max_charge": 2,
   "target_type": "none",
