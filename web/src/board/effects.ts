@@ -154,7 +154,7 @@ export function deriveBoardEffects(
           if (fromFacing !== undefined && toFacing !== undefined && fromFacing !== toFacing) {
             add({ kind: 'turn', entityId: before.bossId, at: bossCoords, fromFacing, tone: 'boss' })
           }
-        } else if (beat?.kind === 'raking_claw') {
+        } else if (beat?.kind === 'targeted_hit') {
           add({ kind: 'strike', entityId: before.bossId, at: bossCoords, toward: heroCoords ?? undefined, tone: 'boss' })
         } else if (beat?.kind === 'cinder_breath') {
           const hexes = telegraphedBreath(before)

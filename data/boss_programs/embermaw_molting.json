@@ -17,7 +17,7 @@
       "id": "raking_claw",
       "title": "Raking Claw",
       "rules_text": "Target: Tank. Deal 6 damage. Movement does not evade this hit. An unheld Guarded Front suffers +5.",
-      "kind": "raking_claw",
+      "kind": "targeted_hit",
       "counter_tags": [
         "Mitigate",
         "Position"

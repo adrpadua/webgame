@@ -97,7 +97,7 @@ describe('content catalog', () => {
     )
     expect(catalog.programs.embermaw_hunt.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',
-      'raking_claw',
+      'targeted_hit',
       'scorch_last_pattern',
     ])
     expect(catalog.programs.embermaw_embers.instant_beats.map((beat) => beat.kind)).toEqual([
@@ -1031,7 +1031,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
   it('still applies a numeric threshold when one is authored', () => {
     // The read-time modifiers stay supported for Bosses that want them; what
     // D-031 changed is Embermaw's authored content, not the mechanism.
-    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'raking_claw')!
+    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
     const state = start()
     state.escalation = 1
     state.escalationThresholds = [{ value: 1, title: 'Test Band', rules_text: '', boss_damage_bonus: 2, extra_spawn_count: 0, minion_damage_bonus: 0, scorch_hexes: [] }]
@@ -1079,7 +1079,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
 
 describe('Raking Claw counter-pressure (D-017)', () => {
   it('adds the unguarded bonus only when the Guarded Front is unheld', () => {
-    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'raking_claw')!
+    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
     // Holding the front: the authored 4 lands with no bonus recorded.
     let state = start()
     const held = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
@@ -1093,6 +1093,44 @@ describe('Raking Claw counter-pressure (D-017)', () => {
     const unheld = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
     const unheldFact = unheld.facts.find((fact) => fact.kind === 'damage')
     expect(unheldFact?.resolutionFact).toMatchObject({ requested: 7, unguarded_bonus: 3, guarded_front: false })
+  })
+})
+
+describe('impact memory across a missed Beat', () => {
+  it('leaves the last connected hit standing for scorch_last_pattern when a cone misses', () => {
+    // `scorch_last_pattern` burns wherever the Boss last actually connected,
+    // so the memory only moves when a Beat impacts something. A miss is not an
+    // impact of zero hexes; it is no impact, and Ash Trail keeps its target.
+    // Without that distinction a dodged Cinder Breath would silently disarm
+    // the scorch behind it, which is the reward for good footwork paying out
+    // twice.
+    const hunt = catalog.programs.embermaw_hunt
+    const claw = hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
+    const trail = hunt.instant_beats.find((beat) => beat.kind === 'scorch_last_pattern')!
+    const breath = hunt.incoming_beats.find((beat) => beat.kind === 'cinder_breath')!
+
+    let state = start()
+    const struck = { ...state.board.entities[state.primaryHeroId].coords }
+
+    // The targeted hit cannot be evaded, so it is what writes the memory.
+    state = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' }).state
+    expect(state.previousImpactedHexes).toEqual([struck])
+
+    // Step out of the forward cone. The breath impacts nothing...
+    state.board.entities[state.primaryHeroId].coords = { q: -1, r: 0 }
+    const missed = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: breath, track: 'incoming' })
+    state = missed.state
+    expect(missed.facts.some((fact) => fact.kind === 'damage')).toBe(false)
+    // ...and so it does not get to overwrite what the claw struck.
+    expect(state.previousImpactedHexes).toEqual([struck])
+
+    // Ash Trail therefore still burns the ground the claw actually hit. The
+    // assertion reads the Beat's own generated hazard rather than the board,
+    // because the missed breath Scorches its whole cone on the way past and
+    // that cone covers the struck hex too.
+    const scorch = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: trail, track: 'instant' })
+    const applied = scorch.facts.filter((fact) => fact.kind === 'apply_hazard')
+    expect(applied.map((fact) => fact.detail.coords)).toEqual([struck])
   })
 })
 
