@@ -33,29 +33,38 @@ export interface BoardSceneCallbacks {
 // ground they stand on. Nothing safe is warm and nothing dangerous is cool,
 // so a glance at the board's temperature is a read on where the danger is.
 //
-// Saturation carries urgency. The most saturated thing on screen is the
-// newest or most dangerous, which is what pulls the eye first: a live
-// telegraph outranks a Minion, and ground already scorched is duller than
-// either, because it is a state rather than news.
+// Saturation carries urgency, ranked by imminence within each temperature:
+// the beat resolving now outranks a telegraphed beat, which outranks the Boss,
+// then a Minion, then ground already scorched. Cool runs legal destinations,
+// then the Hero, then the ground. Newest and most dangerous conflict all the
+// time; imminence subsumes both.
 //
-// Cool: the ground, and the Hero on it.
-const TILE_FILL = 0x1e2333
-const TILE_STROKE = 0x39415c
-const HERO_FILL = 0x3b82f6
-// Where the Hero may step. Cyan rather than green: an affordance is not a
-// creature, and it must not share a hue with one.
-const MOVE_OVERLAY = 0x22d3ee
-// Warm, most saturated first: live telegraphs, then the pieces that threaten,
-// then ground that has already burned.
-const BREATH_OVERLAY = 0xf97316
-const BROOD_OVERLAY = 0xe11d48
-const BOSS_FILL = 0xdc2626
-const MINION_FILL = 0xb45309
-const SCORCHED_FILL = 0x5e2a1e
-// Neutral instruction, outside both axes: the scripted turn's pointer and the
-// reticle over a Minion the player is about to strike.
+// Objects take their MATERIAL. Hex tints take their TEMPERATURE. A tint is
+// information about a hex, not a thing made of runeglass, so it says whose it
+// is: warm is their beat, cool is your move. Every value here names one or
+// the other, per docs/content/oathcraft-board-direction.md.
+//
+// Cool objects — oathsteel ground, and a signal-cloth Hero standing on it.
+const TILE_FILL = 0x1b2434
+const TILE_STROKE = 0x37465f
+const HERO_FILL = 0x2f5680
+// Cool tint: where the Hero may step. Runeglass at tint saturation.
+const MOVE_OVERLAY = 0x62d2e6
+// Warm tints, most imminent first — the telegraphed beats landing next window.
+// One material, two saturations: the breath cone is the more imminent read.
+const BREATH_OVERLAY = 0xe0703b
+const BROOD_OVERLAY = 0xd9482f
+// Warm objects. Boss and Minion are one material, ember coral: a Whelp is a
+// piece of the furnace, and a hue of its own would say otherwise. They part by
+// saturation and size, and scorched ground is that material with the heat gone.
+const BOSS_FILL = 0xd9482f
+const MINION_FILL = 0xb8562f
+const SCORCHED_FILL = 0x5a2f22
+// The scripted turn's pointer is instruction from outside the fiction — the one
+// neutral on the board. The strike reticle is a player affordance, so it is a
+// cool tint like any other thing that is yours to choose.
 const GUIDED_STROKE = 0xfafafa
-const TARGET_STROKE = 0xfacc15
+const TARGET_STROKE = 0x62d2e6
 
 // One light direction for the whole board, from the upper left. Every piece
 // shades and rims against it, and the drop shadow falls the opposite way, so
@@ -69,7 +78,14 @@ const LIGHT_DY = Math.sin(LIGHT_ANGLE)
 const PIECE_LIT_OFFSET = 0.15
 const PIECE_LIT_RADIUS = 0.85
 const PIECE_SHADOW_SHADE = 0.55
-const RIM_SPAN = (Math.PI * 2) / 3
+// Two arcs with two jobs. The highlight sits on the lit side and says where
+// the light is; the rim sits opposite, on the lower right, and lifts a dark
+// piece off a dark tile. A faint full ring would separate equally in every
+// direction and flatten the light it sits inside, so it is deliberately not
+// used for that.
+const HIGHLIGHT_SPAN = (Math.PI * 2) / 3
+const RIM_ANGLE = LIGHT_ANGLE + Math.PI
+const RIM_SPAN = Math.PI / 2
 
 // A small, slow rise and fall so a board with nothing happening on it still
 // breathes. Each piece takes its own phase from its id, so they never pulse
@@ -84,24 +100,25 @@ const TILE_SKIRT_SHADE = 0.45
 // Range of the per-hex value jitter, centred on 1.
 const TILE_JITTER = 0.12
 
-// Effect tones sit on the same two axes: hero and guard cool, boss and hazard
-// warm. With the move overlay moved to cyan and Minions moved to amber, green
-// is spoken by nothing on the board except healing — so it now means one
-// thing, and a green flash needs no other context to read.
+// A Board Feedback flash is an event, neither object nor tint: the AXIS says
+// whose event it was, and the MATERIAL involved supplies the value. Your
+// restoration is aether ceramic — the world's medical technology — and reads
+// pale against a board where everything else is saturated. There is no green
+// on the board, because green names no material.
 const TONE_COLOR: Record<EffectTone, number> = {
-  hero: 0x60a5fa,
-  boss: 0xf87171,
-  guard: 0x38bdf8,
-  heal: 0x34d399,
-  hazard: 0xfb923c,
+  hero: 0x2f5680,
+  boss: 0xd9482f,
+  guard: 0x62d2e6,
+  heal: 0xe4e8ee,
+  hazard: 0xe0703b,
 }
 
 const TONE_TEXT: Record<EffectTone, string> = {
-  hero: '#fca5a5',
-  boss: '#fca5a5',
-  guard: '#7dd3fc',
-  heal: '#6ee7b7',
-  hazard: '#fdba74',
+  hero: '#f6c9be',
+  boss: '#f6c9be',
+  guard: '#a6e6f0',
+  heal: '#f2f5f9',
+  hazard: '#f3c8ad',
 }
 
 // How long each beat of feedback stays on the board. Short enough that a
@@ -541,11 +558,10 @@ export class BoardScene extends Phaser.Scene {
         graphics.fillStyle(motion.flashColor, motion.flash * 0.85)
         graphics.fillCircle(x, bodyY, radius)
       }
-      // The faint full ring keeps the silhouette readable against a dark
-      // tile; the bright arc over it says which way the light comes from.
-      graphics.lineStyle(2, 0xf4f4f5, 0.35)
-      graphics.strokeCircle(x, bodyY, radius)
-      this.strokeArc(graphics, x, bodyY, radius, LIGHT_ANGLE, RIM_SPAN, 0xf4f4f5, 1, 2.5)
+      // Highlight on the lit side says which way the light comes from; the
+      // rim on the far side is what lifts the piece off a dark tile.
+      this.strokeArc(graphics, x, bodyY, radius, LIGHT_ANGLE, HIGHLIGHT_SPAN, 0xf4f4f5, 1, 2.5)
+      this.strokeArc(graphics, x, bodyY, radius, RIM_ANGLE, RIM_SPAN, 0xf4f4f5, 0.55, 1.5)
       this.drawFacing(graphics, x, bodyY, radius, this.facingAngleFor(entity.id, entity.facing))
       // No health on the piece itself: a tile stays clean until it is
       // tapped, and the tapped piece's Stat Panel is the health readout.
