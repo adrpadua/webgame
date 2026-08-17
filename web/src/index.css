@@ -155,6 +155,27 @@ body {
 @utility wb-acc-cloth { --wb-acc: var(--color-cloth-500); }
 @utility wb-acc-none  { --wb-acc: transparent; }
 
+/* --- The Primed seat -----------------------------------------------------
+   Fires once when a Slot's last tumbler drops and the lock head's ward ring
+   closes, then stops. No idle pulse: a Primed Slot can persist for rounds,
+   and anything that breathes that long becomes furniture the eye edits out
+   — the failure that got Presence deleted. Motion that carries state fires
+   once; only ambient motion may loop. */
+@keyframes wb-seat {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(0.88);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.wb-seat {
+  animation: wb-seat 260ms ease-out both;
+}
+
 /* --- Onboarding & polish animations ------------------------------------
    Small, purposeful motion: entrances for popups and prompts, looping
    diagrams inside the How to Play guide, and feedback flashes. Everything
@@ -349,6 +370,7 @@ body {
   .wb-float,
   .wb-card-rise,
   .wb-glow-ring,
+  .wb-seat,
   .wb-hex-step,
   .wb-damage-flash {
     animation: none;
