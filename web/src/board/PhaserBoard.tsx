@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type DragEvent } from 'react'
 import Phaser from 'phaser'
 import { hexKey, isLegalMove, neighbors, type EncounterState } from '@/engine'
 import { currentFirstTurnStep } from '@/ui/useFirstTurn'
@@ -42,6 +42,16 @@ function buildSnapshot(
   }
 }
 
+// Where a drag event sits in board space. Measure the canvas, not the
+// container: the scaled canvas is letterboxed inside it, so a pointer read
+// against the container lands on the wrong hex.
+function eventCoords(event: DragEvent<HTMLDivElement>) {
+  const canvas = event.currentTarget.querySelector('canvas')
+  const bounds = (canvas ?? event.currentTarget).getBoundingClientRect()
+  const scale = bounds.width / BOARD_WIDTH
+  return pixelToAxial((event.clientX - bounds.left) / scale, (event.clientY - bounds.top) / scale)
+}
+
 export function PhaserBoard() {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -49,6 +59,7 @@ export function PhaserBoard() {
     const scene = new BoardScene({
       onHexClicked: (coords) => useWorkbench.getState().hexClicked(coords),
       onHeroPressChange: (pressed) => useWorkbench.getState().setHeroRoutePreview(pressed),
+      onHexHoverChange: (key) => useWorkbench.getState().setHoveredHex(key),
     })
     const game = new Phaser.Game({
       type: Phaser.AUTO,
@@ -154,20 +165,23 @@ export function PhaserBoard() {
       onDragOver={(event) => {
         event.preventDefault()
         event.dataTransfer.dropEffect = 'move'
+        // A drag suppresses pointer events, so the scene's own hover report
+        // goes quiet for the whole gesture: while a card is in flight this is
+        // the only thing that knows which hex it is over.
+        const coords = eventCoords(event)
+        const key = hexKey(coords)
+        const onBoard = selectState(useWorkbench.getState()).board.hexes[key] !== undefined
+        useWorkbench.getState().setHoveredHex(onBoard ? key : null)
       }}
+      onDragLeave={() => useWorkbench.getState().setHoveredHex(null)}
       onDrop={(event) => {
         event.preventDefault()
         const cardInstanceId = event.dataTransfer.getData('text/plain')
         if (cardInstanceId === '') {
+          useWorkbench.getState().setHoveredHex(null)
           return
         }
-        // Measure the canvas, not the container: the scaled canvas is
-        // letterboxed inside it, so a drop must be read in board space.
-        const canvas = event.currentTarget.querySelector('canvas')
-        const bounds = (canvas ?? event.currentTarget).getBoundingClientRect()
-        const scale = bounds.width / BOARD_WIDTH
-        const coords = pixelToAxial((event.clientX - bounds.left) / scale, (event.clientY - bounds.top) / scale)
-        useWorkbench.getState().cardDroppedOnHex(cardInstanceId, coords)
+        useWorkbench.getState().cardDroppedOnHex(cardInstanceId, eventCoords(event))
       }}
     />
   )

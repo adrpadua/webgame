@@ -300,6 +300,9 @@ try {
   }
   // The card the scripted turn is pointing at is the only live card in Hand.
   const scriptedCard = () => page.locator('[data-testid="hand-card"][data-scripted="true"]')
+  // Which face the Hand is wearing: the card as itself, its Keywords, or
+  // movement currency. See web/src/ui/handFace.ts.
+  const handFace = () => page.locator('[data-testid="hand"]').getAttribute('data-face')
   const slot0 = page.locator('[data-testid="slot-0"]')
   const slot1 = page.locator('[data-testid="slot-1"]')
 
@@ -311,6 +314,7 @@ try {
   assert((await page.locator('[data-testid="coach-mark"]').count()) === 0, 'the scripted turn owns the prompt row alone')
   assert((await page.locator('[data-testid="hand-card"]').count()) === 5, 'the First Turn Hand holds 5 Compact Cards')
   assert((await scriptedCard().count()) === 1, 'exactly one Hand card is scripted at a time')
+  assert((await handFace()) === 'card', 'the Loadout Step shows each card as itself')
 
   // Detail popups are where the words went. A mouse gets them by hovering,
   // one element at a time: a Compact Card explains the card...
@@ -371,6 +375,10 @@ try {
 
   // Step 5-6: charge the quick Slot, then fire it in its matching window.
   assert((await cueStep()) === 'charge-quick', 'the Quick Window opens on the charge step')
+  // A hand card in the Quick Window is a Charge and its Keywords, so the
+  // Hand leads with the Keyword marks rather than with the card's own timing
+  // and Charge Value — both of which describe it as a Top Card.
+  assert((await handFace()) === 'keywords', 'the Quick Window turns the Hand to its Keyword face')
   await scriptedCard().dragTo(slot0)
   assert((await slot0.getAttribute('data-charges')) === '1', 'a tucked hand card adds one Charge')
   assert((await cueStep()) === 'fire-quick', 'a charged Slot moves the script to firing')
@@ -395,8 +403,19 @@ try {
     boardBox.height <= areaBox.height + 1 && boardBox.width <= areaBox.width + 1,
     `the board fits its play area (${Math.round(boardBox.width)}x${Math.round(boardBox.height)} in ${Math.round(areaBox.width)}x${Math.round(areaBox.height)})`,
   )
-  await scriptedCard().dragTo(boardCanvas, { targetPosition: await hexPosition(boardCanvas, -1, 0) })
+  // Held over a hex the Hero can step to, every card in hand is one Stamina
+  // and nothing else, and the Hand says so while the card is still in flight.
+  const dropAt = await hexPosition(boardCanvas, -1, 0)
+  const boardOrigin = await boardCanvas.boundingBox()
+  const cardBox = await scriptedCard().boundingBox()
+  await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(boardOrigin.x + dropAt.x, boardOrigin.y + dropAt.y, { steps: 12 })
   await page.waitForTimeout(150)
+  assert((await handFace()) === 'stamina', 'lining up a move turns the Hand to movement currency')
+  await page.mouse.up()
+  await page.waitForTimeout(150)
+  assert((await handFace()) === 'keywords', 'the Hand returns to its Keyword face once the move lands')
   assert((await page.locator('[data-testid="hand-card"]').count()) === handBeforeMove - 1, 'the Stamina discard left the Hand')
   const factLog = await page.locator('[data-testid="fact-log"]').textContent()
   assert(factLog?.includes('Move to (-1, 0)'), 'the fact log records the Hero move')

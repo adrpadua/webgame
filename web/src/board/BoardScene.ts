@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { facingName, hexKey, parseHexKey, type Axial, type EncounterState } from '@/engine'
+import { facingName, hexKey, parseHexKey, type Axial, type EncounterState, type HexKey } from '@/engine'
 import { axialToPixel, hexCorners, pixelToAxial, HEX_SIZE } from './layout'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 import { boardPalette, toneColors } from './palette'
@@ -73,6 +73,9 @@ export interface BoardSceneCallbacks {
   onHexClicked: (coords: Axial) => void
   // Pressing and holding the Hero previews legal routes; release ends it.
   onHeroPressChange: (pressed: boolean) => void
+  // Which hex the pointer is over, by key, or null once it is off the grid.
+  // The scene reports it and holds no opinion about what it means.
+  onHexHoverChange: (key: HexKey | null) => void
 }
 
 // The board's colour language runs on two axes.
@@ -269,7 +272,16 @@ export class BoardScene extends Phaser.Scene {
     })
     this.input.on('pointerup', () => this.callbacks.onHeroPressChange(false))
     this.input.on('pointerupoutside', () => this.callbacks.onHeroPressChange(false))
-    this.input.on('gameout', () => this.callbacks.onHeroPressChange(false))
+    this.input.on('gameout', () => {
+      this.callbacks.onHeroPressChange(false)
+      this.callbacks.onHexHoverChange(null)
+    })
+    // A hex only counts as hovered if it is a hex: the canvas is a hexagon's
+    // bounding box, so its corners are off the grid entirely.
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      const key = hexKey(pixelToAxial(pointer.x, pointer.y))
+      this.callbacks.onHexHoverChange(this.snapshot?.state.board.hexes[key] === undefined ? null : key)
+    })
     this.renderSnapshot()
   }
 

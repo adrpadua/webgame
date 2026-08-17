@@ -233,7 +233,7 @@ The player's currently available cards, presented as compact cards in the bottom
 _Avoid_: Hand row, card tray
 
 **Compact Card**:
-A hand-sized card that exposes only its name, timing, and Charge Value for rapid scanning. It is not the canonical full-card reading surface.
+A hand-sized card that exposes only what the card is for in the current window, for rapid scanning. It is not the canonical full-card reading surface. Outside a player window it shows the card as a prospective Top Card — name, timing, and Charge Value. In the `Quick Window` it shows the card's `Keywords` instead, because tucking and moving are the only things a hand card does there and neither reads its timing or Charge Value; a Keyword a loaded Top Card's `Charge Modifier` would pay off is marked as live. While a move is being lined up it shows one `Stamina` mark and nothing else, because the cards are interchangeable at that moment. Presentation only: which face is showing is derived from the phase and the in-flight gesture, and creates no legal action.
 _Avoid_: Full card, tooltip card
 
 **Detail Popup**:
