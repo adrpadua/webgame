@@ -39,6 +39,26 @@ const BOSS_FILL = 0xdc2626
 const HERO_FILL = 0x3b82f6
 const MINION_FILL = 0x16a34a
 
+// One light direction for the whole board, from the upper left. Every piece
+// shades and rims against it, and the drop shadow falls the opposite way, so
+// the board reads as one lit scene rather than a set of flat tokens.
+const LIGHT_ANGLE = (-3 * Math.PI) / 4
+const LIGHT_DX = Math.cos(LIGHT_ANGLE)
+const LIGHT_DY = Math.sin(LIGHT_ANGLE)
+// The lit tone covers most of the piece and touches its rim on the lit side:
+// offset plus radius comes to exactly 1, leaving the shadow tone showing as a
+// crescent on the far side.
+const PIECE_LIT_OFFSET = 0.15
+const PIECE_LIT_RADIUS = 0.85
+const PIECE_SHADOW_SHADE = 0.55
+const RIM_SPAN = (Math.PI * 2) / 3
+
+// How far a tile's darker skirt drops below its face.
+const TILE_DEPTH = 6
+const TILE_SKIRT_SHADE = 0.45
+// Range of the per-hex value jitter, centred on 1.
+const TILE_JITTER = 0.12
+
 const TONE_COLOR: Record<EffectTone, number> = {
   hero: 0x60a5fa,
   boss: 0xf87171,
@@ -92,6 +112,23 @@ const NO_MOTION: Motion = { dx: 0, dy: 0, scale: 1, flash: 0, flashColor: 0 }
 
 function easeOutCubic(t: number): number {
   return 1 - (1 - t) ** 3
+}
+
+// Scales a 0xRRGGBB colour's channels toward black (factor < 1) or white
+// (factor > 1), so one authored colour yields its own shadow and highlight
+// instead of needing a second constant per tone.
+function shade(color: number, factor: number): number {
+  const r = Math.min(255, Math.round(((color >> 16) & 0xff) * factor))
+  const g = Math.min(255, Math.round(((color >> 8) & 0xff) * factor))
+  const b = Math.min(255, Math.round((color & 0xff) * factor))
+  return (r << 16) | (g << 8) | b
+}
+
+// A stable pseudo-random value in [0, 1) for a hex. The same hex always lands
+// on the same shade, so the floor holds still between frames.
+function tileJitter(coords: Axial): number {
+  const h = Math.sin(coords.q * 127.1 + coords.r * 311.7) * 43758.5453
+  return h - Math.floor(h)
 }
 
 export class BoardScene extends Phaser.Scene {
@@ -352,12 +389,30 @@ export class BoardScene extends Phaser.Scene {
         .map((entity) => hexKey(entity.coords)),
     )
 
-    for (const key of Object.keys(state.board.hexes)) {
+    const tiles = Object.keys(state.board.hexes).map((key) => {
       const coords = parseHexKey(key)
       const { x, y } = axialToPixel(coords)
-      const corners = hexCorners(x, y, HEX_SIZE - 2)
       const scorched = (state.board.hazards[key] ?? []).length > 0 && !pendingScorch.has(key)
-      this.fillHex(graphics, corners, scorched ? SCORCHED_FILL : TILE_FILL, 1, TILE_STROKE)
+      // A flat fill repeated across every hex reads as vector art. Nudging
+      // each hex's value a little breaks that up without introducing a
+      // second authored colour.
+      const fill = shade(scorched ? SCORCHED_FILL : TILE_FILL, 1 - TILE_JITTER / 2 + tileJitter(coords) * TILE_JITTER)
+      return { key, coords, x, y, fill, corners: hexCorners(x, y, HEX_SIZE - 2) }
+    })
+
+    // Every skirt before any face: a tile's skirt has to sit under the tiles
+    // in front of it, and hex keys arrive in no meaningful order.
+    for (const tile of tiles) {
+      graphics.fillStyle(shade(tile.fill, TILE_SKIRT_SHADE), 1)
+      this.fillPath(
+        graphics,
+        tile.corners.map((corner) => ({ x: corner.x, y: corner.y + TILE_DEPTH })),
+      )
+    }
+
+    for (const tile of tiles) {
+      const { key, coords, x, y, corners } = tile
+      this.fillHex(graphics, corners, tile.fill, 1, TILE_STROKE)
       const telegraph = state.telegraphs[key]
       if (telegraph === 'breath') {
         this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), BREATH_OVERLAY, 0.28)
@@ -404,14 +459,22 @@ export class BoardScene extends Phaser.Scene {
       const fill = entity.kind === 'boss' ? BOSS_FILL : entity.kind === 'hero' ? HERO_FILL : MINION_FILL
       graphics.fillStyle(0x000000, 0.35)
       graphics.fillCircle(x + 2, y + 3, radius)
-      graphics.fillStyle(fill, 1)
+      // Two values against one light: the piece fills with its shadow tone,
+      // then its lit tone lands offset toward the light, leaving a crescent
+      // of shadow on the far side.
+      graphics.fillStyle(shade(fill, PIECE_SHADOW_SHADE), 1)
       graphics.fillCircle(x, y, radius)
+      graphics.fillStyle(fill, 1)
+      graphics.fillCircle(x + LIGHT_DX * radius * PIECE_LIT_OFFSET, y + LIGHT_DY * radius * PIECE_LIT_OFFSET, radius * PIECE_LIT_RADIUS)
       if (motion.flash > 0) {
         graphics.fillStyle(motion.flashColor, motion.flash * 0.85)
         graphics.fillCircle(x, y, radius)
       }
-      graphics.lineStyle(2, 0xf4f4f5, 0.9)
+      // The faint full ring keeps the silhouette readable against a dark
+      // tile; the bright arc over it says which way the light comes from.
+      graphics.lineStyle(2, 0xf4f4f5, 0.35)
       graphics.strokeCircle(x, y, radius)
+      this.strokeArc(graphics, x, y, radius, LIGHT_ANGLE, RIM_SPAN, 0xf4f4f5, 1, 2.5)
       this.drawFacing(graphics, x, y, radius, this.facingAngleFor(entity.id, entity.facing))
       // No health on the piece itself: a tile stays clean until it is
       // tapped, and the tapped piece's Stat Panel is the health readout.
@@ -459,6 +522,13 @@ export class BoardScene extends Phaser.Scene {
       graphics.lineStyle(1.5, strokeColor, 1)
       this.strokePath(graphics, corners)
     }
+  }
+
+  private strokeArc(graphics: Phaser.GameObjects.Graphics, x: number, y: number, radius: number, centerAngle: number, span: number, color: number, alpha: number, width: number): void {
+    graphics.lineStyle(width, color, alpha)
+    graphics.beginPath()
+    graphics.arc(x, y, radius, centerAngle - span / 2, centerAngle + span / 2, false)
+    graphics.strokePath()
   }
 
   private strokeHex(graphics: Phaser.GameObjects.Graphics, corners: { x: number; y: number }[]): void {
