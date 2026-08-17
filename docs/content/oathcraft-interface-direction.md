@@ -37,11 +37,17 @@ The core palette is already locked in [art-prompts/_style-preamble.md](art-promp
 | Aether ceramic | `#E4E8EE` | Read-out surfaces and health fill |
 | Runeglass | `#62D2E6` | Seams, focus, telegraphs, Quick timing |
 | Living gold | `#C8A344` | Controls, charge tumblers, armor plate edges, Slow timing |
-| Signal cloth | `#2F5680` | Role channel on a console, phase banners, warning trim |
+| Signal cloth | Per role; Shield Wall is `#2F5680` | Role channel on a console, phase banners, warning trim |
 | Ember | `#D9482F` | Damage taken, danger, irreversible action |
 | Ember coral | `#E0703B` | Boss health, scorch, hazard fill |
 
 Colour reads as role and material, never as decoration. If a new colour is needed, the answer is almost always that the wrong material was chosen.
+
+Two entries need their scope stated, because both look like contradictions otherwise.
+
+**Signal cloth is a material, not a value.** The bible treats it as a saturated per-Hero role accent, so it cannot have one fixed hex. `#2F5680` is Shield Wall's, and every future role picks its own within the material. It is the one row in this table that is allowed to grow.
+
+**Ember and ember coral are one family in two jobs.** The preamble allows a single warm accent, and this does not spend two: ember is the interface's warning, ember coral is Embermaw's own body. They never appear in the same element, and a second boss brings its own material rather than a third warm.
 
 ## Texture, And What Is Banned
 
@@ -75,13 +81,13 @@ A card is a gate plate. Elian's identity is a folding Gate Rig with oathsteel ri
 | Art pane | Runeglass over the illustration | The card's one dominant visual idea |
 | Tumblers | Gold pins in recessed slots, bottom rail | Charge Value and current Charge Stack |
 
-A Charge Stack is tumblers seating in a lock. **Primed** — a full stack that has not activated in its matching window — is the lock wound and ready to turn, so the lock head takes a gold bloom. Nothing else on the card glows, which makes Primed unmissable in a hand of four.
+A Charge Stack is tumblers seating in a lock. **Primed** is a state of a *Slot*, not of a card: a Slot whose Charge Stack equals its Top Card's Charge Value and which has not activated in the current matching window. So the gold bloom belongs to the lock head of a Slot's Top Card, and a card in hand never wears it. That is the lock wound and ready to turn. Nothing else in the Action Bar glows, which makes a Primed Slot unmissable across two Slots and a hand of four.
 
 The pane is why the frame stays quiet. The frame is dark, the seams are hairlines, and the illustration is the only saturated thing inside the border.
 
 ## Controls
 
-Interfaces in this world are levers, sigils, lenses, locks, and rotating rings rather than sci-fi tablets. A button is a **lever plate**: an oathsteel rectangle with chamfered corners and a gold edge on the actuating side. Pressing it moves the plate down one pixel and swaps the top highlight for an inset shadow. It seats; it does not merely darken.
+Interfaces in this world are levers, sigils, lenses, locks, rotating rings, animated glyph plates, or projected hex diagrams rather than sci-fi tablets. A button is a **lever plate**: an oathsteel rectangle with chamfered corners and a gold edge on the actuating side. Pressing it moves the plate down one pixel and swaps the top highlight for an inset shadow. It seats; it does not merely darken.
 
 - **Gold edge** — the action advances the encounter.
 - **Bare oathsteel** — the action is optional.
@@ -104,18 +110,31 @@ Cyan and gold already mean *hard-light immediacy* and *wound mechanism*, which i
 
 | Token | Ships today | Direction |
 | --- | --- | --- |
-| `windowToneClass` · quick | `emerald-400` | Runeglass `#62D2E6` |
-| `windowToneClass` · slow | `sky-400` | Living gold `#C8A344` |
+| `windowToneClass` · quick | `text-emerald-400` | Runeglass `#62D2E6` |
+| `windowToneClass` · slow | `text-sky-400` | Living gold `#C8A344` |
+| `windowDotClass` · quick | `bg-emerald-400` | Runeglass `#62D2E6` |
+| `windowDotClass` · slow | `bg-sky-400` | Living gold `#C8A344` |
 | `FOCUS_RING_CLASS` | `ring-emerald-400` | Runeglass `#62D2E6` |
-| `GAUGE_TRACK_CLASS` | `bg-zinc-800` | Void navy `#0F1622` |
+| `GAUGE_TRACK_CLASS` | `bg-zinc-800`, `rounded-sm` | Void navy `#080D16`, chamfer |
 
-Gold and ember sit close enough in hue to be worth guarding. Keep the filled-dot shape difference between Quick and Slow rather than relying on colour alone, and do not place a gold control directly beside an ember one — the ember edge is rare enough that this costs nothing.
+Gold and ember sit close enough in hue to be worth guarding, and today there is nothing to fall back on: the Quick and Slow dots are the same shape, `rounded-full` at the same size, separated by colour alone. A shape difference has to be **introduced** rather than preserved — the timing seam on the card frame already does this job, so the dot should follow it rather than invent a third language. Beyond that, do not place a gold control directly beside an ember one; the ember edge is rare enough that this costs nothing.
 
 This table is a direction, not a migration. No code has changed.
 
+### What Adopting It Would Actually Cost
+
+The table above is the token surface, and it is the small part. Two of this document's rules reach much further into the shipped UI, and stating them without stating the cost would be dishonest.
+
+- **Emerald is not confined to `theme.ts`.** It appears 78 times across 15 files under `web/src/ui/`, including the victory banner, the guide modal, the coach marks, and the scripted first turn's spotlight. Moving Quick to runeglass is four tokens; removing green from the interface is a sweep.
+- **Rounded corners appear 62 times across 18 files**, `GAUGE_TRACK_CLASS` among them. The chamfer rule is the direction, but every rounded utility is a separate edit and some are inside components the mobile work has recently touched.
+
+Neither number is an argument against the direction. They are the reason to adopt it as a deliberate pass rather than by opportunistic edits, which would leave the interface half in one language and half in the other — worse than either.
+
 ## What This Does Not Decide
 
-Typography for the game itself, status-effect iconography, and motion are all open. So is the board's own rendering: telegraphs and hazards already have canon — pattern projectors in runeglass, hazards in ember coral — but applying it needs a separate pass against the Phaser scene, which draws on a different surface with different constraints than the React chrome.
+Typography for the game itself, status-effect iconography, and motion are all open.
+
+So is the board's own rendering, and it is not a blank slate. Telegraphs and hazards already have canon — pattern projectors in runeglass, hazards in ember coral — but the board also carries an inherited tint language documented in [art-prompts/board-and-tiles.md](art-prompts/board-and-tiles.md): the hover tile is green and the target tile is orange, applied as runtime `modulate` rather than baked into the art. Both sit outside this palette, and the orange target is close enough to ember to be a real collision — ember is supposed to mean *this hurts you*, and a target marker means the opposite. Reconciling that needs a pass against the Phaser scene, which draws on a different surface under different constraints than the React chrome, and which cannot simply inherit these values.
 
 ## Review Checklist
 
