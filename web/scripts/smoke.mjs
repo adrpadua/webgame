@@ -70,7 +70,7 @@ try {
   // type system ties them to the file. Rebuild the sheet at a different size
   // and every frame silently shifts — the character would face the wrong way
   // and animate through pieces of two poses. The PNG's own header settles it.
-  const sceneSource = readFileSync(new URL('../src/board/BoardScene.ts', import.meta.url), 'utf8')
+  const sceneSource = readFileSync(new URL('../src/board/sheets.ts', import.meta.url), 'utf8')
   const frames = Number(/IDLE_FRAMES = (\d+)/.exec(sceneSource)?.[1])
   const specs = [...sceneSource.matchAll(/(\w+): \{ key: '([\w-]+)', url: (\w+), frameWidth: (\d+), frameHeight: (\d+)/g)]
   assert(specs.length > 0, 'the scene declares at least one sprite sheet')
@@ -113,6 +113,30 @@ try {
   await page.keyboard.press('Escape')
   await page.waitForSelector('[data-testid="guide-modal"]', { state: 'detached' })
   assert((await page.locator('[data-testid="guide-modal"]').count()) === 0, 'Escape dismisses the reopened guide')
+
+  // The Sprite Inspector is how a facing or a broken idle loop gets found, so
+  // it is worth knowing it still opens and still lays every frame out: a
+  // debug view that quietly stopped rendering would be discovered at exactly
+  // the moment someone needed it.
+  await page.locator('[data-testid="open-sprite-inspector"]').click()
+  await page.waitForSelector('[data-testid="sprite-inspector"]')
+  const sheetKinds = await page.locator('[data-testid^="sprite-kind-"]').count()
+  const inspectorGrid = []
+  for (let index = 0; index < sheetKinds; index += 1) {
+    await page.locator('[data-testid^="sprite-kind-"]').nth(index).click()
+    const rows = await page.locator('[data-testid="sprite-row"]').count()
+    const frames = await page.locator('[data-testid="sprite-frame"]').count()
+    if (rows !== 6 || frames !== 24) {
+      inspectorGrid.push(`sheet ${index}: ${rows} rows, ${frames} frames`)
+    }
+  }
+  assert(
+    sheetKinds > 0 && inspectorGrid.length === 0,
+    `the Sprite Inspector lays out 6 facings x 4 frames per sheet (${inspectorGrid.join(' | ') || `${sheetKinds} sheets`})`,
+  )
+  await page.keyboard.press('Escape')
+  await page.waitForSelector('[data-testid="sprite-inspector"]', { state: 'detached' })
+  assert((await page.locator('[data-testid="sprite-inspector"]').count()) === 0, 'Escape closes the Sprite Inspector')
 
   const phase = () => page.locator('[data-phase]').getAttribute('data-phase')
   // A Boss Row resolves in the batch that opens its window and replays

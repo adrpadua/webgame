@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOnboarding } from '@/store/onboarding'
 import { selectState, useWorkbench, type FactEntry } from '@/store/workbench'
+import { SpriteInspector } from './SpriteInspector'
 import { FRAME_HEIGHT_CLASS } from './theme'
 
 function factSummary(fact: FactEntry): string | null {
@@ -22,6 +23,27 @@ function factSummary(fact: FactEntry): string | null {
     parts.push(`${statusEvent.status_id}: ${statusEvent.event}`)
   }
   return parts.length > 0 ? parts.join(' · ') : null
+}
+
+// The sheets' own failures — a row facing the wrong way, a cycle that does
+// not loop — are invisible on the board until a specific line of play reaches
+// that facing, so they get a view that shows every frame at once.
+function SpriteControl() {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="flex items-center justify-between rounded-2xl border border-steel-800 bg-steel-950 p-4">
+      <h2 className="text-xs font-bold tracking-widest text-steel-400 uppercase">Sprites</h2>
+      <button
+        type="button"
+        data-testid="open-sprite-inspector"
+        onClick={() => setOpen(true)}
+        className="min-h-11 rounded-lg bg-steel-700 px-4 text-sm font-semibold text-ceramic-200 transition hover:bg-steel-600"
+      >
+        Inspect sheets
+      </button>
+      {open && <SpriteInspector onDismiss={() => setOpen(false)} />}
+    </div>
+  )
 }
 
 // The How to Play guide still opens on a first visit; with the '?' gone
@@ -243,6 +265,7 @@ export function DebugRail() {
       <ScenarioPicker />
       <TimeTravel />
       <SeedControl />
+      <SpriteControl />
       <GuideControl />
       <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-steel-800 bg-steel-950 p-4">
         <h2 className="text-xs font-bold tracking-widest text-steel-400 uppercase">Fact log</h2>
