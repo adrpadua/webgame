@@ -101,7 +101,7 @@ export const bossBeatSchema = z.object({
   // Embermaw's version of the mechanic was duplicating a field it could not
   // keep in sync: nothing stopped a frost Boss authoring `hazard: "frozen"` on
   // a Beat kind called `cinder_breath`.
-  kind: z.enum(['turn_toward_player', 'targeted_hit', 'hazard_last_impact', 'cinder_breath', 'brood_call', 'warning']),
+  kind: z.enum(['turn_toward_player', 'targeted_hit', 'hazard_last_impact', 'forward_cone', 'brood_call', 'warning']),
   counter_tags: z.array(z.string()).default([]),
   // Consequence Tier (ADR 0026): sets the earliest horizon this Beat may
   // appear in. `chip` anywhere, `structural` no later than Incoming, `severe`

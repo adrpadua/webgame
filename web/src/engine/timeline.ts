@@ -76,7 +76,7 @@ export function resolveBossBeat(
       scorchedHexes = [...draft.previousImpactedHexes]
       scorchedDurationRounds = beat.duration_rounds
       break
-    case 'cinder_breath':
+    case 'forward_cone':
       patternHexes = forwardCone(draft.board.hexes, bossCoords, bossFacing)
       if (containsHex(patternHexes, playerCoords)) {
         playerDamage = beat.damage
@@ -167,9 +167,9 @@ export function refreshTelegraphs(catalog: ContentCatalog, draft: EncounterState
   }
   for (const beat of program.incoming_beats) {
     switch (beat.kind) {
-      case 'cinder_breath':
+      case 'forward_cone':
         for (const coords of forwardCone(draft.board.hexes, boss.coords, boss.facing, 2)) {
-          draft.telegraphs[hexKey(coords)] = 'breath'
+          draft.telegraphs[hexKey(coords)] = 'cone'
         }
         break
       case 'brood_call': {

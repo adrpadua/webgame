@@ -46,7 +46,7 @@ export interface BoardPalette {
   tileStroke: number
   heroFill: number
   moveOverlay: number
-  breathOverlay: number
+  coneOverlay: number
   broodOverlay: number
   bossFill: number
   minionFill: number
@@ -61,8 +61,8 @@ export interface BoardPalette {
 // The warm side is one material — ember coral — stepped down the ramp in the
 // order the board direction ranks imminence: a telegraphed beat landing next
 // window, then the Boss, then a Minion, then ground that has already burned.
-// Two telegraphs are on the board at once and the breath cone is the more
-// imminent read, so it takes the brighter step and the Brood Call the next.
+// Two telegraphs are on the board at once and the cone is the more imminent
+// read, so it takes the brighter step and the spawn telegraph the next.
 //
 // The Boss sits below both telegraphs rather than at coral-400, which is the
 // step the chrome gives it. On a plate the Boss is the only warm thing in
@@ -76,7 +76,7 @@ export function boardPalette(): BoardPalette {
     tileStroke: readToken('steel-700'),
     heroFill: readToken('cloth-500'),
     moveOverlay: readToken('glass-400'),
-    breathOverlay: readToken('coral-300'),
+    coneOverlay: readToken('coral-300'),
     broodOverlay: readToken('coral-400'),
     bossFill: readToken('coral-500'),
     minionFill: readToken('coral-700'),

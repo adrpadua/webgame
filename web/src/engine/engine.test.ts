@@ -401,8 +401,8 @@ describe('encounter setup', () => {
 
   it('telegraphs the Incoming Row at start', () => {
     const state = start()
-    expect(state.telegraphs[hexKey({ q: 0, r: 1 })]).toBe('breath')
-    expect(state.telegraphs[hexKey({ q: -1, r: 1 })]).toBe('breath')
+    expect(state.telegraphs[hexKey({ q: 0, r: 1 })]).toBe('cone')
+    expect(state.telegraphs[hexKey({ q: -1, r: 1 })]).toBe('cone')
     // Hunt Pattern calls no Whelps, so the opening Round telegraphs no spawns.
     // Round 1 asks the Tank to hold and then step out of the cone, nothing else
     // (D-036).
@@ -1107,7 +1107,7 @@ describe('impact memory across a missed Beat', () => {
     const hunt = catalog.programs.embermaw_hunt
     const claw = hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
     const trail = hunt.instant_beats.find((beat) => beat.kind === 'hazard_last_impact')!
-    const breath = hunt.incoming_beats.find((beat) => beat.kind === 'cinder_breath')!
+    const breath = hunt.incoming_beats.find((beat) => beat.kind === 'forward_cone')!
 
     let state = start()
     const struck = { ...state.board.entities[state.primaryHeroId].coords }

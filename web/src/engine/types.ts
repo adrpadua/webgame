@@ -104,7 +104,10 @@ export interface StatusInstance {
   triggerPhase: Phase | ''
 }
 
-export type TelegraphKind = 'breath' | 'brood'
+// Telegraph tokens name the shape being previewed, not the Beat that casts it,
+// for the same reason Beat kinds do: this type crosses into the renderer, so a
+// flavoured token would put one Boss's vocabulary in a shared contract.
+export type TelegraphKind = 'cone' | 'brood'
 
 export interface EncounterState {
   encounterId: string

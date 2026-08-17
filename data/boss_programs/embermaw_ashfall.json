@@ -31,7 +31,7 @@
       "id": "cinder_breath",
       "title": "Cinder Breath",
       "rules_text": "Forward cone, range 1-2. Deal 13 damage.",
-      "kind": "cinder_breath",
+      "kind": "forward_cone",
       "counter_tags": [
         "Move",
         "Interrupt"
