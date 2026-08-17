@@ -158,8 +158,8 @@ function HeroRows({ heroId }: { heroId: string }) {
           ],
         }}
         icon={DeckIcon}
-        fillClass="bg-zinc-600/80"
-        textClass="text-zinc-200"
+        fillClass="bg-steel-600/80"
+        textClass="text-ceramic-300"
         widthClass="w-14"
         label="Cards in deck"
         value={String(hero.deck.length)}
@@ -228,8 +228,8 @@ export function EntityInspect() {
   const shell = isHero
     ? 'wb-face-ceramic wb-acc-cloth text-ceramic-950'
     : isBoss
-      ? 'wb-face-steel wb-acc-ember text-zinc-100'
-      : 'wb-face-steel wb-acc-none text-zinc-100'
+      ? 'wb-face-steel wb-acc-ember text-ceramic-200'
+      : 'wb-face-steel wb-acc-none text-ceramic-200'
   return (
     <div
       data-testid="entity-inspect"

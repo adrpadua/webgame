@@ -67,6 +67,23 @@
   --color-coral-900: #45200f;
   --color-coral-950: #2c150a;
 
+  /* Void navy: the ground under everything, per the interface direction's
+     palette. Navy, not black — black belongs to basalt. */
+  --color-navy-950: #080d16;
+
+  /* The upper steel ramp: polished rather than shadowed. All three carry
+     steel-700's own hue and saturation (218deg, 27%), so the neutrals take
+     the palette's navy bias instead of Tailwind's blue-grey.
+
+     steel-500 is the quiet-label step — every one of its uses is text. It is
+     set to the dimmest value that still clears 4.5:1 on the brightest ground
+     it sits on (a steel-900 panel), which makes it lighter than the zinc-500
+     it replaced. That step was failing at 3.09:1 and no one could see it:
+     Tailwind's own ramps compute to oklch(), which the contrast probe could
+     not read, so it skipped every element wearing one. */
+  --color-steel-400: #91a3bf;
+  --color-steel-500: #7a8fb2;
+  --color-steel-600: #415371;
   --color-steel-700: #37465f;
   --color-steel-800: #24304a;
   --color-steel-900: #1b2434;
@@ -76,7 +93,7 @@
 html,
 body {
   margin: 0;
-  background-color: #09090b;
+  background-color: var(--color-navy-950);
   /* Touch browsers: no pull-to-refresh or rubber-banding — a drag that
      starts on the play surface must never turn into a page gesture. */
   overscroll-behavior: none;
@@ -366,11 +383,11 @@ body {
 @keyframes wb-pip-fill {
   0%,
   20% {
-    background-color: var(--color-zinc-700);
+    background-color: var(--color-steel-700);
   }
   30%,
   100% {
-    background-color: var(--color-amber-400);
+    background-color: var(--color-gold-400);
   }
 }
 .wb-pip-fill {
@@ -452,7 +469,7 @@ body {
   }
   .wb-pip-fill {
     animation: none;
-    background-color: var(--color-amber-400);
+    background-color: var(--color-gold-400);
   }
   /* Utility transitions (health bar, phase chips, hover lifts) go instant
      too — "all motion freezes" includes transitions, not just keyframes. */

@@ -47,11 +47,11 @@ const STATE_LABEL: Record<SlotStateName, string> = {
 // Only Primed wears gold in the label: it is the state that can fire.
 // Fired is the state that cannot, and it must not borrow the live colour.
 const STATE_TONE: Record<SlotStateName, string> = {
-  empty: 'text-zinc-600',
-  loaded: 'text-zinc-500',
-  charged: 'text-zinc-400',
+  empty: 'text-steel-600',
+  loaded: 'text-steel-500',
+  charged: 'text-steel-400',
   primed: 'text-gold-400',
-  fired: 'text-zinc-500',
+  fired: 'text-steel-500',
 }
 
 const LOCK_STATE: Record<SlotStateName, LockState> = {
@@ -69,7 +69,7 @@ export function ActionBar() {
     return null
   }
   return (
-    <div className="flex gap-2 border-t border-zinc-800 bg-zinc-900/80 px-4 py-2" data-testid="action-bar">
+    <div className="flex gap-2 border-t border-steel-800 bg-steel-950/80 px-4 py-2" data-testid="action-bar">
       {hero.actionBar.map((_, slotIndex) => (
         <Slot key={slotIndex} slotIndex={slotIndex} />
       ))}
@@ -182,7 +182,7 @@ function Slot({ slotIndex }: { slotIndex: number }) {
         <span
           className={`absolute -top-2 right-2 rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wide uppercase ${
             !incomingLegal
-              ? 'bg-zinc-700 text-zinc-400 line-through'
+              ? 'bg-steel-700 text-steel-400 line-through'
               : incomingAction === 'Replace'
                 ? 'bg-ember-950 text-ember-100 ring-1 ring-ember-500'
                 : 'bg-gold-400 text-gold-950'
@@ -197,7 +197,7 @@ function Slot({ slotIndex }: { slotIndex: number }) {
             {/* Keyed on the state so entering Primed remounts the head and the
                 seat plays once, on that transition only. */}
             <LockHead key={stateName} state={LOCK_STATE[stateName]} className={`h-4 w-4 shrink-0 ${stateName === 'primed' ? 'wb-seat' : ''}`} />
-            <span className={`min-w-0 flex-1 truncate text-xs font-bold ${stateName === 'fired' ? 'text-zinc-400' : 'text-zinc-100'}`}>{card.title}</span>
+            <span className={`min-w-0 flex-1 truncate text-xs font-bold ${stateName === 'fired' ? 'text-steel-400' : 'text-ceramic-200'}`}>{card.title}</span>
             <span className={`h-2 w-2 shrink-0 rounded-full ${windowDotClass(cardWindowSpeed(card))}`} aria-hidden="true" />
           </div>
           {/* Charge tumblers. Separate raked pins with gaps while charging;
@@ -218,7 +218,7 @@ function Slot({ slotIndex }: { slotIndex: number }) {
           <div className={`mt-1 text-[10px] font-semibold tracking-wide uppercase ${STATE_TONE[stateName]}`}>{STATE_LABEL[stateName]}</div>
         </>
       ) : (
-        <div className="flex h-full items-center justify-center text-2xl leading-none font-light text-zinc-700" aria-hidden="true">
+        <div className="flex h-full items-center justify-center text-2xl leading-none font-light text-steel-700" aria-hidden="true">
           +
         </div>
       )}

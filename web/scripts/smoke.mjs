@@ -103,11 +103,28 @@ try {
   // exempt, as the standard exempts inactive components. Returns failures.
   const contrastFailures = (pg) =>
     pg.evaluate(() => {
+      // Resolve through a canvas rather than a regex over rgb(). Tailwind's
+      // own default ramps compute to oklch(), which an rgb-only parser
+      // returns null for — and a null foreground was skipped, so every
+      // element wearing a stock Tailwind colour went unmeasured and the suite
+      // reported "all pass" over text it had never looked at. Painting the
+      // colour and reading the pixel back handles oklch, oklab, color() and
+      // any future syntax alike.
+      const swatch = document.createElement('canvas')
+      swatch.width = 1
+      swatch.height = 1
+      const ctx = swatch.getContext('2d', { willReadFrequently: true })
       const parse = (c) => {
-        const m = c.match(/rgba?\(([^)]+)\)/)
-        if (!m) return null
-        const p = m[1].split(',').map((s) => parseFloat(s.trim()))
-        return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }
+        if (!c || c === 'transparent' || c === 'none') return { r: 0, g: 0, b: 0, a: 0 }
+        ctx.clearRect(0, 0, 1, 1)
+        // An unparseable value leaves fillStyle untouched, so seed a sentinel
+        // and treat "unchanged" as unreadable rather than as black.
+        ctx.fillStyle = '#000000'
+        ctx.fillStyle = c
+        if (ctx.fillStyle === '#000000' && !/^(#000000|black|rgba?\(0, ?0, ?0)/.test(c)) return null
+        ctx.fillRect(0, 0, 1, 1)
+        const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data
+        return { r, g, b, a: a / 255 }
       }
       const over = (top, bot) => {
         const a = top.a + bot.a * (1 - top.a)

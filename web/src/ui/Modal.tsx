@@ -8,7 +8,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 export function Modal({
   onDismiss,
   labelledBy,
-  accentBorderClass = 'border-zinc-600',
+  accentBorderClass = 'border-steel-600',
   testId,
   children,
 }: {
@@ -40,7 +40,7 @@ export function Modal({
 
   return (
     <div
-      className="wb-fade-in absolute inset-0 z-40 flex items-center justify-center bg-zinc-950/80 p-5 backdrop-blur-[2px]"
+      className="wb-fade-in absolute inset-0 z-40 flex items-center justify-center bg-navy-950/80 p-5 backdrop-blur-[2px]"
       data-testid={testId}
       onClick={onDismiss}
     >

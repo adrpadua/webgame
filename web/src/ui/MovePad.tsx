@@ -79,8 +79,8 @@ export function MovePad() {
                 ? dimmed
                   ? 'border-glass-800 bg-glass-950/90 text-glass-300 hover:bg-glass-900/90'
                   : 'border-glass-500 bg-glass-950/90 text-glass-200 hover:bg-glass-900/90 wb-ring-pulse'
-                : 'border-steel-800 bg-steel-950/80 text-zinc-700'
-            } ${guided ? `border-zinc-100 ${SPOTLIGHT_CLASS}` : ''}`}
+                : 'border-steel-800 bg-steel-950/80 text-steel-700'
+            } ${guided ? `border-ceramic-200 ${SPOTLIGHT_CLASS}` : ''}`}
           >
             {facingName(direction)}
           </button>
