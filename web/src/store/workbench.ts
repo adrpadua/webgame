@@ -7,6 +7,8 @@ import {
   cardWindowSpeed,
   createEncounterState,
   getEntityIdAt,
+  hexKey,
+  isLegalMove,
   resolve,
   runScenario,
   type Axial,
@@ -51,6 +53,10 @@ export interface WorkbenchStore {
   // Slot Replacement discards the Top Card and its whole Charge Stack, so it
   // never fires from a raw gesture: it parks here until confirmed.
   pendingReplacement: { cardInstanceId: string; slotIndex: number } | null
+  // A move dragged straight from the Hero. The gesture names a destination
+  // and nothing else, but every move is paid for with a discarded hand card
+  // (ADR 0011), so it parks here until the player picks the card that pays.
+  pendingMove: { destination: Axial } | null
   // The piece whose Stat Panel is open. Persistent gauges left the HUD, so
   // tapping a piece's tile is how health is read; the panel follows the
   // piece (and the playout's staggered values) until dismissed or the tap
@@ -73,6 +79,9 @@ export interface WorkbenchStore {
   hexClicked: (coords: Axial) => void
   cardDroppedOnHex: (cardInstanceId: string, coords: Axial) => void
   cardDroppedOnSlot: (cardInstanceId: string, slotIndex: number) => void
+  heroDraggedToHex: (coords: Axial) => void
+  payForMove: (cardInstanceId: string) => void
+  cancelMove: () => void
   cancelTargeting: () => void
   confirmReplacement: () => void
   cancelReplacement: () => void
@@ -122,6 +131,7 @@ const CLEARED_INTERACTION = {
   selectedCardId: null,
   draggingCardId: null,
   pendingReplacement: null,
+  pendingMove: null,
   lastRejection: null,
 } as const
 
@@ -145,6 +155,7 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
     draggingCardId: null,
     selectedCardId: null,
     pendingReplacement: null,
+    pendingMove: null,
     inspectedEntityId: null,
     heroRoutePreview: false,
     showCoordinates: false,
@@ -248,8 +259,15 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
     },
 
     hexClicked: (coords) => {
-      const { targetingSlotIndex, selectedCardId } = get()
+      const { targetingSlotIndex, selectedCardId, pendingMove } = get()
       const state = selectState(get())
+      // A move waiting on a card is answered in the Hand. Touching the board
+      // again is the player reconsidering the hex, so the offer comes down —
+      // and a fresh drag from the Hero simply names a new destination.
+      if (pendingMove !== null) {
+        set({ pendingMove: null })
+        return
+      }
       if (targetingSlotIndex !== null) {
         const target = Object.values(state.board.entities).find(
           (entity) => entity.coords.q === coords.q && entity.coords.r === coords.r && entity.kind === 'minion',
@@ -312,6 +330,52 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
       }
       get().submit({ kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId })
     },
+
+    // Dragging the Hero itself onto a legal hex. The gesture is the whole
+    // sentence except its price, so this only agrees the destination: the
+    // move resolves once a card is named to pay for it. Every reason the
+    // move cannot happen is answered here rather than through a rejected
+    // action, so a refused drag never costs a card.
+    heroDraggedToHex: (coords) => {
+      const state = selectState(get())
+      // A release that landed off the board is not an intent to move.
+      if (!state.active || state.board.hexes[hexKey(coords)] === undefined) {
+        return
+      }
+      // A Top Card waiting for a Minion owns the next hex the player names,
+      // however they name it: dragging from the Hero to the Minion picks it,
+      // rather than reading as a move onto an occupied hex.
+      if (get().targetingSlotIndex !== null) {
+        get().hexClicked(coords)
+        return
+      }
+      if (state.phase !== 'quick') {
+        set({ lastRejection: 'The Hero moves only during the Quick Window.' })
+        return
+      }
+      if (!isLegalMove(state.board, state.primaryHeroId, coords)) {
+        set({ lastRejection: 'That hex is not a legal move destination.' })
+        return
+      }
+      if (state.heroes[state.primaryHeroId].hand.length === 0) {
+        set({ lastRejection: 'Moving costs a card, and the Hand is empty.' })
+        return
+      }
+      set({ pendingMove: { destination: coords }, lastRejection: null })
+    },
+
+    // The named card pays and the Hero moves — through the same handler the
+    // card drag and the tap path use, so all three gestures resolve one way.
+    payForMove: (cardInstanceId) => {
+      const { pendingMove } = get()
+      if (pendingMove === null) {
+        return
+      }
+      set({ pendingMove: null })
+      get().cardDroppedOnHex(cardInstanceId, pendingMove.destination)
+    },
+
+    cancelMove: () => set({ pendingMove: null }),
 
     confirmReplacement: () => {
       const { pendingReplacement } = get()
