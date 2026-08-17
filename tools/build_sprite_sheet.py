@@ -36,6 +36,9 @@ except ImportError:  # pragma: no cover - the script is a manual asset step
 # The row order the contact sheet is drawn in, top to bottom.
 DEFAULT_ROWS = ['NW', 'NE', 'E', 'SE', 'SW', 'W']
 
+# Frames in one idle loop: the four columns of a sheet.
+POSE_COLUMNS = 4
+
 # The engine's facing indices (web/src/engine/facing.ts). The sheet is packed
 # in this order rather than the sheet's own, so a scene can index rows by
 # facing directly instead of carrying a lookup table.
@@ -132,6 +135,82 @@ def alpha_profile(image):
     return cols, rows
 
 
+def column_cuts(profile, start, end, count):
+    """Split a run of touching poses into `count` columns.
+
+    A narrow figure leaves empty background between poses and the bands fall
+    out on their own. A wide one does not: Embermaw's coral spikes and glow
+    reach across the gutter into the next cell, so the profile never returns
+    to zero and the whole row reads as a single band.
+
+    The grid is still regular, so each boundary is looked for near where an
+    even split would put it, and placed at the emptiest column in that window
+    — the thinnest part of the bridge rather than a break that is not there.
+    """
+    span = (end - start + 1) / count
+    cuts = [start]
+    for index in range(1, count):
+        estimate = start + round(span * index)
+        window = max(4, round(span * 0.18))
+        lo = max(start + 1, estimate - window)
+        hi = min(end, estimate + window)
+        cuts.append(min(range(lo, hi + 1), key=lambda x: (profile[x], abs(x - estimate))))
+    cuts.append(end + 1)
+    return [(cuts[i], cuts[i + 1] - 1) for i in range(count)]
+
+
+# A fragment is treated as bleed from the neighbouring pose when it touches a
+# vertical cut and is this small a share of the pose it sits beside. Detached
+# parts that belong to a piece — Elian's floating runeglass panels — are far
+# larger than this and sit inside the cell rather than against its cut.
+BLEED_MAX_SHARE = 0.05
+
+# Vertical breathing room around a pose, and the most that is ever reached
+# sideways into the gap beside one.
+PAD = 12
+
+
+def strip_bleed(cell):
+    """Erase fragments of the neighbouring pose that crossed the cut.
+
+    Only matters for a sheet whose poses touch: the cut is placed at the
+    thinnest part of the bridge, not at a gap, so a coral spike or a spill of
+    glow can still land inside the wrong cell. Those arrive as small islands
+    against the left or right edge, which is what is tested for — a piece's
+    own detached parts are neither small nor against the cut.
+    """
+    width, height = cell.size
+    alpha = cell.split()[3].load()
+    visited = bytearray(width * height)
+    islands = []
+    cleared = 0
+    for start_x in range(width):
+        for start_y in range(height):
+            if visited[start_y * width + start_x] or alpha[start_x, start_y] <= 24:
+                continue
+            stack = [(start_x, start_y)]
+            visited[start_y * width + start_x] = 1
+            island = []
+            touches_cut = False
+            while stack:
+                x, y = stack.pop()
+                island.append((x, y))
+                if x == 0 or x == width - 1:
+                    touches_cut = True
+                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if 0 <= nx < width and 0 <= ny < height and not visited[ny * width + nx] and alpha[nx, ny] > 24:
+                        visited[ny * width + nx] = 1
+                        stack.append((nx, ny))
+            islands.append((island, touches_cut))
+    largest = max((len(island) for island, _ in islands), default=0)
+    for island, touches_cut in islands:
+        if touches_cut and len(island) < largest * BLEED_MAX_SHARE:
+            for x, y in island:
+                cell.putpixel((x, y), (0, 0, 0, 0))
+            cleared += len(island)
+    return cleared
+
+
 def cell_bbox(image, box):
     """Tight bounds of the visible character inside one grid cell."""
     cropped = image.crop(box)
@@ -169,31 +248,49 @@ def main():
     cols, row_counts = alpha_profile(keyed)
     col_bands = content_bands(cols)
     row_bands = content_bands(row_counts)
-    # The first column band is the facing label gutter, not a pose.
-    if len(col_bands) == 5:
+    if len(row_bands) != len(rows):
+        sys.exit(f'expected {len(rows)} pose rows, found {len(row_bands)}')
+
+    # The leftmost band is the facing label gutter when there is one more band
+    # than there are poses, or when the poses have merged into a single run.
+    if len(col_bands) in (POSE_COLUMNS + 1, 2):
         col_bands = col_bands[1:]
-    if len(col_bands) != 4 or len(row_bands) != len(rows):
-        sys.exit(f'expected 4 pose columns and {len(rows)} rows, found {len(col_bands)} and {len(row_bands)}')
+    if len(col_bands) == 1:
+        col_bands = column_cuts(cols, col_bands[0][0], col_bands[0][1], POSE_COLUMNS)
+    if len(col_bands) != POSE_COLUMNS:
+        sys.exit(f'expected {POSE_COLUMNS} pose columns, found {len(col_bands)}')
 
     # Cut on the bands, then re-measure each pose on its own: the contact
     # sheet draws every cell at a slightly different size and offset.
-    boxes = {}
+    #
+    # The horizontal padding reaches into the gap beside a pose to pick up the
+    # last of its glow, but never past the halfway point to its neighbour —
+    # and on a sheet whose poses touch there is no gap to reach into, so it
+    # collapses to nothing and the cut holds.
+    cells = {}
+    bleed = 0
     for row_index, (top, bottom) in enumerate(row_bands):
         for col_index, (left, right) in enumerate(col_bands):
-            pad = 12
-            box = (max(0, left - pad), max(0, top - pad), right + pad, bottom + pad)
-            bounds = cell_bbox(keyed, box)
+            gap_left = left - (col_bands[col_index - 1][1] if col_index > 0 else -1)
+            gap_right = (col_bands[col_index + 1][0] if col_index + 1 < len(col_bands) else keyed.width) - right
+            pad_left = max(0, min(PAD, gap_left // 2))
+            pad_right = max(0, min(PAD, gap_right // 2))
+            cell = keyed.crop((max(0, left - pad_left), max(0, top - PAD), right + 1 + pad_right, bottom + 1 + PAD))
+            bleed += strip_bleed(cell)
+            bounds = cell.getbbox()
             if bounds is None:
                 sys.exit(f'no content in row {row_index} column {col_index}')
-            boxes[(row_index, col_index)] = bounds
+            cells[(row_index, col_index)] = cell.crop(bounds)
+    if bleed:
+        print(f'cleared {bleed}px of bleed from neighbouring poses')
 
-    frame_w = max(b[2] - b[0] for b in boxes.values())
-    frame_h = max(b[3] - b[1] for b in boxes.values())
+    frame_w = max(pose.width for pose in cells.values())
+    frame_h = max(pose.height for pose in cells.values())
     # Even dimensions keep the half-pixel origin off the sprite's centre line.
     frame_w += frame_w % 2
     frame_h += frame_h % 2
 
-    sheet = Image.new('RGBA', (frame_w * 4, frame_h * len(rows)), (0, 0, 0, 0))
+    sheet = Image.new('RGBA', (frame_w * POSE_COLUMNS, frame_h * len(rows)), (0, 0, 0, 0))
     row_of_name = {name: index for index, name in enumerate(rows)}
     for row_index, name in enumerate(rows):
         target_row = FACING_INDEX[name]
@@ -201,9 +298,8 @@ def main():
         # source sheet drew W facing the same way as E, and a piece that turns
         # west without turning is worse than a kit whose shield changes arms.
         source_row = row_of_name[mirrors[name]] if name in mirrors else row_index
-        for col_index in range(4):
-            bounds = boxes[(source_row, col_index)]
-            pose = keyed.crop(bounds)
+        for col_index in range(POSE_COLUMNS):
+            pose = cells[(source_row, col_index)]
             if name in mirrors:
                 pose = pose.transpose(Image.FLIP_LEFT_RIGHT)
             # Centre horizontally, stand on the bottom edge: the feet are the
