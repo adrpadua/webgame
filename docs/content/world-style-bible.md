@@ -179,6 +179,8 @@ Mechanically plain cards may have plain names when clarity matters, but final ar
 
 ## UI And Readability Implications
 
+[oathcraft-interface-direction.md](oathcraft-interface-direction.md) applies this section to concrete materials, colour values, and component anatomy for card frames, controls, panels, and gauges. The implications below remain the grounding; that document is how they are built.
+
 The HUD should present this world as readable raid technology:
 
 - telegraphs are projected encounter geometry, not flat debug shapes;
