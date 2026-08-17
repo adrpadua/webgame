@@ -25,6 +25,7 @@ Status labels: `Now` means content/design work can begin after its stated proof;
 
 ## Later
 
+- Kessa Varn, the Vanguard second tank ([design](heroes/kessa-varn-design.md), D-014): held until her required engine seams exist — Momentum resource, card-granted movement, printed activation costs, and Boss facing manipulation with a `Braced` guard. Her `Breach` party window additionally waits on the multi-Hero model.
 - Class-resource and tank Threat content after multi-Hero targeting exists.
 - Raid-run rewards, branching nodes, and deck evolution after a single encounter has a proven card curve.
 - Per-card art and final VFX after interaction and pattern readability pass mobile tests.
