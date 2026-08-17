@@ -57,7 +57,7 @@ export function resolveBossBeat(
         boss.facing = facingToward(bossCoords, playerCoords, bossFacing)
       }
       break
-    case 'raking_claw':
+    case 'targeted_hit':
       patternHexes = frontArc(draft.board.hexes, bossCoords, bossFacing)
       playerDamage = beat.damage
       // Authored counter-pressure (D-017): the targeted hit cannot be evaded,
@@ -91,7 +91,7 @@ export function resolveBossBeat(
       break
   }
   draft.lastPattern = [...patternHexes]
-  if (impactedHexes.length > 0 || beat.kind === 'raking_claw') {
+  if (impactedHexes.length > 0 || beat.kind === 'targeted_hit') {
     draft.previousImpactedHexes = [...impactedHexes]
   }
   const actions: EncounterActionInput[] = []

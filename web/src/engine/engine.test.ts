@@ -88,7 +88,7 @@ describe('content catalog', () => {
     ])
     expect(catalog.programs.embermaw_hunt.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',
-      'raking_claw',
+      'targeted_hit',
       'scorch_last_pattern',
     ])
     expect(catalog.programs.embermaw_embers.instant_beats.map((beat) => beat.kind)).toEqual([
@@ -949,7 +949,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
   it('still applies a numeric threshold when one is authored', () => {
     // The read-time modifiers stay supported for Bosses that want them; what
     // D-031 changed is Embermaw's authored content, not the mechanism.
-    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'raking_claw')!
+    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
     const state = start()
     state.escalation = 1
     state.escalationThresholds = [{ value: 1, title: 'Test Band', rules_text: '', boss_damage_bonus: 2, extra_spawn_count: 0, minion_damage_bonus: 0, scorch_hexes: [] }]
@@ -997,7 +997,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
 
 describe('Raking Claw counter-pressure (D-017)', () => {
   it('adds the unguarded bonus only when the Guarded Front is unheld', () => {
-    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'raking_claw')!
+    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
     // Holding the front: the authored 4 lands with no bonus recorded.
     let state = start()
     const held = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
