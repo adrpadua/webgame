@@ -2,6 +2,7 @@ import { selectState, useWorkbench } from '@/store/workbench'
 import { useOnboarding } from '@/store/onboarding'
 import { BossEmblem, HeroEmblem, HexIcon, ShieldIcon, SwordIcon } from './icons'
 import { Modal } from './Modal'
+import { PHASE_TRACK } from './phaseTrack'
 import { FOCUS_RING_CLASS } from './theme'
 
 // The How to Play guide: a four-step illustrated walkthrough shown on the
@@ -10,23 +11,20 @@ import { FOCUS_RING_CLASS } from './theme'
 // watching it instead of reading a manual. Diagrams are pure CSS animation
 // and freeze under prefers-reduced-motion.
 
-// The five tones here are the PhaseControl chips' active tones and the
-// Phase Banner's palette — the track the guide teaches is the track the
-// HUD shows. Change them together.
+// The same five marks the HUD's phase row wears, each paired with its word.
+// This is where a player learns to read that row, so the marks and tones
+// come from PHASE_TRACK rather than being restated here — the guide cannot
+// teach a mark the HUD does not show.
 function TimelineDiagram() {
-  const beats = [
-    { label: 'Loadout', tone: 'bg-steel-600', delay: '0s' },
-    { label: 'Instant', tone: 'bg-coral-400', delay: '0.8s' },
-    { label: 'Quick', tone: 'bg-glass-400', delay: '1.6s' },
-    { label: 'Incoming', tone: 'bg-coral-400', delay: '2.4s' },
-    { label: 'Slow', tone: 'bg-gold-400', delay: '3.2s' },
-  ]
   return (
     <div className="flex items-center justify-center gap-1.5 bg-navy-950 px-3 py-6">
-      {beats.map((beat, index) => (
-        <div key={index} className="flex flex-col items-center gap-1.5">
-          <span className={`wb-beat-blink h-3.5 w-11 rounded-full ${beat.tone}`} style={{ animationDelay: beat.delay }} />
-          <span className="text-[9px] font-semibold tracking-wide text-steel-400 uppercase">{beat.label}</span>
+      {PHASE_TRACK.map((mark, index) => (
+        <div key={mark.phase} className="flex flex-col items-center gap-1.5">
+          <span className="wb-beat-blink flex flex-col items-center gap-1" style={{ animationDelay: `${index * 0.8}s` }}>
+            <mark.Icon className={`h-5 w-5 ${mark.activeClass}`} />
+            <span className={`h-1 w-9 rounded-full ${mark.barClass}`} />
+          </span>
+          <span className="text-[9px] font-semibold tracking-wide text-steel-400 uppercase">{mark.label}</span>
         </div>
       ))}
     </div>
@@ -111,7 +109,10 @@ export function GuideModal() {
     },
     {
       title: 'Every Round runs one track',
-      body: 'Amber beats are the boss. Green and blue windows are yours. Next moves the track.',
+      // The marks and their tones are the row the HUD wears, so the words
+      // name what is actually drawn: coral is the Boss, and the two windows
+      // between its beats are yours.
+      body: 'The coral beats are the boss. The Quick and Slow windows between them are yours. Next moves the track.',
       diagram: <TimelineDiagram />,
     },
     {

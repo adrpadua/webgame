@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { loadCatalog } from '@/content'
 import { createEncounterState, ESCALATION_MAX, type EncounterState } from '@/engine'
-import { escalationDetail, escalationPips, nextEscalationPip } from './EscalationGauge'
+import { escalationBandLabel, escalationDetail, escalationPips, nextEscalationPip } from './EscalationGauge'
 
 const catalog = loadCatalog()
 const start = (): EncounterState => createEncounterState(catalog, 'embermaw_prototype')
@@ -47,8 +47,17 @@ describe('Escalation gauge', () => {
     const detail = escalationDetail(ticking, ticking.enrageText)
     expect(detail.hint).toBe(`Next: ${thresholds.find((t) => t.value === 2)!.title}.`)
     expect(detail.badge).toBe(`1 of ${ESCALATION_MAX}`)
-    // The wipe row quotes the Encounter's own enrage line rather than inventing
-    // a phrase for the end of the fight.
-    expect(detail.stats?.at(-1)?.value).toBe(state.enrageText)
+  })
+
+  it('names every band on the ladder, and quotes the enrage line for the wipe', () => {
+    const state = start()
+    const pips = escalationPips(1, thresholds)
+    for (const pip of pips.filter((candidate) => !candidate.isWipe)) {
+      expect(escalationBandLabel(pip, state.enrageText)).toBe(pip.title)
+    }
+    // The wipe band has no authored threshold to name it, so it quotes the
+    // Encounter's own enrage line rather than inventing a phrase for the end
+    // of the fight.
+    expect(escalationBandLabel(pips.at(-1)!, state.enrageText)).toBe(state.enrageText)
   })
 })

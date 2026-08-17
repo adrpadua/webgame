@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { create } from 'zustand'
 
 // Tap-and-hold detail popups (the mobile-game affordance): the HUD shows a
@@ -23,6 +23,11 @@ export interface HoldDetail {
   // A short right-aligned qualifier: window speed, track, "Boss beat".
   badge?: string
   tone?: HoldTone
+  // A drawing of the thing, on its own dark ground, in the How to Play
+  // guide's language: for anything better shown than listed — a ladder of
+  // bands, a track, a shape that carries its own meaning. Sits above the
+  // stats, and usually replaces them.
+  diagram?: ReactNode
   // The numbers that matter, one row each — never a sentence.
   stats?: { label: string; value: string }[]
   // Authored rules text, quoted as-is when there is any.
@@ -232,6 +237,7 @@ export function HoldPopoverLayer() {
             <span className={`shrink-0 text-[10px] font-semibold tracking-wide uppercase ${BADGE_CLASS[tone]}`}>{detail.badge}</span>
           )}
         </div>
+        {detail.diagram !== undefined && <div className="mt-2">{detail.diagram}</div>}
         {detail.stats !== undefined && detail.stats.length > 0 && (
           <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
             {/* Rows are keyed by position: a label can legitimately repeat,
