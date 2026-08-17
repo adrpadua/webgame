@@ -112,6 +112,80 @@ export function HexIcon({ className }: IconProps) {
   )
 }
 
+// --- The Round track's five windows --------------------------------------
+// Flat marks, one per phase, so the HUD's phase row can drop its words: five
+// labels never fit a phone's width and the last one was always cut off. Each
+// silhouette says what its window is for — cards set out, the Boss's
+// immediate strike, your fast window, the telegraphed beat landing, the slow
+// mechanism — and each is distinct at 18px, where a colour difference alone
+// would not be. They are paired with their words in the How to Play guide,
+// via PHASE_TRACK; see phaseTrack.tsx.
+
+// Loadout: two cards set out, nothing fired.
+export function DeckIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} aria-hidden="true" fill="currentColor">
+      <rect x="2" y="6" width="8" height="11" rx="1.5" opacity="0.55" />
+      <rect x="9" y="3" width="9" height="11" rx="1.5" />
+    </svg>
+  )
+}
+
+// Boss Instant: it lands the moment the window opens.
+export function BoltIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} aria-hidden="true" fill="currentColor">
+      <path d="M11.6 2 4 11.4h4.2L7.9 18l7.6-9.4h-4.2L11.6 2Z" />
+    </svg>
+  )
+}
+
+// Quick Window: yours, and fast.
+export function SwiftIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={className}
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m4 5 5 5-5 5M11 5l5 5-5 5" />
+    </svg>
+  )
+}
+
+// Boss Incoming: the telegraphed beat coming down on the board.
+export function ImpactIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={className}
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M10 2.5v8.5M5.5 7.5 10 12l4.5-4.5M4 16.5h12" />
+    </svg>
+  )
+}
+
+// Slow Window: yours again, on the mechanism you wound up.
+export function HourglassIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} aria-hidden="true" fill="currentColor">
+      <path d="M4.5 3h11v1.7h-11zM4.5 15.3h11V17h-11z" />
+      <path d="M6.3 4.7h7.4L10 10l3.7 5.3H6.3L10 10 6.3 4.7Z" />
+    </svg>
+  )
+}
+
 // The dominant effect a card has, in display-priority order. Drives both the
 // stat line and the vignette so a card's art always matches what it does.
 export type CardEffect = 'attack' | 'guard' | 'heal' | 'utility'
