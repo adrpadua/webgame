@@ -2,6 +2,8 @@
 
 Date: 2026-08-13
 
+Historical artifact: this records a design grill run against the Godot client, which is frozen (ADR 0019). Its reference synthesis and hierarchy reasoning still hold; its file paths, node names, and probe commands do not. The current interface direction is [oathcraft-interface-direction.md](../content/oathcraft-interface-direction.md).
+
 Status: accepted design direction. This record captures the fast-forward design grill for tightening the portrait Hand and Action Bar. It refines the historical [layout and card design grill](layout-and-card-design-grill.md) without changing gameplay rules.
 
 ## Reference Synthesis

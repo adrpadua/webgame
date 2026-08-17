@@ -4,10 +4,10 @@ This prototype follows a practical WCAG-oriented interaction baseline for its pl
 
 ## Pointer Targets
 
-- Every visible, enabled `Button` and `CheckBox` in the player HUD has a minimum rendered target of `44x44` pixels.
+- Every visible, enabled interactive control in the player HUD has a minimum rendered target of `44x44` pixels. *(Originally written against Godot `Button` and `CheckBox` nodes; the contract carried over to the web HUD unchanged and is asserted by the smoke suite.)*
 - Primary command buttons use a `48` pixel minimum height to make the action grid easier to hit during play.
 - Cards and action-bar slots exceed the minimum target so drag and tap interactions remain comfortable on touch screens.
-- Mobile prompt text, `Play`, and Help retain separate readable/interactive lanes below the board-state header. Required prompt-adjacent controls must stay fully inside the physical portrait viewport with explicit edge padding, readable unclipped labels/icons, and preserved target sizes across the supported portrait viewport matrix. The Help-hidden state visibly renders the `?` glyph plus a `Help` tooltip/name on its own tappable target; it is not satisfied by a hidden, clipped, or merely programmatically openable Control node. Under horizontal pressure, Help wraps to a second controls row rather than shrinking or clipping the required targets. Attention feedback changes color only and cannot enlarge either control into its neighbor.
+- *Godot-era.* Mobile prompt text, `Play`, and Help retain separate readable/interactive lanes below the board-state header. Required prompt-adjacent controls must stay fully inside the physical portrait viewport with explicit edge padding, readable unclipped labels/icons, and preserved target sizes across the supported portrait viewport matrix. The Help-hidden state visibly renders the `?` glyph plus a `Help` tooltip/name on its own tappable target; it is not satisfied by a hidden, clipped, or merely programmatically openable Control node. Under horizontal pressure, Help wraps to a second controls row rather than shrinking or clipping the required targets. Attention feedback changes color only and cannot enlarge either control into its neighbor.
 - Hexes are validated after their responsive board scaling, not merely at their authored size.
 - Controlled Hand overlap never shrinks the underlying Compact Card targets; selection raises one card and keeps adjacent cards partially visible.
 - Every drag destination also has a tap path: select a Compact Card, then tap a labeled legal Slot or `MOVE` hex.
@@ -18,7 +18,7 @@ This prototype follows a practical WCAG-oriented interaction baseline for its pl
 
 ## State and Keyboard Access
 
-- Buttons and custom slots retain a visible high-contrast gold focus ring; focus is not suppressed with an empty style.
+- Buttons and custom slots retain a visible high-contrast focus ring. The shipped ring is `emerald-400`; [oathcraft-interface-direction.md](../content/oathcraft-interface-direction.md) directs it to runeglass `#62D2E6`, and that migration is not yet made. The contract is that a ring is visible and high-contrast, not which hue carries it; focus is not suppressed with an empty style.
 - Hex tiles render the same focus treatment when reached by keyboard navigation.
 - Normal, hover, disabled, and focus states use light text on dark fills with distinct borders. State is communicated by more than color through borders, focus thickness, and disabled appearance.
 - Compact Cards pair timing and type icons with tooltips and inspection text. Slot and board destinations use explicit `LOAD`, `REPLACE`, `CHARGE`, and `MOVE` labels in addition to color.
@@ -36,16 +36,20 @@ This prototype follows a practical WCAG-oriented interaction baseline for its pl
 - The Workbench board scales itself to the room the HUD leaves rather than rendering at a fixed size. At the canonical `390x844` portrait canvas a fixed board pushed its outer ring of hexes outside the play area, so hexes a player could legally step to were off screen; the board now fits, and `web/scripts/smoke.mjs` asserts on that canvas that nothing is cropped, that every enabled control still meets `44x44`, and that the surface never scrolls sideways.
 - The move pad flanks the board in the empty gutters the fitted canvas leaves, one column of three per side, with each direction on the side of the board it moves toward. As a row beneath the board it overlaid the outer hex ring — including destinations the player was being asked to step to. The columns sit flush with the play-area edges because the gutter runs only a few pixels wider than a `44` pixel button, and the smoke asserts on the portrait canvas that no pad button overlaps the board.
 - Boss Beat chips stay non-interactive labels. Six chips at the 44 pixel minimum would have consumed the board area, and 21 pixel buttons would have broken the pointer contract, so the Boss Program strip is one hold surface instead: pressing anywhere on it opens the full two-track breakdown, and the strip's header button carries the same detail for keyboard reach. Hovering a single chip still explains that one beat, which costs a mouse nothing and asks nothing of a touch target.
-- Board Feedback is presentation-only and never gates input: a player may act again mid-animation, and every effect resolves to the same static board. Damage numbers duplicate the authoritative Health readouts in the top bar and player panel rather than replacing them, and motion offsets, shakes, scale pops, and camera shake are all suppressed under `prefers-reduced-motion` while the numbers still appear.
+- Board Feedback is presentation-only and never gates input: a player may act again mid-animation, and every effect resolves to the same static board. Damage numbers duplicate the authoritative Health readout in the Stat Panel rather than replacing it, and motion offsets, shakes, scale pops, and camera shake are all suppressed under `prefers-reduced-motion` while the numbers still appear.
 
 ## Verification
 
-Run the following from `D:\dev\webgame`:
+Run from `web/`, against a build:
 
-```powershell
-& "C:\Users\adrpa\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64.exe" --headless --path "D:\dev\webgame" --script res://scripts/debug/accessibility_probe.gd
-
-& "C:\Users\adrpa\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64_console.exe" --headless --path "D:\dev\webgame" --script res://scripts/debug/board_navigation_probe.gd
+```bash
+npm run build && node scripts/smoke.mjs
 ```
 
-The probe instantiates the portrait HUD, measures each enabled interactive control after layout, checks the minimum target contract, verifies that every control has a non-empty focus style, and calculates the command-state contrast ratios. The mobile HUD probe separately validates the `390x844` logical canvas projected to the `488x1056` default presentation, explicit safe padding, unclipped required-control labels, and the rendered/discoverable Help affordance in the Help-hidden state. `tutorial_prompt_ui` verifies the projected tutorial card, full-text fallback, dismissal/history/reopen flow, and preserved portrait action-bar and hand visibility.
+The smoke suite asserts the pointer-target and portrait contracts directly in a real browser at the canonical `390x844` canvas: the whole board on screen with nothing cropped, every enabled control at `44x44` or larger, no sideways scroll, no move-pad button overlapping the board, and the full HUD fitting without scrolling. It also replays the session's Encounter Record headlessly and compares fingerprints.
+
+Since 2026-08-16 this runs in CI on every pull request touching `web/` or `data/` (`.github/workflows/verify-workbench.yml`), so the contract is enforced rather than merely documented.
+
+## Historical: The Godot Probe Suite
+
+The clauses above marked *Godot-era* were verified by a probe suite run against the Godot client — `accessibility_probe.gd`, `mobile_hud_probe.gd`, and `tutorial_prompt_ui` — invoked through `run_probes.ps1` on a Windows checkout. That client is frozen (ADR 0019) and those probes no longer run. They are recorded here because the contracts they enforced were real, not because the commands can be reused.
