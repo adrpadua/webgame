@@ -1014,6 +1014,44 @@ describe('Raking Claw counter-pressure (D-017)', () => {
   })
 })
 
+describe('impact memory across a missed Beat', () => {
+  it('leaves the last connected hit standing for scorch_last_pattern when a cone misses', () => {
+    // `scorch_last_pattern` burns wherever the Boss last actually connected,
+    // so the memory only moves when a Beat impacts something. A miss is not an
+    // impact of zero hexes; it is no impact, and Ash Trail keeps its target.
+    // Without that distinction a dodged Cinder Breath would silently disarm
+    // the scorch behind it, which is the reward for good footwork paying out
+    // twice.
+    const hunt = catalog.programs.embermaw_hunt
+    const claw = hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
+    const trail = hunt.instant_beats.find((beat) => beat.kind === 'scorch_last_pattern')!
+    const breath = hunt.incoming_beats.find((beat) => beat.kind === 'cinder_breath')!
+
+    let state = start()
+    const struck = { ...state.board.entities[state.primaryHeroId].coords }
+
+    // The targeted hit cannot be evaded, so it is what writes the memory.
+    state = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' }).state
+    expect(state.previousImpactedHexes).toEqual([struck])
+
+    // Step out of the forward cone. The breath impacts nothing...
+    state.board.entities[state.primaryHeroId].coords = { q: -1, r: 0 }
+    const missed = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: breath, track: 'incoming' })
+    state = missed.state
+    expect(missed.facts.some((fact) => fact.kind === 'damage')).toBe(false)
+    // ...and so it does not get to overwrite what the claw struck.
+    expect(state.previousImpactedHexes).toEqual([struck])
+
+    // Ash Trail therefore still burns the ground the claw actually hit. The
+    // assertion reads the Beat's own generated hazard rather than the board,
+    // because the missed breath Scorches its whole cone on the way past and
+    // that cone covers the struck hex too.
+    const scorch = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: trail, track: 'instant' })
+    const applied = scorch.facts.filter((fact) => fact.kind === 'apply_hazard')
+    expect(applied.map((fact) => fact.detail.coords)).toEqual([struck])
+  })
+})
+
 describe('Slot rules', () => {
   it('loads, charges, and fires a Slot with Charge Modifiers', () => {
     let state = start()
