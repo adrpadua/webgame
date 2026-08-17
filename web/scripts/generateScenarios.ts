@@ -337,29 +337,39 @@ writeScenario('embermaw_enrage_defeat.json', {
   steps: defeat.steps,
 })
 
-// A mid-Encounter jump point for design iteration: the solo-ceiling line
-// paused at the top of Round 3 (Brood Pattern), whelps on the board.
-const round3Cut = (() => {
+// A mid-Encounter jump point for design iteration: the solo-ceiling line paused
+// at the first Round boundary that has Whelps standing on the board.
+//
+// This used to cut at a hardcoded Round 3, on the assumption that Brood Pattern
+// always ran there. Program order is drawn from the seed now (D-037), so the
+// Round a Brood Call lands on varies — the cut has to be found by the property
+// the fixture exists for rather than by a Round number that happened to carry it.
+const broodCut = (() => {
   let state = createEncounterState(catalog, ENCOUNTER_ID, best.seed)
   let count = 0
+  let fallback = best.result.steps.length
   for (const step of best.result.steps) {
     const before = state.round
     state =
       'advance' in step ? advancePhase(catalog, state).state : resolve(catalog, state, (step as { action: EncounterActionInput }).action).state
     count += 1
-    if (state.round === 3 && before === 2) {
-      return count
+    const crossedBoundary = state.round > before
+    if (crossedBoundary && Object.values(state.board.entities).some((entity) => entity.kind === 'minion')) {
+      return { count, round: state.round }
+    }
+    if (crossedBoundary) {
+      fallback = count
     }
   }
-  return best.result.steps.length
+  return { count: fallback, round: state.round }
 })()
 
-writeScenario('embermaw_round3_brood.json', {
-  id: 'embermaw_round3_brood',
-  title: 'Round 3: Brood Pattern opens',
+writeScenario('embermaw_brood_pressure.json', {
+  id: 'embermaw_brood_pressure',
+  title: `Round ${broodCut.round}: Whelps on the board`,
   version: 1,
-  description: 'The solo-ceiling line paused entering Round 3: Whelps on the board, Brood Pattern up, slot engines running.',
+  description: `The solo-ceiling line paused entering Round ${broodCut.round}: Whelps standing, slot engines running.`,
   encounter: ENCOUNTER_ID,
   seed: best.seed,
-  steps: best.result.steps.slice(0, round3Cut),
+  steps: best.result.steps.slice(0, broodCut.count),
 })

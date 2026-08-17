@@ -49,11 +49,11 @@ Impact and counterplay scale together (see the [champion design research note](.
 | `Structural` | Spawns entities, changes the board, or applies a lasting Status Effect. | No later than the `Incoming` row. |
 | `Severe` | Can down a Hero **from full health**, or crosses an Escalation Threshold. | The `Forecast` row, first. |
 
-Round 1 is the ladder's one exception: it is never forecast, because no earlier Round could have shown it, so **the first program in the rotation may carry no `Severe` Beat**. Embermaw's `Hunt Pattern` satisfies this without effort — the encounter has no `Severe` Beat at all yet, so the tier is enforced but unexercised.
+Round 1 is never forecast, because no earlier Round could have shown it, and a Phase Break is unforecast for the same reason, so **the first program of every phase may carry no `Severe` Beat**. Embermaw's `Hunt Pattern` satisfies this by construction — it is the one Phase I program that does not call Whelps — and Phase II's list is ordered `Ashfall, Molting` to satisfy it too.
 
 The `Severe` tier has **no justification clause**. The old rule allowed a top-tier hit to ship from the `Instant` row with an explicit design justification, because there was no earlier horizon to send it to; the Forecast Row removes that excuse. **The floor in `Severe` is load-bearing, and it was added after measurement.** "Can down a Hero" with no floor is not a per-Beat property at all: it depends on accumulated attrition, so the same Beat qualifies or not depending on when it lands. A 30-seed survival-policy run through Phase II makes that concrete — Heroes enter Phase II at `9.7` health on average (min `2`, max `17`) against a `34` maximum, where Phase II's Raking Claw (`6`) and Cinder Breath (`7`) are each routinely lethal, and where Phase I's Cinder Breath (`5`) is equally lethal to a Hero at `4`. Reading the test that way makes nearly every Beat `Severe` by the late Rounds and the tier stops discriminating. Anchoring it to full health keeps it stable per Beat, which is what an authored tier needs.
 
-Consequence for Embermaw: **no Beat is `Severe`, in either phase.** Its largest single hit is Phase II's Raking Claw at `11` against an unheld Guarded Front (`6` plus a `+5` unguarded bonus, up from Phase I's `4` plus `+3`) — nearly a third of a Hero's health, real pressure, but not a spike that needs a Round of banked preparation. Phase II is more dangerous than Phase I because attrition has already run, not because its Beats changed kind, and that is a balance observation rather than a tier one. The `Severe` tier stays unexercised until content earns it.
+Consequence for Embermaw: **`Brood Call` is `Severe`, on the Escalation clause rather than the damage one.** No Embermaw Beat downs a Hero from full health — the largest single hit is Phase II's Raking Claw at `11` against an unheld Guarded Front (`6` plus a `+5` unguarded bonus, up from Phase I's `4` plus `+3`), nearly a third of a Hero's health, real pressure but not a spike that needs a Round of banked preparation. Phase II is more dangerous than Phase I because attrition has already run, not because its Beats changed kind, and that is a balance observation rather than a tier one. What earned the tier is that Brood Call can now cross an Escalation Threshold (D-036): a living Whelp at a Round end raises Escalation by `1`, which is one of the three run-ending outcomes, so the Beat is `Severe` by definition and reaches the Forecast Row first.
 
 The tier is authored on each Beat rather than computed — "can down a Hero" depends on Hero health and would be fragile to derive — but its implications are enforced by tests over live content: a Beat that can add Escalation must be `Severe`, and a Beat that spawns a Minion or leaves a Hazard must be at least `Structural`.
 
@@ -137,6 +137,18 @@ The timeline uses the existing `Instant -> Quick -> Incoming -> Slow` structure.
 | 7 | Ashen Brand + Molten Tail | Raking Claw + Cinder Breath | Tank placement and party spread have to coexist. |
 | 8 | Raking Claw + Cinder Breath | **Cinderstorm**: all existing Scorched hexes flare, then Embermaw turns one edge clockwise | Finish before the board becomes unmanageable. |
 
+**This table is a lesson plan, not a schedule.** Since D-037 the program order is drawn from the Raid Seed at setup, so only Round 1 is fixed. Read the rows as the order the *lessons* are meant to arrive in — hold the front, then read a cone, then clear adds — and expect a given run to teach them in a different order. What the seed cannot change is the pool: every three-Round window contains each Phase I program exactly once, so no run skips a lesson or drills one three times.
+
+The three implemented Phase I programs each lead a different demand, which is what gives the Forecast Row something to say (D-036):
+
+| Program | Beats | Asks for | Deliberately does not ask for |
+| --- | --- | --- | --- |
+| `Hunt Pattern` | Raking Claw `4`/`+3`, Ash Trail, Cinder Breath `5` | `Position`, `Mitigate`, `Move`, `Interrupt` | `Kill Adds` — the pinned opener never spawns |
+| `Ember Pattern` | Ember Scar, Cinder Breath `10` | `Position`, `Move`, `Interrupt` | `Mitigate` — Armor is wasted on a Round answered by footwork |
+| `Brood Pattern` | Raking Claw `4`/`+3`, Brood Call (2 Whelps, `Severe`) | `Position`, `Mitigate`, `Kill Adds` | `Move` — nothing here is dodged |
+
+Phase II mirrors the split at harder values and in the order `Ashfall, Molting`, because a Phase Break is unforecast and `Molting` carries the `Severe` Brood Call: `Ashfall` is Cinder Breath `13` plus the scar, `Molting` is Raking Claw `6`/`+5` plus the Brood Call.
+
 `Worldfire` ends the encounter as an explicit end-of-clock failure, not a damage check to out-heal. Since D-023 it is the top Escalation Threshold rather than a round-limit check, and Escalation is what the party actually watches:
 
 | Escalation | Threshold | Effect | Lands |
@@ -146,6 +158,8 @@ The timeline uses the existing `Instant -> Quick -> Incoming -> Slow` structure.
 | `3` | Fed on Ash | Whelp bites deal `+1`. | End of Round 6 |
 | `4` | Closing Jaws | The burn spreads around both western corners: `(-1,-1)`, `(-1,2)`. | End of Round 7 |
 | `5` | `Worldfire` | The party is defeated. | End of Round 8 |
+
+The `Lands` column is the **automatic-tick** schedule: where each threshold falls for a party that answers every demand. Acceleration only shortens it. Since D-036 priced Brood Call at `1`, a party that leaves Whelps standing crosses each threshold about a Round early and meets `Worldfire` around Round `6` — and in the solo sweep the only policy that still sees Round `8` is the one that spends its Quick Slot clearing Whelps. The Encounter Clock is the length a party earns, not the length it is given.
 
 Two of these were `+1` damage each until D-031 replaced them: escalation is felt as the arena closing toward Embermaw, not as a larger number. The ground that burns is always the ground furthest from the Boss, and never a hex adjacent to it — burning the Guarded Front would leave the Tank unable to move into the place their kit exists to hold.
 

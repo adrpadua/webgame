@@ -1,7 +1,7 @@
 {
   "id": "embermaw_embers",
   "title": "Ember Pattern",
-  "rules_text": "The arena narrows before Embermaw snaps at the front line.",
+  "rules_text": "The arena narrows. Footwork answers this Round; Armor does not.",
   "instant_beats": [
     {
       "id": "turn_to_tank",
@@ -14,23 +14,9 @@
       "consequence_tier": "chip"
     },
     {
-      "id": "cinder_breath",
-      "title": "Cinder Breath",
-      "rules_text": "Forward cone, range 1-2.",
-      "kind": "cinder_breath",
-      "counter_tags": [
-        "Move",
-        "Interrupt"
-      ],
-      "consequence_tier": "structural",
-      "damage": 5,
-      "duration_rounds": 1,
-      "hazard": "scorched"
-    },
-    {
       "id": "ember_scar",
       "title": "Ember Scar",
-      "rules_text": "The cone remains Scorched.",
+      "rules_text": "The ground under the last pattern stays Scorched.",
       "kind": "scorch_last_pattern",
       "counter_tags": [
         "Move"
@@ -42,37 +28,23 @@
   ],
   "incoming_beats": [
     {
-      "id": "brood_call",
-      "title": "Brood Call",
-      "rules_text": "Whelps emerge at the marked edge hexes.",
-      "kind": "brood_call",
+      "id": "cinder_breath",
+      "title": "Cinder Breath",
+      "rules_text": "Forward cone, range 1-2. Deal 10 damage.",
+      "kind": "cinder_breath",
       "counter_tags": [
-        "Kill Adds"
+        "Move",
+        "Interrupt"
       ],
       "consequence_tier": "structural",
-      "minion": "whelp",
-      "count": 2,
-      "escalation_if_unanswered": 0
-    },
-    {
-      "id": "raking_claw",
-      "title": "Raking Claw",
-      "rules_text": "Target: Tank. Deal 4 damage. Movement does not evade this hit. An unheld Guarded Front suffers +3.",
-      "kind": "raking_claw",
-      "counter_tags": [
-        "Mitigate",
-        "Position"
-      ],
-      "consequence_tier": "chip",
-      "target_selector": "tank",
-      "damage_classification": "tank_hit",
-      "damage": 4,
-      "unguarded_bonus": 3
+      "damage": 10,
+      "duration_rounds": 1,
+      "hazard": "scorched"
     },
     {
       "id": "ash_warning",
       "title": "Keep a Safe Hex",
-      "rules_text": "Scorched ground blocks voluntary movement.",
+      "rules_text": "Scorched ground blocks voluntary movement. Leave yourself somewhere to stand.",
       "kind": "warning",
       "counter_tags": [
         "Move"

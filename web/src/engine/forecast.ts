@@ -32,15 +32,12 @@ export function programCounterTags(program: BossProgram): string[] {
 
 // The Boss Program the next Round will run, without mutating anything —
 // `advanceProgram` owns the real move at `round_start`.
+// A plain lookahead into the resolved sequence. This is the whole reason the
+// order is rolled at setup (D-037): reading one step ahead has to be a read,
+// not a roll, or the Forecast Row would be resolving randomness a Round before
+// the window that answers it (ADR 0025).
 export function nextProgramId(state: EncounterState): string | null {
-  if (state.programIds.length === 0) {
-    return null
-  }
-  if (state.loopPrograms) {
-    return state.programIds[(state.programIndex + 1) % state.programIds.length]
-  }
-  const next = state.programIndex + 1
-  return next < state.programIds.length ? state.programIds[next] : null
+  return state.programSequence[state.programIndex + 1] ?? null
 }
 
 export interface Forecast {

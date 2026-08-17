@@ -552,7 +552,10 @@ try {
   await next()
   assert((await phase()) === 'slow', 'Boss Incoming resolves into the Slow Window')
   const incomingLog = await page.locator('[data-testid="fact-log"]').textContent()
-  assert(incomingLog?.includes('Spawn whelp_1'), 'Brood Call spawned Whelps')
+  // Round 1 is Hunt Pattern, which calls no Whelps (D-036): the opening Round's
+  // Incoming Row is the cone and nothing else.
+  assert(incomingLog?.includes('Boss Beat: Cinder Breath'), 'the Incoming Row replayed Cinder Breath')
+  assert(!incomingLog?.includes('Spawn whelp'), 'the opening Round called no Whelps')
   // The Hero stepped to (-1, 0); the panel follows the piece by its tile.
   assert((await inspectTile(-1, 0)) === 'guardian', 'tapping the moved Hero reopens its panel')
   const heroAfterBreath = await page.locator('[data-testid="hero-health"]').textContent()

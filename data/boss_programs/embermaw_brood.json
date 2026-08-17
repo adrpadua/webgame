@@ -1,7 +1,7 @@
 {
   "id": "embermaw_brood",
   "title": "Brood Pattern",
-  "rules_text": "Pressure the front while closing the party's escape lanes.",
+  "rules_text": "Whelps close the lanes. Leave one standing and Embermaw feeds on it.",
   "instant_beats": [
     {
       "id": "turn_to_tank",
@@ -27,55 +27,28 @@
       "damage_classification": "tank_hit",
       "damage": 4,
       "unguarded_bonus": 3
-    },
-    {
-      "id": "claw_scorch",
-      "title": "Ash Trail",
-      "rules_text": "The struck front arc becomes Scorched.",
-      "kind": "scorch_last_pattern",
-      "counter_tags": [
-        "Move"
-      ],
-      "consequence_tier": "structural",
-      "duration_rounds": 1,
-      "hazard": "scorched"
     }
   ],
   "incoming_beats": [
     {
-      "id": "cinder_breath",
-      "title": "Cinder Breath",
-      "rules_text": "Forward cone, range 1-2.",
-      "kind": "cinder_breath",
-      "counter_tags": [
-        "Move",
-        "Interrupt"
-      ],
-      "consequence_tier": "structural",
-      "damage": 5,
-      "duration_rounds": 1,
-      "hazard": "scorched"
-    },
-    {
       "id": "brood_call",
       "title": "Brood Call",
-      "rules_text": "Whelps emerge at the marked edge hexes.",
+      "rules_text": "Whelps emerge at the marked edge hexes. Any Whelp still standing at the next Round end raises Escalation by 1.",
       "kind": "brood_call",
       "counter_tags": [
         "Kill Adds"
       ],
-      "consequence_tier": "structural",
+      "consequence_tier": "severe",
       "minion": "whelp",
       "count": 2,
-      "escalation_if_unanswered": 0
+      "escalation_if_unanswered": 1
     },
     {
       "id": "heat_warning",
-      "title": "Heat Rises",
-      "rules_text": "The marked cone and spawn points resolve before Slow.",
+      "title": "Cull the Brood",
+      "rules_text": "A living Whelp is what pulls the collapse forward.",
       "kind": "warning",
       "counter_tags": [
-        "Move",
         "Kill Adds"
       ],
       "consequence_tier": "chip"

@@ -35,7 +35,7 @@ The authored effect a Boss applies on reaching one Escalation value. Values `1` 
 _Avoid_: Soft enrage stage, phase trigger
 
 **Encounter Clock**:
-The number of Rounds that automatic Escalation ticks alone need to reach the top Escalation Threshold, usually eight before modifiers. Player count, difficulty, or boss rules may adjust it, and authored acceleration can only shorten it in play.
+The number of Rounds that automatic Escalation ticks alone need to reach the top Escalation Threshold, usually eight before modifiers. Player count, difficulty, or boss rules may adjust it, and authored acceleration can only shorten it in play. Because acceleration is live, the nominal length is the length a party earns by answering demands, not the length it gets by default: on Embermaw, a party that leaves Whelps standing reaches the wipe around Round `6`, and only a line that clears them sees Round `8`.
 _Avoid_: Turn cap, hard timer, enrage timer
 
 **End-of-Clock Behavior**:
@@ -47,7 +47,7 @@ The visible sequence of boss actions arranged into three horizons: the `Forecast
 _Avoid_: Deck, queue, stack
 
 **Boss Program**:
-The authored pair of ordered Instant and Incoming rows used by the Boss for one Round. An Encounter may sequence or loop multiple Boss Programs. The sequence of Programs is the Boss's learnable spine.
+The authored pair of ordered Instant and Incoming rows used by the Boss for one Round. An Encounter's authored program list is a **pool**, not a script: the running order is drawn from the Raid Seed at setup, with Round `1` pinned to the authored opener and the remainder dealt from reshuffled bags of the whole pool, so each program appears about as often as a fixed rotation would while the Round it lands on varies (ADR 0028). The Boss's learnable spine is therefore the *set* of programs and what each one demands, not the order they arrive in. Two programs may not be mechanically identical: each must ask for a distinguishable answer, or the Forecast Row has nothing to disclose (D-036).
 _Avoid_: Boss card, turn script
 
 **Module Slot**:
@@ -127,7 +127,7 @@ The visible end-step action a living Minion will take: advance one hex toward it
 _Avoid_: Hidden AI, random wander, aggro table
 
 **Forecast Row**:
-The horizon that previews the next Round's whole Boss Program at family level: its title and the union of its counter tags. It tells the party what kind of raid problem is developing, so resources can be reserved for a category before a specific hit can be answered. It also carries the program's highest Consequence Tier, so the party can size the reserve. A Forecast Row never resolves — it is next Round's program shown early, not a fourth resolution step — so it leaves the per-Round event order untouched. Round `1` is not forecast: at the pull there is no earlier Round to have shown it, which is why a first program may carry no `Severe` Beat.
+The horizon that previews the next Round's whole Boss Program at family level: its title and the union of its counter tags. It tells the party what kind of raid problem is developing, so resources can be reserved for a category before a specific hit can be answered. It also carries the program's highest Consequence Tier, so the party can size the reserve. A Forecast Row never resolves — it is next Round's program shown early, not a fourth resolution step — so it leaves the per-Round event order untouched. Round `1` is not forecast: at the pull there is no earlier Round to have shown it, which is why a first program may carry no `Severe` Beat. A Phase Break is unforecast for the same reason, so the first program of *every* phase must be free of `Severe` Beats. Because the order is resolved at setup rather than at the Round boundary, reading one Round ahead is a lookup and never a roll — which is what keeps the row compliant with ADR 0025.
 _Avoid_: Preview row, hidden row, T+2
 
 **Commitment**:
