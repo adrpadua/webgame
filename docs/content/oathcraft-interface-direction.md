@@ -146,6 +146,47 @@ A Charge Stack is tumblers seating in a lock. **Primed** is a state of a *Slot*,
 
 The pane is why the frame stays quiet. The frame is dark, the seams are hairlines, and the illustration is the only saturated thing inside the border.
 
+## Slot States, And Why Primed Needs Its Own
+
+**Primed is not "full".** The glossary's `Avoid` line rejects "fully charged" outright, and the reason is mechanical: a Primed Slot has a full Charge Stack and **has not activated** in the current matching window, so it can fire and it persists. A Slot with the same full stack that *did* activate cannot fire again, cannot take more charges, and Full-Charge Cleanup discards its Top Card and the whole stack at the end of the window.
+
+One of those is a resource the player is holding. The other is a card they are about to lose. Rendering both as a row of seated pins shows one picture for two opposite outcomes, and a player who cannot tell them apart cannot plan the window.
+
+### The Signal Is Alignment, Not Brightness
+
+Protocol magic is strongest when caster, tool, vow, and pattern **align** — the bible's own word. A lock states the same thing mechanically: when every pin clears the shear line, the plug turns. Priming a Slot is that moment, so the visual is alignment.
+
+Three signals, each readable at a different distance:
+
+| Signal | Reads at | Carries | Why not brightness |
+| --- | --- | --- | --- |
+| Ward ring closed | A glance across the whole HUD | Primed or not | Closure is a shape change, so it survives peripheral vision and colour blindness; a brighter gold does not |
+| Shear line | Looking at the Action Bar | Stack full, gaps gone | Segmented becoming solid is a bigger perceptual jump at 62px than any change of value |
+| Gold leading edge | Looking at the Slot | This Slot is the live one | The accent is already the status channel for every plate, so Primed invents no new place to look |
+
+The **ward ring** is a ring around the lock head, broken while charging and closed at full stack, with a second faint concentric ring outside it. That outer ring is bloom drawn as a line rather than a blur, which is how it survives flat cel shading and the ban on unmotivated glow — a lock seating is the source.
+
+The **shear line** is the Charge Stack itself. Tumblers are discrete pins with gaps between them; when the last one seats, the gaps close and they read as one continuous gold bar.
+
+### The Ladder
+
+| State | Ring | Tumblers | Accent |
+| --- | --- | --- | --- |
+| Empty | — | — | Steel |
+| Loaded, 0 charge | Broken, steel | Down | Steel |
+| Charging | Broken, gold | Rising, gaps open | Steel |
+| **Primed** | **Closed, gold, outer ring** | **Shear line** | **Gold** |
+| Fired this window | Reopened, one runeglass strike | Seated but dulled | Steel |
+| Full, window closed | Closed in steel | Shear line, desaturated | Steel |
+
+The runeglass strike on a spent Slot is the one place a cyan mark lands on a gold element. If it reads as an error state rather than as expenditure, drop it and let the reopened ring carry the state alone.
+
+### Motion
+
+The seat fires **once**, when the last pin drops, and stops. No idle pulse. A Primed Slot can persist for several rounds, and anything that breathes for that long becomes furniture the eye edits out — which is the meter-that-means-nothing failure that got Presence deleted.
+
+A Compact Card in hand has a Charge Value but no Charge Stack and no Slot, so it can never be Primed. The card frame must not imply otherwise.
+
 ## Controls
 
 Interfaces in this world are levers, sigils, lenses, locks, rotating rings, animated glyph plates, or projected hex diagrams rather than sci-fi tablets. A button is a **lever plate**: a raked oathsteel plate with a gold accent on the leading edge. Pressing it moves the plate down one pixel and swaps the top highlight for an inset shadow. It seats; it does not merely darken.
@@ -213,4 +254,5 @@ Before approving a new interface element, ask:
 - Does its horizontal padding clear the offset, so the top-left and bottom-right corners do not pinch?
 - Does its accent run parallel to the cut, along that edge's full length?
 - Does it carry at most one texture and at most one gradient?
+- If it shows a Slot, can a player tell Primed from a full Slot that already fired?
 - Does it still read at 390 points wide?
