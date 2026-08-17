@@ -135,8 +135,9 @@ export default function App() {
         {/* The board takes the full width of the play surface. It used to
             reserve 44px gutters on each side for the MovePad, which pinned the
             width-bound canvas at 302px and left 145px of the board area empty;
-            the pad now sits in the corner triangles a hexagonal board leaves
-            in its own bounding box, so nothing has to be set aside for it. */}
+            the pad now sits in the strip below the bottom hex row, which a
+            hexagonal board leaves empty across the full canvas width, so
+            nothing has to be set aside for it. */}
         <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <PhaserBoard />
           <MovePad />

@@ -2,6 +2,7 @@ import { cardChargeCap, cardWindowSpeed } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { blocksTarget } from './firstTurnScript'
 import { useFirstTurnStep } from './useFirstTurn'
+import { handCanAct } from './slots'
 import { CARD_EFFECT_TONE, cardEffect } from './icons'
 import { cardDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
@@ -87,7 +88,14 @@ export function Hand() {
   if (!hero) {
     return null
   }
-  const handGated = blocksTarget(step, 'hand')
+  // Two reasons a Hand goes quiet, and they compose. The scripted first turn
+  // gates it while a step points elsewhere. And during a Boss row — Instant
+  // or Incoming — no card in hand has a legal action, so the Hand recedes on
+  // its own: the interface must not hold four cards at full brightness
+  // through a phase in which every one of them is illegal. The band keeps
+  // its height either way, because the board sizes to the space the HUD
+  // leaves and must never resize mid-Encounter.
+  const handGated = blocksTarget(step, 'hand') || !handCanAct(state)
   // A Compact Card keeps one width — its share of a full Hand — whether
   // five cards remain or one. Cards that stretched to fill the row stopped
   // reading as cards; a thinning Hand stays centered, with the freed space
@@ -105,6 +113,7 @@ export function Hand() {
     <div
       className="flex min-h-30 flex-wrap content-center justify-center gap-1.5 border-t border-zinc-800 bg-zinc-950/90 px-3 py-3"
       data-testid="hand"
+      data-inert={handCanAct(state) ? undefined : 'true'}
     >
       {hero.hand.map((instance) => {
         // The script points at one card at a time; the rest of the Hand
