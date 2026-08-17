@@ -89,6 +89,24 @@ The angle is **8° from vertical, everywhere**. The horizontal offset is never c
 
 Below roughly 20px, switch from `clip-path` to `skewX`. A 3px offset on a 12px-wide tumbler removes a quarter of the shape; a skew leans it without eating it. That threshold is the system's only exception, and it is a rendering constraint rather than a design one.
 
+### Padding Has To Clear The Rake
+
+A raked plate does not have a constant left or right margin. The left edge sits at its **rightmost at the top** and the right edge at its **leftmost at the bottom**, so uniform box padding pinches exactly two places: the top-left corner and the bottom-right one. Text lands hard against the edge there while the opposite corners look fine, which reads as a spacing bug rather than as geometry.
+
+The rule: **horizontal padding is the rake offset plus the gap you actually want.** A 112px panel with a 16px offset and a 12px intended gap pads 28px left and right, not 12px. The extra space at the bottom-left and top-right is not waste — it is what keeps the text block optically centred inside a parallelogram.
+
+| Element | Offset | Intended gap | Padding |
+| --- | --- | --- | --- |
+| Program panel | 16px | 12px | 28px |
+| Lever | 5px | 18px | 23px |
+| Stat Panel | 8px | 12px | 20px |
+| Slot | 9px | 10px | 19px |
+| Compact Card | 7px | 8px | 15px |
+| Beat chip | 3px | 9px | 12px |
+| Phase chip | 3px | 8px | 11px |
+
+Vertical padding is unaffected — the rake only moves the horizontal edges.
+
 ### Accents Run Parallel To The Cut
 
 An accent bar inside a raked clip is not a bar — the clip shaves it into a tapering wedge, which reads as a rendering fault rather than a decision. **Every leading-edge accent is skewed to the same 8°** so it stays parallel to the edge it belongs to, and it **runs that edge's full length**.
@@ -192,6 +210,7 @@ Before approving a new interface element, ask:
 - Does every glow have a physical source?
 - Does it survive flat cel shading — no shadow, no blur, no rounded corner?
 - Is it raked at 8°, with its offset derived from its height rather than chosen?
+- Does its horizontal padding clear the offset, so the top-left and bottom-right corners do not pinch?
 - Does its accent run parallel to the cut, along that edge's full length?
 - Does it carry at most one texture and at most one gradient?
 - Does it still read at 390 points wide?
