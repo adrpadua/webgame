@@ -90,10 +90,10 @@ const TONE_CLASS: Record<HoldTone, string> = {
 
 const BADGE_CLASS: Record<HoldTone, string> = {
   neutral: 'text-zinc-400',
-  attack: 'text-rose-300',
+  attack: 'text-coral-300',
   guard: 'text-glass-300',
   heal: 'text-ceramic-200',
-  boss: 'text-amber-300',
+  boss: 'text-coral-300',
   quick: 'text-glass-300',
   slow: 'text-gold-300',
 }

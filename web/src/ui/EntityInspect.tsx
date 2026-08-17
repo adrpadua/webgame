@@ -78,12 +78,12 @@ function HeroHealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing
       className={`flex min-h-11 min-w-11 flex-1 items-center justify-center ${FOCUS_RING_CLASS}`}
     >
       <span className={`${GAUGE_TRACK_CLASS} flex-1`}>
-        <span className={`${GAUGE_FILL_CLASS} bg-red-500/70`} style={{ width: `${healthFraction * 100}%` }} />
+        <span className={`${GAUGE_FILL_CLASS} bg-ember-500/70`} style={{ width: `${healthFraction * 100}%` }} />
         <span
           className="absolute inset-y-0 bg-glass-500/70 transition-[left,width] duration-300"
           style={{ left: `${healthFraction * 100}%`, width: `${armorFraction * 100}%` }}
         />
-        <span className={`${GAUGE_LABEL_CLASS} text-[10px] text-red-50`}>
+        <span className={`${GAUGE_LABEL_CLASS} text-[10px] text-ember-100`}>
           <HeartIcon className="h-3 w-3 shrink-0" />
           <span key={flashKey} className={flashing ? 'wb-damage-flash origin-left' : undefined}>
             {hero.health}/{hero.maxHealth}
@@ -115,7 +115,10 @@ function StatusChip({ status }: { status: StatusInstance }) {
     <button
       type="button"
       {...hold.holdProps}
-      className={`min-h-11 min-w-11 bg-amber-900 px-1.5 text-[10px] font-semibold text-amber-200 ${FOCUS_RING_CLASS}`}
+      // A Status Effect on the Hero is the Hero's own oathcraft doing something
+      // — Riposte Ready is the gate catching a blow and turning — so it wears
+      // living gold, the material of every mechanism the player operates.
+      className={`min-h-11 min-w-11 bg-gold-900 px-1.5 text-[10px] font-semibold text-gold-200 ${FOCUS_RING_CLASS}`}
     >
       {status.title}
     </button>
@@ -184,9 +187,9 @@ function EnemyGauge({ entity, testId, detail }: { entity: BoardEntity; testId?: 
       className={`flex min-h-11 flex-1 items-center ${FOCUS_RING_CLASS}`}
     >
       <span className={`${GAUGE_TRACK_CLASS} flex-1`}>
-        <span className={`${GAUGE_FILL_CLASS} bg-linear-to-r from-red-700 to-red-500`} style={{ width: `${percent}%` }} />
-        <span className={`${GAUGE_LABEL_CLASS} text-[11px] text-red-50`}>
-          <span key={flashKey} className={flashing ? 'wb-damage-flash text-red-300' : undefined} data-testid={testId}>
+        <span className={`${GAUGE_FILL_CLASS} bg-linear-to-r from-coral-500 to-coral-400`} style={{ width: `${percent}%` }} />
+        <span className={`${GAUGE_LABEL_CLASS} text-[11px] text-coral-100`}>
+          <span key={flashKey} className={flashing ? 'wb-damage-flash text-ember-300' : undefined} data-testid={testId}>
             {shownHealth} / {entity.maxHealth}
           </span>
         </span>
@@ -227,7 +230,7 @@ export function EntityInspect() {
         {isHero ? (
           <HeroEmblem className="h-4 w-4 text-cloth-300" />
         ) : (
-          <BossEmblem className={`h-4 w-4 ${isBoss ? 'text-red-500' : 'text-amber-500'}`} />
+          <BossEmblem className={`h-4 w-4 ${isBoss ? 'text-coral-400' : 'text-coral-500'}`} />
         )}
         {entity.title}
       </span>

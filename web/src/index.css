@@ -11,6 +11,7 @@
    cloth  = signal cloth #2F5680   the role channel (Shield Wall)
    ceramic= aether ceramic #E4E8EE the console, healing
    ember  = ember        #D9482F   damage taken, danger, irreversible
+   coral  = ember coral  #E0703B   the Boss: its body, rows, beats, health
    steel  = oathsteel    #1B2434   panels and frames */
 @theme {
   --color-glass-100: #d6f4f9;
@@ -53,6 +54,18 @@
   --color-ember-500: #d9482f;
   --color-ember-600: #b53a24;
   --color-ember-950: #2c110c;
+
+  /* coral = ember coral #E0703B, Embermaw's own body: the Boss, its rows,
+     its beats, its health. Ember is damage taken; coral is the thing that
+     deals it. One family, two jobs, never in the same element. */
+  --color-coral-100: #f8d5c4;
+  --color-coral-200: #f3b394;
+  --color-coral-300: #ec9569;
+  --color-coral-400: #e0703b;
+  --color-coral-500: #c4522a;
+  --color-coral-700: #7e3519;
+  --color-coral-900: #45200f;
+  --color-coral-950: #2c150a;
 
   --color-steel-700: #37465f;
   --color-steel-800: #24304a;

@@ -17,9 +17,9 @@ import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS } from './theme'
 // track the tutorial teaches is the track the HUD shows. Change together.
 const PHASES: { phase: Phase; label: string; activeClass: string }[] = [
   { phase: 'loadout', label: 'Loadout', activeClass: 'bg-zinc-600 text-zinc-50 shadow-zinc-950' },
-  { phase: 'instant', label: 'Instant', activeClass: 'bg-amber-500 text-amber-950 shadow-amber-900' },
+  { phase: 'instant', label: 'Instant', activeClass: 'bg-coral-400 text-coral-950 shadow-coral-900' },
   { phase: 'quick', label: 'Quick', activeClass: 'bg-glass-400 text-glass-950 shadow-glass-900' },
-  { phase: 'incoming', label: 'Incoming', activeClass: 'bg-amber-500 text-amber-950 shadow-amber-900' },
+  { phase: 'incoming', label: 'Incoming', activeClass: 'bg-coral-400 text-coral-950 shadow-coral-900' },
   { phase: 'slow', label: 'Slow', activeClass: 'bg-gold-400 text-gold-950 shadow-gold-900' },
 ]
 
@@ -197,7 +197,7 @@ export function PhaseControl() {
           accentBorderClass="wb-acc-ember"
           testId="phase-skip-confirm"
         >
-          <h2 id="phase-skip-title" className="text-sm font-bold text-amber-300">
+          <h2 id="phase-skip-title" className="text-sm font-bold text-ember-300">
             {pendingSkip.title}
           </h2>
           <p className="mt-3 text-xs leading-relaxed text-zinc-200">{pendingSkip.body}</p>
