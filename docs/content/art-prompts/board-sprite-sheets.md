@@ -100,6 +100,8 @@ Explicitly not a baby dragon, and explicitly not a small Embermaw: it is debris 
 
 ## Acceptance Check
 
+Build the sheet first, then run the checks in the **Sprite Inspector** — the debug rail's "Inspect sheets" button, on any build with the rail (`npm run dev`, or `?debug=1`). It lays every frame out in the engine's facing order with the direction each row is supposed to face, so the checks below are a read rather than an investigation. Its `checker` ground is the one that shows keying damage; its `board size` zoom is the one that answers whether the piece reads at all.
+
 Test the facings before anything else. A beautiful sheet with two rows pointing the same way is a sheet that has to be regenerated or mirrored.
 
 - Do `E` and `W` face **opposite** edges of the image? Do `NE`/`NW` show the back and `SE`/`SW` the front?
