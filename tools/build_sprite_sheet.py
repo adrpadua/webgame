@@ -290,22 +290,39 @@ def main():
     frame_w += frame_w % 2
     frame_h += frame_h % 2
 
-    sheet = Image.new('RGBA', (frame_w * POSE_COLUMNS, frame_h * len(rows)), (0, 0, 0, 0))
+    sheet = Image.new('RGBA', (frame_w * POSE_COLUMNS, frame_h * len(FACING_INDEX)), (0, 0, 0, 0))
     row_of_name = {name: index for index, name in enumerate(rows)}
-    for row_index, name in enumerate(rows):
-        target_row = FACING_INDEX[name]
+    # Every facing the engine indexes gets a row, whether or not the contact
+    # sheet drew one. A sheet may supply only the east side and let the three
+    # mirrors stand in for the west, which halves the cells a generator has to
+    # keep consistent and makes the left-right pairs exact instead of nearly
+    # alike.
+    for name in sorted(FACING_INDEX, key=lambda key: FACING_INDEX[key]):
         # A mirrored facing takes its poses from another row, flipped. The
         # source sheet drew W facing the same way as E, and a piece that turns
         # west without turning is worse than a kit whose shield changes arms.
-        source_row = row_of_name[mirrors[name]] if name in mirrors else row_index
+        mirrored = name in mirrors
+        source_name = mirrors[name] if mirrored else name
+        if source_name not in row_of_name:
+            sys.exit(f'facing {name} has neither a row in --rows nor a --mirror source')
+        source_row = row_of_name[source_name]
+        target_row = FACING_INDEX[name]
         for col_index in range(POSE_COLUMNS):
             pose = cells[(source_row, col_index)]
-            if name in mirrors:
+            if mirrored:
                 pose = pose.transpose(Image.FLIP_LEFT_RIGHT)
             # Centre horizontally, stand on the bottom edge: the feet are the
             # one landmark every pose shares, and aligning anything else makes
             # the character bob through the idle cycle.
-            x = col_index * frame_w + (frame_w - pose.width) // 2
+            #
+            # An odd amount of padding cannot be split evenly, so the extra
+            # column goes to whichever side keeps a mirrored facing an exact
+            # mirror of its source. Rounding the same way for both would leave
+            # the pair one pixel out of true — invisible on the board, but it
+            # would make "the west side is exactly the east side flipped" a
+            # claim that does not survive being checked.
+            padding = frame_w - pose.width
+            x = col_index * frame_w + (padding - padding // 2 if mirrored else padding // 2)
             y = target_row * frame_h + (frame_h - pose.height)
             sheet.paste(pose, (x, y))
 
