@@ -201,6 +201,35 @@ try {
     shotIndex += 1
     await pg.screenshot({ path: `${shotsDir}/${String(shotIndex).padStart(2, '0')}-${name}.png`, fullPage: false })
   }
+  // A five-card Hand is the tightest row in the interface, and a card name
+  // that outgrows its plate neither wraps nor clips — it spills over the
+  // rake's cut edge onto the neighbouring card. Measured off the rendered
+  // text rather than scrollWidth: an overflowing word in a visible-overflow
+  // block leaves scrollWidth at the padding box, so the spill does not show
+  // up in the element's own metrics. A Range reports where glyphs land.
+  const cardSpill = (pg) =>
+    pg.evaluate(() => {
+      const out = []
+      for (const card of document.querySelectorAll('[data-testid="hand-card"]')) {
+        const cs = getComputedStyle(card)
+        const box = card.getBoundingClientRect()
+        const left = box.left + parseFloat(cs.paddingLeft)
+        const right = box.right - parseFloat(cs.paddingRight)
+        const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT, {
+          acceptNode: (n) => (n.textContent.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
+        })
+        const range = document.createRange()
+        for (let n; (n = walker.nextNode()); ) {
+          range.selectNodeContents(n)
+          const r = range.getBoundingClientRect()
+          if (r.width === 0) continue
+          if (r.left < left - 0.5 || r.right > right + 0.5) {
+            out.push(`${card.dataset.cardId} "${n.textContent.trim().slice(0, 16)}" by ${Math.round(Math.max(left - r.left, r.right - right))}px`)
+          }
+        }
+      }
+      return out
+    })
   const assertContrast = async (pg, label) => {
     // Entrance motion (wb-slide-up, wb-seat, the Phase Banner) passes
     // through low opacity on its way in, so a probe that lands mid-flight
@@ -494,6 +523,11 @@ try {
   await phone.waitForSelector('[data-testid="play-surface"]')
   await phone.locator('[data-testid="guide-skip"]').click()
   await phone.waitForSelector('[data-testid="first-turn-cue"]')
+  // Check the spill here, on the opening Hand: it holds five cards and the
+  // longest name in the catalogue, and both are gone by the time the walk
+  // below reaches the busiest state.
+  const spilling = await cardSpill(phone)
+  assert(spilling.length === 0, `no Compact Card's text overflows its plate at 390x844 (${spilling.join(' | ') || 'all contained'})`)
   // Walk to the Quick Window and select a card, so the measurements below
   // run against the busiest state the phone ever shows: the move pad out
   // beside the board.
