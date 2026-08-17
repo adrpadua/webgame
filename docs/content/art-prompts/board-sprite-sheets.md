@@ -9,7 +9,8 @@ Compose as: [`_style-preamble.md`](_style-preamble.md) block, then the block bel
 Output goes to `assets/art/characters/<entity-slug>/`, and the engine-ready sheet is built from it — never hand-cropped — by:
 
 ```bash
-python3 tools/build_sprite_sheet.py assets/art/characters/<slug>/idle-contact-sheet.png web/src/assets/<slug>-idle.png
+python3 tools/build_sprite_sheet.py assets/art/characters/<slug>/idle-contact-sheet.png web/src/assets/<slug>-idle.png \
+  --rows NE,E,SE --mirror W=E,NW=NE,SW=SE
 ```
 
 ## What The Pipeline Already Handles
@@ -25,11 +26,25 @@ That last point is a deliberate exception to the preamble's ban on text. It is w
 
 The corollary of re-centring is the one thing the prompt *must* ask for: **the idle cycle cannot animate by moving the figure.** A bob, a step, or a drift is normalised away frame by frame. Motion has to come from inside the silhouette — heat pulsing through veins, a cloak settling, a jaw working, glow breathing.
 
-## The Trap That Cost A Row
+## Draw Three Facings, Not Six
 
-The first sheet delivered for Elian drew the row labelled `W` facing the same direction as `E`. It shipped a piece that turns west without turning, and the fix was to mirror `E` and accept his shield changing arms in that one facing.
+The board indexes six facings and the sheet supplies **three**: `NE`, `E`, and `SE`. The builder mirrors them into `NW`, `W`, and `SW`.
 
-A generator will happily produce six rows that are six *poses* rather than six *directions*. The prompt below states the compass twice — once as geometry, once as what the camera sees — and the acceptance check tests it first.
+This started as a repair. The first sheet delivered for Elian drew the row labelled `W` facing the same direction as `E` — a piece that turns west without turning — and the fix was to mirror `E` and accept his shield changing arms in that one facing. Generating only the east side makes that repair the plan.
+
+**The evidence is that the generator was already mirroring, just unreliably.** Measured on the three shipped sheets, comparing each drawn west row against its east partner flipped: silhouettes agreed at 0.65 to 0.94 IoU with pixel differences of 25–51 out of 255. Those pairs were never two designed poses. They were one pose and a noisy copy of it, and the project was paying for twenty-four consistent cells to receive about twelve.
+
+What that buys:
+
+- **Half the cells** for the CONSISTENCY paragraph to hold together, which is the single biggest lever on drift — the standing risk this whole library exists to fight.
+- **The facing trap becomes impossible.** A west row cannot come back pointing east if no west row is drawn.
+- **Exact left-right pairs** in place of that 6–35% silhouette disagreement.
+
+What it costs: genuine handedness flips. Elian's shield and his runeglass panel change arms when he turns west, which was already true for `W` and is now true for `NW` and `SW` as well. Embermaw and the Whelp have no handedness in their canon and lose nothing. Check a new piece against this before assuming it is free.
+
+**The lighting objection, and why it does not hold.** [oathcraft-board-direction.md](../oathcraft-board-direction.md) fixes one key light at the upper left for every piece, and mirroring flips it — which would be disqualifying if the sheets honoured that rule. They do not. Measuring the left-versus-right brightness of each row shows the key attached to the pose rather than to the scene: Elian's rows alternate ±6% to ±10% by facing, Embermaw's ±20%, the Whelp's ±40%. Every sheet already flips its light. Mirroring cannot make that worse; it makes it symmetric and predictable instead of arbitrary.
+
+**Re-open this if the lighting is ever made scene-fixed.** A sheet genuinely lit from the upper left in all facings would lose that when mirrored, and this decision would owe a fresh answer.
 
 ## Sprite Sheet Prompt Block
 
@@ -48,24 +63,23 @@ MATERIAL SIGNATURE: {{MATERIALS}}.
 READ AT BOARD SIZE — the single feature that must survive being shrunk to the height of a coin: {{BOARD_READ}}.
 
 LAYOUT:
-A grid of 4 columns and 6 rows on a flat, uniform near-black background. No vignette, no gradient, no ground shadow, no scenery, no border. One narrow column of small facing labels down the left edge and no other text anywhere in the image.
+A grid of 4 columns and 3 rows on a flat, uniform near-black background. No vignette, no gradient, no ground shadow, no scenery, no border. One narrow column of small facing labels down the left edge and no other text anywhere in the image.
 
-Each row is one facing. Top to bottom the rows are NW, NE, E, SE, SW, W.
+Each row is one facing. Top to bottom the rows are NE, E, SE.
+
+Draw only these three. The game turns the piece to its left by flipping these, so drawing the leftward facings is wasted work and any leftward row in the image will be discarded.
 
 THE FACINGS ARE DIRECTIONS, NOT POSES. The camera never moves; the piece turns. On a hex grid seen from a fixed three-quarter angle above:
-- E: the piece faces the right edge of the image. Seen in profile from its left side.
-- W: the piece faces the left edge of the image. Seen in profile from its right side. This is a genuine mirror-direction of E and must never repeat E's direction.
 - NE: facing away from the camera and to the right. We see its back.
-- NW: facing away from the camera and to the left. We see its back.
+- E: facing the right edge of the image. Seen in profile from its left side.
 - SE: facing toward the camera and to the right. We see its front.
-- SW: facing toward the camera and to the left. We see its front.
 
-All six rows must be visibly different directions. Two rows facing the same way is a failed sheet.
+All three face rightward and differ in how far the piece has turned toward or away from the viewer: NE shows its back, E its flank, SE its front. All three rows must be visibly different directions. Two rows facing the same way is a failed sheet.
 
 Each row's 4 columns are one looping idle animation, read left to right, where the fourth frame returns cleanly to the first. The animation must not move the figure: its feet, base, or centre of mass stay in exactly the same place in all four frames. Animate what is inside the silhouette instead — {{IDLE_MOTION}}.
 
 CONSISTENCY:
-Every one of the 24 cells is the same character at the same scale, lit the same way, with the same colours and the same details. This is one piece rendered 24 times, not 24 illustrations of a piece.
+Every one of the 12 cells is the same character at the same scale, lit the same way, with the same colours and the same details. This is one piece rendered 12 times, not 12 illustrations of a piece.
 
 SCALE: draw the piece {{SCALE}}.
 ```
@@ -128,7 +142,7 @@ WHAT CHANGED: {{PHASE_CHANGE}}.
 
 WHAT MUST NOT CHANGE: its overall size and proportions, its colour range, and how brightly it glows. This form is not brighter and not more saturated than the first. The game reserves its most saturated warm colours for attack warnings, and a piece that outshines its own warning breaks the reading order the player depends on. Carry the difference in the silhouette and in the arrangement of light and dark, never by turning the glow up.
 
-The six facings must point the same directions as the first sheet, row for row, so the piece does not appear to spin when the game swaps one sheet for the other.
+The three facings must point the same directions as the first sheet, row for row, so the piece does not appear to spin when the game swaps one sheet for the other.
 
 Nothing may leave the body's outline. No drifting embers, falling ash, smoke, sparks, or floating debris in any cell, even where they would suit the subject. The build step trims each frame to its contents, so a particle outside the silhouette moves that frame's edges and makes the piece jitter.
 ```
@@ -153,10 +167,10 @@ Build the sheet first, then run the checks in the **Sprite Inspector** — the d
 
 Test the facings before anything else. A beautiful sheet with two rows pointing the same way is a sheet that has to be regenerated or mirrored.
 
-- Do `E` and `W` face **opposite** edges of the image? Do `NE`/`NW` show the back and `SE`/`SW` the front?
-- Are all six rows visibly different directions?
+- Do the three drawn rows face genuinely different directions — `NE` showing the back, `E` the flank, `SE` the front? Two alike is a failed sheet.
+- Do `W`, `NW`, and `SW` appear in the Inspector as exact mirrors? They are built, not drawn, so this checks the builder rather than the art.
 - Across the four frames of a row, do the feet or base stay put? A figure that travels loses its motion to the builder's re-centring.
-- Is it the same creature at the same scale in all 24 cells?
+- Is it the same creature at the same scale in all 12 cells?
 - Held at the height of a coin, is the `BOARD_READ` feature still the thing you see first?
 - Is the Whelp instantly distinguishable from Embermaw by silhouette and size alone, while obviously made of the same material?
 - Any text outside the left label gutter? Reject.

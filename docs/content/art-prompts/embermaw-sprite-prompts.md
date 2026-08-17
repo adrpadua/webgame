@@ -19,8 +19,11 @@ python3 tools/compose_sprite_prompts.py
 5. Save the accepted image to `assets/art/characters/<slug>/idle-contact-sheet.png` and build it:
 
 ```bash
-python3 tools/build_sprite_sheet.py assets/art/characters/<slug>/idle-contact-sheet.png web/src/assets/<slug>-idle.png
+python3 tools/build_sprite_sheet.py assets/art/characters/<slug>/idle-contact-sheet.png web/src/assets/<slug>-idle.png \
+  --rows NE,E,SE --mirror W=E,NW=NE,SW=SE
 ```
+
+The sheet carries three facings and the builder mirrors them into six. Sheets generated before that change hold all six rows; rebuild those with `--rows NW,NE,E,SE,SW,W` and the same `--mirror`, which reads the east rows and discards the west ones.
 
 
 ## Embermaw
@@ -65,24 +68,23 @@ MATERIAL SIGNATURE: ember coral with visible heat veins, blackened fragmentary o
 READ AT BOARD SIZE — the single feature that must survive being shrunk to the height of a coin: the furnace throat — its position on the body is what tells a player which way the heat is about to go.
 
 LAYOUT:
-A grid of 4 columns and 6 rows on a flat, uniform near-black background. No vignette, no gradient, no ground shadow, no scenery, no border. One narrow column of small facing labels down the left edge and no other text anywhere in the image.
+A grid of 4 columns and 3 rows on a flat, uniform near-black background. No vignette, no gradient, no ground shadow, no scenery, no border. One narrow column of small facing labels down the left edge and no other text anywhere in the image.
 
-Each row is one facing. Top to bottom the rows are NW, NE, E, SE, SW, W.
+Each row is one facing. Top to bottom the rows are NE, E, SE.
+
+Draw only these three. The game turns the piece to its left by flipping these, so drawing the leftward facings is wasted work and any leftward row in the image will be discarded.
 
 THE FACINGS ARE DIRECTIONS, NOT POSES. The camera never moves; the piece turns. On a hex grid seen from a fixed three-quarter angle above:
-- E: the piece faces the right edge of the image. Seen in profile from its left side.
-- W: the piece faces the left edge of the image. Seen in profile from its right side. This is a genuine mirror-direction of E and must never repeat E's direction.
 - NE: facing away from the camera and to the right. We see its back.
-- NW: facing away from the camera and to the left. We see its back.
+- E: facing the right edge of the image. Seen in profile from its left side.
 - SE: facing toward the camera and to the right. We see its front.
-- SW: facing toward the camera and to the left. We see its front.
 
-All six rows must be visibly different directions. Two rows facing the same way is a failed sheet.
+All three face rightward and differ in how far the piece has turned toward or away from the viewer: NE shows its back, E its flank, SE its front. All three rows must be visibly different directions. Two rows facing the same way is a failed sheet.
 
 Each row's 4 columns are one looping idle animation, read left to right, where the fourth frame returns cleanly to the first. The animation must not move the figure: its feet, base, or centre of mass stay in exactly the same place in all four frames. Animate what is inside the silhouette instead — heat swelling and fading along the coral veins, the throat brightening and dimming as it draws breath, and loose plates settling.
 
 CONSISTENCY:
-Every one of the 24 cells is the same character at the same scale, lit the same way, with the same colours and the same details. This is one piece rendered 24 times, not 24 illustrations of a piece.
+Every one of the 12 cells is the same character at the same scale, lit the same way, with the same colours and the same details. This is one piece rendered 12 times, not 12 illustrations of a piece.
 
 SCALE: draw the piece low and wide, filling most of its cell, and clearly the largest thing in the game — about one and a half times the height of a human figure and considerably broader.
 ```
@@ -130,24 +132,23 @@ MATERIAL SIGNATURE: bare ember coral with the heat veins exposed across the whol
 READ AT BOARD SIZE — the single feature that must survive being shrunk to the height of a coin: the furnace throat, now unshuttered and the single clearest thing on the piece — its position still tells a player which way the heat is about to go, and it has to carry that read without the plating that used to frame it.
 
 LAYOUT:
-A grid of 4 columns and 6 rows on a flat, uniform near-black background. No vignette, no gradient, no ground shadow, no scenery, no border. One narrow column of small facing labels down the left edge and no other text anywhere in the image.
+A grid of 4 columns and 3 rows on a flat, uniform near-black background. No vignette, no gradient, no ground shadow, no scenery, no border. One narrow column of small facing labels down the left edge and no other text anywhere in the image.
 
-Each row is one facing. Top to bottom the rows are NW, NE, E, SE, SW, W.
+Each row is one facing. Top to bottom the rows are NE, E, SE.
+
+Draw only these three. The game turns the piece to its left by flipping these, so drawing the leftward facings is wasted work and any leftward row in the image will be discarded.
 
 THE FACINGS ARE DIRECTIONS, NOT POSES. The camera never moves; the piece turns. On a hex grid seen from a fixed three-quarter angle above:
-- E: the piece faces the right edge of the image. Seen in profile from its left side.
-- W: the piece faces the left edge of the image. Seen in profile from its right side. This is a genuine mirror-direction of E and must never repeat E's direction.
 - NE: facing away from the camera and to the right. We see its back.
-- NW: facing away from the camera and to the left. We see its back.
+- E: facing the right edge of the image. Seen in profile from its left side.
 - SE: facing toward the camera and to the right. We see its front.
-- SW: facing toward the camera and to the left. We see its front.
 
-All six rows must be visibly different directions. Two rows facing the same way is a failed sheet.
+All three face rightward and differ in how far the piece has turned toward or away from the viewer: NE shows its back, E its flank, SE its front. All three rows must be visibly different directions. Two rows facing the same way is a failed sheet.
 
 Each row's 4 columns are one looping idle animation, read left to right, where the fourth frame returns cleanly to the first. The animation must not move the figure: its feet, base, or centre of mass stay in exactly the same place in all four frames. Animate what is inside the silhouette instead — heat moving through veins that nothing covers any more, the throat working open and closed as it draws breath, and the broken plate mounts flexing with it.
 
 CONSISTENCY:
-Every one of the 24 cells is the same character at the same scale, lit the same way, with the same colours and the same details. This is one piece rendered 24 times, not 24 illustrations of a piece.
+Every one of the 12 cells is the same character at the same scale, lit the same way, with the same colours and the same details. This is one piece rendered 12 times, not 12 illustrations of a piece.
 
 SCALE: draw the piece identical to the first sheet — low and wide, filling most of its cell, about one and a half times the height of a human figure and considerably broader. This form is not larger than the first.
 
@@ -157,7 +158,7 @@ WHAT CHANGED: the blackened oathsteel plating has been shed. On the first sheet 
 
 WHAT MUST NOT CHANGE: its overall size and proportions, its colour range, and how brightly it glows. This form is not brighter and not more saturated than the first. The game reserves its most saturated warm colours for attack warnings, and a piece that outshines its own warning breaks the reading order the player depends on. Carry the difference in the silhouette and in the arrangement of light and dark, never by turning the glow up.
 
-The six facings must point the same directions as the first sheet, row for row, so the piece does not appear to spin when the game swaps one sheet for the other.
+The three facings must point the same directions as the first sheet, row for row, so the piece does not appear to spin when the game swaps one sheet for the other.
 
 Nothing may leave the body's outline. No drifting embers, falling ash, smoke, sparks, or floating debris in any cell, even where they would suit the subject. The build step trims each frame to its contents, so a particle outside the silhouette moves that frame's edges and makes the piece jitter.
 ```
@@ -205,24 +206,23 @@ MATERIAL SIGNATURE: small shards of ember coral around a too-bright core, with a
 READ AT BOARD SIZE — the single feature that must survive being shrunk to the height of a coin: the too-bright core showing through the shards, so it reads as a piece of the boss rather than a separate creature.
 
 LAYOUT:
-A grid of 4 columns and 6 rows on a flat, uniform near-black background. No vignette, no gradient, no ground shadow, no scenery, no border. One narrow column of small facing labels down the left edge and no other text anywhere in the image.
+A grid of 4 columns and 3 rows on a flat, uniform near-black background. No vignette, no gradient, no ground shadow, no scenery, no border. One narrow column of small facing labels down the left edge and no other text anywhere in the image.
 
-Each row is one facing. Top to bottom the rows are NW, NE, E, SE, SW, W.
+Each row is one facing. Top to bottom the rows are NE, E, SE.
+
+Draw only these three. The game turns the piece to its left by flipping these, so drawing the leftward facings is wasted work and any leftward row in the image will be discarded.
 
 THE FACINGS ARE DIRECTIONS, NOT POSES. The camera never moves; the piece turns. On a hex grid seen from a fixed three-quarter angle above:
-- E: the piece faces the right edge of the image. Seen in profile from its left side.
-- W: the piece faces the left edge of the image. Seen in profile from its right side. This is a genuine mirror-direction of E and must never repeat E's direction.
 - NE: facing away from the camera and to the right. We see its back.
-- NW: facing away from the camera and to the left. We see its back.
+- E: facing the right edge of the image. Seen in profile from its left side.
 - SE: facing toward the camera and to the right. We see its front.
-- SW: facing toward the camera and to the left. We see its front.
 
-All six rows must be visibly different directions. Two rows facing the same way is a failed sheet.
+All three face rightward and differ in how far the piece has turned toward or away from the viewer: NE shows its back, E its flank, SE its front. All three rows must be visibly different directions. Two rows facing the same way is a failed sheet.
 
 Each row's 4 columns are one looping idle animation, read left to right, where the fourth frame returns cleanly to the first. The animation must not move the figure: its feet, base, or centre of mass stay in exactly the same place in all four frames. Animate what is inside the silhouette instead — the core pulsing unevenly and the shards shifting around it, as if it is barely holding together.
 
 CONSISTENCY:
-Every one of the 24 cells is the same character at the same scale, lit the same way, with the same colours and the same details. This is one piece rendered 24 times, not 24 illustrations of a piece.
+Every one of the 12 cells is the same character at the same scale, lit the same way, with the same colours and the same details. This is one piece rendered 12 times, not 12 illustrations of a piece.
 
 SCALE: draw the piece compact and low to the ground, about half the height of a human figure, occupying only the middle of its cell.
 ```
