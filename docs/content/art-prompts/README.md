@@ -21,7 +21,7 @@ Then attach any reference images the template asks for, and generate.
 
 The split is the whole point. Style lives in exactly one file, so correcting the direction is one edit rather than a sweep through every prompt, and two assets generated a month apart still agree about what the game looks like. Resist the temptation to paste style wording into a template — that is how a prompt set quietly stops being a set.
 
-The exception is the tile and crest blocks in [board-and-tiles.md](board-and-tiles.md). Those are self-contained and take **no** preamble: the preamble describes painterly material rendering that a monochrome hex ring cannot express, and prepending it only dilutes the geometric instruction that decides whether the asset works.
+The exception is the tile, floor, and crest blocks in [board-and-tiles.md](board-and-tiles.md). Those are self-contained and take **no** preamble: the preamble describes painterly material rendering that a monochrome hex ring cannot express, and prepending it only dilutes the geometric instruction that decides whether the asset works. The hex tile floor is the strictest case — the interface direction's one-texture-per-surface rule leaves it no surface detail at all, and the preamble's material paragraph would argue for some.
 
 [board-sprite-sheets.md](board-sprite-sheets.md) is a narrower exception. It takes the preamble and overrides one paragraph of it — the rendering style, because a board piece is pixel art and a card is not. The materials, palette, and shape language still come from the shared file, which is what keeps a piece and its own card the same character.
 
@@ -31,7 +31,7 @@ The exception is the tile and crest blocks in [board-and-tiles.md](board-and-til
 | --- | --- | --- |
 | [hero-concept.md](hero-concept.md) | Full-body Hero concept sheets | `assets/art/concepts/<hero-slug>/` |
 | [card-ability-art.md](card-ability-art.md) | Card and action-bar ability illustrations | `assets/art/cards/<hero-slug>/` |
-| [board-and-tiles.md](board-and-tiles.md) | Hover and target tiles, boss crest, arena backdrop | `assets/art/board/` |
+| [board-and-tiles.md](board-and-tiles.md) | Hover and target tiles, boss crest, hex tile floor, arena backdrop | `assets/art/board/` |
 | [boss-and-minion.md](boss-and-minion.md) | Raid boss and minion art | `assets/art/bosses/`, `assets/art/minions/` |
 | [board-sprite-sheets.md](board-sprite-sheets.md) | Six-facing idle sheets for pieces on the board | `assets/art/characters/<entity-slug>/` |
 
@@ -74,6 +74,8 @@ Two failure modes are worth naming here because they cost the most time:
 ## Getting A Generated Asset Into The Game
 
 > **Paused as of 2026-08-16 — do not follow this section yet.** Finished card art is banked, not wired: commit it under `assets/art/cards/<hero-slug>/` and stop. Everything below targets the Godot client, which is frozen until the web version feels like a real game, and the web surface has no way to consume card art. See [Replacement Backlog](#replacement-backlog) for the full reasoning. The steps here stay accurate and apply unchanged whenever the freeze lifts.
+>
+> **Two board assets are outside this pause**, because they target the live board rather than the frozen one: the hex tile floor and the arena backdrop in [board-and-tiles.md](board-and-tiles.md). Neither is wired either, but both would wire into `web/src/board/`, and that file states where. Nothing in this section applies to them.
 
 Generating the image is half the job. The two halves of the codebase consume art differently, and only one of them can be done without touching code.
 
@@ -105,7 +107,7 @@ What the placeholders are, and which template retires each one:
 | `open-duelyst/tile_hover@2x.png` | Live — hover state | [board-and-tiles.md](board-and-tiles.md), hover tile |
 | `open-duelyst/tile_target.png` | Live — target state | [board-and-tiles.md](board-and-tiles.md), target tile |
 | `open-duelyst/boss_neutral_crest_hex@2x.png` | Live — boss hex marker | [board-and-tiles.md](board-and-tiles.md), boss crest |
-| `open-duelyst/tile_board@2x.png` | Vendored, unreferenced | Optional; needs wiring before it would appear |
+| `open-duelyst/tile_board@2x.png` | Vendored, unreferenced | Superseded by the hex tile floor in [board-and-tiles.md](board-and-tiles.md); delete rather than wire |
 | `environment/0x72-dungeon-tileset-ii/dungeon-scene.png` | Vendored, unreferenced | Superseded; nothing to generate |
 | `prototype/paladin/*.webp` | Live — serving all eleven Elian cards | [card-ability-art.md](card-ability-art.md) |
 | `prototype/paladin-placeholder.png` | Live — fallback for any unmapped card | [card-ability-art.md](card-ability-art.md) |
