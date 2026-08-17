@@ -12,6 +12,8 @@ import {
   replayRecord,
   ESCALATION_MAX,
   escalationStartRound,
+  forecast,
+  highestTier,
   resolve,
   runScenario,
   type EncounterState,
@@ -36,6 +38,14 @@ function boss(state: EncounterState) {
 // from the content catalog, and instances are plain data.
 function card(instanceId: string, cardId: string) {
   return { instanceId, cardId }
+}
+
+// A Hero who cannot die of attrition, for tests about clocks and rotation
+// rather than about survival.
+function immortalHero(state: EncounterState): EncounterState {
+  state.heroes[state.primaryHeroId].maxHealth = 5000
+  state.heroes[state.primaryHeroId].health = 5000
+  return state
 }
 
 function stepPhases(state: EncounterState, count: number): { state: EncounterState; facts: ResolvedActionFact[] } {
@@ -273,14 +283,92 @@ describe('Fortify Slow commitment (D-019)', () => {
   })
 })
 
+describe('Forecast Row (D-021, ADR 0026)', () => {
+  it('previews the next Round\'s whole program at family level', () => {
+    const state = start()
+    expect(state.currentProgramId).toBe('embermaw_hunt')
+    const ahead = forecast(catalog, state)!
+    // Family level only: a title, the union of counter tags, and a tier. No
+    // target, magnitude, or hex — those belong to Incoming and Instant.
+    expect(ahead).toMatchObject({
+      programId: 'embermaw_embers',
+      title: catalog.programs.embermaw_embers.title,
+      tier: 'structural',
+    })
+    expect(ahead.counterTags).toEqual(['Position', 'Move', 'Interrupt', 'Kill Adds', 'Mitigate'])
+    expect(Object.keys(ahead)).not.toContain('damage')
+  })
+
+  it('follows the rotation a Round ahead, and loops with it', () => {
+    let state = immortalHero(start())
+    expect(forecast(catalog, state)?.programId).toBe('embermaw_embers')
+    state = stepPhases(state, 5).state
+    expect(state.currentProgramId).toBe('embermaw_embers')
+    expect(forecast(catalog, state)?.programId).toBe('embermaw_brood')
+    state = stepPhases(state, 5).state
+    expect(state.currentProgramId).toBe('embermaw_brood')
+    // Looping: the Forecast wraps to the first program rather than emptying.
+    expect(forecast(catalog, state)?.programId).toBe('embermaw_hunt')
+  })
+
+  it('is a pure read: asking for it never changes the Encounter', () => {
+    const state = start()
+    const before = structuredClone(state)
+    forecast(catalog, state)
+    expect(state).toEqual(before)
+  })
+
+  it('stops forecasting once the Encounter is resolved', () => {
+    const state = start()
+    state.active = false
+    expect(forecast(catalog, state)).toBeNull()
+  })
+
+  it('empties rather than wrapping when a program list does not loop', () => {
+    const state = start()
+    state.loopPrograms = false
+    state.programIndex = state.programIds.length - 1
+    expect(forecast(catalog, state)).toBeNull()
+  })
+})
+
+describe('Consequence Tier ladder (D-021, ADR 0026)', () => {
+  const everyBeat = Object.values(catalog.programs).flatMap((program) => [
+    ...program.instant_beats.map((beat) => ({ beat, program })),
+    ...program.incoming_beats.map((beat) => ({ beat, program })),
+  ])
+
+  it('rates a Beat that can cross an Escalation Threshold as severe', () => {
+    // An Escalation Threshold crossing is one of D-025's run-ending outcomes,
+    // so such a Beat is severe by definition and must reach the Forecast Row.
+    for (const { beat } of everyBeat) {
+      if (beat.escalation_if_unanswered > 0) {
+        expect(beat.consequence_tier).toBe('severe')
+      }
+    }
+  })
+
+  it('rates a Beat that spawns or changes the board at least structural', () => {
+    for (const { beat } of everyBeat) {
+      if (beat.minion !== undefined || beat.hazard !== undefined) {
+        expect(highestTier({ ...catalog.programs.embermaw_hunt, instant_beats: [beat], incoming_beats: [] })).not.toBe('chip')
+      }
+    }
+  })
+
+  it('keeps the first program free of severe Beats, because Round 1 is never forecast', () => {
+    // The one honest hole in the ladder: at the pull there is no earlier Round
+    // to have forecast Round 1, so its program may not carry a severe Beat.
+    const firstProgramId = catalog.encounters.embermaw_prototype.boss_programs[0]
+    expect(highestTier(catalog.programs[firstProgramId])).not.toBe('severe')
+  })
+})
+
 describe('Escalation as the single clock (D-023, ADR 0027)', () => {
   // A passive Hero who never clears an add: give them enough Health that
   // Escalation, not attrition, is what ends the fight.
   function immortal(seed?: number): EncounterState {
-    const state = start(seed)
-    hero(state).maxHealth = 5000
-    hero(state).health = 5000
-    return state
+    return immortalHero(start(seed))
   }
 
   function clearMinions(state: EncounterState): void {

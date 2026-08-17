@@ -77,7 +77,6 @@ _Avoid_: Event, command, hidden trigger
 **Consequence Tier**:
 The authored severity band that sets a Boss Beat's earliest legal horizon: `Chip` may originate in any row, `Structural` appears no later than the Incoming Row, and `Severe` must appear in the Forecast Row first. A Beat that can down a Hero or cross an Escalation Threshold is `Severe`, with no justification clause available.
 _Avoid_: Damage tier, priority, threat level
-_Not yet in the engine_
 
 **Encounter Briefing**:
 The pre-fight reference that shows a Boss's possible moves, each move's pattern and counterplay, its Module Slots and the families that can fill them, and phase themes. The Briefing is the catalog of what a Boss can do; the Forecast Row is the schedule. It never states rotation order, so first-attempt discovery survives.
@@ -128,9 +127,8 @@ The visible end-step action a living Minion will take: advance one hex toward it
 _Avoid_: Hidden AI, random wander, aggro table
 
 **Forecast Row**:
-The horizon that previews the next Round's whole Boss Program at family level: its title and the union of its counter tags. It tells the party what kind of raid problem is developing, so resources can be reserved for a category before a specific hit can be answered. A Forecast Row never resolves — it is next Round's program shown early, not a fourth resolution step — so it leaves the per-Round event order untouched.
+The horizon that previews the next Round's whole Boss Program at family level: its title and the union of its counter tags. It tells the party what kind of raid problem is developing, so resources can be reserved for a category before a specific hit can be answered. It also carries the program's highest Consequence Tier, so the party can size the reserve. A Forecast Row never resolves — it is next Round's program shown early, not a fourth resolution step — so it leaves the per-Round event order untouched. Round `1` is not forecast: at the pull there is no earlier Round to have shown it, which is why a first program may carry no `Severe` Beat.
 _Avoid_: Preview row, hidden row, T+2
-_Not yet in the engine_
 
 **Instant Row**:
 The boss actions that resolve before the party's `Quick Window`. These are urgent mechanics that are already live this round.

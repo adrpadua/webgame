@@ -64,6 +64,11 @@ export const bossBeatSchema = z.object({
   rules_text: z.string().default(''),
   kind: z.enum(['turn_toward_player', 'raking_claw', 'scorch_last_pattern', 'cinder_breath', 'brood_call', 'warning']),
   counter_tags: z.array(z.string()).default([]),
+  // Consequence Tier (ADR 0026): sets the earliest horizon this Beat may
+  // appear in. `chip` anywhere, `structural` no later than Incoming, `severe`
+  // in the Forecast Row first. Authored rather than derived, and validated —
+  // see the ladder tests.
+  consequence_tier: z.enum(['chip', 'structural', 'severe']).default('chip'),
   target_selector: z.string().default(''),
   damage_classification: z.string().default(''),
   damage: z.number().int().default(0),

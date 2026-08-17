@@ -36,6 +36,8 @@ Two authoring consequences follow. First, **consequence tier sets the earliest l
 
 Escalation raises the stakes of getting this right rather than softening it: because an Escalation Threshold crossing is one of the run-ending outcomes, any Beat that can add Escalation is `Severe` and lands in Forecast automatically. No special case required.
 
+The ladder has exactly one exception, and it is a content rule rather than a code path. **Round 1 is not forecast** — no earlier Round could have shown it — so **a first program may carry no `Severe` Beat.** Everything after Round 1 is forecast automatically, so the tier ladder needs no further enforcement than authoring the tier honestly.
+
 ## The Role Contract
 
 Tank, Healer, and Damage are three questions about the **same Boss problem**, never three parallel minigames:

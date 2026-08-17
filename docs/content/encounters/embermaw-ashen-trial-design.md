@@ -49,7 +49,9 @@ Impact and counterplay scale together (see the [champion design research note](.
 | `Structural` | Spawns entities, changes the board, or applies a lasting Status Effect. | No later than the `Incoming` row. |
 | `Severe` | Can down a Hero, or crosses an Escalation Threshold. | The `Forecast` row, first. |
 
-The `Severe` tier has **no justification clause**. The old rule allowed a top-tier hit to ship from the `Instant` row with an explicit design justification, because there was no earlier horizon to send it to; the Forecast Row removes that excuse. Note the tier is derived, not merely declared: because an Escalation Threshold crossing is one of the run-ending outcomes, any Beat that can add Escalation is `Severe` and must be forecast.
+Round 1 is the ladder's one exception: it is never forecast, because no earlier Round could have shown it, so **the first program in the rotation may carry no `Severe` Beat**. Embermaw's `Hunt Pattern` satisfies this without effort — the encounter has no `Severe` Beat at all yet, so the tier is enforced but unexercised.
+
+The `Severe` tier has **no justification clause**. The old rule allowed a top-tier hit to ship from the `Instant` row with an explicit design justification, because there was no earlier horizon to send it to; the Forecast Row removes that excuse. The tier is authored on each Beat rather than computed — "can down a Hero" depends on Hero health and would be fragile to derive — but its implications are enforced by tests over live content: a Beat that can add Escalation must be `Severe`, and a Beat that spawns a Minion or leaves a Hazard must be at least `Structural`.
 
 ### Role-Load-Bearing Beats (Party-scale rule)
 

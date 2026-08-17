@@ -4,7 +4,7 @@ This document describes the current playable rules of the prototype as they exis
 
 Use [CONTEXT.md](../../CONTEXT.md) for canonical terms and the ADRs for why the model exists.
 
-**Adopted but not yet in the engine.** Two rules decisions are canon and are not described below, because nothing implements them yet: the three-horizon Timeline with staged Beat disclosure (D-021, [ADR 0026](../adr/0026-disclose-boss-beats-in-stages-across-three-timeline-horizons.md)) and randomize-before-commitment (D-022, [ADR 0025](../adr/0025-randomize-before-the-window-that-answers-it.md)). Until they ship, the two-row Timeline described here is the live rule.
+**Adopted but not yet in the engine.** One rules decision is canon and is not described below, because nothing implements it yet: randomize-before-commitment (D-022, [ADR 0025](../adr/0025-randomize-before-the-window-that-answers-it.md)). It currently forbids nothing, because the authored encounter resolves with no rules randomness at all.
 
 Use [player-card-authoring.md](player-card-authoring.md) when creating or editing player cards.
 
@@ -33,10 +33,11 @@ Escalation is the encounter's only clock (D-023, [ADR 0027](../adr/0027-make-esc
 
 ## Boss Timeline
 
-The boss has a visible two-row timeline:
+The boss has a visible three-horizon timeline. Row names state *when*; how much a beat discloses is the beat's own property (D-021, [ADR 0026](../adr/0026-disclose-boss-beats-in-stages-across-three-timeline-horizons.md)):
 
-- `Instant Row`: the action already resolving this round
-- `Incoming Row`: the action telegraphed for later this round and then promoted into the next round's instant
+- `Forecast Row`: next round's whole boss program at family level — its title, the union of its counter tags, and its highest Consequence Tier. No targets, magnitudes, or hexes. It never resolves, so the per-round event order is unchanged. Round `1` is not forecast, because no earlier round could have shown it.
+- `Instant Row`: the action already resolving this round, with every parameter
+- `Incoming Row`: the action telegraphed for later this round, with every parameter, then promoted into the next round's instant
 
 The current prototype boss is `Embermaw`, using a short scripted loop of authored boss actions.
 

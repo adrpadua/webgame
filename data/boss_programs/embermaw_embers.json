@@ -10,7 +10,8 @@
       "kind": "turn_toward_player",
       "counter_tags": [
         "Position"
-      ]
+      ],
+      "consequence_tier": "chip"
     },
     {
       "id": "cinder_breath",
@@ -21,6 +22,7 @@
         "Move",
         "Interrupt"
       ],
+      "consequence_tier": "structural",
       "damage": 5,
       "duration_rounds": 1,
       "hazard": "scorched"
@@ -33,6 +35,7 @@
       "counter_tags": [
         "Move"
       ],
+      "consequence_tier": "structural",
       "duration_rounds": 1,
       "hazard": "scorched"
     }
@@ -46,6 +49,7 @@
       "counter_tags": [
         "Kill Adds"
       ],
+      "consequence_tier": "structural",
       "minion": "whelp",
       "count": 2,
       "escalation_if_unanswered": 0
@@ -59,6 +63,7 @@
         "Mitigate",
         "Position"
       ],
+      "consequence_tier": "chip",
       "target_selector": "tank",
       "damage_classification": "tank_hit",
       "damage": 4,
@@ -71,7 +76,8 @@
       "kind": "warning",
       "counter_tags": [
         "Move"
-      ]
+      ],
+      "consequence_tier": "chip"
     }
   ]
 }
