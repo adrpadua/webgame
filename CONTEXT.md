@@ -75,7 +75,7 @@ One ordered authored action inside a Boss Program row. A Boss Beat discloses in 
 _Avoid_: Event, command, hidden trigger
 
 **Consequence Tier**:
-The authored severity band that sets a Boss Beat's earliest legal horizon: `Chip` may originate in any row, `Structural` appears no later than the Incoming Row, and `Severe` must appear in the Forecast Row first. A Beat that can down a Hero or cross an Escalation Threshold is `Severe`, with no justification clause available.
+The authored severity band that sets a Boss Beat's earliest legal horizon: `Chip` may originate in any row, `Structural` appears no later than the Incoming Row, and `Severe` must appear in the Forecast Row first. A Beat that can down a Hero **from full health**, or cross an Escalation Threshold, is `Severe`, with no justification clause available. The full-health floor is what keeps the band a property of the Beat: lethality at whatever health attrition has left behind is a property of the moment, not the Beat.
 _Avoid_: Damage tier, priority, threat level
 
 **Encounter Briefing**:
