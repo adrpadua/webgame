@@ -30,3 +30,13 @@ Before editing the live ledger, the Coordinator performs and records a reverse-d
 Issue 01 requires Architecture review for durability/recovery, Test Automation review for repeatable link/threshold checks, Design and UI/UX review for historical lookup, and PM confirmation that the intake/authority boundary remains unchanged. Only then may the Coordinator perform the first archive operation under issue 02.
 
 After a migration, Test Automation independently verifies archive links, append-only preservation, threshold accounting, active-work retention, and that routine sweeps can be run from the live ledger alone. The current-root handoff-packet validator must exit `0` before any packet-dependent advancement or milestone closure.
+
+## History predating this repository root
+
+This repository's recorded history begins `2026-08-16`. Coordination work from `2026-08-13` to `2026-08-14` was committed on a separate line that shares no ancestor with `main`, preserved on the remote branch `main-local-snapshot` (tip `16a2bb9`).
+
+That branch is provenance only and is authoritative for nothing. Because the two histories are unrelated, it cannot be merged and range syntax such as `main..main-local-snapshot` does not describe it; read it directly with `git log main-local-snapshot` or `git show main-local-snapshot:<path>`.
+
+Its live ledger's coordination subjects are all represented in this directory or in the live ledger, verified `2026-08-17`. What that branch holds and this tree has never had is `23` Godot files under `scripts/` — the encounter resolver/snapshot seam, an action resolver, a player board, and five debug probes — which no commit here has ever contained.
+
+One search caveat, because it bears on the reverse-dependency sweep above: archived blocks may collapse a numbered series into a range, such as `First-turn loadout 01–04`. Searching for a single member by exact subject (`First-turn loadout 03`) will not match it, so sweep on the series name as well as the exact subject.
