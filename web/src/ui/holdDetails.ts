@@ -1,4 +1,14 @@
-import { cardChargeCap, cardWindowSpeed, type BossBeat, type BossProgram, type Card, type Phase, type SlotState } from '@/engine'
+import {
+  cardChargeCap,
+  cardWindowSpeed,
+  type BossBeat,
+  type BossProgram,
+  type Card,
+  type ContentCatalog,
+  type EncounterState,
+  type Phase,
+  type SlotState,
+} from '@/engine'
 import type { HoldDetail, HoldTone } from './HoldPopover'
 import { cardEffect } from './icons'
 
@@ -62,6 +72,13 @@ export function slotDetail(card: Card, slot: SlotState, slotIndex: number, phase
           ? 'Tap to fire it now.'
           : `Fires in the ${speed === 'quick' ? 'Quick' : 'Slow'} Window.`
   return { ...detail, id: `slot-${slotIndex}`, stats, hint }
+}
+
+// The Encounter's own terms — its rules text and the enrage line — shared by
+// every detail that speaks for the Encounter itself: the Round clock on the
+// phase row and the Boss's Stat Panel.
+export function encounterTerms(catalog: ContentCatalog, state: EncounterState): Pick<HoldDetail, 'tone' | 'text' | 'hint'> {
+  return { tone: 'boss', text: catalog.encounters[state.encounterId]?.rules_text, hint: state.enrageText }
 }
 
 const PHASE_DETAIL: Record<Phase, { title: string; text: string }> = {

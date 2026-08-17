@@ -74,8 +74,21 @@ try {
   assert((await page.locator('[data-testid="guide-modal"]').count()) === 0, 'Escape dismisses the reopened guide')
 
   const phase = () => page.locator('[data-phase]').getAttribute('data-phase')
+  // A Boss Row resolves in the batch that opens its window and replays
+  // beat by beat; Next is inert until the last beat's moment has played.
+  const waitForBeatsToSettle = (view = page) =>
+    view.waitForSelector('[data-testid="beat-chip"][data-playing="true"]', { state: 'detached', timeout: 8000 })
   const next = () => page.locator('[data-testid="next-phase"]').click()
   const cueStep = () => page.locator('[data-testid="first-turn-cue"]').getAttribute('data-step')
+  const boardCanvas = page.locator('[data-testid="board"] canvas')
+  // Persistent gauges left the HUD: tapping a piece's tile opens its stat
+  // panel, which stays up as a live readout until dismissed. Returns the
+  // opened panel's piece id.
+  const inspectTile = async (q, r) => {
+    await boardCanvas.click({ position: await hexPosition(boardCanvas, q, r) })
+    await page.waitForSelector('[data-testid="entity-inspect"]')
+    return page.locator('[data-testid="entity-inspect"]').getAttribute('data-entity')
+  }
   // The card the scripted turn is pointing at is the only live card in Hand.
   const scriptedCard = () => page.locator('[data-testid="hand-card"][data-scripted="true"]')
   const slot0 = page.locator('[data-testid="slot-0"]')
@@ -128,23 +141,29 @@ try {
   assert((await slot1.getAttribute('data-top-card')) !== '', 'tapping the empty Slot prepares the selected card')
   assert((await cueStep()) === 'start-round', 'with both Slots set the script asks for Next')
 
-  // Step 3-4: the Boss opens the Round and the Claw lands on the tank.
+  // Step 3-4: the Boss opens the Round and the Claw lands on the tank. The
+  // Instant Row resolves in the batch that opens Boss Instant, so the beats
+  // replay while the phase IS the Boss's window. The tank's stat panel goes
+  // up first — it is the health readout now, and it rides the beats live.
+  assert((await inspectTile(0, 0)) === 'guardian', 'tapping the Hero tile opens its stat panel')
   await next()
-  assert((await phase()) === 'instant', 'Next advances into Boss Instant')
+  assert((await phase()) === 'instant', 'Next opens Boss Instant with its beats replaying')
   assert((await cueStep()) === 'boss-instant', 'the script narrates the Boss Instant')
-  await next()
-  assert((await phase()) === 'quick', 'Boss Instant resolves into the Quick Window')
   // The claw's damage reaches the gauge at its beat's playout moment, not
   // the instant the batch resolves: wait out the staggered replay.
   await page.waitForFunction(() => document.querySelector('[data-testid="hero-health"]')?.textContent?.includes('30'), null, { timeout: 5000 })
   const heroHealth = await page.locator('[data-testid="hero-health"]').textContent()
   assert(heroHealth?.includes('30'), `Raking Claw hit the tank for 4, on its beat (${heroHealth?.trim()})`)
+  await waitForBeatsToSettle()
+  await next()
+  assert((await phase()) === 'quick', 'Boss Instant resolves into the Quick Window')
 
   // Step 5-6: charge the quick Slot, then fire it in its matching window.
   assert((await cueStep()) === 'charge-quick', 'the Quick Window opens on the charge step')
   await scriptedCard().dragTo(slot0)
   assert((await slot0.getAttribute('data-charges')) === '1', 'a tucked hand card adds one Charge')
   assert((await cueStep()) === 'fire-quick', 'a charged Slot moves the script to firing')
+  assert((await inspectTile(1, -1)) === 'embermaw', 'tapping the Boss tile switches the panel to Embermaw')
   const bossBeforeQuick = await page.locator('[data-testid="boss-health"]').textContent()
   await slot0.click()
   await page.waitForTimeout(150)
@@ -155,7 +174,6 @@ try {
   // Step 7: step out of the telegraphed breath cone, paying a card.
   assert((await cueStep()) === 'move-away', 'the script asks for the dodge next')
   const handBeforeMove = await page.locator('[data-testid="hand-card"]').count()
-  const boardCanvas = page.locator('[data-testid="board"] canvas')
   // The whole board must be on screen: a hex a player can legally step to
   // is useless if the HUD cropped it away.
   const boardBox = await boardCanvas.boundingBox()
@@ -171,11 +189,14 @@ try {
   assert(factLog?.includes('Move to (-1, 0)'), 'the fact log records the Hero move')
 
   await next()
-  assert((await phase()) === 'incoming', 'Quick Window resolves into Boss Incoming')
+  assert((await phase()) === 'incoming', 'the Quick Window ends and Boss Incoming opens with its beats replaying')
+  await waitForBeatsToSettle()
   await next()
   assert((await phase()) === 'slow', 'Boss Incoming resolves into the Slow Window')
   const incomingLog = await page.locator('[data-testid="fact-log"]').textContent()
   assert(incomingLog?.includes('Spawn whelp_1'), 'Brood Call spawned Whelps')
+  // The Hero stepped to (-1, 0); the panel follows the piece by its tile.
+  assert((await inspectTile(-1, 0)) === 'guardian', 'tapping the moved Hero reopens its panel')
   const heroAfterBreath = await page.locator('[data-testid="hero-health"]').textContent()
   assert(heroAfterBreath?.includes('30'), `the dodged Cinder Breath dealt nothing (${heroAfterBreath?.trim()})`)
 
@@ -183,6 +204,7 @@ try {
   assert((await cueStep()) === 'charge-slow', 'the Slow Window opens on the slow charge step')
   await scriptedCard().dragTo(slot1)
   assert((await cueStep()) === 'fire-slow', 'a charged slow Slot moves the script to firing')
+  await inspectTile(1, -1)
   const bossBeforeSlow = await page.locator('[data-testid="boss-health"]').textContent()
   await slot1.click()
   await page.waitForTimeout(150)
@@ -190,10 +212,15 @@ try {
   const bossAfterSlow = await page.locator('[data-testid="boss-health"]').textContent()
   assert(bossBeforeSlow !== bossAfterSlow, `the slow Slot moved the Boss bar (${bossBeforeSlow?.trim()} -> ${bossAfterSlow?.trim()})`)
 
+  // A tap on an empty hex puts the panel away.
+  await boardCanvas.click({ position: await hexPosition(boardCanvas, 2, 0) })
+  await page.waitForSelector('[data-testid="entity-inspect"]', { state: 'detached' })
+  assert((await page.locator('[data-testid="entity-inspect"]').count()) === 0, 'tapping an empty hex closes the stat panel')
+
   await next()
   assert((await phase()) === 'loadout', 'the Slow Window rolls into the next Round')
   const round = await page.locator('[data-testid="round-display"]').textContent()
-  assert(round?.includes('Round 2'), `the Boss Timeline rolled forward (${round?.trim()})`)
+  assert(round?.includes('2/8'), `the Boss Timeline rolled forward (${round?.trim()})`)
   assert((await page.locator('[data-testid="hand-card"]').count()) === 5, 'end-of-Round draw refilled the Hand')
 
   // The script retires itself with the Round it taught, and ordinary
@@ -236,14 +263,13 @@ try {
   const stepsAfterConfirm = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
   assert(stepsAfterConfirm === stepsBeforeConfirm + 1, 'a confirmed replacement records exactly one Scenario step')
 
-  // Outside the script, a boss track steps through beat by beat: the
-  // resolving beat lights its Boss Beat chip and a Continue prompt
-  // gates each next beat, so the player reads every part of the turn.
+  // Outside the script, a Boss Row steps through beat by beat: the batch
+  // that opens the window replays paced, the resolving beat lights its Boss
+  // Beat chip, and a Continue prompt gates each next beat, so the player
+  // reads every part of the turn.
   await next()
-  assert((await phase()) === 'instant', 'Round 2 Loadout advances into Boss Instant')
-  await next()
-  assert((await phase()) === 'quick', 'the Instant track resolves into the Quick Window')
   await page.waitForSelector('[data-testid="playout-continue"]')
+  assert((await phase()) === 'instant', 'Round 2 Next opens Boss Instant and paces its beats')
   assert(
     (await page.locator('[data-testid="beat-chip"][data-playing="true"]').count()) >= 1,
     'the resolving beat lights its Boss Beat chip',
@@ -258,6 +284,10 @@ try {
   // The last beat needs no prompt: give a wrongly-armed one time to appear.
   await page.waitForTimeout(900)
   assert((await page.locator('[data-testid="playout-continue"]').count()) === 0, 'the last beat needs no prompt and the playout settles')
+  // The resolved track waits in the Boss's window; Next moves on.
+  assert((await phase()) === 'instant', 'the settled track waits in Boss Instant for Next')
+  await next()
+  assert((await phase()) === 'quick', 'Next moves on into the Quick Window')
 
   // Skipping a window that still holds phase-appropriate actions warns
   // first: nothing has been fired or charged this Quick Window.
@@ -303,7 +333,7 @@ try {
   await page.waitForTimeout(100)
   assert((await phase()) === 'loadout', 'sliding to step 0 shows the seeded Loadout')
   const roundAtStart = await page.locator('[data-testid="round-display"]').textContent()
-  assert(roundAtStart?.includes('Round 1'), 'step 0 is Round 1')
+  assert(roundAtStart?.includes('1/8'), 'step 0 is Round 1')
 
   await page.screenshot({ path: process.env.SMOKE_SHOT ?? 'smoke.png', fullPage: false })
 
@@ -332,7 +362,10 @@ try {
   const phoneScripted = () => phone.locator('[data-testid="hand-card"][data-scripted="true"]')
   await phoneScripted().dragTo(phone.locator('[data-testid="slot-0"]'))
   await phoneScripted().dragTo(phone.locator('[data-testid="slot-1"]'))
+  // The first Next opens Boss Instant and replays its beats; Next is inert
+  // until they settle, then the second press enters the Quick Window.
   await phone.locator('[data-testid="next-phase"]').click()
+  await waitForBeatsToSettle(phone)
   await phone.locator('[data-testid="next-phase"]').click()
   await phone.waitForTimeout(400)
   await phoneScripted().click()

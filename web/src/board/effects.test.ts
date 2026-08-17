@@ -35,8 +35,9 @@ describe('board effects', () => {
   })
 
   it('turns the Boss Instant into a lunge, a hit on the Hero, and scorched ground', () => {
-    let state = openedRound()
-    state = advance(state).state
+    // Entering Boss Instant resolves the Instant Row in the same batch
+    // (ADR 0024), so the first advance out of Loadout carries the show.
+    const state = openedRound()
     const { effects } = advance(state)
     const strike = effects.find((effect) => effect.kind === 'strike')
     expect(strike?.entityId).toBe(state.bossId)
@@ -49,8 +50,7 @@ describe('board effects', () => {
   })
 
   it('plays a boss track out one beat at a time: announced, staggered, and in program order', () => {
-    let state = openedRound()
-    state = advance(state).state
+    const state = openedRound()
     const { effects } = advance(state)
     // Every beat announces itself over the Boss with its authored title, in
     // the order the program lists them, each one stagger slot later.
@@ -67,8 +67,7 @@ describe('board effects', () => {
   })
 
   it('swings the Boss facing when a turn beat actually turned it', () => {
-    let state = openedRound()
-    state = advance(state).state
+    const state = openedRound()
     const bossFacingBefore = state.board.entities[state.bossId].facing
     const { state: after, effects } = advance(state)
     const turn = effects.find((effect) => effect.kind === 'turn')
@@ -82,8 +81,7 @@ describe('board effects', () => {
   })
 
   it('sequences the gauges with the beat playout and lands them on the true end state', () => {
-    let state = openedRound()
-    state = advancePhase(catalog, state).state
+    const state = openedRound()
     const heroId = state.primaryHeroId
     const heroBefore = state.heroes[heroId]
     const result = advancePhase(catalog, state)
@@ -104,12 +102,15 @@ describe('board effects', () => {
   })
 
   it('scripts a boss track into one moment per beat, in program order', () => {
-    let state = openedRound()
-    state = advancePhase(catalog, state).state
+    const state = openedRound()
     const result = advancePhase(catalog, state)
     const effects = deriveBoardEffects(catalog, state, result.state, result.facts)
     const script = derivePlayoutScript(state, result.state, result.facts, effects)
     expect(script).not.toBeNull()
+    // The batch that opens the Boss window carries its beats (ADR 0024), so
+    // the authoritative phase a client shows while the script replays is the
+    // Boss's own window.
+    expect(result.state.phase).toBe('instant')
     // One moment per resolved beat, titled from the program, delays gone.
     const announces = effects.filter((effect) => effect.kind === 'cast' && effect.entityId === state.bossId)
     expect(script!.moments.map((moment) => moment.beatTitle)).toEqual(announces.map((announce) => announce.label))
@@ -135,9 +136,9 @@ describe('board effects', () => {
   })
 
   it('flags a fatal batch so the outcome reveal can wait out its moments', () => {
+    // Wound the tank so the claw's beat — inside the batch that opens Boss
+    // Instant — is the killing blow.
     let state = openedRound()
-    state = advancePhase(catalog, state).state
-    // Wound the tank so the claw's beat is the killing blow.
     state = structuredClone(state)
     state.heroes[state.primaryHeroId].health = 1
     state.board.entities[state.primaryHeroId].health = 1
@@ -155,11 +156,12 @@ describe('board effects', () => {
 
   it('scripts a killing blow in the first beat slot so the reveal still waits', () => {
     let state = openedRound()
-    for (let advances = 0; advances < 3; advances += 1) {
+    for (let advances = 0; advances < 2; advances += 1) {
       state = advancePhase(catalog, state).state
     }
     // Standing in the cone with 1 health: Cinder Breath — the incoming
-    // track's first beat, stagger slot zero — is the killing blow.
+    // track's first beat, stagger slot zero, resolving in the batch that
+    // opens Boss Incoming — is the killing blow.
     state = structuredClone(state)
     state.heroes[state.primaryHeroId].health = 1
     state.board.entities[state.primaryHeroId].health = 1
@@ -223,8 +225,9 @@ describe('board effects', () => {
   })
 
   it('flares the telegraphed cone and pops the Whelps the Incoming beats produced', () => {
+    // The Incoming Row rides the batch that opens Boss Incoming: two
+    // advances reach the Quick Window, the third carries the beats.
     let state = openedRound()
-    state = advance(state).state
     state = advance(state).state
     state = advance(state).state
     const { effects } = advance(state)

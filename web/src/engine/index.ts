@@ -41,4 +41,4 @@ export {
 } from './facing'
 export { currentProgram } from './timeline'
 export { getStatuses } from './statuses'
-export { isLegalMove, neighbors, isGuardedFront } from './board'
+export { getEntityIdAt, isLegalMove, neighbors, isGuardedFront } from './board'

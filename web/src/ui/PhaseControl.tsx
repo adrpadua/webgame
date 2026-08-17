@@ -4,7 +4,7 @@ import { selectState, useWorkbench, type WorkbenchStore } from '@/store/workbenc
 import type { EncounterState, Phase } from '@/engine'
 import { blocksTarget } from './firstTurnScript'
 import { useFirstTurnStep } from './useFirstTurn'
-import { phaseDetail } from './holdDetails'
+import { encounterTerms, phaseDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
 import { Modal } from './Modal'
 import { slotCanFire } from './slots'
@@ -89,10 +89,19 @@ function skipWarning(store: WorkbenchStore, state: EncounterState): SkipWarning 
 
 export function PhaseControl() {
   const state = useWorkbench(selectState)
+  const catalog = useWorkbench((store) => store.catalog)
   const advance = useWorkbench((store) => store.advance)
   const restart = useWorkbench((store) => store.restart)
   const step = useFirstTurnStep()
   const hold = useHold(phaseDetail(state.phase, true))
+  // The Encounter Clock, compact: the Boss line left the HUD, so the Round
+  // count rides the phase row and the Encounter's terms are a hold away.
+  const clockHold = useHold({
+    ...encounterTerms(catalog, state),
+    id: 'clock',
+    title: 'Encounter Clock',
+    badge: `Round ${state.round} of ${state.roundLimit}`,
+  })
   const nextGated = blocksTarget(step, 'next')
   const nextSpotlit = step !== null && step.targets.includes('next')
   // While a fatal batch is still replaying, the Restart control would give
@@ -105,17 +114,16 @@ export function PhaseControl() {
   // The scripted first turn narrates every press itself, so its Nexts skip
   // the warning.
   const onNext = () => {
-    // While a prompt-paced boss track is replaying, Next serves the playout:
-    // it stands in for the Continue bar between moments and waits out a
-    // moment still playing — it must never silently fast-forward unplayed
-    // beats. Auto playouts (the scripted first turn) keep Next as the
-    // script's own control.
+    // While a Boss Row is replaying, Next serves the playout: it stands in
+    // for the Continue bar between moments and waits out a moment still
+    // playing, in either pacing mode — the beats resolve as their window
+    // opens, and Next must never silently fast-forward the telling.
     const playout = usePlayout.getState()
     if (playout.awaitingContinue) {
       playout.continuePlayout()
       return
     }
-    if (playout.paced && playout.activeBeatId !== null) {
+    if (playout.activeBeatId !== null) {
       return
     }
     if (step === null && state.active) {
@@ -151,6 +159,15 @@ export function PhaseControl() {
             {entry.label}
           </span>
         ))}
+      </button>
+      <button
+        type="button"
+        {...clockHold.holdProps}
+        data-testid="round-display"
+        aria-label={`Round ${state.round} of ${state.roundLimit}`}
+        className={`min-h-11 min-w-11 shrink-0 rounded-lg text-[11px] font-semibold text-zinc-400 ${FOCUS_RING_CLASS}`}
+      >
+        {state.round}/{state.roundLimit}
       </button>
       {state.active || outcomeHeld ? (
         <button

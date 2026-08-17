@@ -15,19 +15,20 @@ const PHASE_COPY: Record<Phase, { title: string; tone: string }> = {
 
 export function PhaseBanner() {
   const state = useWorkbench(selectState)
+  const phase = state.phase
   const [shownPhase, setShownPhase] = useState<Phase | null>(null)
-  const previousPhase = useRef<Phase | null>(state.phase)
+  const previousPhase = useRef<Phase | null>(phase)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (previousPhase.current === state.phase) {
+    if (previousPhase.current === phase) {
       return
     }
-    previousPhase.current = state.phase
+    previousPhase.current = phase
     if (!state.active) {
       return
     }
-    setShownPhase(state.phase)
+    setShownPhase(phase)
     if (hideTimer.current !== null) {
       clearTimeout(hideTimer.current)
     }
@@ -37,7 +38,7 @@ export function PhaseBanner() {
         clearTimeout(hideTimer.current)
       }
     }
-  }, [state.phase, state.active])
+  }, [phase, state.active])
 
   // Never linger over the outcome banner: an Encounter that ends mid-banner
   // (or with the hide timer already cleared) drops the banner immediately.

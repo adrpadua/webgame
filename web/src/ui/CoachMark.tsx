@@ -65,7 +65,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | nul
       'border-amber-700 bg-amber-950/80 text-amber-100',
       "Embermaw's beat",
       'The Boss acts',
-      'Press Next to resolve the amber beats. Hold any beat chip to read what it does.',
+      'The amber beats resolve one at a time. Hold any beat chip to read what it does; Next moves on once they land.',
     )
   }
   if (fireable) {
@@ -128,7 +128,7 @@ export function CoachMark() {
   // hexes rather than shrinking the board when it appears.
   return (
     <div data-testid="coach-mark" data-tip={visibleTip.id}>
-      <div {...hold.holdProps} className={`wb-slide-up flex items-center gap-2 rounded-lg border px-2.5 py-1.5 shadow-xl ${visibleTip.tone}`}>
+      <div {...hold.holdProps} className={`wb-slide-up pointer-events-auto flex items-center gap-2 rounded-lg border px-2.5 py-1.5 shadow-xl ${visibleTip.tone}`}>
         <Icon className="h-4 w-4 shrink-0 opacity-80" />
         <p className="flex-1 text-xs font-semibold">{visibleTip.cue}</p>
         <button
