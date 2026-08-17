@@ -471,36 +471,43 @@ try {
   assert(stepsAfterConfirm === stepsBeforeConfirm + 1, 'a confirmed replacement records exactly one Scenario step')
 
   // Outside the script, a Boss Row steps through beat by beat: the batch
-  // that opens the window replays paced, the resolving beat lights its Boss
-  // Beat chip, and a Continue prompt gates each next beat, so the player
-  // reads every part of the turn.
+  // that opens the window replays paced, and every beat — the opening one
+  // included — waits behind a Continue prompt that names it, so the player
+  // reads every part of the turn before it lands.
   await next()
   await page.waitForSelector('[data-testid="playout-continue"]')
   assert((await phase()) === 'instant', 'Round 2 Next opens Boss Instant and paces its beats')
   await assertContrast(page, 'during a paced Boss row')
   await shot(page, 'boss-row-paced')
+  // The Row lands announced, not already swinging: no chip is lit yet.
   assert(
-    (await page.locator('[data-testid="beat-chip"][data-playing="true"]').count()) >= 1,
-    'the resolving beat lights its Boss Beat chip',
+    (await page.locator('[data-testid="beat-chip"][data-playing="true"]').count()) === 0,
+    'the opening prompt arms before any beat has played',
   )
   const promptText = await page.locator('[data-testid="playout-continue"]').textContent()
   assert((promptText ?? '').includes('Continue'), `the playout pauses on a Continue prompt (${promptText?.trim()})`)
   // The prompt is a trailer, not a caption: the beat it names is the beat
   // the press plays. Naming the beat already on the board made every press
-  // read as a skip, so hold the promise against what actually lights.
-  for (const press of ['first', 'second']) {
+  // read as a skip, so hold each promise against what actually lights. The
+  // Instant track's beats are pressed through one at a time until the last
+  // one settles the playout on its own.
+  const instantBeats = await page.locator('[data-testid="beat-track"][data-track="instant"] [data-testid="beat-chip"]').count()
+  assert(instantBeats > 1, `the Instant track lists more than one beat to press through (${instantBeats})`)
+  let presses = 0
+  // Bounded so a prompt that never retires fails loudly instead of hanging.
+  while ((await page.locator('[data-testid="playout-continue"]').count()) > 0 && presses <= instantBeats) {
     const prompt = page.locator('[data-testid="playout-continue"]')
-    await page.waitForSelector('[data-testid="playout-continue"]')
     const promised = (await prompt.getAttribute('data-next-beat')) ?? ''
-    assert(promised !== '', `the ${press} Continue prompt names the beat it will play`)
-    assert((await prompt.textContent())?.includes(promised), `the ${press} prompt shows that beat's name (${promised})`)
+    presses += 1
+    assert(promised !== '', `Continue prompt ${presses} names the beat it will play`)
+    assert((await prompt.textContent())?.includes(promised), `prompt ${presses} shows that beat's name (${promised})`)
     await prompt.click()
     const playing = ((await page.locator('[data-testid="beat-chip"][data-playing="true"]').first().textContent()) ?? '').trim()
-    assert(playing === promised, `the ${press} Continue plays the beat it promised (promised ${promised}, played ${playing})`)
-    await page.waitForSelector('[data-testid="playout-continue"]', { state: 'detached' })
+    assert(playing === promised, `Continue ${presses} plays the beat it promised (promised ${promised}, played ${playing})`)
+    // Let the moment settle so a next prompt — if there is one — can arm.
+    await page.waitForTimeout(900)
   }
-  // The last beat needs no prompt: give a wrongly-armed one time to appear.
-  await page.waitForTimeout(900)
+  assert(presses === instantBeats, `every beat of the Instant Row took its own press, the first included (${presses} of ${instantBeats})`)
   assert((await page.locator('[data-testid="playout-continue"]').count()) === 0, 'the last beat needs no prompt and the playout settles')
   // The resolved track waits in the Boss's window; Next moves on.
   assert((await phase()) === 'instant', 'the settled track waits in Boss Instant for Next')

@@ -9,11 +9,13 @@ import { BEAT_STAGGER_MS, EFFECT_SETTLE_MS, type BoardEffect, type HealthPlayout
 // lights), the moment's board effects, and what has not happened on screen
 // yet (ground scorched or Whelps spawned by unplayed moments).
 //
-// Pacing: the first moment plays when the batch lands. Between moments the
-// playout pauses on a Continue prompt naming the beat that press will play,
-// so the player can read each Boss Beat before it resolves — except in auto
-// mode (the scripted first turn, which gates its own controls), where
-// moments advance on a timer.
+// Pacing: every Boss Beat waits behind a press, the first one included. The
+// batch lands on a Continue prompt naming the beat that press will play, and
+// pauses on another between moments, so the player reads each Boss Beat
+// before it resolves rather than catching up to one already swung. Two
+// exceptions: auto mode (the scripted first turn, which gates its own
+// controls) advances on a timer, and a beatless batch — the player's own
+// killing blow — plays the moment it lands.
 //
 // Presentation only: nothing reads these values back into the rules, and
 // clearing the store (a new batch, time travel, unmount) always lands
@@ -127,8 +129,21 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
       cancelTimers()
       moments = script.moments
       autoMode = autoAdvance
+      // Nothing has played yet, so the batch starts one moment before its
+      // first: -1 is what continuePlayout counts from and what pendingAfter
+      // reads to hold every moment's hazards, spawns and turns back.
+      momentIndex = -1
       set({ ...IDLE, overrides: { ...script.initial }, outcomeHeld: script.endsEncounter, paced: !autoAdvance })
-      fireMoment(0)
+      const opening = moments[0]
+      // Auto mode presses nothing at all, and a beatless batch is the
+      // player's own blow landing — immediate feedback, never something to
+      // ask for. Everything else is a Boss Row, and a Boss Row lands
+      // announced rather than already swinging.
+      if (autoAdvance || opening === undefined || opening.beatId === null) {
+        fireMoment(0)
+        return
+      }
+      set({ awaitingContinue: true, nextBeatTitle: opening.beatTitle, ...pendingAfter(-1) })
     },
     continuePlayout: () => {
       if (!get().awaitingContinue || momentIndex + 1 >= moments.length) {
