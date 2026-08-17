@@ -62,7 +62,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | nul
     return tip(
       'boss-beat',
       SwordIcon,
-      'border-amber-700 bg-amber-950/80 text-amber-100',
+      'wb-face-steel wb-acc-ember text-coral-100',
       "Embermaw's beat",
       'The Boss acts',
       'The amber beats resolve one at a time. Hold any beat chip to read what it does; Next moves on once they land.',

@@ -132,7 +132,7 @@ export function cardEffect(card: Card): CardEffect {
 }
 
 export const CARD_EFFECT_TONE: Record<CardEffect, { text: string; icon: typeof SwordIcon }> = {
-  attack: { text: 'text-rose-400', icon: SwordIcon },
+  attack: { text: 'text-coral-400', icon: SwordIcon },
   guard: { text: 'text-glass-400', icon: ShieldIcon },
   heal: { text: 'text-ceramic-300', icon: HeartIcon },
   utility: { text: 'text-zinc-300', icon: HexIcon },
@@ -159,7 +159,7 @@ export function cardStatLine(card: Card): string {
 }
 
 const VIGNETTE_TONE: Record<CardEffect, { from: string; glyph: string }> = {
-  attack: { from: 'from-rose-950', glyph: 'text-rose-500' },
+  attack: { from: 'from-coral-950', glyph: 'text-coral-500' },
   guard: { from: 'from-glass-950', glyph: 'text-glass-500' },
   heal: { from: 'from-ceramic-950', glyph: 'text-ceramic-400' },
   utility: { from: 'from-zinc-900', glyph: 'text-zinc-400' },

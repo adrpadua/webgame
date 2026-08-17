@@ -39,7 +39,7 @@ The core palette is already locked in [art-prompts/_style-preamble.md](art-promp
 | Living gold | `#C8A344` | Controls, charge tumblers, armor plate edges, Slow timing |
 | Signal cloth | Per role; Shield Wall is `#2F5680` | Role channel on a console, phase banners, warning trim |
 | Ember | `#D9482F` | Damage taken, danger, irreversible action |
-| Ember coral | `#E0703B` | Boss health, scorch, hazard fill |
+| Ember coral | `#E0703B` | The Boss wherever it appears: its token, health, rows, beats, emblem — and damage *dealt* to it |
 
 Colour reads as role and material, never as decoration. If a new colour is needed, the answer is almost always that the wrong material was chosen.
 
@@ -48,6 +48,11 @@ Two entries need their scope stated, because both look like contradictions other
 **Signal cloth is a material, not a value.** The bible treats it as a saturated per-Hero role accent, so it cannot have one fixed hex. `#2F5680` is Shield Wall's, and every future role picks its own within the material. It is the one row in this table that is allowed to grow.
 
 **Ember and ember coral are one family in two jobs.** The preamble allows a single warm accent, and this does not spend two: ember is the interface's warning, ember coral is Embermaw's own body. They never appear in the same element, and a second boss brings its own material rather than a third warm.
+
+Two assignments that follow from that split, settled when the last non-material warms were swept off the chrome:
+
+- **A player's `attack` effect is ember coral, not ember.** It is damage the player *deals*, and it lands on the Boss's body — the board already flashes the Boss in coral when a strike resolves, so the card's effect tone matches what its strike does. Damage *taken* by the player is ember. Dealt and taken are the one warm family at two saturations, the same way Boss and Minion are.
+- **A Status Effect on the Hero is living gold.** Riposte Ready is the Hero's own oathcraft acting — the gate catching a blow and turning — so it wears the material of every mechanism the player operates, not a warning colour.
 
 ## Texture, And What Is Banned
 
@@ -241,9 +246,11 @@ Each rule keys to something the engine already knows, so none of this needs new 
 | Boss program, both rows | 102pt band, always | The strip is tapped, or a Phase Reveal fires | ~62pt |
 | Resolving beat | Inside that band | Always, as one floating chip line | — |
 | Phase strip, five chips | 61pt band, always | Folded into the state bar as the current phase name | ~61pt |
-| Hand, four cards | 121pt band, always | A player window is open — Loadout, Quick, or Slow. Otherwise a 26pt peek strip | ~95pt when idle |
+| Hand, four cards | 121pt band, always | Live only in a player window — Loadout, Quick, or Slow. During a Boss row it recedes in place: inert, dimmed, same height | none — see below |
 | Action Bar, two Slots | 97pt band, always | Compact 44pt plates floating bottom-left; full width only while loading or charging | ~53pt |
 | Stat Panel | Already on demand | A piece is tapped — no change | — |
+
+**A correction, made after the board took its full width.** The recovery figures in this table were computed while the board was width-bound at 302px by the MovePad's reserved gutters. Once those gutters went and the board reached the full 390px, it became width-bound at the viewport itself: no amount of vertical space can make it larger on this phone. So hiding the Hand recovers **nothing for the board**, and shrinking the band would also break the contract that the board never resizes mid-Encounter. What the Hand rule still buys is hierarchy — during a Boss row the Hand recedes in place and the board becomes the loudest thing on screen — and that is the part worth having.
 
 **The Hand rule is the one to defend, because it is rules-derived rather than borrowed.** Boss Rows resolve in the Instant and Incoming phases, and a player cannot play a card in either — the window model and the Slot Activation Limit already say so. A Hand at full height through a phase where every card is illegal is the interface asserting something the rules deny.
 
