@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { facingName, hexKey, parseHexKey, type Axial, type EncounterState } from '@/engine'
 import { axialToPixel, hexCorners, pixelToAxial, HEX_SIZE } from './layout'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
+import { idleBobOffset } from './ambience'
 import { boardPalette, toneColors } from './palette'
 import { idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
 
@@ -93,13 +94,6 @@ const HIGHLIGHT_SPAN = (Math.PI * 2) / 3
 const RIM_ANGLE = LIGHT_ANGLE + Math.PI
 const RIM_SPAN = Math.PI / 2
 
-// A small, slow rise and fall so a board with nothing happening on it still
-// breathes. Each piece takes its own phase from its id, so they never pulse
-// in unison and the board never looks metronomic. The drop shadow stays put
-// while the body moves, which is what sells the lift.
-const IDLE_BOB_PIXELS = 2
-const IDLE_BOB_PERIOD_MS = 2600
-
 // How far a tile's darker skirt drops below its face.
 const TILE_DEPTH = 6
 const TILE_SKIRT_SHADE = 0.45
@@ -180,25 +174,16 @@ function tileJitter(coords: Axial): number {
   return h - Math.floor(h)
 }
 
-// Where in its bob cycle a piece starts, in [0, 1). Derived from the id so a
-// piece keeps the same phase for as long as it is on the board.
-function idlePhase(entityId: string): number {
-  let hash = 0
-  for (let index = 0; index < entityId.length; index += 1) {
-    hash = (hash * 31 + entityId.charCodeAt(index)) % 997
-  }
-  return hash / 997
-}
-
 export class BoardScene extends Phaser.Scene {
   private snapshot: BoardSnapshot | null = null
   private graphicsLayer: Phaser.GameObjects.Graphics | null = null
   private labels: Phaser.GameObjects.Text[] = []
-  // What the live labels were built from. The idle bob redraws the board every
-  // frame, and every Phaser Text rasterises its own texture, so rebuilding
-  // labels at that rate would churn textures for nothing: the bob moves piece
-  // bodies, never their labels. These two let an idle frame keep the labels it
-  // already has, while a snapshot change or a live effect still rebuilds them.
+  // What the live labels were built from. Board Ambience redraws the board
+  // every frame, and every Phaser Text rasterises its own texture, so
+  // rebuilding labels at that rate would churn textures for nothing: ambience
+  // moves piece bodies and sheet frames, never their labels. These two let an
+  // idle frame keep the labels it already has, while a snapshot change or a
+  // live effect still rebuilds them.
   private labelsSnapshot: BoardSnapshot | null = null
   private labelsHaveEffects = false
   private active: ActiveEffect[] = []
@@ -299,14 +284,15 @@ export class BoardScene extends Phaser.Scene {
     }
   }
 
-  // The piece's offset in its idle cycle right now. Zero under reduced motion,
-  // and zero while any effect owns the piece: a bob layered onto a strike or a
-  // move slide reads as a wobble, not a breath.
-  private idleBob(entityId: string): number {
-    if (this.reducedMotion || this.active.some((effect) => effect.entityId === entityId && effect.elapsed >= 0)) {
+  // The piece's offset in its idle cycle right now, which only a piece that
+  // flies has: see ambience.ts. Zero as well under reduced motion, and zero
+  // while any effect owns the piece — a bob layered onto a strike or a move
+  // slide reads as a wobble, not a breath.
+  private idleBob(entity: { id: string; kind: string }): number {
+    if (this.reducedMotion || this.active.some((effect) => effect.entityId === entity.id && effect.elapsed >= 0)) {
       return 0
     }
-    return Math.sin((this.time.now / IDLE_BOB_PERIOD_MS + idlePhase(entityId)) * Math.PI * 2) * IDLE_BOB_PIXELS
+    return idleBobOffset(entity.kind, entity.id, this.time.now)
   }
 
   // --- Effect readouts -------------------------------------------------
@@ -559,9 +545,10 @@ export class BoardScene extends Phaser.Scene {
       const motion = this.motionFor(entity.id)
       const x = base.x + motion.dx
       const y = base.y + motion.dy
-      // The body breathes; the shadow it casts stays on the ground, which is
-      // what reads as a lift rather than the whole piece sliding.
-      const bodyY = y + this.idleBob(entity.id)
+      // A flying piece rises off the shadow it casts, and that gap is what
+      // reads as a lift rather than the whole piece sliding. A piece that
+      // stands keeps its feet on the tile and breathes inside its own sheet.
+      const bodyY = y + this.idleBob(entity)
       const baseRadius = entity.kind === 'boss' ? 22 : entity.kind === 'hero' ? 16 : 12
       const radius = Math.max(baseRadius * motion.scale, 1)
       const fill = entity.kind === 'boss' ? BOSS_FILL : entity.kind === 'hero' ? HERO_FILL : MINION_FILL
@@ -569,7 +556,8 @@ export class BoardScene extends Phaser.Scene {
       graphics.fillCircle(x + 2, y + 3, radius)
       // A piece with an authored sheet is drawn as itself. The shadow above
       // stays either way: it is what plants the piece on the tile, and it is
-      // cast from the resting position so it does not rise with the bob.
+      // cast from the resting position, so a flying piece rises off it while a
+      // standing one sits on it.
       if (this.placeSprite(entity, x, bodyY, motion)) {
         // The sheet draws its own facing, its own light, and its own rim, so
         // the token's crescent, highlight and facing wedge would all be a
