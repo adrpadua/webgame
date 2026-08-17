@@ -252,7 +252,10 @@ export function EntityInspect() {
         data-testid="inspect-dismiss"
         aria-label="Close the stat panel"
         onClick={dismissInspect}
-        className={`min-h-11 min-w-11 shrink-0 text-xs font-bold opacity-60 transition hover:opacity-100 ${FOCUS_RING_CLASS}`}
+        // A live control never dims its own glyph: at opacity-60 the ✕ scored
+        // 3.99:1 on the Hero's ceramic face. It carries the shell's colour at
+        // full strength and answers the pointer by growing instead.
+        className={`min-h-11 min-w-11 shrink-0 text-xs font-bold transition hover:scale-110 ${FOCUS_RING_CLASS}`}
       >
         ✕
       </button>

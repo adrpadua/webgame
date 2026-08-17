@@ -148,6 +148,15 @@ try {
         const body = parse(getComputedStyle(document.body).backgroundColor) || { r: 9, g: 9, b: 11, a: 1 }
         return acc.a === 0 ? body : over(acc, body)
       }
+      // GATED_CLASS is `pointer-events-none opacity-30 saturate-50`. Match
+      // both halves: pointer-events-none alone rides live overlay wrappers
+      // (the toast, the Phase Banner, the MovePad), whose text is checked.
+      const isGated = (el) => {
+        for (let a = el; a && a !== document.body; a = a.parentElement) {
+          if (a.classList.contains('pointer-events-none') && a.classList.contains('opacity-30')) return true
+        }
+        return false
+      }
       const fails = []
       const seen = new Set()
       const root = document.querySelector('[data-testid="play-surface"]') || document.body
@@ -164,7 +173,13 @@ try {
         if (cs.visibility === 'hidden' || cs.display === 'none') continue
         let op = 1
         for (let a = el; a && a !== document.body; a = a.parentElement) op *= parseFloat(getComputedStyle(a).opacity)
-        if (op < 0.5 || el.closest('[disabled]') || el.closest('[data-inert="true"]')) continue
+        // Fully transparent text is not presented, so 1.4.3 has nothing to
+        // say about it. Everything else is held to the ratio at its real
+        // opacity: a live label dimmed to 0.4 by a bug must fail rather than
+        // slip under a blanket threshold. Only genuinely inactive components
+        // are exempt — disabled controls, the receded Hand, and the gated
+        // overlay, which is the one place opacity is the disabled styling.
+        if (op === 0 || el.closest('[disabled]') || el.closest('[data-inert="true"]') || isGated(el)) continue
         const fg = parse(cs.color)
         if (!fg) continue
         const bg = bgOf(el)
@@ -187,6 +202,17 @@ try {
     await pg.screenshot({ path: `${shotsDir}/${String(shotIndex).padStart(2, '0')}-${name}.png`, fullPage: false })
   }
   const assertContrast = async (pg, label) => {
+    // Entrance motion (wb-slide-up, wb-seat, the Phase Banner) passes
+    // through low opacity on its way in, so a probe that lands mid-flight
+    // scores a ratio no player is ever shown. Let every finite animation
+    // reach its end state first; ambient loops never finish by definition
+    // and are excluded, which is correct — they hold text opacity steady.
+    await pg.waitForFunction(() =>
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+        .every((a) => a.playState === 'finished'),
+    )
     const fails = await contrastFailures(pg)
     assert(fails.length === 0, `text contrast meets WCAG 1.4.3 ${label} (${fails.join(' | ') || 'all pass'})`)
   }

@@ -71,11 +71,16 @@ export function MovePad() {
             // overlapping the board — the smoke suite asserts on exactly that.
             // It stays a square steel plate: unrounded, edged, no rake. A legal
             // destination is a player affordance, so it reads in runeglass.
+            // A pad the guidance is not pointing at stays legal and clickable,
+            // so it recedes by dropping its edge and its pulse — never by
+            // dimming the label, which would take a live control under 4.5:1.
             className={`min-h-11 min-w-11 border text-xs font-bold transition ${FOCUS_RING_CLASS} ${
               legal
-                ? `border-glass-500 bg-glass-950/90 text-glass-200 hover:bg-glass-900/90 ${dimmed ? '' : 'wb-ring-pulse'}`
+                ? dimmed
+                  ? 'border-glass-800 bg-glass-950/90 text-glass-300 hover:bg-glass-900/90'
+                  : 'border-glass-500 bg-glass-950/90 text-glass-200 hover:bg-glass-900/90 wb-ring-pulse'
                 : 'border-steel-800 bg-steel-950/80 text-zinc-700'
-            } ${guided ? `border-zinc-100 ${SPOTLIGHT_CLASS}` : ''} ${dimmed ? 'opacity-40' : ''}`}
+            } ${guided ? `border-zinc-100 ${SPOTLIGHT_CLASS}` : ''}`}
           >
             {facingName(direction)}
           </button>
