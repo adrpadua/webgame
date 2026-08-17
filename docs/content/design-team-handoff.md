@@ -106,7 +106,7 @@ file is the authority when this table and the code disagree.
 | Boss Program / Beat: `data/boss_programs/` | Program identity plus non-empty ordered `instant_beats` and `incoming_beats` — row membership is timing. Every Beat carries identity, rules text, visible `counter_tags`, a `consequence_tier` (`chip` anywhere, `structural` no later than Incoming, `severe` in the Forecast Row first — ADR 0026), and the fields its `kind` requires: `damage`, `unguarded_bonus`, `hazard`, `minion`, `count`, `duration_rounds`, `escalation_if_unanswered`. |
 | Hazard: `data/hazards/` | Identity, `duration_rounds`, and at least one supported behavior: `enter_damage` or `blocks_voluntary_movement`. |
 | Minion: `data/minions/` | Identity, positive `max_health`, `attack_damage`, and complete rules text. Boss Beats reference the Minion they spawn. New Minion triggers or movement rules require engineering. |
-| Encounter: `data/encounters/` | Hero and Boss identity, `board_radius`, legal starts, health, `slot_count`, `hand_refill_target`, complete `player_deck`, ordered `boss_programs`, `loop_boss_programs`, `round_limit` and `enrage_text`, `random_seed`, `brood_spawn_candidates`, optional `phase_trigger` + `phase_two_programs` + `phase_break_text` (ADR 0023), and optional `escalation_thresholds` (ADR 0027). No new file to register — it appears in the Workbench's Encounter list on save. |
+| Encounter: `data/encounters/` | Hero and Boss identity, `board_radius`, legal starts, health, `slot_count`, `hand_refill_target`, complete `player_deck`, ordered `boss_programs`, `loop_boss_programs`, `round_limit` and `enrage_text`, `random_seed`, `minion_spawn_candidates`, optional `phase_trigger` + `phase_two_programs` + `phase_break_text` (ADR 0023), and optional `escalation_thresholds` (ADR 0027). No new file to register — it appears in the Workbench's Encounter list on save. |
 | Evaluation deck: `data/decks/` | Identity, the `encounter` it is played against, and a complete `player_deck`. Used by the balance tooling to compare decklists against one fight. |
 | Scenario: `data/scenarios/` | Named, versioned action sequence replayed from a seeded initial state — never a state snapshot. Author these by exporting from the debug rail rather than by hand. |
 
@@ -149,8 +149,11 @@ closed set the engine switches on:
   target damage, and applying one authored Status. Anything else — pushing a
   piece, drawing a card, changing a cost, scaling off board state — is new
   engine code.
-- **Boss Beat kinds.** `turn_toward_player`, `raking_claw`,
-  `scorch_last_pattern`, `cinder_breath`, `brood_call`, `warning`.
+- **Boss Beat kinds.** `turn_toward_player`, `targeted_hit`,
+  `hazard_last_impact`, `forward_cone`, `spawn_minions`, `warning`. A kind
+  names the mechanic; the Beat's `title` and `rules_text` carry the Boss's
+  flavour, and what varies between Bosses — `damage`, `hazard`, `minion`,
+  `count` — is an authored field on the Beat.
 - **Status triggers.** `on_round_start`, `on_enter_hex`, `on_damage_taken`,
   `on_slot_fired`.
 - **Target families.** `none`, `hex`, `board_slot`, `piece`.
