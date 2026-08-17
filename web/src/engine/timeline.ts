@@ -24,9 +24,12 @@ export function actionsForTrack(catalog: ContentCatalog, state: EncounterState, 
   return beats.map((beat) => ({ kind: 'resolve_boss', sourceId: state.bossId, beat, track }))
 }
 
-function nextMinionId(draft: EncounterState): string {
+// Entity ids are derived from the authored Minion rather than hardcoded, so a
+// second Minion type does not spawn as `whelp_3`. Embermaw's Whelp is content
+// id `whelp`, so today this produces exactly the ids it always did.
+function nextMinionId(draft: EncounterState, minionContentId: string | undefined): string {
   draft.minionSequence += 1
-  return `whelp_${draft.minionSequence}`
+  return `${minionContentId ?? 'minion'}_${draft.minionSequence}`
 }
 
 // Authored Boss Beat resolution (ADR 0016 carried over): the spatial rule for
@@ -85,10 +88,10 @@ export function resolveBossBeat(
       scorchedHexes = [...patternHexes]
       scorchedDurationRounds = beat.duration_rounds
       break
-    case 'brood_call':
+    case 'spawn_minions':
       spawnHexes = [...draft.telegraphedSpawnHexes]
       if (spawnHexes.length === 0) {
-        spawnHexes = firstEmptyHexes(draft.broodSpawnCandidates, emptyHexes(draft.board), beat.count + escalated.extraSpawnCount)
+        spawnHexes = firstEmptyHexes(draft.spawnCandidates, emptyHexes(draft.board), beat.count + escalated.extraSpawnCount)
       }
       break
     case 'warning':
@@ -147,7 +150,7 @@ export function resolveBossBeat(
     actions.push({
       kind: 'spawn_minion',
       sourceId: bossId,
-      minionId: nextMinionId(draft),
+      minionId: nextMinionId(draft, beat.minion),
       coords,
       minionContentId: beat.minion,
     })
@@ -172,17 +175,17 @@ export function refreshTelegraphs(catalog: ContentCatalog, draft: EncounterState
           draft.telegraphs[hexKey(coords)] = 'cone'
         }
         break
-      case 'brood_call': {
+      case 'spawn_minions': {
         // The telegraph must not lie: it previews the escalated count.
         const count = beat.count + escalationModifiers(draft).extraSpawnCount
-        for (const coords of draft.broodSpawnCandidates) {
+        for (const coords of draft.spawnCandidates) {
           if (draft.telegraphedSpawnHexes.length >= count) {
             break
           }
           const key = hexKey(coords)
           if (draft.board.hexes[key] && !Object.values(draft.board.entities).some((entity) => hexKey(entity.coords) === key)) {
             draft.telegraphedSpawnHexes.push(coords)
-            draft.telegraphs[key] = 'brood'
+            draft.telegraphs[key] = 'spawn'
           }
         }
         break

@@ -101,7 +101,7 @@ export const bossBeatSchema = z.object({
   // Embermaw's version of the mechanic was duplicating a field it could not
   // keep in sync: nothing stopped a frost Boss authoring `hazard: "frozen"` on
   // a Beat kind called `cinder_breath`.
-  kind: z.enum(['turn_toward_player', 'targeted_hit', 'hazard_last_impact', 'forward_cone', 'brood_call', 'warning']),
+  kind: z.enum(['turn_toward_player', 'targeted_hit', 'hazard_last_impact', 'forward_cone', 'spawn_minions', 'warning']),
   counter_tags: z.array(z.string()).default([]),
   // Consequence Tier (ADR 0026): sets the earliest horizon this Beat may
   // appear in. `chip` anywhere, `structural` no later than Incoming, `severe`
@@ -114,7 +114,7 @@ export const bossBeatSchema = z.object({
   unguarded_bonus: z.number().int().min(0).default(0),
   // Escalation acceleration (ADR 0027): what it costs to leave this Beat's
   // demand standing at a Round end. Only the living-Minion demand is
-  // supported, so today this rides `brood_call`.
+  // supported, so today this rides `spawn_minions`.
   escalation_if_unanswered: z.number().int().min(0).default(0),
   duration_rounds: z.number().int().min(1).default(1),
   hazard: z.string().optional(),
@@ -190,7 +190,7 @@ export const encounterSchema = z.object({
   phase_two_programs: z.array(z.string()).default([]),
   phase_break_text: z.string().default(''),
   random_seed: z.number().int(),
-  brood_spawn_candidates: z.array(axialSchema).default([]),
+  minion_spawn_candidates: z.array(axialSchema).default([]),
   escalation_thresholds: z.array(escalationThresholdSchema).default([]),
 })
 

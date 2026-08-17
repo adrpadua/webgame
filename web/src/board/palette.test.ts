@@ -13,7 +13,7 @@ describe('the board palette', () => {
   it('ranks the warm side down one ramp by imminence', () => {
     const p = boardPalette()
     const ramp = [TOKENS['coral-300'], TOKENS['coral-400'], TOKENS['coral-500'], TOKENS['coral-700'], TOKENS['coral-900']]
-    expect([p.coneOverlay, p.broodOverlay, p.bossFill, p.minionFill, p.scorchedFill]).toEqual(ramp)
+    expect([p.coneOverlay, p.spawnOverlay, p.bossFill, p.minionFill, p.scorchedFill]).toEqual(ramp)
   })
 
   // Ember is damage taken. A Boss drawn in it says the Boss is a wound.

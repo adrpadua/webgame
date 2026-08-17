@@ -47,7 +47,7 @@ export interface BoardPalette {
   heroFill: number
   moveOverlay: number
   coneOverlay: number
-  broodOverlay: number
+  spawnOverlay: number
   bossFill: number
   minionFill: number
   scorchedFill: number
@@ -77,7 +77,7 @@ export function boardPalette(): BoardPalette {
     heroFill: readToken('cloth-500'),
     moveOverlay: readToken('glass-400'),
     coneOverlay: readToken('coral-300'),
-    broodOverlay: readToken('coral-400'),
+    spawnOverlay: readToken('coral-400'),
     bossFill: readToken('coral-500'),
     minionFill: readToken('coral-700'),
     scorchedFill: readToken('coral-900'),

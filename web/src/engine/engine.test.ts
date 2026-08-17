@@ -407,14 +407,14 @@ describe('encounter setup', () => {
     // Round 1 asks the Tank to hold and then step out of the cone, nothing else
     // (D-036).
     expect(state.telegraphedSpawnHexes).toEqual([])
-    expect(Object.values(state.telegraphs)).not.toContain('brood')
+    expect(Object.values(state.telegraphs)).not.toContain('spawn')
   })
 
   it('telegraphs the spawn hexes on the Round that actually calls Whelps', () => {
     const state = stepPhases(immortalHero(startBroodSecond()), 5).state
     expect(state.currentProgramId).toBe('embermaw_brood')
     expect(state.telegraphedSpawnHexes.length).toBeGreaterThan(0)
-    expect(Object.values(state.telegraphs)).toContain('brood')
+    expect(Object.values(state.telegraphs)).toContain('spawn')
   })
 
   it('is deterministic for a fixed seed', () => {
@@ -897,7 +897,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     const priced = structuredClone(catalog)
     for (const program of Object.values(priced.programs)) {
       for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
-        if (beat.kind === 'brood_call') {
+        if (beat.kind === 'spawn_minions') {
           beat.escalation_if_unanswered = 1
         }
       }
@@ -924,7 +924,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     const encounter = catalog.encounters.embermaw_prototype
     const priced = Object.values(catalog.programs)
       .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
-      .filter((beat) => beat.kind === 'brood_call' && beat.escalation_if_unanswered > 0)
+      .filter((beat) => beat.kind === 'spawn_minions' && beat.escalation_if_unanswered > 0)
     expect(priced.length).toBeGreaterThan(0)
     const whelpHealth = catalog.minions.whelp.max_health
     const answers = encounter.player_deck.filter((entry) => {
