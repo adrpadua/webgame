@@ -1734,6 +1734,35 @@ describe('Encounter Records (schema_version 2)', () => {
     const second = await contentIdentity(catalog, 'embermaw_prototype')
     expect(second.fingerprint).toBe(first.fingerprint)
     expect(first.ids.length).toBeGreaterThanOrEqual(10)
+    expect(first.ids.some((id) => id.startsWith('deck:') || id.startsWith('scenario:'))).toBe(false)
+  })
+
+  it('changes content identity when a reachable Phase II Boss Program changes', async () => {
+    const encounterId = 'embermaw_prototype'
+    const phaseTwoProgramId = catalog.encounters[encounterId].phase_two_programs[0]
+    const before = await contentIdentity(catalog, encounterId)
+    const changed = structuredClone(catalog)
+    changed.programs[phaseTwoProgramId].rules_text += ' Identity mutation.'
+    const after = await contentIdentity(changed, encounterId)
+
+    expect(before.ids).toContain(`boss_program:${phaseTwoProgramId}`)
+    expect(after.fingerprint).not.toBe(before.fingerprint)
+  })
+
+  it('changes content identity when a Status Effect reachable through a deck Card changes', async () => {
+    const encounterId = 'embermaw_prototype'
+    const statusId = 'fortified'
+    const cardId = catalog.encounters[encounterId].player_deck[0].card
+    const withStatusCard = structuredClone(catalog)
+    withStatusCard.cards[cardId].applies_status = statusId
+    withStatusCard.cards[cardId].target_type = 'none'
+    const before = await contentIdentity(withStatusCard, encounterId)
+    const changed = structuredClone(withStatusCard)
+    changed.statuses[statusId].rules_text += ' Identity mutation.'
+    const after = await contentIdentity(changed, encounterId)
+
+    expect(before.ids).toContain(`status:${statusId}`)
+    expect(after.fingerprint).not.toBe(before.fingerprint)
   })
 })
 

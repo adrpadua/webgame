@@ -249,6 +249,72 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
   return catalog
 }
 
+// Every authored definition that can change one selected Encounter's rules.
+// The Content Catalog owns this traversal because it already owns the
+// cross-reference graph. Consumers decide what to do with the result: an
+// Encounter Record sorts and hashes it, while evaluation decks and Scenarios
+// stay outside because neither changes the Encounter reached at runtime.
+export function reachableEncounterContent(catalog: ContentCatalog, encounterId: string): Map<string, unknown> {
+  const encounter = catalog.encounters[encounterId]
+  if (!encounter) {
+    throw new Error(`Unknown encounter: ${encounterId}`)
+  }
+
+  const reachable = new Map<string, unknown>()
+  const requireDefinition = <T>(kind: string, id: string, definitions: Record<string, T>): T => {
+    const definition = definitions[id]
+    if (!definition) {
+      throw new Error(`Encounter ${encounterId} reaches unknown ${kind} ${id}`)
+    }
+    reachable.set(`${kind}:${id}`, definition)
+    return definition
+  }
+  const addKeyword = (id: string): void => {
+    requireDefinition('keyword', id, catalog.keywords)
+  }
+  const visitedCards = new Set<string>()
+  const addCard = (id: string): void => {
+    const card = requireDefinition('card', id, catalog.cards)
+    if (visitedCards.has(id)) {
+      return
+    }
+    visitedCards.add(id)
+    card.tags.forEach(addKeyword)
+    for (const modifierId of card.charge_modifiers) {
+      const modifier = requireDefinition('charge_modifier', modifierId, catalog.chargeModifiers)
+      if (modifier.keyword_id !== '') {
+        addKeyword(modifier.keyword_id)
+      }
+    }
+    if (card.applies_status !== '') {
+      requireDefinition('status', card.applies_status, catalog.statuses)
+    }
+  }
+  const visitedPrograms = new Set<string>()
+  const addProgram = (id: string): void => {
+    const program = requireDefinition('boss_program', id, catalog.programs)
+    if (visitedPrograms.has(id)) {
+      return
+    }
+    visitedPrograms.add(id)
+    for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
+      if (beat.hazard) {
+        requireDefinition('hazard', beat.hazard, catalog.hazards)
+      }
+      if (beat.minion) {
+        requireDefinition('minion', beat.minion, catalog.minions)
+      }
+    }
+  }
+
+  reachable.set(`encounter:${encounterId}`, encounter)
+  encounter.player_deck.forEach((entry) => addCard(entry.card))
+  for (const programId of [...encounter.boss_programs, ...encounter.phase_two_programs]) {
+    addProgram(programId)
+  }
+  return reachable
+}
+
 // The Top Card alone determines activation timing; legacy "fast" reads as quick.
 export function cardWindowSpeed(card: Card): 'quick' | 'slow' {
   if (card.speed === 'fast') {
