@@ -30,7 +30,6 @@ export interface HeroState {
   health: number
   maxHealth: number
   armor: number
-  presence: number
   deck: CardInstance[]
   hand: CardInstance[]
   discard: CardInstance[]
