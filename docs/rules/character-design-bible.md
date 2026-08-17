@@ -99,6 +99,19 @@ When the role responds well, the board makes success visible. Examples include a
 
 A second Hero of an existing role must claim a distinct strength-and-price pattern, not a re-skinned copy of the first. The subclass grammar in the [champion design research note](../content/research/2026-08-16-lol-champion-design-lessons.md) is the working vocabulary: Elian Voss is the Warden-style tank (hold the line, lock the front, protect), so the second tank claims the Vanguard pattern (initiation and tempo — forcing Boss facing, opening windows — paid for with weaker sustained mitigation); the proposed Vanguard, Kessa Varn, is designed in [kessa-varn-design.md](../content/heroes/kessa-varn-design.md).
 
+## Tank Design Principles
+
+Any Hero whose raid job is holding dangerous space must satisfy all six principles below, in addition to the Hero Design Contract and Design Value Review. They are distilled from the [tank solo-ceiling research note](../content/research/2026-08-17-tank-solo-ceiling-design.md) and enforce D-016: the tank must be excellent at its axis yet structurally unable to solo the raid.
+
+| Principle | Rule | Design test |
+| --- | --- | --- |
+| Sustain is a stream, not a budget | The tank's kit converts hits into survivable form (Armor sized to the hit, cleared each Round) but owns no meaningful Health income. Authored attrition per Round exceeds what mitigation can fully blank on average: perfect play slows the bleed, never stops it. | Across an evaluation cohort, a solo tank's Health trend is monotonically downward under optimal play. The Warden makes a hit survivable; only a Healer makes it sustainable. |
+| Both failure walls stay live | The Encounter Clock closes the survive-forever stalemate; authored attrition closes the damage race. Solo optimal play must lose to both. | No evaluation policy reaches Boss defeat (D-016 red flag) and none survives the full clock comfortably. A policy that dodges one wall by refusing an axis (for example, range camping) is an encounter authoring defect. |
+| Structural over numeric ceilings | The solo ceiling is built from demands a single body cannot meet — role-locked counter tags, simultaneous positional demands, occupy-or-pay hexes — never from numbers alone, because numeric ceilings erode under optimization. | Ask of every solo-ceiling mechanism: would doubling the tank's stats break it? If yes, it is a numeric patch, not a ceiling. |
+| Escalation outpaces one actor's economy | Threat per Round grows with the encounter (Minion accumulation, phase pressure, added demands); actions per Round grow only with Party size. One Hero's Slots and card income must be visibly insufficient for the full demand set by mid-encounter. | By the Round-4 checkpoint, the board carries at least one live demand the solo tank had no economy to answer. |
+| The loss reads "I need my team" | The solo tank's own axis is visibly won — prevented damage and held position credited in the HUD and Encounter Records — while unanswered demands are labeled for absent roles. Defeat is attributed to empty Party slots, never to tank weakness. | A playtester who loses the solo slice names a missing role, not a personal failure, when asked why the run ended. |
+| Party scaling raises the walls, not the tank | Boss health and demand density scale with Party size; the tank's own numbers stay constant across Party sizes so mastery transfers and the solo slice stays an honest diagnostic. | The same tank line plays identically in solo and Party cohorts; only the encounter around it changes. |
+
 ## Healer Design Principles
 
 Any Hero whose raid job is preserving allies must satisfy all five principles below, in addition to the Hero Design Contract and Design Value Review. They are distilled from the [support/healer design research note](../content/research/2026-08-17-healer-support-design-lessons.md), whose strongest evidence is what happens when they are violated.

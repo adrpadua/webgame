@@ -49,7 +49,7 @@ Researcher inference, grounded in the findings and this game's numbers:
 
 ## Suggested Next Steps
 
-1. Fold the six principles into `docs/rules/character-design-bible.md` (pending review) as a Tank Design Principles section beside the Healer one, and cross-reference D-016.
+1. **Done 2026-08-17.** The six principles are documented as the `Tank Design Principles` section of `docs/rules/character-design-bible.md`, beside the Healer Design Principles, cross-referencing D-016.
 2. Elevate range-camping counter-pressure (backlog issue 15) to the top of pre-playtest engine work — it is the enforcement mechanism for principles 1-2, and the sweep gives it a regression metric (`victory%⚠` and `enrage%` for `far` policies must both fall).
 3. Design the hex-tower Beat pattern (principle 3) as the first structural multi-body mechanic — it needs the Party model eventually, but its solo form ("unoccupiable demand") already creates honest pressure.
 4. Give Whelps end-of-round intent (D-006) so escalation outpaces one actor's economy (principle 4).
