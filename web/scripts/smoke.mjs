@@ -52,7 +52,10 @@ const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--stric
 
 try {
   await waitForServer(BASE_URL)
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
+  // Let Playwright resolve the browser it installed (`npx playwright install
+  // chromium`). PLAYWRIGHT_CHROMIUM_PATH overrides it for images that ship
+  // their own build at a fixed path.
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined })
   const page = await browser.newPage({ viewport: { width: 1400, height: 950 } })
   await page.goto(BASE_URL)
   await page.waitForSelector('[data-testid="play-surface"]')
