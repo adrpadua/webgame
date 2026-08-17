@@ -27,14 +27,12 @@ One full cycle of boss resolution and player response. A round adds exactly one 
 _Avoid_: Turn, tick
 
 **Escalation**:
-A counted Boss value on one fixed scale from `0` to `5`, identical on every Boss so the party reads it without arithmetic. It gains `1` automatically at the end of each Round and gains more from authored Beat penalties when a demand goes unanswered. It is the encounter's only clock: the Boss has no separate round-limit timer. Boss identity lives in the effects at each threshold, never in the length of the scale; a Boss may name it something else in its own rules text, but Escalation is the only mechanical name for it (ADR 0027).
+A counted Boss value on one fixed scale from `0` to `5`, identical on every Boss so the party reads it without arithmetic. It gains `1` automatically at the end of each Round once automatic escalation begins, which is derived so that automatic ticks alone reach the top threshold exactly at the Encounter Clock. It gains more, from Round `1` onward, from authored Beat penalties when a demand goes unanswered — so ignoring a demand pulls the collapse forward. It is the encounter's only clock: the Boss has no separate round-limit timer. Boss identity lives in the effects at each threshold, never in the length of the scale; a Boss may name it something else in its own rules text, but Escalation is the only mechanical name for it (ADR 0027).
 _Avoid_: Enrage timer, dread meter, per-boss scale
-_Not yet in the engine_
 
 **Escalation Threshold**:
 The authored effect a Boss applies on reaching one Escalation value. Values `1` through `4` change how the fight behaves; the threshold at `5` is the hard wipe. A Beat that can add Escalation must disclose it in the Forecast Row, which makes that Beat `Severe`.
 _Avoid_: Soft enrage stage, phase trigger
-_Not yet in the engine_
 
 **Encounter Clock**:
 The number of Rounds that automatic Escalation ticks alone need to reach the top Escalation Threshold, usually eight before modifiers. Player count, difficulty, or boss rules may adjust it, and authored acceleration can only shorten it in play.

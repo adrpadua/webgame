@@ -17,7 +17,7 @@ The party faces an eight-round clock. The first half teaches Embermaw's three co
 | Boss | Embermaw, the Ashen Wyrm |
 | Board | Radius-2 hex arena, with Embermaw initially at `1,-1`, facing `SW` |
 | Health | 48 in the single-tank demo (raised from 36 by D-017 so the solo damage race fails); scale health by party size and difficulty, not by adding opaque defenses |
-| Encounter Clock | 8 rounds; enrage begins at round 9 |
+| Encounter Clock | 8 rounds, expressed as Escalation (D-023): automatic ticks from the end of round 4, `Worldfire` at Escalation `5` |
 | Phase Break | At half health (24 in the single-tank demo), or at the start of round 5 if the party is ahead of the health threshold |
 | Phase I | `Hunt`: teach frontal pressure, breath cones, and add control |
 | Phase II | `Conflagration`: preserve Phase I problems while combining them with marks and arena hazards |
@@ -131,7 +131,17 @@ The timeline uses the existing `Instant -> Quick -> Incoming -> Slow` structure.
 | 7 | Ashen Brand + Molten Tail | Raking Claw + Cinder Breath | Tank placement and party spread have to coexist. |
 | 8 | Raking Claw + Cinder Breath | **Cinderstorm**: all existing Scorched hexes flare, then Embermaw turns one edge clockwise | Finish before the board becomes unmanageable. |
 
-At round 9, `Worldfire` ends the encounter. It is an explicit end-of-clock failure, not a damage check to out-heal.
+`Worldfire` ends the encounter as an explicit end-of-clock failure, not a damage check to out-heal. Since D-023 it is the top Escalation Threshold rather than a round-limit check, and Escalation is what the party actually watches:
+
+| Escalation | Threshold | Effect | Lands |
+| --- | --- | --- | --- |
+| `1` | Smouldering | Embermaw's attacks deal `+1`. | End of Round 4 |
+| `2` | Wider Brood | Brood Call summons one additional Whelp, and the telegraph shows it. | End of Round 5 |
+| `3` | Fed on Ash | Whelp bites deal `+1`. | End of Round 6 |
+| `4` | Furnace Heart | Embermaw's attacks deal `+1` again. | End of Round 7 |
+| `5` | `Worldfire` | The party is defeated. | End of Round 8 |
+
+The "Lands" column is the automatic schedule — ticks begin at `Encounter Clock - 4` and run one per Round end. Acceleration can pull every row earlier; Embermaw's Brood Call prices its unanswered demand at `0` until the deck holds a Whelp answer (D-003), so today the schedule is the whole story.
 
 ## Phase Break: Molting Roar
 

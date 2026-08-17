@@ -1,77 +1,78 @@
 {
- "id": "embermaw_brood",
- "title": "Brood Pattern",
- "rules_text": "Pressure the front while closing the party's escape lanes.",
- "instant_beats": [
-  {
-   "id": "turn_to_tank",
-   "title": "Turn to the Tank",
-   "rules_text": "Embermaw faces the guardian.",
-   "kind": "turn_toward_player",
-   "counter_tags": [
-    "Position"
-   ]
-  },
-  {
-   "id": "raking_claw",
-   "title": "Raking Claw",
-   "rules_text": "Target: Tank. Deal 4 damage. Movement does not evade this hit. An unheld Guarded Front suffers +3.",
-   "kind": "raking_claw",
-   "counter_tags": [
-    "Mitigate",
-    "Position"
-   ],
-   "target_selector": "tank",
-   "damage_classification": "tank_hit",
-   "damage": 4,
-   "unguarded_bonus": 3
-  },
-  {
-   "id": "claw_scorch",
-   "title": "Ash Trail",
-   "rules_text": "The struck front arc becomes Scorched.",
-   "kind": "scorch_last_pattern",
-   "counter_tags": [
-    "Move"
-   ],
-   "duration_rounds": 1,
-   "hazard": "scorched"
-  }
- ],
- "incoming_beats": [
-  {
-   "id": "cinder_breath",
-   "title": "Cinder Breath",
-   "rules_text": "Forward cone, range 1-2.",
-   "kind": "cinder_breath",
-   "counter_tags": [
-    "Move",
-    "Interrupt"
-   ],
-   "damage": 5,
-   "duration_rounds": 1,
-   "hazard": "scorched"
-  },
-  {
-   "id": "brood_call",
-   "title": "Brood Call",
-   "rules_text": "Whelps emerge at the marked edge hexes.",
-   "kind": "brood_call",
-   "counter_tags": [
-    "Kill Adds"
-   ],
-   "minion": "whelp",
-   "count": 2
-  },
-  {
-   "id": "heat_warning",
-   "title": "Heat Rises",
-   "rules_text": "The marked cone and spawn points resolve before Slow.",
-   "kind": "warning",
-   "counter_tags": [
-    "Move",
-    "Kill Adds"
-   ]
-  }
- ]
+  "id": "embermaw_brood",
+  "title": "Brood Pattern",
+  "rules_text": "Pressure the front while closing the party's escape lanes.",
+  "instant_beats": [
+    {
+      "id": "turn_to_tank",
+      "title": "Turn to the Tank",
+      "rules_text": "Embermaw faces the guardian.",
+      "kind": "turn_toward_player",
+      "counter_tags": [
+        "Position"
+      ]
+    },
+    {
+      "id": "raking_claw",
+      "title": "Raking Claw",
+      "rules_text": "Target: Tank. Deal 4 damage. Movement does not evade this hit. An unheld Guarded Front suffers +3.",
+      "kind": "raking_claw",
+      "counter_tags": [
+        "Mitigate",
+        "Position"
+      ],
+      "target_selector": "tank",
+      "damage_classification": "tank_hit",
+      "damage": 4,
+      "unguarded_bonus": 3
+    },
+    {
+      "id": "claw_scorch",
+      "title": "Ash Trail",
+      "rules_text": "The struck front arc becomes Scorched.",
+      "kind": "scorch_last_pattern",
+      "counter_tags": [
+        "Move"
+      ],
+      "duration_rounds": 1,
+      "hazard": "scorched"
+    }
+  ],
+  "incoming_beats": [
+    {
+      "id": "cinder_breath",
+      "title": "Cinder Breath",
+      "rules_text": "Forward cone, range 1-2.",
+      "kind": "cinder_breath",
+      "counter_tags": [
+        "Move",
+        "Interrupt"
+      ],
+      "damage": 5,
+      "duration_rounds": 1,
+      "hazard": "scorched"
+    },
+    {
+      "id": "brood_call",
+      "title": "Brood Call",
+      "rules_text": "Whelps emerge at the marked edge hexes.",
+      "kind": "brood_call",
+      "counter_tags": [
+        "Kill Adds"
+      ],
+      "minion": "whelp",
+      "count": 2,
+      "escalation_if_unanswered": 0
+    },
+    {
+      "id": "heat_warning",
+      "title": "Heat Rises",
+      "rules_text": "The marked cone and spawn points resolve before Slow.",
+      "kind": "warning",
+      "counter_tags": [
+        "Move",
+        "Kill Adds"
+      ]
+    }
+  ]
 }

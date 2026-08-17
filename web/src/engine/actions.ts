@@ -4,8 +4,9 @@ import type { Phase } from './types'
 
 export const ENCOUNTER_SOURCE = 'encounter'
 
-// Every mutation rides one of these sixteen action kinds, mirroring the
-// frozen reference EncounterAction catalog one-for-one.
+// Every mutation rides one of these action kinds. The first seventeen mirror
+// the frozen reference EncounterAction catalog one-for-one; `gain_escalation`
+// is the one addition past it (ADR 0027).
 export type EncounterActionInput =
   | { kind: 'load_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
   | { kind: 'charge_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
@@ -23,6 +24,7 @@ export type EncounterActionInput =
   | { kind: 'full_charge_cleanup'; sourceId: string; slotIndex: number; window: Phase }
   | { kind: 'draw_card'; sourceId: string }
   | { kind: 'shuffle_deck'; sourceId: string; label: string }
+  | { kind: 'gain_escalation'; sourceId: typeof ENCOUNTER_SOURCE; amount: number; reason: string; beatId: string }
   | { kind: 'end_of_clock'; sourceId: typeof ENCOUNTER_SOURCE; round: number; reason: string }
 
 export type ActionKind = EncounterActionInput['kind']

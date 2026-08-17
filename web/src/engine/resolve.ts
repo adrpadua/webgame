@@ -6,6 +6,7 @@ import type { Card } from './content/schemas'
 import { resolveFire } from './cardResolver'
 import { legality } from './legality'
 import { resolveBossBeat, advanceProgram } from './timeline'
+import { ESCALATION_MAX } from './escalation'
 import { shuffle } from './rng'
 import {
   addStatus,
@@ -247,6 +248,7 @@ function resolveOne(
         fail(fact, 'The Minion spawn hex is unavailable.')
         break
       }
+      draft.board.entities[action.minionId].spawnedRound = draft.round
       if (minion) {
         draft.board.entities[action.minionId].contentId = minion.id
       }
@@ -364,6 +366,22 @@ function resolveOne(
       hero.deck = hero.discard
       hero.discard = []
       shuffle(draft.rng, hero.deck, action.label)
+      succeed(fact)
+      break
+    }
+    case 'gain_escalation': {
+      const before = draft.escalation
+      draft.escalation = Math.min(ESCALATION_MAX, before + action.amount)
+      const crossed = draft.escalationThresholds
+        .filter((threshold) => threshold.value > before && threshold.value <= draft.escalation)
+        .map((threshold) => threshold.title)
+      fact.resolutionFact = {
+        escalation_before: before,
+        escalation_after: draft.escalation,
+        escalation_reason: action.reason,
+        thresholds_crossed: crossed,
+        ...(action.beatId === '' ? {} : { boss_beat_id: action.beatId }),
+      }
       succeed(fact)
       break
     }
@@ -570,6 +588,8 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: 'Draw a card', detail }
     case 'shuffle_deck':
       return { title: `Shuffle deck (${action.label})`, detail }
+    case 'gain_escalation':
+      return { title: `Escalation +${action.amount} (${action.reason})`, detail }
     case 'end_of_clock':
       return { title: 'End of the Encounter Clock', detail }
   }

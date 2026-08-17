@@ -10,6 +10,8 @@ import {
   legality,
   minionIntents,
   replayRecord,
+  ESCALATION_MAX,
+  escalationStartRound,
   resolve,
   runScenario,
   type EncounterState,
@@ -268,6 +270,175 @@ describe('Fortify Slow commitment (D-019)', () => {
     state = stepPhases(state, 4).state
     expect(state.round).toBe(3)
     expect(hero(state).armor).toBe(0)
+  })
+})
+
+describe('Escalation as the single clock (D-023, ADR 0027)', () => {
+  // A passive Hero who never clears an add: give them enough Health that
+  // Escalation, not attrition, is what ends the fight.
+  function immortal(seed?: number): EncounterState {
+    const state = start(seed)
+    hero(state).maxHealth = 5000
+    hero(state).health = 5000
+    return state
+  }
+
+  function clearMinions(state: EncounterState): void {
+    for (const entity of Object.values(state.board.entities)) {
+      if (entity.kind === 'minion') {
+        delete state.board.entities[entity.id]
+      }
+    }
+  }
+
+  it('derives the start Round so automatic ticks alone reach the top at the Encounter Clock', () => {
+    expect(escalationStartRound(8)).toBe(4)
+    expect(start().escalationStartRound).toBe(4)
+    // Five ticks from the start Round through the clock: 4, 5, 6, 7, 8.
+    expect(8 - escalationStartRound(8) + 1).toBe(ESCALATION_MAX)
+  })
+
+  it('does not tick before the start Round, then ticks once per Round end', () => {
+    let state = immortal()
+    for (let round = 1; round < 4; round += 1) {
+      const wrap = stepPhases(state, 5)
+      // Clear each Round's Whelps so only the automatic tick can move the value.
+      state = wrap.state
+      clearMinions(state)
+      expect(state.escalation).toBe(0)
+    }
+    expect(state.round).toBe(4)
+    state = stepPhases(state, 5).state
+    clearMinions(state)
+    expect(state.escalation).toBe(1)
+    state = stepPhases(state, 5).state
+    clearMinions(state)
+    expect(state.escalation).toBe(2)
+  })
+
+  it('ends the fight at the end of Round 8 on automatic ticks alone', () => {
+    // Boundary identity with the retired round-limit check: a party that
+    // answers every demand reaches the wipe exactly where the old clock ended.
+    let state = immortal()
+    let guard = 0
+    while (state.active && guard < 60) {
+      guard += 1
+      const wrap = advancePhase(catalog, state)
+      state = wrap.state
+      if (state.phase === 'slow') {
+        clearMinions(state)
+      }
+    }
+    expect(state.active).toBe(false)
+    expect(state.outcome).toBe('defeat')
+    expect(state.outcomeReason).toBe('Enrage: Embermaw overwhelms the party.')
+    expect(state.round).toBe(9)
+    expect(state.escalation).toBe(ESCALATION_MAX)
+  })
+
+  it('accelerates from an unanswered Whelp, so the collapse arrives early', () => {
+    // Embermaw authors the penalty at 0 while the live deck has no Whelp
+    // answer (D-003), so the trigger is proven against a catalog variant that
+    // does price it. Nothing else changes: same passive Hero, adds never
+    // cleared, and the fight now ends before the Encounter Clock.
+    const priced = structuredClone(catalog)
+    for (const program of Object.values(priced.programs)) {
+      for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
+        if (beat.kind === 'brood_call') {
+          beat.escalation_if_unanswered = 1
+        }
+      }
+    }
+    let state = immortal()
+    let guard = 0
+    while (state.active && guard < 60) {
+      guard += 1
+      state = advancePhase(priced, state).state
+    }
+    expect(state.active).toBe(false)
+    expect(state.outcomeReason).toBe('Enrage: Embermaw overwhelms the party.')
+    expect(state.round).toBeLessThan(9)
+    expect(state.escalation).toBe(ESCALATION_MAX)
+  })
+
+  it('leaves the live encounter unaccelerated while no Whelp answer exists (D-003)', () => {
+    // A demand the deck cannot answer must not be priced: every authored
+    // Brood Call carries 0 until the Whelp-clearing card ships.
+    for (const program of Object.values(catalog.programs)) {
+      for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
+        if (beat.kind === 'brood_call') {
+          expect(beat.escalation_if_unanswered).toBe(0)
+        }
+      }
+    }
+  })
+
+  it('does not count a Whelp that arrived this Round as unanswered', () => {
+    // Whelps spawn in the Incoming Row, so no player window can reach them
+    // before the Round-end step: counting them would be a second automatic
+    // tick rather than earned acceleration.
+    let state = immortal()
+    state = stepPhases(state, 4).state
+    expect(state.phase).toBe('slow')
+    expect(Object.values(state.board.entities).some((entity) => entity.kind === 'minion')).toBe(true)
+    state = stepPhases(state, 1).state
+    expect(state.round).toBe(2)
+    expect(state.escalation).toBe(0)
+  })
+
+  it('raises Boss damage at threshold 1 and Whelp bites at threshold 3', () => {
+    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'raking_claw')!
+    const base = start()
+    const unescalated = resolve(catalog, base, { kind: 'resolve_boss', sourceId: base.bossId, beat: claw, track: 'instant' })
+    expect(unescalated.facts.find((fact) => fact.kind === 'damage')?.resolutionFact).toMatchObject({ requested: 4 })
+
+    const smouldering = start()
+    smouldering.escalation = 1
+    const escalated = resolve(catalog, smouldering, { kind: 'resolve_boss', sourceId: smouldering.bossId, beat: claw, track: 'instant' })
+    expect(escalated.facts.find((fact) => fact.kind === 'damage')?.resolutionFact).toMatchObject({
+      requested: 5,
+      escalation_bonus: 1,
+    })
+
+    // Threshold 4 stacks with threshold 1 on the same axis: +2 in total.
+    const furnace = start()
+    furnace.escalation = 4
+    const doubled = resolve(catalog, furnace, { kind: 'resolve_boss', sourceId: furnace.bossId, beat: claw, track: 'instant' })
+    expect(doubled.facts.find((fact) => fact.kind === 'damage')?.resolutionFact).toMatchObject({ requested: 6, escalation_bonus: 2 })
+
+    // Threshold 3 makes the bite hurt more, recorded on the Minion's Raid Hit.
+    const biting = stepPhases(immortal(), 4).state
+    biting.escalation = 3
+    const heroCoords = biting.board.entities[biting.primaryHeroId].coords
+    const whelp = Object.values(biting.board.entities).find((entity) => entity.kind === 'minion')!
+    biting.board.entities[whelp.id].coords = { ...heroCoords, q: heroCoords.q + 1 }
+    const bite = advancePhase(catalog, biting)
+    const biteFact = bite.facts.find((fact) => fact.kind === 'damage' && fact.resolutionFact?.minion_intent === true)
+    expect(biteFact?.resolutionFact).toMatchObject({ requested: 2, escalation_bonus: 1 })
+  })
+
+  it('widens the Brood Call at threshold 2, and the telegraph does not lie', () => {
+    const state = start()
+    state.escalation = 2
+    // refreshTelegraphs runs on the way into a player window; step to Quick.
+    const quick = stepPhases(state, 2).state
+    expect(quick.telegraphedSpawnHexes).toHaveLength(3)
+    const incoming = advancePhase(catalog, quick)
+    expect(incoming.facts.filter((fact) => fact.kind === 'spawn_minion')).toHaveLength(3)
+  })
+
+  it('records every Escalation gain with its reason and crossed thresholds', () => {
+    const state = immortal()
+    state.round = state.roundLimit
+    state.phase = 'slow'
+    const wrap = advancePhase(catalog, state)
+    const gain = wrap.facts.find((fact) => fact.kind === 'gain_escalation')
+    expect(gain?.resolutionFact).toMatchObject({
+      escalation_before: 0,
+      escalation_after: 1,
+      escalation_reason: 'automatic_tick',
+      thresholds_crossed: ['Smouldering'],
+    })
   })
 })
 
@@ -701,9 +872,12 @@ describe('legality edges', () => {
     expect(advancePhase(catalog, state).facts).toHaveLength(0)
   })
 
-  it('ends in Enrage Defeat when the Encounter Clock expires', () => {
+  it('ends in Enrage Defeat when Escalation reaches its top threshold', () => {
     const state = start()
+    // The state the fight is in at the end of Round 8 under automatic ticks
+    // alone: four ticks banked (ends of Rounds 4-7), the fifth lands here.
     state.round = state.roundLimit
+    state.escalation = ESCALATION_MAX - 1
     state.phase = 'slow'
     const wrap = advancePhase(catalog, state)
     expect(wrap.facts.at(-1)?.kind).toBe('end_of_clock')
@@ -841,6 +1015,7 @@ describe('Encounter Records (schema_version 2)', () => {
   it('marks Encounter Clock expiry as end_kind end_of_clock', async () => {
     const state = start()
     state.round = state.roundLimit
+    state.escalation = ESCALATION_MAX - 1
     state.phase = 'slow'
     const wrap = advancePhase(catalog, state)
     const record = await buildEncounterRecord(catalog, {

@@ -4,7 +4,7 @@ This document describes the current playable rules of the prototype as they exis
 
 Use [CONTEXT.md](../../CONTEXT.md) for canonical terms and the ADRs for why the model exists.
 
-**Adopted but not yet in the engine.** Three rules decisions are canon and are not described below, because nothing implements them yet: the three-horizon Timeline with staged Beat disclosure (D-021, [ADR 0026](../adr/0026-disclose-boss-beats-in-stages-across-three-timeline-horizons.md)), randomize-before-commitment (D-022, [ADR 0025](../adr/0025-randomize-before-the-window-that-answers-it.md)), and Escalation as the encounter's single clock (D-023, [ADR 0027](../adr/0027-make-escalation-the-encounters-single-clock.md)). Until they ship, the two-row Timeline and the fixed eight-Round clock described here are the live rules.
+**Adopted but not yet in the engine.** Two rules decisions are canon and are not described below, because nothing implements them yet: the three-horizon Timeline with staged Beat disclosure (D-021, [ADR 0026](../adr/0026-disclose-boss-beats-in-stages-across-three-timeline-horizons.md)) and randomize-before-commitment (D-022, [ADR 0025](../adr/0025-randomize-before-the-window-that-answers-it.md)). Until they ship, the two-row Timeline described here is the live rule.
 
 Use [player-card-authoring.md](player-card-authoring.md) when creating or editing player cards.
 
@@ -20,7 +20,16 @@ Each round follows this order:
 
 When the `Slow Window` ends, the next round begins and the boss timeline rolls forward.
 
-`Embermaw: Ashen Trial` has an `Encounter Clock` of `8` rounds. At the start of round `9`, the encounter ends in enrage defeat unless Embermaw has already been defeated.
+## Escalation
+
+Escalation is the encounter's only clock (D-023, [ADR 0027](../adr/0027-make-escalation-the-encounters-single-clock.md)). Embermaw carries a value from `0` to `5`:
+
+- **Automatic tick.** At each round's end step, from round `escalation start` onward, Escalation gains `1`. The start round is derived as `Encounter Clock - 4`, so on Embermaw's `8`-round clock the ticks land at the ends of rounds `4` through `8`.
+- **Acceleration.** An authored Boss Beat may add Escalation when its demand is still standing at a round's end step. A Minion that arrived during the current round does not count — it spawns in the `Incoming Row`, so no player window could reach it. Embermaw currently authors this at `0`, because the live deck has no Whelp answer (D-003).
+- **Thresholds.** Reaching a value applies its authored effect for the rest of the fight, and effects at different values stack. Embermaw: `1` Smouldering (Boss attacks `+1`), `2` Wider Brood (Brood Call summons one more Whelp, and the telegraph shows it), `3` Fed on Ash (Whelp bites `+1`), `4` Furnace Heart (Boss attacks `+1` again).
+- **The top threshold ends the fight.** At `5`, the encounter ends in enrage defeat unless Embermaw has already been defeated. There is no separate round-limit check; with no acceleration this lands at the end of round `8`, exactly where the old clock expired.
+
+`Embermaw: Ashen Trial` therefore has an `Encounter Clock` of `8` rounds, and a party that leaves demands standing reaches the end sooner.
 
 ## Boss Timeline
 

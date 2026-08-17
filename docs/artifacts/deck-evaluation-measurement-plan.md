@@ -81,6 +81,14 @@ Preserve the existing probe suite. Add only focused coverage when a metric becom
 
 Do not make these probes default until the scenario data and report fields are deterministic.
 
+## Escalation And The Enrage Wall
+
+The sweep carries a survival-biased policy, `turtle` (Iron Guard in the Quick Window, Fortify in the Slow Window, no offense), for one reason: the other twelve policies die to attrition long before the Encounter Clock, so the solo slice could never produce evidence about the enrage wall. A policy built to survive can.
+
+Three columns read it: `reachedR8%` (did the run last to the Encounter Clock), `escalation` (the value at the end), and `escFromAdds` (how much came from unanswered demands rather than the automatic tick). The healthy shape for the stalemate wall is a policy that reaches Round 8, ends at Escalation `5`, and shows `0.00` Boss damage — survival without a kill, ended by something other than the Hero's health.
+
+`checkpoint%` on the twelve original policies is the regression guard for any Escalation tuning change: automatic ticks start after the Round-4 checkpoint precisely so this number cannot move for structural reasons. If it moves, the tuning reached back into the teaching Rounds and should be reverted rather than rebalanced.
+
 ## Decision-Concentration Proxy
 
 Decision concentration is one of the four required encounter metrics (D-027) and it is the only accountability accepted in exchange for rejecting face-down commitment (D-026). Its real instrument needs several humans, which the solo slice cannot supply — so measure a structural proxy now through the policy sweep rather than deferring the metric entirely:

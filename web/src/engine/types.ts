@@ -1,3 +1,4 @@
+import type { EscalationThreshold } from './content/schemas'
 import type { Axial, HexKey } from './hex'
 import type { RngState } from './rng'
 
@@ -47,6 +48,9 @@ export interface BoardEntity {
   team: Team
   title: string
   contentId?: string
+  // The Round a Minion arrived in. Escalation acceleration only counts a
+  // demand the party has actually had a Round to answer (ADR 0027).
+  spawnedRound?: number
 }
 
 export interface HazardInstance {
@@ -91,6 +95,11 @@ export interface EncounterState {
   phase: Phase
   round: number
   roundLimit: number
+  // Escalation is the only clock (ADR 0027). `roundLimit` survives as the
+  // authored budget the start Round derives from and the round track shows.
+  escalation: number
+  escalationStartRound: number
+  escalationThresholds: EscalationThreshold[]
   active: boolean
   outcome: Outcome
   outcomeReason: string

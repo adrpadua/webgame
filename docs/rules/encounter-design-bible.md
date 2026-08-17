@@ -92,14 +92,16 @@ The Boss produces problems faster than a single Hero can solve them; the raid fe
 
 ## Escalation Is The Only Clock
 
-A Boss has no separate round-limit timer. It has `Escalation`: one fixed `0`–`5` scale, `+1` automatically each Round end, plus authored acceleration when a demand goes unanswered, with the threshold at `5` as the hard wipe (ADR 0027, D-023). Authoring rules:
+A Boss has no separate round-limit timer. It has `Escalation`: one fixed `0`–`5` scale, `+1` automatically each Round end once automatic escalation begins, plus authored acceleration when a demand goes unanswered, with the threshold at `5` as the hard wipe (ADR 0027, D-023). Authoring rules:
 
 - **The scale never varies between Bosses.** Escalation is a literacy surface — feeling a clock requires reading it without arithmetic. Boss identity lives in the *effects* at thresholds `1` through `4`, where there is unlimited room, not in the length of the bar.
+- **Automatic ticks start late, by derivation.** They begin at `Encounter Clock - 4`, so ticks alone reach the top threshold exactly when the clock expires — a `0`–`5` scale ticking from Round 1 would silently be a five-Round clock. It also leaves the teaching Rounds unescalated and puts the collapse in the late fight, where the phase model wants it.
 - **Acceleration is authored per Beat, never global.** A global "any live Minion adds 1" would make every add package equally punishing and flatten Boss identity into one attrition formula. Each Beat says what it costs to ignore it.
+- **Never price a demand the party cannot answer.** Acceleration ignores a demand that arrived too late to act on — a Minion spawned this Round has had no player window — and a Beat's penalty stays at `0` until the deck holds an executable answer (D-003). Acceleration the party cannot avoid is not a consequence; it is a second automatic tick wearing a costume. Embermaw's Brood Call sits at `0` today for exactly that reason.
 - **A Beat that can add Escalation discloses it in Forecast.** That is what keeps per-Beat authoring legible instead of requiring players to memorize a table.
 - **Damage owns the acceleration, not the base tick.** The automatic tick guarantees the fight terminates; the acceleration is where throughput becomes a strategic responsibility — how much of the encounter's worst state ever happens at all.
 
-This is also the structural form of the stalemate wall. D-016 requires that a solo Hero cannot kill a Boss, and a health value holding that line is a number that better play erodes (the Rextroy lesson). Under Escalation, indefinite defense fails because the encounter's economic assumptions become impossible, which optimization cannot repair. Apply the same test here as for cooperation: *would doubling one Hero's stats break it?* For a health-based ceiling, eventually yes. For Escalation, no.
+This is also the structural form of the stalemate wall. D-016 requires that a solo Hero cannot kill a Boss, and a health value holding that line is a number that better play erodes (the Rextroy lesson). Under Escalation, indefinite defense fails because the encounter's economic assumptions become impossible, which optimization cannot repair. The solo sweep now shows it directly: the survival-biased policy reaches Round 8 on most seeds, dies to Escalation on roughly half of them, and deals `0.00` Boss damage doing it. Apply the same test here as for cooperation: *would doubling one Hero's stats break it?* For a health-based ceiling, eventually yes. For Escalation, no.
 
 ## Boss Core, Modules, and Difficulty Layers
 

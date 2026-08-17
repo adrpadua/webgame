@@ -1,7 +1,7 @@
 {
   "id": "embermaw_first_turn",
   "title": "Embermaw: First Turn",
-  "rules_text": "The Ashen Trial as a new player meets it. The opening Hand holds five cards — enough to prepare both Slots, charge each one, and still pay a card to step out of the breath cone — so the scripted first turn can teach load, charge, fire Quick, fire Slow, and move in a single Round.",
+  "rules_text": "The Ashen Trial as a new player meets it. The opening Hand holds five cards \u2014 enough to prepare both Slots, charge each one, and still pay a card to step out of the breath cone \u2014 so the scripted first turn can teach load, charge, fire Quick, fire Slow, and move in a single Round.",
   "primary_hero_id": "guardian",
   "primary_hero_title": "Elian Voss",
   "boss_id": "embermaw",
@@ -9,28 +9,97 @@
   "round_limit": 8,
   "enrage_text": "Enrage: Embermaw overwhelms the party.",
   "board_radius": 2,
-  "player_start": { "q": 0, "r": 0 },
-  "boss_start": { "q": 1, "r": -1 },
+  "player_start": {
+    "q": 0,
+    "r": 0
+  },
+  "boss_start": {
+    "q": 1,
+    "r": -1
+  },
   "player_health": 34,
   "boss_health": 48,
   "slot_count": 2,
   "hand_refill_target": 5,
   "player_deck": [
-    { "card": "steady_strike", "copies": 8 },
-    { "card": "iron_guard", "copies": 6 },
-    { "card": "sweeping_blow", "copies": 2 },
-    { "card": "fortify", "copies": 2 },
-    { "card": "unyielding_step", "copies": 2 },
-    { "card": "shield_slam", "copies": 2 }
+    {
+      "card": "steady_strike",
+      "copies": 8
+    },
+    {
+      "card": "iron_guard",
+      "copies": 6
+    },
+    {
+      "card": "sweeping_blow",
+      "copies": 2
+    },
+    {
+      "card": "fortify",
+      "copies": 2
+    },
+    {
+      "card": "unyielding_step",
+      "copies": 2
+    },
+    {
+      "card": "shield_slam",
+      "copies": 2
+    }
   ],
-  "boss_programs": ["embermaw_hunt", "embermaw_embers", "embermaw_brood"],
+  "boss_programs": [
+    "embermaw_hunt",
+    "embermaw_embers",
+    "embermaw_brood"
+  ],
   "loop_boss_programs": true,
   "random_seed": 23,
   "brood_spawn_candidates": [
-    { "q": -2, "r": 1 },
-    { "q": -1, "r": 2 },
-    { "q": 0, "r": 2 },
-    { "q": 2, "r": -2 },
-    { "q": 2, "r": -1 }
+    {
+      "q": -2,
+      "r": 1
+    },
+    {
+      "q": -1,
+      "r": 2
+    },
+    {
+      "q": 0,
+      "r": 2
+    },
+    {
+      "q": 2,
+      "r": -2
+    },
+    {
+      "q": 2,
+      "r": -1
+    }
+  ],
+  "escalation_thresholds": [
+    {
+      "value": 1,
+      "title": "Smouldering",
+      "rules_text": "Embermaw's attacks deal 1 more damage.",
+      "boss_damage_bonus": 1
+    },
+    {
+      "value": 2,
+      "title": "Wider Brood",
+      "rules_text": "Brood Call summons one additional Whelp.",
+      "extra_spawn_count": 1
+    },
+    {
+      "value": 3,
+      "title": "Fed on Ash",
+      "rules_text": "Whelp bites deal 1 more damage.",
+      "minion_damage_bonus": 1
+    },
+    {
+      "value": 4,
+      "title": "Furnace Heart",
+      "rules_text": "Embermaw's attacks deal 1 more damage again.",
+      "boss_damage_bonus": 1
+    }
   ]
 }

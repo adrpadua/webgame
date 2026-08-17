@@ -7,9 +7,9 @@
 // never as a success.
 //
 // Usage (from web/):
-//   npm run evaluate                        # all 12 policy variants, 30 seeds
+//   npm run evaluate                        # all 18 policy variants, 30 seeds
 //   npm run evaluate -- --seeds 100
-//   npm run evaluate -- --policy sword_shield,dodge,false --seeds 200
+//   npm run evaluate -- --policy turtle,stay,false --seeds 200
 //   npm run evaluate -- --json out.json
 import { writeFileSync } from 'node:fs'
 import { loadCatalog, DEFAULT_ENCOUNTER_ID } from '../src/content'
@@ -42,7 +42,11 @@ const JSON_OUT = flagValue('--json')
 const POLICY = flagValue('--policy')
 
 interface PolicyKnobs {
-  slotPlan: 'dual_steady' | 'sword_shield'
+  // `turtle` is the survival-biased plan (ADR 0027): Iron Guard in the Quick
+  // Window, Fortify in the Slow Window, no offense at all. Its job is to reach
+  // the Encounter Clock so Escalation — not attrition — is what ends the run,
+  // which is the only way the solo slice can measure the enrage wall.
+  slotPlan: 'dual_steady' | 'sword_shield' | 'turtle'
   position: 'far' | 'dodge' | 'stay'
   spike: boolean
 }
@@ -52,6 +56,8 @@ const isGuardTagged = (cardId: string): boolean => catalog.cards[cardId].tags.in
 
 interface RunMetrics {
   outcome: string
+  escalation: number
+  escalationFromDemands: number
   outcomeReason: string
   finalRound: number
   bossDamage: number
@@ -90,7 +96,12 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
   }
 
   const heroId = state.primaryHeroId
-  const wanted: Record<number, string> = knobs.slotPlan === 'dual_steady' ? { 0: 'steady_strike', 1: 'steady_strike' } : { 0: 'steady_strike', 1: 'iron_guard' }
+  const WANTED_BY_PLAN: Record<PolicyKnobs['slotPlan'], Record<number, string>> = {
+    dual_steady: { 0: 'steady_strike', 1: 'steady_strike' },
+    sword_shield: { 0: 'steady_strike', 1: 'iron_guard' },
+    turtle: { 0: 'iron_guard', 1: 'fortify' },
+  }
+  const wanted: Record<number, string> = WANTED_BY_PLAN[knobs.slotPlan]
   const hand = () => state.heroes[heroId].hand
   const slot = (index: number) => state.heroes[heroId].actionBar[index]
 
@@ -160,6 +171,30 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     return pool
   }
 
+  const chargeSlots = () => {
+    for (const slotIndex of [0, 1]) {
+      let safety = 0
+      while (slot(slotIndex).topCard !== null && slot(slotIndex).charges.length < chargeTarget(slotIndex) && safety < 6) {
+        safety += 1
+        const candidates = chargeableCards(slotIndex)
+        if (candidates.length === 0) {
+          break
+        }
+        if (!submit({ kind: 'charge_slot', sourceId: heroId, slotIndex, cardInstanceId: candidates[0].instanceId })) {
+          break
+        }
+      }
+    }
+  }
+
+  const fireReadySlots = () => {
+    for (const slotIndex of [0, 1]) {
+      if (slot(slotIndex).topCard && slot(slotIndex).charges.length > 0) {
+        submit({ kind: 'fire_slot', sourceId: heroId, slotIndex })
+      }
+    }
+  }
+
   let checkpoint = false
   let guard = 0
   while (state.active && guard < 400) {
@@ -208,33 +243,23 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
           }
         }
         loadWantedSlots()
-        for (const slotIndex of [0, 1]) {
-          let safety = 0
-          while (slot(slotIndex).topCard !== null && slot(slotIndex).charges.length < chargeTarget(slotIndex) && safety < 6) {
-            safety += 1
-            const candidates = chargeableCards(slotIndex)
-            if (candidates.length === 0) {
-              break
-            }
-            if (!submit({ kind: 'charge_slot', sourceId: heroId, slotIndex, cardInstanceId: candidates[0].instanceId })) {
-              break
-            }
-          }
-        }
-        for (const slotIndex of [0, 1]) {
-          if (slot(slotIndex).topCard && slot(slotIndex).charges.length > 0) {
-            submit({ kind: 'fire_slot', sourceId: heroId, slotIndex })
-          }
-        }
+        chargeSlots()
+        fireReadySlots()
         advance()
         break
       }
       case 'incoming':
         advance()
         break
-      case 'slow':
+      case 'slow': {
+        // Charge and fire the Slow Top Card. Fortify's delayed Armor (D-019) is
+        // the only card that can pre-block the next Round's Instant Row, so a
+        // survival policy has to use the Slow Window.
+        chargeSlots()
+        fireReadySlots()
         advance()
         break
+      }
     }
   }
   if (state.round >= 5 || state.outcome === 'victory') {
@@ -265,8 +290,20 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     }
   }
 
+  let escalationFromDemands = 0
+  for (const fact of facts) {
+    if (fact.kind === 'gain_escalation' && fact.succeeded) {
+      const rf = fact.resolutionFact as Record<string, unknown> | undefined
+      if (rf?.escalation_reason === 'unanswered_minions') {
+        escalationFromDemands += 1
+      }
+    }
+  }
+
   return {
     outcome: state.outcome,
+    escalation: state.escalation,
+    escalationFromDemands,
     outcomeReason: state.outcomeReason,
     finalRound: state.round,
     bossDamage: bossStartHealth - (state.board.entities[state.bossId]?.health ?? 0),
@@ -285,7 +322,7 @@ if (POLICY) {
   const [slotPlan, position, spike] = POLICY.split(',')
   variants.push({ slotPlan: slotPlan as PolicyKnobs['slotPlan'], position: position as PolicyKnobs['position'], spike: spike === 'true' })
 } else {
-  for (const slotPlan of ['dual_steady', 'sword_shield'] as const) {
+  for (const slotPlan of ['dual_steady', 'sword_shield', 'turtle'] as const) {
     for (const position of ['far', 'dodge', 'stay'] as const) {
       for (const spike of [true, false]) {
         variants.push({ slotPlan, position, spike })
@@ -315,6 +352,9 @@ for (const knobs of variants) {
     'hpDeath%': pct((run) => run.outcome === 'defeat' && run.outcomeReason === 'A Hero has fallen.'),
     'enrage%': pct((run) => run.outcome === 'defeat' && run.outcomeReason !== 'A Hero has fallen.'),
     avgRound: avg((run) => run.finalRound),
+    'reachedR8%': pct((run) => run.finalRound >= 8),
+    escalation: avg((run) => run.escalation),
+    escFromAdds: avg((run) => run.escalationFromDemands),
     bossDmg: avg((run) => run.bossDamage),
     ripGrant: avg((run) => run.riposteGranted),
     ripFull: avg((run) => run.riposteFull),

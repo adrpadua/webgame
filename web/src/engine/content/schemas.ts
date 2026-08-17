@@ -68,10 +68,26 @@ export const bossBeatSchema = z.object({
   damage_classification: z.string().default(''),
   damage: z.number().int().default(0),
   unguarded_bonus: z.number().int().min(0).default(0),
+  // Escalation acceleration (ADR 0027): what it costs to leave this Beat's
+  // demand standing at a Round end. Only the living-Minion demand is
+  // supported, so today this rides `brood_call`.
+  escalation_if_unanswered: z.number().int().min(0).default(0),
   duration_rounds: z.number().int().min(1).default(1),
   hazard: z.string().optional(),
   minion: z.string().optional(),
   count: z.number().int().min(1).max(12).default(2),
+})
+
+// One authored Escalation Threshold (ADR 0027). Values `1` through `4` carry
+// effects; the wipe at `5` is a rule the engine owns, not authored content, so
+// there is one authority for the end of the fight.
+export const escalationThresholdSchema = z.object({
+  value: z.number().int().min(1).max(4),
+  title: z.string().min(1),
+  rules_text: z.string().default(''),
+  boss_damage_bonus: z.number().int().min(0).default(0),
+  extra_spawn_count: z.number().int().min(0).default(0),
+  minion_damage_bonus: z.number().int().min(0).default(0),
 })
 
 export const bossProgramSchema = z.object({
@@ -109,6 +125,7 @@ export const encounterSchema = z.object({
   loop_boss_programs: z.boolean().default(true),
   random_seed: z.number().int(),
   brood_spawn_candidates: z.array(axialSchema).default([]),
+  escalation_thresholds: z.array(escalationThresholdSchema).default([]),
 })
 
 export const evaluationDeckSchema = z.object({
@@ -151,6 +168,7 @@ export type ChargeModifier = z.infer<typeof chargeModifierSchema>
 export type Card = z.infer<typeof cardSchema>
 export type Hazard = z.infer<typeof hazardSchema>
 export type Minion = z.infer<typeof minionSchema>
+export type EscalationThreshold = z.infer<typeof escalationThresholdSchema>
 export type BossBeat = z.infer<typeof bossBeatSchema>
 export type BossProgram = z.infer<typeof bossProgramSchema>
 export type EncounterDefinition = z.infer<typeof encounterSchema>
