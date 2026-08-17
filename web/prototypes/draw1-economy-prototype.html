@@ -71,7 +71,7 @@
   <div class="panel">
     <div class="knobs">
       <label>Economy:
-        <select id="kEconomy"><option value="draw1">Draw 1 per round</option><option value="refill4">Refill to 4 (current game)</option></select>
+        <select id="kEconomy"><option value="draw1">Draw 1 per round</option><option value="draw2">Draw 2 per round</option><option value="refill3">Refill to 3</option><option value="refill4">Refill to 4 (current game)</option></select>
       </label>
       <label>Deck:
         <select id="kDeck"><option value="tiny">Tiny (12 cards)</option><option value="full">Current (20 cards)</option></select>
@@ -121,10 +121,18 @@ const Proto = (() => {
   function buildDeck(listId){ const out=[]; for(const [id,n] of Object.entries(DECKS[listId])) for(let i=0;i<n;i++) out.push(id); return out }
   function shuffle(arr, seed){ const rng=mulberry32(seed), a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a }
 
+  // economy: 'drawN' (flat income of N per round, opening hand 5)
+  //          'refillN' (draw back up to N per round, opening hand N)
+  function economyRule(economy){
+    const m = /^(draw|refill)(\d)$/.exec(economy)
+    return m ? { kind:m[1], n:+m[2] } : { kind:'refill', n:4 }
+  }
+
   function initial(config){
     const cfg = { economy:'draw1', deck:'tiny', carrySlowArmor:true, seed:7, stack:null, ...config }
+    const eco = economyRule(cfg.economy)
     const order = cfg.stack ? [...cfg.stack] : shuffle(buildDeck(cfg.deck), cfg.seed)
-    const opening = cfg.economy==='draw1' ? 5 : 4
+    const opening = eco.kind==='draw' ? 5 : eco.n
     const state = {
       cfg, round:1, phase:'loadout', outcome:null, checkpoint:null,
       hero:{ hp:34, armor:0, slowArmor:0, pos:'front', riposte:null },
@@ -211,9 +219,10 @@ const Proto = (() => {
     if(s.whelps>0){ heroHit(s, s.whelps, `${s.whelps} Whelp${s.whelps>1?'s':''} gnaw at the line`); if(s.outcome) return }
     if(s.round===4) s.checkpoint = s.hero.hp>0
     if(s.round>=SCRIPT.length){ if(!s.outcome){ s.outcome='ENRAGE DEFEAT — the clock ran out.'; s.log.push('Round 8 ends. Embermaw enrages. Defeat.') } return }
-    const income = s.cfg.economy==='draw1' ? 1 : Math.max(0, 4 - s.hand.length)
+    const eco = economyRule(s.cfg.economy)
+    const income = eco.kind==='draw' ? eco.n : Math.max(0, eco.n - s.hand.length)
     draw(s, income)
-    s.log.push(s.cfg.economy==='draw1' ? `You draw 1 card. Hand: ${s.hand.length}.` : `You refill to 4 (drew ${income}). Hand: ${s.hand.length}.`)
+    s.log.push(eco.kind==='draw' ? `You draw ${eco.n} card${eco.n>1?'s':''}. Hand: ${s.hand.length}.` : `You refill to ${eco.n} (drew ${income}). Hand: ${s.hand.length}.`)
     s.round++
     // Round-start wipe. Slow Armor optionally survives exactly one wipe.
     const wiped = s.hero.armor
@@ -301,7 +310,7 @@ const Proto = (() => {
     }
   }
 
-  return { CARDS, DECKS, SCRIPT, initial, reduce, totalArmor, beatRow }
+  return { CARDS, DECKS, SCRIPT, initial, reduce, totalArmor, beatRow, economyRule }
 })()
 /*MODULE-END*/
 
