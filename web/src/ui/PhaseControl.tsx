@@ -7,7 +7,7 @@ import { useFirstTurnStep } from './useFirstTurn'
 import { encounterTerms, phaseDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
 import { Modal } from './Modal'
-import { PHASE_TRACK, type PhaseMark } from './phaseTrack'
+import { PHASE_TRACK, roundTrackDetail, type PhaseMark } from './phaseTrack'
 import { slotCanFire } from './slots'
 import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS } from './theme'
 
@@ -19,9 +19,10 @@ import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS } from './theme'
 // costs a fifth of the width and does not truncate, so the whole Round is
 // legible on the narrowest screen the game supports.
 //
-// The words are still one gesture away. Hovering a mark names its window
-// and explains it; holding anywhere on the track gives a touch player the
-// window they are standing in, which is the one they need mid-fight.
+// The words are still one gesture away, by whichever gesture the device
+// has. Hovering a mark names its window and explains it; holding anywhere
+// on the track draws the whole Round in order with the live window lit,
+// which is the reading a finger cannot assemble a mark at a time.
 
 // The actions Next would leave on the table, phrased for the window being
 // skipped. Advisory only: "Skip anyway" always goes through.
@@ -112,8 +113,16 @@ export function PhaseControl() {
   const restart = useWorkbench((store) => store.restart)
   const step = useFirstTurnStep()
   // Hover belongs to whichever mark the mouse is actually over; the track
-  // itself answers a touch hold with the live window.
-  const hold = useHold(phaseDetail(state.phase, true), { hover: false })
+  // itself answers a touch hold — and it answers with the whole Round.
+  //
+  // A press on a mark bubbles to this button, and both bindings arm the same
+  // timer, so the outer one always won: on touch, pressing any mark opened
+  // the live window's detail. Pressing Slow and reading Loadout is worse
+  // than not asking. Rather than stop the press from bubbling — which would
+  // make a 47px mark the only way to reach the popup — the track answers
+  // with the thing a finger cannot get any other way: every window, in
+  // order, with this one marked.
+  const hold = useHold(roundTrackDetail(state.phase), { hover: false })
   // The Encounter Clock, compact: the Boss line left the HUD, so the Round
   // count rides the phase row and the Encounter's terms are a hold away.
   const clockHold = useHold({
@@ -167,7 +176,7 @@ export function PhaseControl() {
         type="button"
         {...hold.holdProps}
         data-testid="phase-track"
-        aria-label={`Current phase: ${state.phase}`}
+        aria-label={`Round track: ${state.phase}. Hold for every window in order.`}
         // min-w-0 lets the track shrink below its marks' natural width; without
         // it flex-1 will not go under content size and the row overflows the
         // surface, which then scrolls sideways under any focus or modal.
