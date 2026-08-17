@@ -33,7 +33,7 @@ function RejectionToast() {
   }
   return (
     <div className="pointer-events-none absolute right-3 bottom-40 left-3 z-10" data-testid="rejection-toast">
-      <div className="rounded-lg border border-red-800 bg-red-950/95 px-3 py-2 text-center text-xs font-semibold text-red-200 shadow-lg">
+      <div className="wb-plate wb-plate-sm wb-face-steel wb-acc-ember py-2 text-center text-xs font-semibold text-ember-100">
         {lastRejection}
       </div>
     </div>
@@ -55,7 +55,7 @@ function PlayoutContinue() {
       type="button"
       data-testid="playout-continue"
       onClick={continuePlayout}
-      className={`wb-slide-up pointer-events-auto flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border-2 border-amber-500 bg-amber-950/95 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
+      className={`wb-slide-up pointer-events-auto wb-plate wb-plate-sm wb-face-steel wb-acc-ember flex min-h-12 w-full items-center justify-between gap-2 bg-amber-950/95 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
     >
       <span className="text-xs font-bold text-amber-100">{beatTitle ?? 'Boss beat'}</span>
       <span className="animate-pulse text-xs font-black tracking-widest text-amber-300 uppercase motion-reduce:animate-none">
@@ -73,12 +73,12 @@ function TargetingBanner() {
   }
   return (
     <div className="absolute top-40 right-3 left-3 z-10" data-testid="targeting-banner">
-      <div className="flex items-center justify-between rounded-lg border border-yellow-700 bg-yellow-950/95 px-3 py-2 text-xs font-semibold text-yellow-200 shadow-lg">
+      <div className="wb-plate wb-plate-sm wb-face-steel wb-acc-gold flex items-center justify-between py-2 text-xs font-semibold text-yellow-200 shadow-lg">
         <span>Pick a Minion</span>
         <button
           type="button"
           onClick={cancelTargeting}
-          className={`pointer-events-auto min-h-11 rounded-lg bg-yellow-800 px-4 font-bold text-yellow-100 ${FOCUS_RING_CLASS}`}
+          className={`wb-plate wb-plate-sm wb-face-gold wb-acc-gold pointer-events-auto min-h-11 font-bold text-gold-950 ${FOCUS_RING_CLASS}`}
         >
           Cancel
         </button>
@@ -99,8 +99,8 @@ function OutcomeBanner() {
   return (
     <div className="absolute inset-x-3 top-1/3 z-20" data-testid="outcome-banner" data-outcome={state.outcome}>
       <div
-        className={`wb-pop-in rounded-2xl border-2 px-4 py-6 text-center shadow-2xl ${
-          victory ? 'border-gold-500 bg-gold-950/95 text-gold-100' : 'border-ember-600 bg-ember-950/95 text-ember-100'
+        className={`wb-pop-in wb-plate wb-plate-xl py-6 text-center ${
+          victory ? 'wb-face-steel wb-acc-gold text-gold-100' : 'wb-face-steel wb-acc-ember text-ember-100'
         }`}
       >
         {victory ? (

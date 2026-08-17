@@ -6,11 +6,11 @@ import { selectState, useWorkbench } from '@/store/workbench'
 // and its colour, nothing else. What the phase means lives behind a hold on
 // the Round track.
 const PHASE_COPY: Record<Phase, { title: string; tone: string }> = {
-  loadout: { title: 'Loadout', tone: 'border-zinc-500 bg-zinc-900/95 text-zinc-100' },
-  instant: { title: 'Boss Instant', tone: 'border-amber-500 bg-amber-950/95 text-amber-100' },
-  quick: { title: 'Quick Window', tone: 'border-glass-500 bg-glass-950/95 text-glass-100' },
-  incoming: { title: 'Boss Incoming', tone: 'border-amber-500 bg-amber-950/95 text-amber-100' },
-  slow: { title: 'Slow Window', tone: 'border-gold-500 bg-gold-950/95 text-gold-100' },
+  loadout: { title: 'Loadout', tone: 'wb-face-steel wb-acc-none text-zinc-100' },
+  instant: { title: 'Boss Instant', tone: 'wb-face-steel wb-acc-ember text-ember-100' },
+  quick: { title: 'Quick Window', tone: 'wb-face-steel wb-acc-glass text-glass-100' },
+  incoming: { title: 'Boss Incoming', tone: 'wb-face-steel wb-acc-ember text-ember-100' },
+  slow: { title: 'Slow Window', tone: 'wb-face-steel wb-acc-gold text-gold-100' },
 }
 
 export function PhaseBanner() {
@@ -48,7 +48,7 @@ export function PhaseBanner() {
   const copy = PHASE_COPY[shownPhase]
   return (
     <div className="pointer-events-none absolute inset-x-6 top-[34%] z-20 flex justify-center" data-testid="phase-banner">
-      <div key={shownPhase} className={`wb-banner rounded-2xl border-2 px-5 py-2.5 text-center shadow-2xl ${copy.tone}`}>
+      <div key={shownPhase} className={`wb-banner wb-plate wb-plate-lg py-2.5 text-center ${copy.tone}`}>
         <div className="text-lg font-black tracking-widest uppercase">{copy.title}</div>
       </div>
     </div>

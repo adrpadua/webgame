@@ -77,14 +77,15 @@ const HOLD_DELAY_MS = 280
 // sooner.
 const HOVER_DELAY_MS = 220
 
+// The popover is a raked plate; its tone rides the leading-edge accent.
 const TONE_CLASS: Record<HoldTone, string> = {
-  neutral: 'border-zinc-500',
-  attack: 'border-rose-500',
-  guard: 'border-glass-500',
-  heal: 'border-ceramic-400',
-  boss: 'border-amber-500',
-  quick: 'border-glass-500',
-  slow: 'border-gold-500',
+  neutral: 'wb-acc-none',
+  attack: 'wb-acc-ember',
+  guard: 'wb-acc-glass',
+  heal: 'wb-acc-none',
+  boss: 'wb-acc-ember',
+  quick: 'wb-acc-glass',
+  slow: 'wb-acc-gold',
 }
 
 const BADGE_CLASS: Record<HoldTone, string> = {
@@ -224,7 +225,7 @@ export function HoldPopoverLayer() {
       data-testid="hold-popover"
       data-hold-id={detail.id}
     >
-      <div className={`wb-pop-in rounded-2xl border-2 bg-zinc-950/97 p-3 shadow-2xl ${TONE_CLASS[tone]}`}>
+      <div className={`wb-pop-in wb-plate wb-plate-lg wb-face-dim py-3 ${TONE_CLASS[tone]}`}>
         <div className="flex items-baseline justify-between gap-2">
           <span className="text-sm font-bold text-zinc-50">{detail.title}</span>
           {detail.badge !== undefined && (
@@ -247,7 +248,7 @@ export function HoldPopoverLayer() {
         {detail.tags !== undefined && detail.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {detail.tags.map((tag) => (
-              <span key={tag} className="rounded bg-zinc-800 px-1.5 py-0.5 text-[9px] text-zinc-400 uppercase">
+              <span key={tag} className="bg-zinc-800 px-1.5 py-0.5 text-[9px] text-zinc-400 uppercase">
                 {tag}
               </span>
             ))}

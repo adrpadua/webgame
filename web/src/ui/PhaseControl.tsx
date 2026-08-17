@@ -147,7 +147,7 @@ export function PhaseControl() {
         {...hold.holdProps}
         data-testid="phase-track"
         aria-label={`Current phase: ${state.phase}`}
-        className={`flex min-h-11 flex-1 items-center gap-1 rounded-lg text-left ${FOCUS_RING_CLASS}`}
+        className={`flex min-h-11 flex-1 items-center gap-1 text-left ${FOCUS_RING_CLASS}`}
       >
         {PHASES.map((entry) => (
           <span
@@ -165,7 +165,7 @@ export function PhaseControl() {
         {...clockHold.holdProps}
         data-testid="round-display"
         aria-label={`Round ${state.round} of ${state.roundLimit}`}
-        className={`min-h-11 min-w-11 shrink-0 rounded-lg text-[11px] font-semibold text-zinc-400 ${FOCUS_RING_CLASS}`}
+        className={`min-h-11 min-w-11 shrink-0 text-[11px] font-semibold text-zinc-400 ${FOCUS_RING_CLASS}`}
       >
         {state.round}/{state.roundLimit}
       </button>
@@ -174,7 +174,7 @@ export function PhaseControl() {
           type="button"
           data-testid="next-phase"
           onClick={onNext}
-          className={`min-h-12 shrink-0 rounded-lg bg-gold-500 px-4 text-sm font-bold text-gold-950 transition hover:bg-gold-400 active:scale-95 ${FOCUS_RING_CLASS} ${
+          className={`wb-plate wb-plate-sm wb-face-gold wb-acc-gold min-h-12 shrink-0 text-sm font-bold text-gold-950 transition hover:brightness-110 active:translate-y-px ${FOCUS_RING_CLASS} ${
             nextSpotlit ? SPOTLIGHT_CLASS : ''
           } ${nextGated ? GATED_CLASS : ''}`}
         >
@@ -185,7 +185,7 @@ export function PhaseControl() {
           type="button"
           data-testid="restart"
           onClick={() => restart()}
-          className={`min-h-12 shrink-0 rounded-lg bg-amber-600 px-4 text-sm font-bold text-white transition hover:bg-amber-500 active:scale-95 ${FOCUS_RING_CLASS}`}
+          className={`wb-plate wb-plate-sm wb-face-gold wb-acc-gold min-h-12 shrink-0 text-sm font-bold text-gold-950 transition hover:brightness-110 active:translate-y-px ${FOCUS_RING_CLASS}`}
         >
           Restart
         </button>
@@ -194,7 +194,7 @@ export function PhaseControl() {
         <Modal
           onDismiss={() => setPendingSkip(null)}
           labelledBy="phase-skip-title"
-          accentBorderClass="border-amber-500"
+          accentBorderClass="wb-acc-ember"
           testId="phase-skip-confirm"
         >
           <h2 id="phase-skip-title" className="text-sm font-bold text-amber-300">
@@ -207,7 +207,7 @@ export function PhaseControl() {
               autoFocus
               data-testid="cancel-skip"
               onClick={() => setPendingSkip(null)}
-              className={`min-h-12 flex-1 rounded-lg bg-gold-500 text-sm font-bold text-gold-950 transition hover:bg-gold-400 ${FOCUS_RING_CLASS}`}
+              className={`wb-plate wb-plate-sm wb-face-gold wb-acc-gold min-h-12 flex-1 text-sm font-bold text-gold-950 transition hover:brightness-110 ${FOCUS_RING_CLASS}`}
             >
               Stay
             </button>
@@ -215,7 +215,7 @@ export function PhaseControl() {
               type="button"
               data-testid="confirm-skip"
               onClick={confirmSkip}
-              className={`min-h-12 flex-1 rounded-lg bg-zinc-700 text-sm font-bold text-zinc-100 transition hover:bg-zinc-600 ${FOCUS_RING_CLASS}`}
+              className={`wb-plate wb-plate-sm wb-face-steel wb-acc-none min-h-12 flex-1 text-sm font-bold text-zinc-100 transition hover:brightness-125 ${FOCUS_RING_CLASS}`}
             >
               Skip anyway
             </button>

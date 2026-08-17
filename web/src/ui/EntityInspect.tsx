@@ -115,7 +115,7 @@ function StatusChip({ status }: { status: StatusInstance }) {
     <button
       type="button"
       {...hold.holdProps}
-      className={`min-h-11 min-w-11 rounded bg-amber-900 px-1.5 text-[10px] font-semibold text-amber-200 ${FOCUS_RING_CLASS}`}
+      className={`min-h-11 min-w-11 bg-amber-900 px-1.5 text-[10px] font-semibold text-amber-200 ${FOCUS_RING_CLASS}`}
     >
       {status.title}
     </button>
@@ -219,7 +219,7 @@ export function EntityInspect() {
     <div
       data-testid="entity-inspect"
       data-entity={entity.id}
-      className="wb-slide-up pointer-events-auto flex items-center gap-1 rounded-xl border border-zinc-700 bg-zinc-900/95 px-2 py-1 shadow-xl"
+      className="wb-slide-up wb-plate wb-plate-lg wb-face-steel wb-acc-cloth pointer-events-auto flex items-center gap-1 py-1"
     >
       <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-zinc-100">
         {/* A Minion is an Enemy, never a Hero: it wears the Enemy emblem in
@@ -237,7 +237,7 @@ export function EntityInspect() {
         data-testid="inspect-dismiss"
         aria-label="Close the stat panel"
         onClick={dismissInspect}
-        className={`min-h-11 min-w-11 shrink-0 rounded-md text-xs font-bold text-zinc-400 transition hover:text-zinc-100 ${FOCUS_RING_CLASS}`}
+        className={`min-h-11 min-w-11 shrink-0 text-xs font-bold text-zinc-400 transition hover:text-zinc-100 ${FOCUS_RING_CLASS}`}
       >
         ✕
       </button>

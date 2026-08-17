@@ -139,18 +139,22 @@ function Slot({ slotIndex }: { slotIndex: number }) {
           cardDroppedOnSlot(cardInstanceId, slotIndex)
         }
       }}
-      className={`relative min-h-20 flex-1 rounded-xl border-2 p-2 text-left transition ${FOCUS_RING_CLASS} ${
+      className={`wb-plate wb-plate-lg min-h-20 flex-1 py-2 text-left transition ${FOCUS_RING_CLASS} ${
+        // A Slot is a raked oathsteel plate. Its state lives in the leading-edge
+        // accent — the status channel every plate shares — and in the face:
+        // gold when the Slot is live (Primed, or about to take a card), ember
+        // when the incoming card would replace what is there, steel otherwise.
         incomingCardId !== null && incomingLegal
           ? incomingAction === 'Replace'
-            ? `border-amber-400 bg-amber-950/50 ${pulse}`
-            : `border-gold-400 bg-gold-950/50 ${pulse}`
+            ? `wb-face-steel wb-acc-ember ${pulse}`
+            : `wb-face-steel wb-acc-gold ${pulse}`
           : canFire
-            ? `border-gold-500 bg-gold-950/60 hover:bg-gold-900/60 ${pulse}`
+            ? `wb-face-steel wb-acc-gold ${pulse}`
             : stateName === 'primed'
-              ? 'border-amber-500 bg-amber-950/40'
+              ? 'wb-face-steel wb-acc-gold'
               : card
-                ? 'border-zinc-600 bg-zinc-800/70'
-                : 'border-dashed border-zinc-700 bg-zinc-900/40'
+                ? 'wb-face-steel wb-acc-none'
+                : 'wb-face-dim wb-acc-none opacity-80'
       } ${spotlit ? SPOTLIGHT_CLASS : ''} ${gated ? GATED_CLASS : ''}`}
     >
       {incomingAction !== null && (
@@ -159,7 +163,7 @@ function Slot({ slotIndex }: { slotIndex: number }) {
             !incomingLegal
               ? 'bg-zinc-700 text-zinc-400 line-through'
               : incomingAction === 'Replace'
-                ? 'bg-amber-500 text-amber-950'
+                ? 'bg-ember-500 text-ember-100'
                 : 'bg-gold-400 text-gold-950'
           }`}
         >
