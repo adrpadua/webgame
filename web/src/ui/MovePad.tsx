@@ -73,7 +73,7 @@ export function MovePad() {
             // destination is a player affordance, so it reads in runeglass.
             className={`min-h-11 min-w-11 border text-xs font-bold transition ${FOCUS_RING_CLASS} ${
               legal
-                ? `border-glass-500 bg-glass-950/90 text-glass-200 hover:bg-glass-900/90 ${dimmed ? '' : 'animate-pulse motion-reduce:animate-none'}`
+                ? `border-glass-500 bg-glass-950/90 text-glass-200 hover:bg-glass-900/90 ${dimmed ? '' : 'wb-ring-pulse'}`
                 : 'border-steel-800 bg-steel-950/80 text-zinc-700'
             } ${guided ? `border-zinc-100 ${SPOTLIGHT_CLASS}` : ''} ${dimmed ? 'opacity-40' : ''}`}
           >

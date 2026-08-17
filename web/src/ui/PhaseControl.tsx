@@ -147,7 +147,10 @@ export function PhaseControl() {
         {...hold.holdProps}
         data-testid="phase-track"
         aria-label={`Current phase: ${state.phase}`}
-        className={`flex min-h-11 flex-1 items-center gap-1 text-left ${FOCUS_RING_CLASS}`}
+        // min-w-0 lets the track shrink below its chips' natural width; without
+        // it flex-1 will not go under content size and the row overflows the
+        // surface, which then scrolls sideways under any focus or modal.
+        className={`flex min-h-11 min-w-0 flex-1 items-center gap-1 overflow-hidden text-left ${FOCUS_RING_CLASS}`}
       >
         {PHASES.map((entry) => (
           <span

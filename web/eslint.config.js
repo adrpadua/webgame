@@ -20,6 +20,8 @@ export default tseslint.config(
         // Inside page.evaluate callbacks, code runs in the browser.
         window: 'readonly',
         document: 'readonly',
+        getComputedStyle: 'readonly',
+        NodeFilter: 'readonly',
       },
     },
   },

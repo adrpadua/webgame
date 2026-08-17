@@ -108,7 +108,7 @@ function Slot({ slotIndex }: { slotIndex: number }) {
   // for rounds, and a persistent pulse would both fade its own text and
   // become furniture the eye edits out — the idle motion the interface
   // direction bans.
-  const pulse = gated ? '' : 'animate-pulse motion-reduce:animate-none'
+  const pulse = gated ? '' : 'wb-face-pulse'
 
   // What would landing the in-hand card here do, and is it legal? A card
   // placed into a Slot that began this Loadout empty is tentative, so
@@ -184,7 +184,7 @@ function Slot({ slotIndex }: { slotIndex: number }) {
             !incomingLegal
               ? 'bg-zinc-700 text-zinc-400 line-through'
               : incomingAction === 'Replace'
-                ? 'bg-ember-500 text-ember-100'
+                ? 'bg-ember-950 text-ember-100 ring-1 ring-ember-500'
                 : 'bg-gold-400 text-gold-950'
           }`}
         >

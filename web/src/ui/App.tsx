@@ -6,6 +6,8 @@ import { BossEmblem, HeroEmblem } from './icons'
 import { ActionBar } from './ActionBar'
 import { CoachMark } from './CoachMark'
 import { DebugRail } from './DebugRail'
+
+const showDebugRail = import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug')
 import { EntityInspect } from './EntityInspect'
 import { FirstTurnCue } from './FirstTurnCue'
 import { GuideModal } from './GuideModal'
@@ -55,12 +57,12 @@ function PlayoutContinue() {
       type="button"
       data-testid="playout-continue"
       onClick={continuePlayout}
-      className={`wb-slide-up pointer-events-auto wb-plate wb-plate-sm wb-face-steel wb-acc-ember flex min-h-12 w-full items-center justify-between gap-2 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
+      className={`wb-slide-up wb-face-pulse pointer-events-auto wb-plate wb-plate-sm wb-face-steel wb-acc-ember flex min-h-12 w-full items-center justify-between gap-2 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
     >
       <span className="text-xs font-bold text-coral-100">{beatTitle ?? 'Boss beat'}</span>
-      <span className="animate-pulse text-xs font-black tracking-widest text-coral-300 uppercase motion-reduce:animate-none">
-        Continue ▸
-      </span>
+      {/* The plate breathes to say "waiting on you"; the label does not, so
+          Continue never dips under its contrast floor while it waits. */}
+      <span className="text-xs font-black tracking-widest text-coral-300 uppercase">Continue ▸</span>
     </button>
   )
 }
@@ -125,7 +127,7 @@ export default function App() {
   return (
     <div className="flex min-h-dvh flex-wrap content-start items-start justify-center bg-zinc-950 font-sans text-zinc-100 sm:gap-6 sm:p-6">
       <main
-        className={`relative flex ${FRAME_HEIGHT_CLASS} w-full max-w-full shrink-0 touch-manipulation flex-col overflow-hidden bg-zinc-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-2xl select-none sm:w-[420px] sm:rounded-3xl sm:border sm:border-zinc-700`}
+        className={`relative flex ${FRAME_HEIGHT_CLASS} w-full max-w-full shrink-0 touch-manipulation flex-col overflow-clip bg-zinc-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-2xl select-none sm:w-[420px] sm:rounded-3xl sm:border sm:border-zinc-700`}
         data-testid="play-surface"
       >
         <ProgramStrip />
@@ -167,7 +169,12 @@ export default function App() {
         <OutcomeBanner />
         <GuideModal />
       </main>
-      <DebugRail />
+      {/* The rail is a design tool, not part of the game. It renders in the
+          dev server, or on any build with ?debug=1 in the URL — so it can be
+          reached on the deployed site when wanted, and a playtester handed
+          the URL cold never sees it. On a phone it used to wrap beneath the
+          play surface and drag the game off screen when touched. */}
+      {showDebugRail && <DebugRail />}
       {/* One popup surface for every tap-and-hold on the page. */}
       <HoldPopoverLayer />
     </div>

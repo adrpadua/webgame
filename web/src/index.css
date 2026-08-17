@@ -138,17 +138,24 @@ body {
   );
 }
 .wb-plate::after {
+  /* The accent follows the face's cut edge exactly, so it is drawn with the
+     same offset variable and the same clip, not with a fixed-degree skew: a
+     skewX(-8deg) travels height x tan(8deg), which matched the face only on
+     plates the height a size class assumed. On a tall modal the fixed skew
+     ran 70px inward and cut across the content while the face's edge, cut
+     from --wb-off, stayed 16px in. This is a 3px-wide band hugging the
+     face's leading edge from the notch to the bottom-left corner. */
   content: '';
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
+  inset: 0;
   z-index: -1;
   background: var(--wb-acc);
-  transform: skewX(-8deg);
-  transform-origin: bottom left;
-  clip-path: polygon(0 var(--wb-notch), 100% 0, 100% 100%, 0 100%);
+  clip-path: polygon(
+    var(--wb-off) var(--wb-notch),
+    calc(var(--wb-off) + 3px) var(--wb-notch),
+    3px 100%,
+    0 100%
+  );
 }
 /* Sizes: offset = height x tan(8deg) ≈ height x 0.14. */
 @utility wb-plate-xs { --wb-off: 3px; --wb-notch: 2px; padding-inline: calc(var(--wb-off) + 8px); }   /* ~24px chips */
@@ -162,11 +169,40 @@ body {
 @utility wb-face-ceramic { --wb-face: var(--color-ceramic-300); --wb-edge: var(--color-ceramic-500); }
 @utility wb-face-gold    { --wb-face: var(--color-gold-500); --wb-edge: var(--color-gold-400); }
 @utility wb-face-dim     { --wb-face: var(--color-steel-950); --wb-edge: var(--color-steel-800); }
+@utility wb-face-coral   { --wb-face: var(--color-coral-400); --wb-edge: var(--color-coral-300); }
 @utility wb-acc-gold  { --wb-acc: var(--color-gold-400); }
 @utility wb-acc-glass { --wb-acc: var(--color-glass-400); }
 @utility wb-acc-ember { --wb-acc: var(--color-ember-500); }
 @utility wb-acc-cloth { --wb-acc: var(--color-cloth-500); }
 @utility wb-acc-none  { --wb-acc: transparent; }
+
+/* --- Face pulse ----------------------------------------------------------
+   Breathes a plate's face and accent while a dragged card is over it, and
+   nothing else: the pulse lives on the ::before and ::after layers, so the
+   badge naming what a drop will do — Prepare, Charge, Replace — stays at
+   full opacity and never dips under its WCAG contrast floor mid-animation.
+   Tailwind's animate-pulse on the element itself took the label down to
+   about 3:1 at the trough. Transient by construction; ended by the drop. */
+@keyframes wb-face-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.wb-face-pulse::before,
+.wb-face-pulse::after {
+  animation: wb-face-pulse 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* --- Ring pulse ----------------------------------------------------------
+   For a control that is not a plate — the move pad's square buttons — a
+   breathing runeglass ring says "legal, tap me" without touching the
+   button's opacity, so its direction letter never fades below contrast. */
+@keyframes wb-ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(98, 210, 230, 0.55); }
+  50% { box-shadow: 0 0 0 4px rgba(98, 210, 230, 0); }
+}
+.wb-ring-pulse {
+  animation: wb-ring-pulse 1.4s ease-out infinite;
+}
 
 /* --- The Primed seat -----------------------------------------------------
    Fires once when a Slot's last tumbler drops and the lock head's ward ring
@@ -384,6 +420,9 @@ body {
   .wb-card-rise,
   .wb-glow-ring,
   .wb-seat,
+  .wb-face-pulse::before,
+  .wb-face-pulse::after,
+  .wb-ring-pulse,
   .wb-hex-step,
   .wb-damage-flash {
     animation: none;
