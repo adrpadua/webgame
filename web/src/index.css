@@ -323,6 +323,13 @@ body {
 .wb-banner {
   animation: wb-banner 1.7s ease-out both;
 }
+/* The Phase Reveal rides the same banner but carries a sentence rather than a
+   word, so it holds longer. The duration and the JS timer that unmounts it
+   are one number in two places — change them together, or the banner finishes
+   fading and then sits invisible waiting to be removed. */
+.wb-banner-long {
+  animation: wb-banner 2.6s ease-out both;
+}
 
 /* Guide diagram: idle bob for the hero/boss emblems. */
 @keyframes wb-float {
@@ -459,7 +466,8 @@ body {
   .wb-damage-flash {
     animation: none;
   }
-  .wb-banner {
+  .wb-banner,
+  .wb-banner-long {
     /* Keep the banner readable but static; the JS timer still removes it. */
     animation: none;
   }

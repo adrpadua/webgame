@@ -5,7 +5,7 @@ import type { ContentCatalog } from './content/catalog'
 import type { Card } from './content/schemas'
 import { resolveFire } from './cardResolver'
 import { legality } from './legality'
-import { resolveBossBeat, advanceProgram } from './timeline'
+import { resolveBossBeat, advanceProgram, applyPhaseBreak, phaseBreakDue } from './timeline'
 import { shuffle } from './rng'
 import {
   addStatus,
@@ -324,7 +324,18 @@ function resolveOne(
         }
         draft.statusEffects[heroId] = getStatuses(draft, heroId).filter((effect) => !statusExpiresOnRoundAdvance(effect))
       }
-      advanceProgram(draft)
+      // The Phase Break replaces this Round's rotation rather than following
+      // it: Phase II opens on its own first Program, not on whichever Phase I
+      // Program the loop happened to reach. Recorded on the Round's own fact
+      // so the reveal has something authoritative to read — the presentation
+      // never decides that a phase turned.
+      if (phaseBreakDue(draft, action.round)) {
+        applyPhaseBreak(draft)
+        fact.detail.phaseBreak = draft.bossPhase
+        fact.detail.phaseProgram = draft.currentProgramId ?? ''
+      } else {
+        advanceProgram(draft)
+      }
       succeed(fact)
       break
     }

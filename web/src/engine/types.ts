@@ -64,6 +64,13 @@ export interface BoardState {
   hazards: Record<HexKey, HazardInstance[]>
 }
 
+// The authored condition for entering Phase II. Either half fires it, and an
+// absent half is simply not one of the ways in.
+export interface PhaseTrigger {
+  bossHealthAtOrBelow: number | null
+  roundAtOrAfter: number | null
+}
+
 export type StatusTrigger = 'on_round_start' | 'on_enter_hex' | 'on_damage_taken' | 'on_slot_fired'
 
 export interface StatusInstance {
@@ -104,6 +111,15 @@ export interface EncounterState {
   loopPrograms: boolean
   programIndex: number
   currentProgramId: string | null
+  // Phase II (ADR 0023). bossPhase is 1 until the Phase Trigger's condition
+  // is met, and the break itself lands at the following Round boundary — a
+  // trigger reached inside a player window takes effect after that Round
+  // finishes, never mid-window. An Encounter with no authored Phase II keeps
+  // bossPhase at 1 for its whole clock.
+  bossPhase: number
+  phaseTrigger: PhaseTrigger | null
+  phaseTwoProgramIds: string[]
+  phaseBreakText: string
   broodSpawnCandidates: Axial[]
   telegraphedSpawnHexes: Axial[]
   telegraphs: Record<HexKey, TelegraphKind>
