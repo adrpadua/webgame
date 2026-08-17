@@ -4,7 +4,7 @@
 // headless runner replays to an identical final state (M3).
 // Usage: npm run build && node scripts/smoke.mjs
 import { spawn, spawnSync } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
@@ -52,6 +52,20 @@ const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--stric
 
 try {
   await waitForServer(BASE_URL)
+  // The board paints to a canvas and so cannot wear a token the way a plate
+  // can: it keeps numeric fallbacks for the colours it reads at scene boot.
+  // A fallback that has drifted from its token is how the Boss came to be
+  // drawn in ember on the board while every plate drew it in ember coral, so
+  // hold the two lists against each other before anything renders.
+  const paletteSource = readFileSync(new URL('../src/board/palette.ts', import.meta.url), 'utf8')
+  const stylesheet = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8')
+  const drifted = [...paletteSource.matchAll(/'([a-z]+-\d+)':\s*0x([0-9a-f]{6})/g)].flatMap(([, name, value]) => {
+    const token = new RegExp(`--color-${name}:\\s*#([0-9a-fA-F]{6})`).exec(stylesheet)
+    if (!token) return [`--color-${name} is not defined in index.css`]
+    return token[1].toLowerCase() === value ? [] : [`--color-${name} is #${token[1]} but the board falls back to #${value}`]
+  })
+  assert(drifted.length === 0, `every board palette fallback matches its token (${drifted.join(' | ') || 'all match'})`)
+
   // Let Playwright resolve the browser it installed (`npx playwright install
   // chromium`). PLAYWRIGHT_CHROMIUM_PATH overrides it for images that ship
   // their own build at a fixed path.

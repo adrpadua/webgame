@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { facingName, hexKey, parseHexKey, type Axial, type EncounterState } from '@/engine'
 import { axialToPixel, hexCorners, pixelToAxial, HEX_SIZE } from './layout'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
+import { boardPalette, toneColors } from './palette'
 
 // The board snapshot the scene renders. Phaser owns no game state: it draws
 // what it is handed and reports hex-level intents upward (ADR 0019).
@@ -44,27 +45,24 @@ export interface BoardSceneCallbacks {
 // is: warm is their beat, cool is your move. Every value here names one or
 // the other, per docs/content/oathcraft-board-direction.md.
 //
-// Cool objects — oathsteel ground, and a signal-cloth Hero standing on it.
-const TILE_FILL = 0x1b2434
-const TILE_STROKE = 0x37465f
-const HERO_FILL = 0x2f5680
-// Cool tint: where the Hero may step. Runeglass at tint saturation.
-const MOVE_OVERLAY = 0x62d2e6
-// Warm tints, most imminent first — the telegraphed beats landing next window.
-// One material, two saturations: the breath cone is the more imminent read.
-const BREATH_OVERLAY = 0xe0703b
-const BROOD_OVERLAY = 0xd9482f
-// Warm objects. Boss and Minion are one material, ember coral: a Whelp is a
-// piece of the furnace, and a hue of its own would say otherwise. They part by
-// saturation and size, and scorched ground is that material with the heat gone.
-const BOSS_FILL = 0xd9482f
-const MINION_FILL = 0xb8562f
-const SCORCHED_FILL = 0x5a2f22
-// The scripted turn's pointer is instruction from outside the fiction — the one
-// neutral on the board. The strike reticle is a player affordance, so it is a
-// cool tint like any other thing that is yours to choose.
-const GUIDED_STROKE = 0xfafafa
-const TARGET_STROKE = 0x62d2e6
+// Every value the board paints comes from the palette module, which reads the
+// same tokens the chrome wears. Boss and Minion are one material, ember coral:
+// a Whelp is a piece of the furnace, and a hue of its own would say otherwise.
+// They part by saturation and size, and scorched ground is that material with
+// the heat gone. See palette.ts for why each step is the step it is.
+const {
+  tileFill: TILE_FILL,
+  tileStroke: TILE_STROKE,
+  heroFill: HERO_FILL,
+  moveOverlay: MOVE_OVERLAY,
+  breathOverlay: BREATH_OVERLAY,
+  broodOverlay: BROOD_OVERLAY,
+  bossFill: BOSS_FILL,
+  minionFill: MINION_FILL,
+  scorchedFill: SCORCHED_FILL,
+  guidedStroke: GUIDED_STROKE,
+  targetStroke: TARGET_STROKE,
+} = boardPalette()
 
 // One light direction for the whole board, from the upper left. Every piece
 // shades and rims against it, and the drop shadow falls the opposite way, so
@@ -100,18 +98,7 @@ const TILE_SKIRT_SHADE = 0.45
 // Range of the per-hex value jitter, centred on 1.
 const TILE_JITTER = 0.12
 
-// A Board Feedback flash is an event, neither object nor tint: the AXIS says
-// whose event it was, and the MATERIAL involved supplies the value. Your
-// restoration is aether ceramic — the world's medical technology — and reads
-// pale against a board where everything else is saturated. There is no green
-// on the board, because green names no material.
-const TONE_COLOR: Record<EffectTone, number> = {
-  hero: 0x2f5680,
-  boss: 0xd9482f,
-  guard: 0x62d2e6,
-  heal: 0xe4e8ee,
-  hazard: 0xe0703b,
-}
+const TONE_COLOR: Record<EffectTone, number> = toneColors()
 
 const TONE_TEXT: Record<EffectTone, string> = {
   hero: '#f6c9be',
