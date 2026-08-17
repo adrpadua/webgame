@@ -83,6 +83,33 @@ describe('playout director', () => {
     expect(usePlayout.getState().outcomeHeld).toBe(false)
   })
 
+  it("holds a fatal Row's outcome behind the presses that tell it", () => {
+    // A Boss Row that ends the Encounter is gated like any other, so the
+    // reveal now waits on a player, not just a timer: the banner must not
+    // give the ending away over beats nobody has asked to see yet.
+    usePlayout.getState().begin({ ...script(), endsEncounter: true }, false)
+    expect(usePlayout.getState().outcomeHeld).toBe(true)
+    expect(usePlayout.getState().awaitingContinue).toBe(true)
+    // Waiting alone never reveals it — the Row does not play itself.
+    vi.advanceTimersByTime(EFFECT_SETTLE_MS * 10)
+    expect(usePlayout.getState().outcomeHeld).toBe(true)
+    expect(usePlayout.getState().activeBeatId).toBeNull()
+    for (let press = 0; press < 3; press += 1) {
+      usePlayout.getState().continuePlayout()
+      vi.advanceTimersByTime(EFFECT_SETTLE_MS)
+    }
+    expect(usePlayout.getState().outcomeHeld).toBe(false)
+  })
+
+  it('settles rather than throwing on a script with no moments', () => {
+    // derivePlayoutScript never emits one, but firing moment 0 of an empty
+    // batch would throw and a held outcome would wait on a moment that can
+    // never come.
+    usePlayout.getState().begin({ initial: {}, endsEncounter: true, moments: [] }, false)
+    expect(usePlayout.getState().outcomeHeld).toBe(false)
+    expect(usePlayout.getState().awaitingContinue).toBe(false)
+  })
+
   it('runs every moment without a prompt in auto mode', () => {
     usePlayout.getState().begin(script(), true)
     expect(usePlayout.getState().activeBeatId).toBe('turn_to_the_tank')

@@ -135,11 +135,19 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
       momentIndex = -1
       set({ ...IDLE, overrides: { ...script.initial }, outcomeHeld: script.endsEncounter, paced: !autoAdvance })
       const opening = moments[0]
+      if (opening === undefined) {
+        // derivePlayoutScript never scripts an empty batch, and firing a
+        // moment that does not exist would throw. Settle instead of holding:
+        // an outcome reveal must never wait on a moment that cannot come.
+        finish()
+        return
+      }
       // Auto mode presses nothing at all, and a beatless batch is the
       // player's own blow landing — immediate feedback, never something to
-      // ask for. Everything else is a Boss Row, and a Boss Row lands
+      // ask for (a real beat always has an id, so a null one is exactly
+      // that case). Everything else is a Boss Row, and a Boss Row lands
       // announced rather than already swinging.
-      if (autoAdvance || opening === undefined || opening.beatId === null) {
+      if (autoAdvance || opening.beatId === null) {
         fireMoment(0)
         return
       }
