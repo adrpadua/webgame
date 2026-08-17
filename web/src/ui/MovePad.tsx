@@ -62,7 +62,7 @@ export function MovePad() {
             onClick={() => cardDroppedOnHex(selectedCardId, destination)}
             className={`min-h-11 min-w-11 rounded-lg border text-xs font-bold shadow-lg transition ${FOCUS_RING_CLASS} ${
               legal
-                ? `border-emerald-500 bg-emerald-950/90 text-emerald-200 hover:bg-emerald-900/90 ${dimmed ? '' : 'animate-pulse motion-reduce:animate-none'}`
+                ? `border-glass-500 bg-glass-950/90 text-glass-200 hover:bg-glass-900/90 ${dimmed ? '' : 'animate-pulse motion-reduce:animate-none'}`
                 : 'border-zinc-800 bg-zinc-900/80 text-zinc-700'
             } ${guided ? `border-zinc-100 ${SPOTLIGHT_CLASS}` : ''} ${dimmed ? 'opacity-40' : ''}`}
           >

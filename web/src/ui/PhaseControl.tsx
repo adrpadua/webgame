@@ -18,9 +18,9 @@ import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS } from './theme'
 const PHASES: { phase: Phase; label: string; activeClass: string }[] = [
   { phase: 'loadout', label: 'Loadout', activeClass: 'bg-zinc-600 text-zinc-50 shadow-zinc-950' },
   { phase: 'instant', label: 'Instant', activeClass: 'bg-amber-500 text-amber-950 shadow-amber-900' },
-  { phase: 'quick', label: 'Quick', activeClass: 'bg-emerald-500 text-emerald-950 shadow-emerald-900' },
+  { phase: 'quick', label: 'Quick', activeClass: 'bg-glass-400 text-glass-950 shadow-glass-900' },
   { phase: 'incoming', label: 'Incoming', activeClass: 'bg-amber-500 text-amber-950 shadow-amber-900' },
-  { phase: 'slow', label: 'Slow', activeClass: 'bg-sky-500 text-sky-950 shadow-sky-900' },
+  { phase: 'slow', label: 'Slow', activeClass: 'bg-gold-400 text-gold-950 shadow-gold-900' },
 ]
 
 // The Round track plus the one control that moves it. Holding the track
@@ -174,7 +174,7 @@ export function PhaseControl() {
           type="button"
           data-testid="next-phase"
           onClick={onNext}
-          className={`min-h-12 shrink-0 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-500 active:scale-95 ${FOCUS_RING_CLASS} ${
+          className={`min-h-12 shrink-0 rounded-lg bg-gold-500 px-4 text-sm font-bold text-gold-950 transition hover:bg-gold-400 active:scale-95 ${FOCUS_RING_CLASS} ${
             nextSpotlit ? SPOTLIGHT_CLASS : ''
           } ${nextGated ? GATED_CLASS : ''}`}
         >
@@ -207,7 +207,7 @@ export function PhaseControl() {
               autoFocus
               data-testid="cancel-skip"
               onClick={() => setPendingSkip(null)}
-              className={`min-h-12 flex-1 rounded-lg bg-emerald-600 text-sm font-bold text-white transition hover:bg-emerald-500 ${FOCUS_RING_CLASS}`}
+              className={`min-h-12 flex-1 rounded-lg bg-gold-500 text-sm font-bold text-gold-950 transition hover:bg-gold-400 ${FOCUS_RING_CLASS}`}
             >
               Stay
             </button>

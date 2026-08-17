@@ -8,9 +8,9 @@ import { selectState, useWorkbench } from '@/store/workbench'
 const PHASE_COPY: Record<Phase, { title: string; tone: string }> = {
   loadout: { title: 'Loadout', tone: 'border-zinc-500 bg-zinc-900/95 text-zinc-100' },
   instant: { title: 'Boss Instant', tone: 'border-amber-500 bg-amber-950/95 text-amber-100' },
-  quick: { title: 'Quick Window', tone: 'border-emerald-500 bg-emerald-950/95 text-emerald-100' },
+  quick: { title: 'Quick Window', tone: 'border-glass-500 bg-glass-950/95 text-glass-100' },
   incoming: { title: 'Boss Incoming', tone: 'border-amber-500 bg-amber-950/95 text-amber-100' },
-  slow: { title: 'Slow Window', tone: 'border-sky-500 bg-sky-950/95 text-sky-100' },
+  slow: { title: 'Slow Window', tone: 'border-gold-500 bg-gold-950/95 text-gold-100' },
 }
 
 export function PhaseBanner() {

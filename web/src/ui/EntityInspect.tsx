@@ -80,7 +80,7 @@ function HeroHealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing
       <span className={`${GAUGE_TRACK_CLASS} flex-1`}>
         <span className={`${GAUGE_FILL_CLASS} bg-red-500/70`} style={{ width: `${healthFraction * 100}%` }} />
         <span
-          className="absolute inset-y-0 bg-sky-500/70 transition-[left,width] duration-300"
+          className="absolute inset-y-0 bg-glass-500/70 transition-[left,width] duration-300"
           style={{ left: `${healthFraction * 100}%`, width: `${armorFraction * 100}%` }}
         />
         <span className={`${GAUGE_LABEL_CLASS} text-[10px] text-red-50`}>
@@ -90,8 +90,8 @@ function HeroHealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing
           </span>
           {hero.armor > 0 && (
             <>
-              <ShieldIcon className="ml-0.5 h-3 w-3 shrink-0 text-sky-300" />
-              <span data-testid="hero-armor" className="text-sky-100">
+              <ShieldIcon className="ml-0.5 h-3 w-3 shrink-0 text-glass-300" />
+              <span data-testid="hero-armor" className="text-glass-100">
                 {hero.armor}
               </span>
             </>
@@ -225,7 +225,7 @@ export function EntityInspect() {
         {/* A Minion is an Enemy, never a Hero: it wears the Enemy emblem in
             its own tone, not the Hero's blue. */}
         {isHero ? (
-          <HeroEmblem className="h-4 w-4 text-sky-400" />
+          <HeroEmblem className="h-4 w-4 text-cloth-300" />
         ) : (
           <BossEmblem className={`h-4 w-4 ${isBoss ? 'text-red-500' : 'text-amber-500'}`} />
         )}

@@ -100,11 +100,11 @@ function OutcomeBanner() {
     <div className="absolute inset-x-3 top-1/3 z-20" data-testid="outcome-banner" data-outcome={state.outcome}>
       <div
         className={`wb-pop-in rounded-2xl border-2 px-4 py-6 text-center shadow-2xl ${
-          victory ? 'border-emerald-500 bg-emerald-950/95 text-emerald-100' : 'border-red-600 bg-red-950/95 text-red-100'
+          victory ? 'border-gold-500 bg-gold-950/95 text-gold-100' : 'border-ember-600 bg-ember-950/95 text-ember-100'
         }`}
       >
         {victory ? (
-          <HeroEmblem className="wb-float mx-auto h-12 w-12 text-emerald-400" />
+          <HeroEmblem className="wb-float mx-auto h-12 w-12 text-gold-400" />
         ) : (
           <BossEmblem className="wb-float mx-auto h-12 w-12 text-red-500" />
         )}

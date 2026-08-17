@@ -33,7 +33,7 @@ export function ReplaceConfirmModal() {
           <span className="font-bold">{oldCard?.title ?? 'Top Card'}</span>
           <span className="text-[10px] uppercase">discarded{chargeCount > 0 ? ` + ${chargeCount} charged` : ''}</span>
         </div>
-        <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-950/60 px-2 py-1.5 text-emerald-200">
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-gold-950/60 px-2 py-1.5 text-gold-200">
           <span className="font-bold">{newCard?.title ?? 'Chosen card'}</span>
           <span className="text-[10px] uppercase">loads at 0 charge</span>
         </div>
