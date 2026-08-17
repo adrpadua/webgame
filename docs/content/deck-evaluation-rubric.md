@@ -134,7 +134,7 @@ Two asymmetric rules then apply, adapted from the champion balance framework in 
 
 ### Required Encounter Metrics
 
-Four metrics are required of every encounter session, in addition to the deck metrics above (D-027). Each exists to falsify one adopted law, which is why these four and not the other seven proposed in the [cooperative-boss research](research/2026-08-17-coop-boss-design-repeatability.md): a metric with no law behind it does not get collected.
+Four metrics are required of every encounter session, in addition to the deck metrics above (D-027). Each exists to falsify one adopted law, which is why these four and not the eleven originally proposed: a metric with no law behind it does not get collected. The full proposal came from revision 1 of the [cooperative-boss research](research/2026-08-17-coop-boss-design-repeatability.md), which revision 2 replaced without carrying the metrics table forward — so this section, not that document, is now their definition.
 
 | Metric | The law it tests | What to record | Healthy result |
 | --- | --- | --- | --- |
