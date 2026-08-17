@@ -66,6 +66,22 @@ try {
   })
   assert(drifted.length === 0, `every board palette fallback matches its token (${drifted.join(' | ') || 'all match'})`)
 
+  // A sprite sheet is sliced by numbers the scene carries, and nothing in the
+  // type system ties them to the file. Rebuild the sheet at a different size
+  // and every frame silently shifts — the character would face the wrong way
+  // and animate through pieces of two poses. The PNG's own header settles it.
+  const sceneSource = readFileSync(new URL('../src/board/BoardScene.ts', import.meta.url), 'utf8')
+  const frameW = Number(/HERO_FRAME_W = (\d+)/.exec(sceneSource)?.[1])
+  const frameH = Number(/HERO_FRAME_H = (\d+)/.exec(sceneSource)?.[1])
+  const frames = Number(/HERO_IDLE_FRAMES = (\d+)/.exec(sceneSource)?.[1])
+  const png = readFileSync(new URL('../src/assets/elian-voss-idle.png', import.meta.url))
+  const sheetW = png.readUInt32BE(16)
+  const sheetH = png.readUInt32BE(20)
+  assert(
+    sheetW === frameW * frames && sheetH === frameH * 6,
+    `the hero sheet slices into ${frames} frames across 6 facings (${sheetW}x${sheetH} vs ${frameW * frames}x${frameH * 6})`,
+  )
+
   // Let Playwright resolve the browser it installed (`npx playwright install
   // chromium`). PLAYWRIGHT_CHROMIUM_PATH overrides it for images that ship
   // their own build at a fixed path.
