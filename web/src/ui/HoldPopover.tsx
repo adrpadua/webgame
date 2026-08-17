@@ -80,21 +80,21 @@ const HOVER_DELAY_MS = 220
 const TONE_CLASS: Record<HoldTone, string> = {
   neutral: 'border-zinc-500',
   attack: 'border-rose-500',
-  guard: 'border-sky-500',
-  heal: 'border-emerald-500',
+  guard: 'border-glass-500',
+  heal: 'border-ceramic-400',
   boss: 'border-amber-500',
-  quick: 'border-emerald-500',
-  slow: 'border-sky-500',
+  quick: 'border-glass-500',
+  slow: 'border-gold-500',
 }
 
 const BADGE_CLASS: Record<HoldTone, string> = {
   neutral: 'text-zinc-400',
   attack: 'text-rose-300',
-  guard: 'text-sky-300',
-  heal: 'text-emerald-300',
+  guard: 'text-glass-300',
+  heal: 'text-ceramic-200',
   boss: 'text-amber-300',
-  quick: 'text-emerald-300',
-  slow: 'text-sky-300',
+  quick: 'text-glass-300',
+  slow: 'text-gold-300',
 }
 
 export interface HoldHandlers {

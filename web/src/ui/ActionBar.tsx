@@ -48,7 +48,7 @@ const STATE_TONE: Record<SlotStateName, string> = {
   loaded: 'text-zinc-500',
   charged: 'text-amber-400',
   primed: 'text-amber-300',
-  fired: 'text-emerald-400',
+  fired: 'text-gold-400',
 }
 
 export function ActionBar() {
@@ -143,9 +143,9 @@ function Slot({ slotIndex }: { slotIndex: number }) {
         incomingCardId !== null && incomingLegal
           ? incomingAction === 'Replace'
             ? `border-amber-400 bg-amber-950/50 ${pulse}`
-            : `border-emerald-400 bg-emerald-950/50 ${pulse}`
+            : `border-gold-400 bg-gold-950/50 ${pulse}`
           : canFire
-            ? `border-emerald-500 bg-emerald-950/60 hover:bg-emerald-900/60 ${pulse}`
+            ? `border-gold-500 bg-gold-950/60 hover:bg-gold-900/60 ${pulse}`
             : stateName === 'primed'
               ? 'border-amber-500 bg-amber-950/40'
               : card
@@ -160,7 +160,7 @@ function Slot({ slotIndex }: { slotIndex: number }) {
               ? 'bg-zinc-700 text-zinc-400 line-through'
               : incomingAction === 'Replace'
                 ? 'bg-amber-500 text-amber-950'
-                : 'bg-emerald-500 text-emerald-950'
+                : 'bg-gold-400 text-gold-950'
           }`}
         >
           {incomingAction}

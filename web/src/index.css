@@ -1,5 +1,65 @@
 @import 'tailwindcss';
 
+/* --- Oathcraft palette ---------------------------------------------------
+   The material language from docs/content/oathcraft-interface-direction.md,
+   as Tailwind theme tokens so every colour on the chrome names a material.
+   Ramps step by value only; the anchor shade is the direction's hex, and the
+   others are what that material looks like lit, dim, or as a dark ground.
+
+   glass  = runeglass    #62D2E6   projected information, focus, Quick
+   gold   = living gold  #C8A344   lockwork: controls, charge pips, Slow
+   cloth  = signal cloth #2F5680   the role channel (Shield Wall)
+   ceramic= aether ceramic #E4E8EE the console, healing
+   ember  = ember        #D9482F   damage taken, danger, irreversible
+   steel  = oathsteel    #1B2434   panels and frames */
+@theme {
+  --color-glass-100: #d6f4f9;
+  --color-glass-200: #a6e6f0;
+  --color-glass-300: #7fdbe9;
+  --color-glass-400: #62d2e6;
+  --color-glass-500: #3fb9cf;
+  --color-glass-600: #2a94a8;
+  --color-glass-700: #1e6d7c;
+  --color-glass-900: #0f3a44;
+  --color-glass-950: #0a2730;
+
+  --color-gold-100: #f7ebc9;
+  --color-gold-200: #ecd48f;
+  --color-gold-300: #dcbd60;
+  --color-gold-400: #c8a344;
+  --color-gold-500: #ad8b34;
+  --color-gold-600: #8a6e26;
+  --color-gold-700: #64501c;
+  --color-gold-900: #3a2e12;
+  --color-gold-950: #261e0c;
+
+  --color-cloth-100: #d5e3f0;
+  --color-cloth-300: #7ea3c6;
+  --color-cloth-400: #4f7ba6;
+  --color-cloth-500: #2f5680;
+  --color-cloth-700: #22405f;
+  --color-cloth-950: #101c2c;
+
+  --color-ceramic-100: #f7f9fb;
+  --color-ceramic-200: #edf0f5;
+  --color-ceramic-300: #e4e8ee;
+  --color-ceramic-400: #c9d2e0;
+  --color-ceramic-500: #a9b7cc;
+  --color-ceramic-950: #1a2230;
+
+  --color-ember-100: #f6c9be;
+  --color-ember-300: #ec8b73;
+  --color-ember-400: #e2603f;
+  --color-ember-500: #d9482f;
+  --color-ember-600: #b53a24;
+  --color-ember-950: #2c110c;
+
+  --color-steel-700: #37465f;
+  --color-steel-800: #24304a;
+  --color-steel-900: #1b2434;
+  --color-steel-950: #0f1622;
+}
+
 html,
 body {
   margin: 0;
@@ -158,10 +218,12 @@ body {
 @keyframes wb-glow-ring {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55);
+    /* Living gold: the live control's ring is a lock seating, which is the
+       one gold bloom the direction permits. */
+    box-shadow: 0 0 0 0 rgba(200, 163, 68, 0.6);
   }
   50% {
-    box-shadow: 0 0 0 7px rgba(52, 211, 153, 0);
+    box-shadow: 0 0 0 7px rgba(200, 163, 68, 0);
   }
 }
 .wb-glow-ring {
