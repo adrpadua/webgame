@@ -1,6 +1,6 @@
 # Repo Artifacts
 
-This document catalogs the major gameplay artifacts currently present in the repo.
+Partly historical: the Repository Homes and Clients sections below are current, but the script, scene, probe, and `.tres` card inventories catalogue the frozen Godot tree (ADR 0019) and the ADR index stops at 0002. Treat this as a map of where things sit, not as a description of what runs.
 
 ## Repository Homes
 
@@ -68,7 +68,7 @@ This document catalogs the major gameplay artifacts currently present in the rep
 Tank deck resources in [resources/cards/tank](../../resources/cards/tank):
 
 - `anchor_presence.tres`
-  - Slow presence-growth card
+  - Slow presence-growth card. Deleted from `data/` by ADR 0022; the `.tres` survives only in the frozen tree
 - `fortify.tres`
   - Slow armor spike
 - `guard_stance.tres`
@@ -76,7 +76,7 @@ Tank deck resources in [resources/cards/tank](../../resources/cards/tank):
 - `intercept.tres`
   - Quick armor plus minion hit
 - `rallying_cry.tres`
-  - Quick heal and energy gain
+  - Quick heal and energy gain. Energy was removed by ADR 0011
 - `shield_slam.tres`
   - Quick boss hit
 - `sweeping_blow.tres`

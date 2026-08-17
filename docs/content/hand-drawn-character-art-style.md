@@ -12,7 +12,7 @@ The goal is not to make the world less advanced. The goal is to make advanced ar
 
 This document is the committed target for the game's real art. Everything currently rendered is a placeholder.
 
-The live skin is CC0 art borrowed from OpenDuelyst — battlefield backdrop, board and hover tiles, target tile, and neutral boss crest — catalogued in [assets/README.md](../../assets/README.md) and described in [embermaw-vertical-slice.md](../artifacts/embermaw-vertical-slice.md). It was chosen for legibility while the tactical surface was being built, not as art direction. It does not follow the material language in [world-style-bible.md](world-style-bible.md), and it should not be used as a reference when briefing new work.
+The live skin is CC0 art borrowed from OpenDuelyst — battlefield backdrop, board and hover tiles, target tile, and neutral boss crest — catalogued in [assets/README.md](../../assets/README.md). (That skin was wired into the frozen Godot client; what the Phaser board draws today needs re-checking against `web/src/board/`.) It was chosen for legibility while the tactical surface was being built, not as art direction. It does not follow the material language in [world-style-bible.md](world-style-bible.md), and it should not be used as a reference when briefing new work.
 
 Two consequences worth holding onto:
 

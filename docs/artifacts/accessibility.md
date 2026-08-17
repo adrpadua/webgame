@@ -18,7 +18,7 @@ This prototype follows a practical WCAG-oriented interaction baseline for its pl
 
 ## State and Keyboard Access
 
-- Buttons and custom slots retain a visible high-contrast gold focus ring; focus is not suppressed with an empty style.
+- Buttons and custom slots retain a visible high-contrast focus ring. The shipped ring is `emerald-400`; [oathcraft-interface-direction.md](../content/oathcraft-interface-direction.md) directs it to runeglass `#62D2E6`, and that migration is not yet made. The contract is that a ring is visible and high-contrast, not which hue carries it; focus is not suppressed with an empty style.
 - Hex tiles render the same focus treatment when reached by keyboard navigation.
 - Normal, hover, disabled, and focus states use light text on dark fills with distinct borders. State is communicated by more than color through borders, focus thickness, and disabled appearance.
 - Compact Cards pair timing and type icons with tooltips and inspection text. Slot and board destinations use explicit `LOAD`, `REPLACE`, `CHARGE`, and `MOVE` labels in addition to color.
@@ -36,7 +36,7 @@ This prototype follows a practical WCAG-oriented interaction baseline for its pl
 - The Workbench board scales itself to the room the HUD leaves rather than rendering at a fixed size. At the canonical `390x844` portrait canvas a fixed board pushed its outer ring of hexes outside the play area, so hexes a player could legally step to were off screen; the board now fits, and `web/scripts/smoke.mjs` asserts on that canvas that nothing is cropped, that every enabled control still meets `44x44`, and that the surface never scrolls sideways.
 - The move pad flanks the board in the empty gutters the fitted canvas leaves, one column of three per side, with each direction on the side of the board it moves toward. As a row beneath the board it overlaid the outer hex ring — including destinations the player was being asked to step to. The columns sit flush with the play-area edges because the gutter runs only a few pixels wider than a `44` pixel button, and the smoke asserts on the portrait canvas that no pad button overlaps the board.
 - Boss Beat chips stay non-interactive labels. Six chips at the 44 pixel minimum would have consumed the board area, and 21 pixel buttons would have broken the pointer contract, so the Boss Program strip is one hold surface instead: pressing anywhere on it opens the full two-track breakdown, and the strip's header button carries the same detail for keyboard reach. Hovering a single chip still explains that one beat, which costs a mouse nothing and asks nothing of a touch target.
-- Board Feedback is presentation-only and never gates input: a player may act again mid-animation, and every effect resolves to the same static board. Damage numbers duplicate the authoritative Health readouts in the top bar and player panel rather than replacing them, and motion offsets, shakes, scale pops, and camera shake are all suppressed under `prefers-reduced-motion` while the numbers still appear.
+- Board Feedback is presentation-only and never gates input: a player may act again mid-animation, and every effect resolves to the same static board. Damage numbers duplicate the authoritative Health readout in the Stat Panel rather than replacing it, and motion offsets, shakes, scale pops, and camera shake are all suppressed under `prefers-reduced-motion` while the numbers still appear.
 
 ## Verification
 

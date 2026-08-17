@@ -1,6 +1,6 @@
 # Layout And Card Design Grill
 
-Historical artifact: references to card cost predate the current Charge Value and card-fueled Stamina model.
+Historical artifact: references to card cost predate the current Charge Value and card-fueled Stamina model, and the HUD it describes is the frozen Godot one (ADR 0019). The current interface direction is [oathcraft-interface-direction.md](../content/oathcraft-interface-direction.md). The Q&A below is the record and is left as written; the consequences section describes what that build did, not what ships.
 
 Status: accepted prototype direction. This records the fast-forward design grill for the portrait combat HUD and player cards.
 
@@ -23,8 +23,8 @@ Status: accepted prototype direction. This records the fast-forward design grill
 
 ## Consequences
 
-- The current HUD implements decisions 1-5, 8-10, and 12.
-- Targeted card flow currently still uses a selected board target before slot activation. Decision 6 is the next interaction change needed for full alignment.
+- That HUD implemented decisions 1-5, 8-10, and 12.
+- Targeted card flow currently still uses a selected board target before slot activation. Decision 6 was the next interaction change identified at the time for full alignment.
 - Per-card art, iconography, and exact card typography remain intentionally open; they should follow after the interaction loop is proven.
 
 ## Related Records
