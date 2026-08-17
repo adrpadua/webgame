@@ -20,6 +20,7 @@ import {
   type Scenario,
   type StatusDefinition,
 } from './schemas'
+import { hexDistance } from '../hex'
 
 export interface ContentCatalog {
   cards: Record<string, Card>
@@ -32,6 +33,23 @@ export interface ContentCatalog {
   encounters: Record<string, EncounterDefinition>
   decks: Record<string, EvaluationDeck>
   scenarios: Record<string, Scenario>
+}
+
+// A payload with the file it came from. The loader wraps every JSON module
+// this way so a validation failure can name the file a designer has open
+// rather than a stack frame inside this module. A bare payload still works —
+// tests and generators build content in memory, where there is no file.
+export interface SourcedPayload {
+  source: string
+  payload: unknown
+}
+
+function isSourced(entry: unknown): entry is SourcedPayload {
+  if (typeof entry !== 'object' || entry === null) {
+    return false
+  }
+  const keys = Object.keys(entry)
+  return keys.length === 2 && keys.includes('source') && keys.includes('payload') && typeof (entry as SourcedPayload).source === 'string'
 }
 
 export interface RawContent {
@@ -47,13 +65,68 @@ export interface RawContent {
   scenarios?: unknown[]
 }
 
-function indexById<T extends { id: string }>(entries: T[], label: string): Record<string, T> {
-  const result: Record<string, T> = {}
-  for (const entry of entries) {
-    if (result[entry.id]) {
-      throw new Error(`Duplicate ${label} id: ${entry.id}`)
+// One parsed entry, still carrying where it came from so duplicate-id and
+// cross-reference failures can point at a file too.
+interface ParsedEntry<T> {
+  value: T
+  source: string
+}
+
+// How a designer refers to the thing they just edited: the file path if the
+// loader supplied one, the authored id otherwise, and the index only when the
+// payload is malformed enough to have neither.
+function describe(source: string, payload: unknown, index: number): string {
+  if (source !== '') {
+    return source
+  }
+  const id = typeof payload === 'object' && payload !== null ? (payload as { id?: unknown }).id : undefined
+  return typeof id === 'string' && id !== '' ? `id "${id}"` : `entry ${index}`
+}
+
+interface ParseLike<T> {
+  parse: (value: unknown) => T
+}
+
+interface ZodIssueLike {
+  path: PropertyKey[]
+  message: string
+}
+
+// zod's own error is a field-level report with no idea which file it came
+// from, printed as a JSON dump inside a stack trace. Content authoring is the
+// one place that error is read by someone who did not write the parser, so it
+// is rewritten here as one line naming the file, the id, and each bad field.
+function parseAll<T extends { id: string }>(entries: unknown[], schema: ParseLike<T>, label: string): ParsedEntry<T>[] {
+  return entries.map((entry, index) => {
+    const source = isSourced(entry) ? entry.source : ''
+    const payload = isSourced(entry) ? entry.payload : entry
+    try {
+      return { value: schema.parse(payload), source }
+    } catch (error) {
+      const issues = (error as { issues?: ZodIssueLike[] }).issues
+      if (!issues) {
+        throw error
+      }
+      const detail = issues
+        .map((issue) => `${issue.path.length > 0 ? issue.path.join('.') : '(root)'}: ${issue.message}`)
+        .join('; ')
+      throw new Error(`Invalid ${label} in ${describe(source, payload, index)} — ${detail}`)
     }
-    result[entry.id] = entry
+  })
+}
+
+function indexById<T extends { id: string }>(entries: ParsedEntry<T>[], label: string): Record<string, T> {
+  const result: Record<string, T> = {}
+  const sources: Record<string, string> = {}
+  for (const entry of entries) {
+    const { id } = entry.value
+    if (result[id]) {
+      const first = sources[id] === '' ? 'an earlier entry' : sources[id]
+      const second = entry.source === '' ? 'a later entry' : entry.source
+      throw new Error(`Duplicate ${label} id "${id}": defined in ${first} and again in ${second}`)
+    }
+    result[id] = entry.value
+    sources[id] = entry.source
   }
   return result
 }
@@ -61,17 +134,27 @@ function indexById<T extends { id: string }>(entries: T[], label: string): Recor
 // Parses every payload and validates cross-references, taking over the job
 // the frozen ContentValidator.gd did for .tres resources (ADR 0020).
 export function buildCatalog(raw: RawContent): ContentCatalog {
+  // Encounters are parsed to one side so their source files stay reachable
+  // below: an Encounter carries the arena rules, so it is where a
+  // cross-reference failure most needs to name the file.
+  const parsedEncounters = parseAll(raw.encounters, encounterSchema, 'encounter')
+  const encounterSource = new Map(parsedEncounters.map((entry) => [entry.value.id, entry.source]))
+  const encounterAt = (id: string): string => {
+    const source = encounterSource.get(id)
+    return source === undefined || source === '' ? `Encounter ${id}` : `Encounter ${id} (${source})`
+  }
+
   const catalog: ContentCatalog = {
-    cards: indexById(raw.cards.map((entry) => cardSchema.parse(entry)), 'card'),
-    keywords: indexById(raw.keywords.map((entry) => keywordSchema.parse(entry)), 'keyword'),
-    chargeModifiers: indexById(raw.chargeModifiers.map((entry) => chargeModifierSchema.parse(entry)), 'charge modifier'),
-    hazards: indexById(raw.hazards.map((entry) => hazardSchema.parse(entry)), 'hazard'),
-    minions: indexById(raw.minions.map((entry) => minionSchema.parse(entry)), 'minion'),
-    statuses: indexById((raw.statuses ?? []).map((entry) => statusSchema.parse(entry)), 'status'),
-    programs: indexById(raw.programs.map((entry) => bossProgramSchema.parse(entry)), 'boss program'),
-    encounters: indexById(raw.encounters.map((entry) => encounterSchema.parse(entry)), 'encounter'),
-    decks: indexById((raw.decks ?? []).map((entry) => evaluationDeckSchema.parse(entry)), 'deck'),
-    scenarios: indexById((raw.scenarios ?? []).map((entry) => scenarioSchema.parse(entry)), 'scenario'),
+    cards: indexById(parseAll(raw.cards, cardSchema, 'card'), 'card'),
+    keywords: indexById(parseAll(raw.keywords, keywordSchema, 'keyword'), 'keyword'),
+    chargeModifiers: indexById(parseAll(raw.chargeModifiers, chargeModifierSchema, 'charge modifier'), 'charge modifier'),
+    hazards: indexById(parseAll(raw.hazards, hazardSchema, 'hazard'), 'hazard'),
+    minions: indexById(parseAll(raw.minions, minionSchema, 'minion'), 'minion'),
+    statuses: indexById(parseAll(raw.statuses ?? [], statusSchema, 'status'), 'status'),
+    programs: indexById(parseAll(raw.programs, bossProgramSchema, 'boss program'), 'boss program'),
+    encounters: indexById(parsedEncounters, 'encounter'),
+    decks: indexById(parseAll(raw.decks ?? [], evaluationDeckSchema, 'deck'), 'deck'),
+    scenarios: indexById(parseAll(raw.scenarios ?? [], scenarioSchema, 'scenario'), 'scenario'),
   }
 
   for (const card of Object.values(catalog.cards)) {
@@ -119,12 +202,32 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
   for (const encounter of Object.values(catalog.encounters)) {
     for (const entry of encounter.player_deck) {
       if (!catalog.cards[entry.card]) {
-        throw new Error(`Encounter ${encounter.id} deck references unknown card ${entry.card}`)
+        throw new Error(`${encounterAt(encounter.id)} deck references unknown card ${entry.card}`)
       }
     }
     for (const programId of encounter.boss_programs) {
       if (!catalog.programs[programId]) {
-        throw new Error(`Encounter ${encounter.id} references unknown Boss Program ${programId}`)
+        throw new Error(`${encounterAt(encounter.id)} references unknown Boss Program ${programId}`)
+      }
+    }
+    for (const programId of encounter.phase_two_programs) {
+      if (!catalog.programs[programId]) {
+        throw new Error(`${encounterAt(encounter.id)} references unknown Phase II Boss Program ${programId}`)
+      }
+    }
+    // The Guarded Front has to stay standable (D-031). A Scorched hex beside
+    // the Boss burns the one tile the Tank's whole kit is written for, so
+    // Escalation would remove the party's answer rather than raise the
+    // question — the acceleration lesson in another form. Held for every
+    // Encounter, because a new arena is exactly where the rule is easiest to
+    // author past by accident.
+    for (const threshold of encounter.escalation_thresholds) {
+      for (const coords of threshold.scorch_hexes) {
+        if (hexDistance(coords, encounter.boss_start) <= 1) {
+          throw new Error(
+            `${encounterAt(encounter.id)} threshold ${threshold.value} ("${threshold.title}") Scorches (${coords.q}, ${coords.r}), which is adjacent to the Boss at (${encounter.boss_start.q}, ${encounter.boss_start.r}) — the Guarded Front must stay standable`,
+          )
+        }
       }
     }
   }

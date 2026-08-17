@@ -3,6 +3,7 @@ import { loadCatalog } from '@/content'
 import { cardSchema } from './content/schemas'
 import {
   advancePhase,
+  buildCatalog,
   buildEncounterRecord,
   contentIdentity,
   createEncounterState,
@@ -76,16 +77,24 @@ function stepPhases(state: EncounterState, count: number): { state: EncounterSta
 }
 
 describe('content catalog', () => {
+  // Presence, not census. A count or an exhaustive id list turns "a designer
+  // authored a new card" into a failing suite, which teaches the design team
+  // that adding content breaks the build. What the engine actually depends on
+  // is that the content it names is *there* and still says what it said.
   it('loads and validates the full content port from data/', () => {
-    expect(Object.keys(catalog.cards)).toHaveLength(12)
-    expect(Object.keys(catalog.keywords)).toHaveLength(9)
-    expect(Object.keys(catalog.programs).sort()).toEqual([
-      'embermaw_ashfall',
-      'embermaw_brood',
-      'embermaw_embers',
-      'embermaw_hunt',
-      'embermaw_molting',
-    ])
+    expect(Object.keys(catalog.cards)).toEqual(
+      expect.arrayContaining(['steady_strike', 'iron_guard', 'sweeping_blow', 'fortify', 'shield_slam']),
+    )
+    expect(Object.keys(catalog.keywords)).toEqual(expect.arrayContaining(['guard', 'attack', 'tank']))
+    expect(Object.keys(catalog.programs)).toEqual(
+      expect.arrayContaining([
+        'embermaw_ashfall',
+        'embermaw_brood',
+        'embermaw_embers',
+        'embermaw_hunt',
+        'embermaw_molting',
+      ]),
+    )
     expect(catalog.programs.embermaw_hunt.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',
       'raking_claw',
@@ -116,6 +125,34 @@ describe('content catalog', () => {
       presence_delta: 2,
     })
     expect(parsed).not.toHaveProperty('presence_delta')
+  })
+
+  // The audience for a content error is a designer who edited a JSON file and
+  // has never opened the parser. It has to name the file and the field.
+  describe('validation errors', () => {
+    const empty = { cards: [], keywords: [], chargeModifiers: [], hazards: [], minions: [], programs: [], encounters: [] }
+
+    it('names the file and every bad field', () => {
+      const bad = {
+        source: 'data/cards/probe_bulwark.json',
+        payload: { id: 'probe_bulwark', title: 'Probe Bulwark', speed: 'instant', max_charge: 'two' },
+      }
+      expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow(
+        /Invalid card in data\/cards\/probe_bulwark\.json — .*speed:.*max_charge:/s,
+      )
+    })
+
+    it('falls back to the authored id when there is no file', () => {
+      const bad = { id: 'probe_bulwark', title: 'Probe Bulwark', speed: 'instant' }
+      expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow(/Invalid card in id "probe_bulwark" — speed:/)
+    })
+
+    it('names both files behind a duplicate id', () => {
+      const entry = (source: string) => ({ source, payload: { id: 'guard', title: 'Guard' } })
+      expect(() => buildCatalog({ ...empty, keywords: [entry('data/keywords/guard.json'), entry('data/keywords/guard_copy.json')] })).toThrow(
+        'Duplicate keyword id "guard": defined in data/keywords/guard.json and again in data/keywords/guard_copy.json',
+      )
+    })
   })
 })
 
@@ -581,7 +618,7 @@ describe('Authored Status Effects (D-032 to D-034)', () => {
   }
 
   it('authors every status in the catalog, and validates card references', () => {
-    expect(Object.keys(catalog.statuses).sort()).toEqual(['fortified', 'sundered', 'weakened'])
+    expect(Object.keys(catalog.statuses)).toEqual(expect.arrayContaining(['fortified', 'sundered', 'weakened']))
     expect(catalog.statuses.sundered).toMatchObject({ applies_to: 'enemy', damage_taken_bonus: 1, stacking: false })
     expect(catalog.statuses.weakened).toMatchObject({ applies_to: 'enemy', damage_dealt_penalty: 1 })
     // Fortified's definition is authored; its Armor amount still rides the card.
@@ -935,15 +972,60 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     expect((later.board.hazards[hexKey(first)] ?? []).some((hazard) => hazard.permanent === true)).toBe(true)
   })
 
-  it('never Scorches a hex adjacent to the Boss, so the Guarded Front cannot burn', () => {
-    // The acceleration lesson in another form: an effect that removes the
-    // Tank's own answer is a problem the party cannot answer.
-    const encounter = catalog.encounters.embermaw_prototype
-    for (const threshold of encounter.escalation_thresholds) {
-      for (const coords of threshold.scorch_hexes) {
-        expect(hexDistance(coords, encounter.boss_start)).toBeGreaterThan(1)
+  // The acceleration lesson in another form: an effect that removes the Tank's
+  // own answer is a problem the party cannot answer. The rule is enforced at
+  // load for every Encounter, so a new arena inherits it instead of having to
+  // remember it.
+  describe('the Guarded Front cannot burn (D-031)', () => {
+    it('holds for every authored Encounter', () => {
+      for (const encounter of Object.values(catalog.encounters)) {
+        for (const threshold of encounter.escalation_thresholds) {
+          for (const coords of threshold.scorch_hexes) {
+            expect(hexDistance(coords, encounter.boss_start)).toBeGreaterThan(1)
+          }
+        }
       }
-    }
+    })
+
+    it('is rejected at load, naming the Encounter and the hex', () => {
+      const encounter = structuredClone(catalog.encounters.embermaw_prototype)
+      // One hex north-east of the Boss: adjacent, and therefore part of the
+      // Guarded Front the Tank is written to hold.
+      encounter.escalation_thresholds[0].scorch_hexes = [
+        { q: encounter.boss_start.q, r: encounter.boss_start.r + 1 },
+      ]
+      const raw = {
+        cards: Object.values(catalog.cards),
+        keywords: Object.values(catalog.keywords),
+        chargeModifiers: Object.values(catalog.chargeModifiers),
+        hazards: Object.values(catalog.hazards),
+        minions: Object.values(catalog.minions),
+        statuses: Object.values(catalog.statuses),
+        programs: Object.values(catalog.programs),
+        encounters: [{ source: 'data/encounters/ashen_trial_variant.json', payload: encounter }],
+      }
+      expect(() => buildCatalog(raw)).toThrow(
+        /Encounter embermaw_prototype \(data\/encounters\/ashen_trial_variant\.json\) threshold 1 \("Ashen Verge"\) Scorches \(1, 0\), which is adjacent to the Boss at \(1, -1\)/,
+      )
+    })
+
+    it('accepts the same threshold one hex further out', () => {
+      const encounter = structuredClone(catalog.encounters.embermaw_prototype)
+      encounter.escalation_thresholds[0].scorch_hexes = [
+        { q: encounter.boss_start.q, r: encounter.boss_start.r + 2 },
+      ]
+      const raw = {
+        cards: Object.values(catalog.cards),
+        keywords: Object.values(catalog.keywords),
+        chargeModifiers: Object.values(catalog.chargeModifiers),
+        hazards: Object.values(catalog.hazards),
+        minions: Object.values(catalog.minions),
+        statuses: Object.values(catalog.statuses),
+        programs: Object.values(catalog.programs),
+        encounters: [encounter],
+      }
+      expect(() => buildCatalog(raw)).not.toThrow()
+    })
   })
 
   it('still applies a numeric threshold when one is authored', () => {

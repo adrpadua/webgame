@@ -58,7 +58,7 @@ The current build centers on:
 - [docs/artifacts/embermaw-vertical-slice.md](docs/artifacts/embermaw-vertical-slice.md): completed playable encounter, responsive layout, asset provenance, and verification
 - [docs/artifacts/accessibility.md](docs/artifacts/accessibility.md): interaction-size, contrast, and keyboard-focus contract
 - [docs/content/README.md](docs/content/README.md): authored content docs such as decklists, encounter specs, and boss scripts
-- [docs/content/design-team-handoff.md](docs/content/design-team-handoff.md): designer Resource schemas, examples, validation, and playtest workflow
+- [docs/content/design-team-handoff.md](docs/content/design-team-handoff.md): designer JSON content schemas, examples, validation, and the Workbench playtest workflow
 
 ## Repository Layout
 
