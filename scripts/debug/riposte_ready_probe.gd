@@ -133,13 +133,10 @@ func _test_shield_slam_consumption() -> void:
 	_assert(payoff_fact.get("requested") == 5 and payoff_fact.get("base_amount") == 3 and payoff_fact.get("status_bonus") == 2, "The Boss damage fact must separate Shield Slam base damage from the Riposte payoff.")
 	_assert(payoff_fact.get("status_id") == &"riposte_ready" and payoff_fact.get("payoff_card_id") == &"shield_slam", "The payoff fact must identify its Status Effect and Card.")
 
-	var nonmatching = _engine(_tank_program(&"instant"), 8, Vector2i(0, 0), [STEADY_STRIKE, IRON_GUARD])
-	nonmatching.apply(EncounterActionModel.load_slot(&"guardian", 0, STEADY_STRIKE))
-	nonmatching.advance_phase()
-	nonmatching.advance_phase()
-	nonmatching.apply(EncounterActionModel.charge_slot(&"guardian", 0, IRON_GUARD))
-	nonmatching.apply(EncounterActionModel.fire_slot(&"guardian", 0))
-	_assert(nonmatching.has_status(&"guardian", &"riposte_ready"), "A legal non-Shield-Slam fire must not consume Riposte Ready.")
+	# The non-Shield-Slam consumption boundary moved under D-015: a Boss-damage
+	# card now consumes Riposte Ready for the off-payoff +1, and only a card
+	# with no Boss damage leaves it untouched. Both paths are covered by
+	# _test_off_payoff_consumption.
 
 func _test_off_payoff_consumption() -> void:
 	var engine = _engine(_tank_program(&"instant"), 8, Vector2i(0, 0), [STEADY_STRIKE, IRON_GUARD, SHIELD_SLAM])
