@@ -119,7 +119,7 @@ A second sheet for a piece that already has one, drawn for a boss phase change. 
 **The thesis comes from content, not from the art brief.** Embermaw's Phase II is already written:
 
 - `data/encounters/embermaw_prototype.json` — *"Molting Roar: Embermaw sheds its brittle scales and turns."*
-- `data/boss_programs/embermaw_molting.json` — *"The scales are gone."*
+- `data/boss_programs/embermaw_molting.json` — *"Shed scales, then feed."*
 
 So the variant is not an angrier Embermaw. It is the same furnace **with its containment gone**, and the prompt should say only that.
 
