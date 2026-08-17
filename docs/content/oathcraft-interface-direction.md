@@ -96,11 +96,13 @@ Interfaces in this world are levers, sigils, lenses, locks, rotating rings, anim
 
 ## Panels And Gauges
 
-Aether ceramic is smooth pale plate with embedded colour channels, used for high-status armor and ritual consoles. The Hero's panel is literally a console: a pale ceramic plate with the role colour running as a channel down its edge.
+Aether ceramic is smooth pale plate with embedded colour channels, used for high-status armor and ritual consoles. The **Stat Panel** — the readout a tapped tile opens, floated over the board's lower edge — is literally a console: a pale ceramic plate with the role colour running as a channel down its edge.
 
 Armor is **not** a second coloured bar. Elian's armor effects look like gate plates sliding into place, so Armor renders as discrete plates with gold edges, seated on top of the health track. Health is a continuous aether-ceramic fill beneath them.
 
-The boss track is a different object on purpose: dark oathsteel housing an ember-coral fill with heat veins. The Hero's console is a pale plate you read; the boss's is a dark housing you watch. On a 390-point-wide screen they sit at opposite ends of the frame and must never be mistaken for each other.
+A Boss Stat Panel is a different object on purpose: dark oathsteel housing an ember-coral fill with heat veins. The Hero's is a pale plate you read; the Boss's is a dark housing you watch.
+
+That distinction carries more weight than it would have as two persistent panels. One Stat Panel is open at a time and it occupies the same place on screen whichever piece is tapped, so the difference between reading your own state and reading the thing trying to kill you is **temporal, not spatial** — the player has no side-by-side comparison to fall back on. The two must be unmistakable in the first glance after a tap, at the same coordinates, with no label read.
 
 ## Correction To The Shipped Theme
 
@@ -125,8 +127,10 @@ This table is a direction, not a migration. No code has changed.
 
 The table above is the token surface, and it is the small part. Two of this document's rules reach much further into the shipped UI, and stating them without stating the cost would be dishonest.
 
-- **Emerald is not confined to `theme.ts`.** It appears 78 times across 15 files under `web/src/ui/`, including the victory banner, the guide modal, the coach marks, and the scripted first turn's spotlight. Moving Quick to runeglass is four tokens; removing green from the interface is a sweep.
-- **Rounded corners appear 62 times across 18 files**, `GAUGE_TRACK_CLASS` among them. The chamfer rule is the direction, but every rounded utility is a separate edit and some are inside components the mobile work has recently touched.
+Counted on 2026-08-16 against `web/src/`. Treat these as a snapshot, not a contract — the interface is under active work and the numbers move week to week. Re-count before planning against them.
+
+- **Emerald is not confined to `theme.ts`.** It appears roughly 75 times across 14 files under `web/src/ui/`, including the victory banner, the guide modal, the coach marks, and the scripted first turn's spotlight. Moving Quick to runeglass is four tokens; removing green from the interface is a sweep.
+- **Rounded corners appear roughly 65 times across 17 files**, `GAUGE_TRACK_CLASS` among them. The chamfer rule is the direction, but every rounded utility is a separate edit and some sit inside components the mobile and HUD work has recently rewritten.
 
 Neither number is an argument against the direction. They are the reason to adopt it as a deliberate pass rather than by opportunistic edits, which would leave the interface half in one language and half in the other — worse than either.
 
