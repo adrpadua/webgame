@@ -97,7 +97,21 @@ When the role responds well, the board makes success visible. Examples include a
 
 ## Second Hero Of A Role
 
-A second Hero of an existing role must claim a distinct strength-and-price pattern, not a re-skinned copy of the first. The subclass grammar in the [champion design research note](../content/research/2026-08-16-lol-champion-design-lessons.md) is the working vocabulary: Elian Voss is the Warden-style tank (hold the line, lock the front, protect), so the second tank claims the Vanguard pattern (initiation and tempo — forcing Boss facing, opening windows — paid for with weaker sustained mitigation); the proposed Vanguard, Kessa Varn, is designed in [kessa-varn-design.md](../content/heroes/kessa-varn-design.md). The same rule applies to future Healers (augment-and-shield versus control-and-deny) and Damage Heroes. Both siblings must still pass the same Role recognition test; what differs is the machine, its signature weakness, and the pressure it answers best.
+A second Hero of an existing role must claim a distinct strength-and-price pattern, not a re-skinned copy of the first. The subclass grammar in the [champion design research note](../content/research/2026-08-16-lol-champion-design-lessons.md) is the working vocabulary: Elian Voss is the Warden-style tank (hold the line, lock the front, protect), so the second tank claims the Vanguard pattern (initiation and tempo — forcing Boss facing, opening windows — paid for with weaker sustained mitigation); the proposed Vanguard, Kessa Varn, is designed in [kessa-varn-design.md](../content/heroes/kessa-varn-design.md).
+
+## Healer Design Principles
+
+Any Hero whose raid job is preserving allies must satisfy all five principles below, in addition to the Hero Design Contract and Design Value Review. They are distilled from the [support/healer design research note](../content/research/2026-08-17-healer-support-design-lessons.md), whose strongest evidence is what happens when they are violated.
+
+| Principle | Rule | Design test |
+| --- | --- | --- |
+| Load-bearing or optional | Authored encounter content must demand the healer's kit: some Boss pressure carries counter tags only healer cards execute. Other roles' self-sustain reduces the healer's load but never replaces it. | The no-healer-clear test: if a Party can comfortably clear the encounter with no healer, the encounter or the sustain budget is misauthored. |
+| Half the kit is not healing | A healer is a threat that also preserves, not a health-bar janitor. The deck carries real Boss pressure, augmentation, or control alongside its preservation cards. | A healer player can name a moment they threatened the Boss, not only a moment they undid damage. |
+| The damage sub-game converts | Whatever the healer does when healing is not needed must feed the healing machine — pre-placed, decision-rich, scaling conversion, not a flat passive link. | Removing the conversion decisions (who carries the ward, when to commit) would visibly weaken the healer's output. If the link is automatic wallpaper, redesign it. |
+| Proactive is a puzzle, reactive is a treadmill | Healer decisions key off the visible Boss Timeline: cover a named future window, not repair a surprise. Round-clearing effects renew the triage decision instead of letting a solved state persist. | The player can say which Incoming Beat a preservation card was played against. A healer turn spent purely undoing untelegraphed damage is an authoring defect, not a difficulty knob. |
+| No blame-sink | The healer must not be sized to cover everything (triage is the skill), and their prevention must be visible: Encounter Records and the HUD credit damage prevented and windows covered, the way the Tank's earned Riposte is credited. | A failed Round produces a readable shared lesson, not a default verdict of "the healer was slow." |
+
+The Second Hero Of A Role rule applies to healers from the first one: the planned Enchanter (augment and shield through pre-placed wards) and a future Catcher-style controller (zones, denial, lockdown) must not converge. The same rule applies to future Healers (augment-and-shield versus control-and-deny) and Damage Heroes. Both siblings must still pass the same Role recognition test; what differs is the machine, its signature weakness, and the pressure it answers best.
 
 ## Card Family Guidance
 

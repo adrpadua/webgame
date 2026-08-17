@@ -43,6 +43,10 @@ Impact and counterplay scale together (see the [champion design research note](.
 - **Every entry carries at least one counter tag.** A Beat with no meaningful answer is a design defect, not a difficulty setting. `Mitigate` on an unavoidable Tank Hit counts: the answer is preparation, not evasion.
 - **Telegraph lead scales with consequence.** Routine chip pressure may resolve from the `Instant` row. A hit that can down a Hero, spawn entities, or permanently change the board belongs in the `Incoming` row or on a longer delayed marker, so the party always has at least one full player window to answer the largest threats. Authoring a top-tier hit as an `Instant` requires an explicit design justification.
 
+### Role-Load-Bearing Beats (Party-scale rule)
+
+When Party-scale encounters are authored, each encounter must name which Beats are load-bearing for which role: pressure whose intended counter tags only that role's kit executes well. In particular, apply the healer's no-healer-clear test from the [Healer Design Principles](../../rules/character-design-bible.md): some authored pressure (raid-wide damage, sustained attrition, hits sized beyond tank mitigation) must genuinely demand a healer, and off-role sustain is budgeted so a no-healer Party feels the absence. This is a forward rule; the current solo Tank slice has exactly one role and already satisfies it trivially.
+
 ## Core Mechanics
 
 ### Raking Claw

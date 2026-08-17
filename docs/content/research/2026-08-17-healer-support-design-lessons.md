@@ -76,5 +76,5 @@ All researcher inference, mapped to existing systems:
 ## Suggested Next Steps
 
 1. Draft the Enchanter healer hero design doc against the character design bible's full contract (including Signature weakness and the Design Value Review), using the Bond mechanic and Timeline-window triage as the core machine — parallel to `kessa-varn-design.md`.
-2. Add the "no-healer-clear test" to boss-authoring guidance when Party-scale encounter design begins: every encounter names which Beats are healer-load-bearing.
+2. **Done 2026-08-17.** The five principles are documented as the `Healer Design Principles` section of `docs/rules/character-design-bible.md`, and the no-healer-clear test is recorded as the `Role-Load-Bearing Beats` Party-scale rule in `docs/content/encounters/embermaw-ashen-trial-design.md`.
 3. Archive-fetch the two Blizzard developer blogs ("Designing Heroes" and the support AMA) to upgrade Part 2's Overwatch claims before any of them drive a design decision.
