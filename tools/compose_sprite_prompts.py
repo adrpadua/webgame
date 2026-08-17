@@ -45,6 +45,42 @@ PIECES = {
             'and a half times the height of a human figure and considerably broader'
         ),
     },
+    # A phase variant is the main template plus the addendum block, because
+    # what makes it hard is not the creature — it is staying identical to a
+    # sheet that already shipped. Its slot values say only what changed; the
+    # addendum does the work of forbidding everything else from changing.
+    'Embermaw, Phase II': {
+        'PIECE_NAME': 'Embermaw',
+        'ONE_LINE_HOOK': (
+            'a living furnace that treats an arena as a kiln to be heated evenly, now shed of the plating '
+            'that was holding it in'
+        ),
+        'MATERIALS': (
+            'bare ember coral with the heat veins exposed across the whole body, snapped anchor stubs and '
+            'empty mounts along its back and flanks where blackened oathsteel plating used to sit, and an '
+            'unshuttered furnace throat'
+        ),
+        'BOARD_READ': (
+            'the furnace throat, now unshuttered and the single clearest thing on the piece — its position '
+            'still tells a player which way the heat is about to go, and it has to carry that read without '
+            'the plating that used to frame it'
+        ),
+        'IDLE_MOTION': (
+            'heat moving through veins that nothing covers any more, the throat working open and closed as '
+            'it draws breath, and the broken plate mounts flexing with it'
+        ),
+        'SCALE': (
+            'identical to the first sheet — low and wide, filling most of its cell, about one and a half '
+            'times the height of a human figure and considerably broader. This form is not larger than the '
+            'first'
+        ),
+        'PHASE_CHANGE': (
+            'the blackened oathsteel plating has been shed. On the first sheet it hung off the body like '
+            'failing containment; here it is gone, leaving snapped anchor stubs and empty mounts, the coral '
+            'beneath fully exposed, and the furnace throat unshuttered. It reads as a furnace that has lost '
+            'its casing — not as a different creature, and not merely as an angrier one'
+        ),
+    },
     'Whelp': {
         'PIECE_NAME': 'Whelp',
         'ONE_LINE_HOOK': 'a splintered furnace spark that broke off the Embermaw and kept burning',
@@ -65,6 +101,13 @@ PIECES = {
             'middle of its cell'
         ),
     },
+}
+
+# Which extra ```text block of board-sprite-sheets.md a piece appends, if any.
+# Keyed by the name above rather than by a flag inside the slot values, so the
+# slot dict stays what it says it is: template slots and nothing else.
+ADDENDA = {
+    'Embermaw, Phase II': 1,
 }
 
 HEADER = """# Embermaw And Whelp Sprite Prompts
@@ -88,6 +131,10 @@ one's drift.
 2. **Attach `assets/art/characters/elian-voss/idle-contact-sheet-gold.png`** and say: *"Match this sheet's \
 rendering style, grid layout, and label gutter exactly. Do not copy the character."* The reference carries \
 the look far better than the words do.
+
+   **For a phase variant, attach that creature's own accepted first-form sheet instead** — \
+`assets/art/characters/embermaw/idle-contact-sheet.png` for Embermaw Phase II. It carries the library's \
+rendering and the creature at the same time, and staying identical to it is the whole job.
 3. Paste the whole block for that creature as one message.
 4. Check the result against the acceptance list in [board-sprite-sheets.md](board-sprite-sheets.md) — \
 **facings first**. If two rows face the same way, say which rows and ask for a regeneration; a mirror is \
@@ -113,6 +160,8 @@ def main():
     parts = [HEADER]
     for name, values in PIECES.items():
         filled = template
+        if name in ADDENDA:
+            filled = f"{filled}\n\n{text_block('board-sprite-sheets.md', ADDENDA[name])}"
         for key, value in values.items():
             filled = filled.replace('{{%s}}' % key, value)
         unfilled = re.findall(r'\{\{(\w+)\}\}', filled)
