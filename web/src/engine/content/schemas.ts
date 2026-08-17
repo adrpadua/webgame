@@ -32,6 +32,7 @@ export const cardSchema = z.object({
   max_charge: z.number().int().min(0).default(2),
   target_type: z.enum(['none', 'hex', 'board_slot', 'piece']).default('none'),
   armor_delta: z.number().int().default(0),
+  armor_next_round: z.number().int().min(0).default(0),
   healing: z.number().int().default(0),
   boss_damage: z.number().int().default(0),
   range_tiles: z.number().int().default(0),

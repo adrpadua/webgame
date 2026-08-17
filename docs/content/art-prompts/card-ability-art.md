@@ -47,7 +47,7 @@ The eleven authored cards in `resources/cards/tank/`, with the fiction and beat 
 | --- | --- | --- | --- | --- |
 | `guard_stance` | Gain 4 Armor | Gate panels swinging up and seating into a braced front | Self | Setup |
 | `iron_guard` | Gain 3 Armor, +1 per charged Guard card | The same brace, but with additional panels stacking and locking in layers | Self | Setup |
-| `fortify` | Gain 6 Armor | The Gate Rig fully deployed, every panel seated, living-gold locks visibly thrown | Self | Recovery |
+| `fortify` | Gain 6 Armor at the next Round start | The Gate Rig fully deployed, every panel seated, living-gold locks visibly thrown | Self | Recovery |
 | `anchor_presence` | Gain 1 Presence | Boots setting hard into the ground, a low ring of runeglass light spreading from the stance | Self | Setup |
 | `unyielding_step` | Gain 2 Armor and deal 2 damage to the boss | A braced step forward into pressure, shield edge leading | Single target | Conversion |
 | `steady_strike` | Deal 2 damage, +1 per charged card | A controlled gateblade baton strike, precise rather than heavy | Single target | Conversion |

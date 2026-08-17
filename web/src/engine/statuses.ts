@@ -1,6 +1,7 @@
 import type { EncounterState, Phase, StatusInstance } from './types'
 
 export const RIPOSTE_READY = 'riposte_ready'
+export const FORTIFIED = 'fortified'
 export const SHIELD_SLAM = 'shield_slam'
 export const TANK_HIT = 'tank_hit'
 
@@ -58,6 +59,29 @@ export function statusEvent(effect: StatusInstance, event: string, reason: strin
     source_beat_id: effect.sourceBeatId,
     trigger_round: effect.triggerRound,
     trigger_phase: effect.triggerPhase,
+  }
+}
+
+// A Slow-window Armor commitment (D-019): the Armor lands at the NEXT Round
+// start, after the wipe, so Fortify answers the next Round's pressure —
+// including Instant-row hits nothing else can pre-block.
+export function createFortified(sourceCardId: string, amount: number, round: number, phase: Phase): StatusInstance {
+  return {
+    id: FORTIFIED,
+    title: 'Fortified',
+    remainingRounds: 1,
+    triggers: ['on_round_start'],
+    armorOnRoundStart: amount,
+    damageReduction: 0,
+    bonusBossDamageOnSlotFired: 0,
+    bonusBossDamageOffPayoff: 0,
+    triggerReason: 'slow_commitment',
+    expiresAtWindowEnd: '',
+    consumeOnCardId: '',
+    sourceId: sourceCardId,
+    sourceBeatId: '',
+    triggerRound: round,
+    triggerPhase: phase,
   }
 }
 

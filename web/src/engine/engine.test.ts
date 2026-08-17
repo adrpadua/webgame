@@ -168,6 +168,45 @@ describe('phase cycle', () => {
   })
 })
 
+describe('Fortify Slow commitment (D-019)', () => {
+  it('lands its Armor at the next Round start, after the wipe, in time for the Instant Row', () => {
+    // Reach Round 1's Slow Window and fire a charged Fortify.
+    let state = stepPhases(start(), 4).state
+    expect(state.phase).toBe('slow')
+    hero(state).hand = [card('f1', 'fortify'), card('f2', 'steady_strike')]
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'f1' }).state
+    state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'f2' }).state
+    const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+    state = fired.state
+    expect(fired.facts[0].succeeded).toBe(true)
+    // No Armor yet: the commitment is banked as the Fortified status.
+    expect(hero(state).armor).toBe(0)
+    expect(fired.facts[0].resolutionFact).toMatchObject({ status_event: { status_id: 'fortified', event: 'granted', reason: 'slow_commitment' } })
+
+    // Round start wipes Armor first, then the commitment lands.
+    const wrap = advancePhase(catalog, state)
+    state = wrap.state
+    expect(state.round).toBe(2)
+    expect(hero(state).armor).toBe(6)
+    expect(state.statusEffects[state.primaryHeroId] ?? []).toHaveLength(0)
+
+    // The banked Armor answers Round 2's INSTANT row (Ember Pattern opens
+    // with Cinder Breath): 5 requested, fully blocked, zero Health loss —
+    // pressure nothing fired inside Round 2 could have pre-blocked.
+    const healthBefore = hero(state).health
+    const instant = advancePhase(catalog, state)
+    state = instant.state
+    expect(state.phase).toBe('instant')
+    expect(hero(state).health).toBe(healthBefore)
+    expect(hero(state).armor).toBe(1)
+
+    // The leftover Armor is ordinary Armor: the next Round start wipes it.
+    state = stepPhases(state, 4).state
+    expect(state.round).toBe(3)
+    expect(hero(state).armor).toBe(0)
+  })
+})
+
 describe('Raking Claw counter-pressure (D-017)', () => {
   it('adds the unguarded bonus only when the Guarded Front is unheld', () => {
     const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'raking_claw')!

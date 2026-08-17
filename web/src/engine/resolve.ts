@@ -9,6 +9,7 @@ import { resolveBossBeat, advanceProgram } from './timeline'
 import { shuffle } from './rng'
 import {
   addStatus,
+  createFortified,
   createRiposteReady,
   getStatuses,
   hasStatus,
@@ -149,6 +150,13 @@ function resolveOne(
       effects.bossDamage += consumed.bonusBossDamage
       if (consumed.events.length > 0) {
         fact.resolutionFact = { status_event: consumed.events[0] }
+      }
+      if (effects.armorNextRound > 0) {
+        const fortified = createFortified(card.id, effects.armorNextRound, draft.round, draft.phase)
+        addStatus(draft, action.sourceId, fortified)
+        if (consumed.events.length === 0) {
+          fact.resolutionFact = { status_event: statusEvent(fortified, 'granted', fortified.triggerReason) }
+        }
       }
       succeed(fact)
       if (effects.bossDamage > 0) {

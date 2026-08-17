@@ -121,7 +121,7 @@ The live/default deck is the approved five-identity Elian Voss Shield Wall list,
 | `Steady Strike` | 8 | Deal 2 damage to the boss. | +1 damage per charged card. |
 | `Iron Guard` | 6 | Gain 3 Armor. | +1 Armor per charged `Guard` card. |
 | `Sweeping Blow` | 2 | Deal 2 damage to a selected adjacent Minion. | — |
-| `Fortify` | 2 | Slow. Gain 6 Armor. | — |
+| `Fortify` | 2 | Slow. Gain 6 Armor at the start of the next Round. | — |
 | `Shield Slam` | 2 | Deal 3 damage to the boss. | A legal activation consumes Riposte Ready for +2 damage. |
 
 The deck tests the choice between firing a reusable Top Card immediately and saving cards to build its Charge Stack, plus the Shield Wall role decisions layered on that loop. The historical `10x Steady Strike` / `10x Iron Guard` dummy deck is baseline evidence for the old mechanics shell only. Adding a sixth card identity requires the deck-evaluation evidence in [deck-evaluation-rubric.md](../content/deck-evaluation-rubric.md).

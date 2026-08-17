@@ -3,6 +3,7 @@ import type { ContentCatalog } from './content/catalog'
 
 export interface FireEffects {
   armor: number
+  armorNextRound: number
   healing: number
   bossDamage: number
   targetDamage: number
@@ -20,6 +21,7 @@ function matchingCount(modifier: ChargeModifier, chargeStack: Card[]): number {
 export function resolveFire(catalog: ContentCatalog, card: Card, chargeStack: Card[]): FireEffects {
   const result: FireEffects = {
     armor: card.armor_delta,
+    armorNextRound: card.armor_next_round,
     healing: card.healing,
     bossDamage: card.boss_damage,
     targetDamage: card.damage,

@@ -185,11 +185,11 @@ The former `10x Steady Strike` / `10x Iron Guard` baseline remains historical ev
 
 **Player-facing intent:** Turn the Slow Window into a deliberate preparation window instead of an empty wait.
 
-**Precise rule:** Gain 6 Armor during Slow after the Slot has at least one Charge.
+**Precise rule:** Fire during Slow after the Slot has at least one Charge: gain a `Fortified` commitment that grants 6 Armor at the start of the next Round, landing after the Round-start Armor wipe (D-019).
 
-**Affected content:** Existing `data/cards/fortify.json` and the default Shield Wall deck.
+**Affected content:** Existing `data/cards/fortify.json`, the `Fortified` Status Effect, and the default Shield Wall deck.
 
-**Edge cases:** It cannot repair an Incoming hit that has already resolved. Its Armor expires at next Round start. Full-charge cleanup remains standard.
+**Edge cases:** It cannot repair a hit that has already resolved. The granted Armor is ordinary Armor once it lands: it expires at the following Round start. Because it lands before the next Instant Row, Fortify is the only card that can pre-block Instant-row pressure — including earning Riposte Ready from a fully blocked Instant Tank Hit in the Guarded Front. Two Fortified commitments in one Slow Window stack additively. Full-charge cleanup remains standard.
 
 **Required evidence:** `slow_window_card` probe that checks wrong-window rejection, legal Slow activation, damage absorption, and cleanup.
 

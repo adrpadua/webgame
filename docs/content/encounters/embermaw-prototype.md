@@ -107,7 +107,7 @@ The `whelp_pressure` contract remains blocked on its stated authoritative-releva
 | `hand_refill_target` | `4` | `5` | The scripted Round spends one card on every gesture it teaches: two Slots prepared, both charged, and one card paid as Stamina to leave the breath cone. Four cards cannot cover all five. |
 | `random_seed` | `1337` | `23` | Fixes the opening Hand at one quick attack (`Steady Strike`), one slow attack (`Unyielding Step`), and three cards to spend, so the scripted Round is the same for every new player. |
 
-`unyielding_step` joins the deck list so the Slow Window beat lands visible Boss damage. `fortify` alone would have taught the Slow Window with Armor that the next `round_start` immediately wipes.
+`unyielding_step` joins the deck list so the Slow Window beat lands visible Boss damage. Under the pre-D-019 rule, `fortify` alone would have taught the Slow Window with Armor that the next `round_start` immediately wiped; Fortify now banks its Armor past that wipe, but the immediate visible damage remains the better round-one teaching beat.
 
 The Round it produces, against the `embermaw_hunt` program: `Raking Claw` lands for `4` (it cannot be dodged, so the lesson is mitigation), the charged `Steady Strike` deals `3` in the Quick Window, the telegraphed `Cinder Breath` cone misses the Hero who stepped clear, and `Unyielding Step` deals `2` in the Slow Window. `web/src/ui/firstTurnScript.test.ts` asserts that whole line, so authored drift here fails before a player meets it.
 

@@ -80,14 +80,13 @@ The hand is anchored to the bottom of the portrait HUD as four equal Compact Car
 
 ## Resources
 
-The prototype currently uses these practical player resources:
+The prototype currently uses this practical player resource:
 
-- `Armor`: damage mitigation that is cleared at the start of each new round
-- `Presence`: a small progression-style tracker used by some cards
+- `Armor`: damage mitigation that is cleared at the start of each new round. A `Fortified` commitment (Fortify, D-019) grants its Armor at the next Round start, immediately after that wipe.
 
 Stamina is a direct card-discard movement payment, not a stored resource. The opening hand is `4` cards. At the end of each Round, draw until the hand contains `4` cards; this is a refill target rather than a hard hand limit. Cards remaining in hand stay there; discarded cards shuffle back into the deck when the deck runs out.
 
-The player panel always shows current hand, deck, discard, Armor, and Presence values. It does not show Energy or a Stamina meter.
+The player panel always shows current hand, deck, discard, and Armor values. It does not show Energy or a Stamina meter. (`Presence` was removed by ADR 0022.)
 
 ## Movement
 
@@ -202,7 +201,7 @@ The live/default tank deck is the approved five-identity Shield Wall list, carri
 - `Steady Strike` (8 copies): deal `2` boss damage, plus `1` per charged card.
 - `Iron Guard` (6 copies): gain `3` Armor, plus `1` per charged `Guard` card.
 - `Sweeping Blow` (2 copies): deal `2` damage to a selected adjacent Minion.
-- `Fortify` (2 copies): Slow; gain `6` Armor.
+- `Fortify` (2 copies): Slow; gain `6` Armor at the start of the next Round, landing after the Round-start wipe (D-019).
 - `Shield Slam` (2 copies): deal `3` boss damage; a legal activation consumes Riposte Ready for `+2`. Any other Boss-damage card consumes an active Riposte Ready for `+1`; cards without Boss damage never consume it.
 
 The full specification and card roles live in [elian-voss-starter.md](../content/decks/elian-voss-starter.md). The prior `10x Steady Strike` / `10x Iron Guard` list is historical baseline evidence only.
