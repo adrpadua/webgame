@@ -2,7 +2,7 @@
 // Encounter Records outside the browser, through the same engine seam.
 //
 // Usage (from web/):
-//   npx vite-node scripts/runHeadless.ts -- --scenario embermaw_victory_line [--record out.json]
+//   npx vite-node scripts/runHeadless.ts -- --scenario embermaw_solo_ceiling [--record out.json]
 //   npx vite-node scripts/runHeadless.ts -- --replay path/to/record.json
 import { readFileSync, writeFileSync } from 'node:fs'
 import { loadCatalog } from '../src/content'

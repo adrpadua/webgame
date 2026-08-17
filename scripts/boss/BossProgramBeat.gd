@@ -20,6 +20,7 @@ const TARGET_SELECTOR_TANK := &"tank"
 @export var target_selector: StringName = &""
 @export var damage_classification: StringName = &""
 @export var damage: int = 0
+@export var unguarded_bonus: int = 0
 @export var duration_rounds: int = 1
 @export var hazard: Resource
 @export var minion: Resource

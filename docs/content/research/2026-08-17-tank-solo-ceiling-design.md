@@ -50,6 +50,6 @@ Researcher inference, grounded in the findings and this game's numbers:
 ## Suggested Next Steps
 
 1. **Done 2026-08-17.** The six principles are documented as the `Tank Design Principles` section of `docs/rules/character-design-bible.md`, beside the Healer Design Principles, cross-referencing D-016.
-2. Elevate range-camping counter-pressure (backlog issue 15) to the top of pre-playtest engine work — it is the enforcement mechanism for principles 1-2, and the sweep gives it a regression metric (`victory%⚠` and `enrage%` for `far` policies must both fall).
+2. **Done 2026-08-17 (D-017).** Raking Claw's `+3` unguarded bonus plus the 48-health solo slice shipped as the counter-pressure; the sweep now reports 0% victory and 0% enrage survival across all 12 policies, and the committed solo-ceiling Scenario dies in Round 6 with Embermaw at 10 health.
 3. Design the hex-tower Beat pattern (principle 3) as the first structural multi-body mechanic — it needs the Party model eventually, but its solo form ("unoccupiable demand") already creates honest pressure.
 4. Give Whelps end-of-round intent (D-006) so escalation outpaces one actor's economy (principle 4).

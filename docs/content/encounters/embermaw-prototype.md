@@ -27,7 +27,7 @@ Starting board state:
 
 `Embermaw` currently runs a deterministic three-card looping Boss Program deck:
 
-- `36` health, sized against the solo tank deck's damage curve so progress is visible each round — **not** a solo kill target. Per D-016, this is a team game: a solo Guardian defeating Embermaw is a tuning defect signal, and a solo run's success criteria are the Round-4 checkpoint and demonstrated Tank role moments. Party-scale content scales Boss health by party size.
+- `48` health (raised from `36` by D-017), sized so per-round progress stays visible while the solo damage race fails — **not** a solo kill target. Per D-016, this is a team game: a solo Guardian defeating Embermaw is a tuning defect signal, and a solo run's success criteria are the Round-4 checkpoint and demonstrated Tank role moments. Party-scale content scales Boss health by party size. The committed evidence is `data/scenarios/embermaw_solo_ceiling.json`: the deepest line a 100-seed, 12-policy search can manage dies in Round 6 with Embermaw at 10 health.
 - **Hunt Pattern**: Turn to the Tank, Raking Claw, Ash Trail; then telegraphed Cinder Breath, Brood Call, Close the Lanes
 - **Ember Pattern**: Stalk the Guardian, Cinder Breath, Ember Scar; then telegraphed Brood Call, Raking Claw, Keep a Safe Hex
 - **Brood Pattern**: Turn to the Tank, Raking Claw, Ash Trail; then telegraphed Cinder Breath, Brood Call, Heat Rises
@@ -51,7 +51,7 @@ The live encounter configuration is [resources/encounters/embermaw_prototype.tre
 
 Embermaw teaches two different kinds of Boss pressure. The approved encounter-design intent is that perfect movement avoids geometry, but does not erase the Tank's assigned attrition:
 
-- `Raking Claw` is a Targeted Boss Tank Hit. Its authored selector wording is **`Target: Tank. Deal 4 damage. Movement does not evade this hit.`** Its sole counter-tag is **`Mitigate`**. Leaving a cone or changing board position does not evade it. Elian may deliberately hold the Guarded Front, build Armor, and earn Riposte Ready from a zero-Health-loss hit, but a Tank Hit still deals damage if its mitigation answer is insufficient. Guarded Front is positional setup for the Tank's mitigation and Riposte loop; it is not a Move counterplay tag.
+- `Raking Claw` is a Targeted Boss Tank Hit. Its authored selector wording is **`Target: Tank. Deal 4 damage. Movement does not evade this hit. An unheld Guarded Front suffers +3.`** Its counter-tags are **`Mitigate`** and **`Position`**. Leaving a cone or changing board position does not evade it — and abandoning the Guarded Front makes it worse: the claw rakes an unbraced line for `4 + 3` (D-017, the authored counter-pressure against range camping). Elian may deliberately hold the Guarded Front, build Armor, and earn Riposte Ready from a zero-Health-loss hit, but a Tank Hit still deals damage if its mitigation answer is insufficient. Holding the Guarded Front is therefore both the Riposte setup and the way to keep the claw at its base 4.
 - `Cinder Breath` telegraphs a forward cone during Quick. Leaving the cone avoids the hit; resolved cone hexes become `Scorched` for one round.
 - `Brood Call` telegraphs two edge spawn hexes in solo play, then creates Whelps there. Whelps occupy their hexes and constrain movement routes.
 

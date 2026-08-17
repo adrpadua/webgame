@@ -1,6 +1,6 @@
 # Counter-Pressure Against Boss-Range Camping
 
-Status: needs-triage
+Status: shipped (D-017, 2026-08-17)
 
 ## Player Problem
 
@@ -61,3 +61,14 @@ range-free and directed that counter-pressure against boss-range camping be
 filed as a product proposal with the mechanism left open for shaping. PM
 holds this at `needs-triage` until the user picks a mechanism direction and
 acceptance bar.
+
+On Sunday, August 17, 2026, the user directed the fix. Mechanism chosen and
+shipped as D-017: Raking Claw intensifies (+3 `unguarded_bonus`) when no
+Hero holds the Guarded Front at resolution, and Embermaw's solo-slice
+health rose from 36 to 48 to close the dodge-racer line the red-flag search
+surfaced. `boss_damage` remains positionless. Acceptance evidence: the
+12-policy evaluation sweep reports 0% solo victory and 0% enrage survival
+across all positions (previously 97% victory for `dual_steady/far` and
+100% enrage survival for `sword_shield/far`); the Scenario generator now
+exits red-flag on any found solo victory, and the committed
+`embermaw_solo_ceiling` Scenario replaces the retired victory line.

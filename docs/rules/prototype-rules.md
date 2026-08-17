@@ -116,7 +116,7 @@ Cards currently resolve against one of these target styles:
 - direct damage to the Boss through a card's `boss_damage` effect
 - selected Minion piece on a hex through the current `PIECE` target type
 
-A card's `boss_damage` effect resolves without a range check in the prototype: the Hero's position never blocks it. Counter-pressure against playing at a distance is authored encounter content, not a card range rule.
+A card's `boss_damage` effect resolves without a range check in the prototype: the Hero's position never blocks it. Counter-pressure against playing at a distance is authored encounter content, not a card range rule. That counter-pressure now exists (D-017): a Boss Beat may carry an `unguarded_bonus` that adds damage to its targeted hit when no Hero holds the Guarded Front at resolution — Embermaw's Raking Claw rakes an unheld line for `4 + 3`.
 
 The prototype does not yet provide a selectable generic Enemy target. A future `Enemy` selector must allow both the Boss and Minions, then validate their shared range and targeting rules consistently.
 

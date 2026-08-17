@@ -16,9 +16,9 @@ The party faces an eight-round clock. The first half teaches Embermaw's three co
 | --- | --- |
 | Boss | Embermaw, the Ashen Wyrm |
 | Board | Radius-2 hex arena, with Embermaw initially at `1,-1`, facing `SW` |
-| Health | 36 in the single-tank demo; scale health by party size and difficulty, not by adding opaque defenses |
+| Health | 48 in the single-tank demo (raised from 36 by D-017 so the solo damage race fails); scale health by party size and difficulty, not by adding opaque defenses |
 | Encounter Clock | 8 rounds; enrage begins at round 9 |
-| Phase Break | At 18 health, or at the start of round 5 if the party is ahead of the health threshold |
+| Phase Break | At half health (24 in the single-tank demo), or at the start of round 5 if the party is ahead of the health threshold |
 | Phase I | `Hunt`: teach frontal pressure, breath cones, and add control |
 | Phase II | `Conflagration`: preserve Phase I problems while combining them with marks and arena hazards |
 
@@ -53,9 +53,9 @@ When Party-scale encounters are authored, each encounter must name which Beats a
 
 - **Pattern:** the three hexes in Embermaw's forward arc, range 1.
 - **Origin:** Embermaw's current facing.
-- **Answer:** tank occupies the center-front hex and mitigates; other party members leave the arc.
-- **Failure:** the frontmost target takes a Tank Hit; every additional target in the arc takes a Raid Hit.
-- **Teaching value:** facing defines a front and position changes who is responsible for the hit.
+- **Answer:** tank occupies the center-front hex (the Guarded Front) and mitigates; other party members leave the arc.
+- **Failure:** the frontmost target takes a Tank Hit; every additional target in the arc takes a Raid Hit. If no Hero holds the Guarded Front, the targeted Tank Hit rakes deeper for `+3` (D-017) — the claw cannot be outrun, only braced.
+- **Teaching value:** facing defines a front, position changes who is responsible for the hit, and abandoning the front has a price.
 
 This is the baseline tank check. It is deliberately survivable in the one-player demo, where Elian Voss is always the frontmost target.
 

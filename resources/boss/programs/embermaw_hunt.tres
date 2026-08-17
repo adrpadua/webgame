@@ -17,12 +17,13 @@ counter_tags = Array[StringName]([&"Position"])
 script = ExtResource("2_beat")
 id = &"raking_claw"
 title = "Raking Claw"
-rules_text = "Target: Tank. Deal 4 damage. Movement does not evade this hit."
+rules_text = "Target: Tank. Deal 4 damage. Movement does not evade this hit. An unheld Guarded Front suffers +3."
 kind = 1
-counter_tags = Array[StringName]([&"Mitigate"])
+counter_tags = Array[StringName]([&"Mitigate", &"Position"])
 target_selector = &"tank"
 damage_classification = &"tank_hit"
 damage = 4
+unguarded_bonus = 3
 
 [sub_resource type="Resource" id="Scar"]
 script = ExtResource("2_beat")

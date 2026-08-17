@@ -66,6 +66,7 @@ export const bossBeatSchema = z.object({
   target_selector: z.string().default(''),
   damage_classification: z.string().default(''),
   damage: z.number().int().default(0),
+  unguarded_bonus: z.number().int().min(0).default(0),
   duration_rounds: z.number().int().min(1).default(1),
   hazard: z.string().optional(),
   minion: z.string().optional(),
