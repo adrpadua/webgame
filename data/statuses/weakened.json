@@ -1,0 +1,10 @@
+{
+  "id": "weakened",
+  "title": "Weakened",
+  "rules_text": "This Enemy deals 1 less damage.",
+  "applies_to": "enemy",
+  "triggers": ["on_damage_taken"],
+  "stacking": false,
+  "duration_rounds": 1,
+  "damage_dealt_penalty": 1
+}

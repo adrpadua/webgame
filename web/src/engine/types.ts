@@ -82,6 +82,12 @@ export interface StatusInstance {
   damageReduction: number
   bonusBossDamageOnSlotFired: number
   bonusBossDamageOffPayoff: number
+  // Enemy-facing payload (D-034). The mechanism is shared with Hero statuses;
+  // only which fields matter differs.
+  damageTakenBonus: number
+  damageDealtPenalty: number
+  // Non-stacking by default: a second copy is refused rather than refreshed.
+  stacking: boolean
   triggerReason: string
   expiresAtWindowEnd: Phase | ''
   consumeOnCardId: string

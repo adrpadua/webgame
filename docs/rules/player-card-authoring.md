@@ -13,8 +13,9 @@ Every player card has these authored fields:
 | `rules_text` | Complete, encounter-neutral mechanical text. It is the canonical card rules text. |
 | `speed` | `quick` for basics, setup, movement-adjacent effects, and low-commitment responses; `slow` for larger commitments and signature effects. |
 | `max_charge` | The Top Card's Charge Value: the maximum number of tucked cards it can hold. The engine default is `2`; the foundation cards `Steady Strike` and `Iron Guard` use `3`. |
-| `target_type` and `range_tiles` | Define what must be selected and where it is legal to use the card. Never imply a target in text that the data model does not enforce. |
-| Effect fields | State the base effect in the corresponding data field: Boss damage, Armor, healing, Presence, or targeted Minion damage. |
+| `target_type` and `range_tiles` | Define what must be selected and where it is legal to use the card. `none` needs no selection, `piece` selects an Enemy, `board_slot` selects an ally's Top Card. Never imply a target in text that the data model does not enforce. |
+| Effect fields | State the base effect in the corresponding data field: Boss damage, Armor, healing, or targeted Minion damage. |
+| `applies_status` | A status id from `data/statuses/` (D-033). Where it lands follows `target_type`: `none` applies it to the firing Hero, `piece` to the selected Enemy, `board_slot` to an ally's Top Card. Apply an existing status rather than authoring a near-duplicate — a second Sundered with different text is how a shared vocabulary stops being shared. |
 | `tags` | Registered Keyword IDs from `data/keywords/` (ADR 0020). |
 | `charge_modifiers` | Explicit Charge Modifier Resources; never imply a bonus that is absent from data. |
 
@@ -135,3 +136,5 @@ The deck tests the choice between firing a reusable Top Card immediately and sav
 - [ ] The primary job is obvious from the title and first sentence.
 - [ ] The Compact Card can be scanned from title, timing, and Charge Value alone.
 - [ ] Card Inspection contains the same canonical rules text.
+- [ ] Any `applies_status` id exists in `data/statuses/`, and the status's `applies_to` side matches the card's `target_type`.
+- [ ] A card applying a status to an Enemy has been through the deck-evaluation gate before joining the live deck: it changes the damage economy the solo-ceiling walls were measured against.

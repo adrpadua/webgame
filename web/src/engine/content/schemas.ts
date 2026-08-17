@@ -39,6 +39,11 @@ export const cardSchema = z.object({
   damage: z.number().int().default(0),
   tags: z.array(z.string()).default([]),
   charge_modifiers: z.array(z.string()).default([]),
+  // The status this card applies, if any (D-033). Where it lands comes from
+  // `target_type`, which this finally makes load-bearing: `none` applies to
+  // the firing Hero, `piece` to a selected Enemy, `board_slot` to an ally's
+  // Top Card.
+  applies_status: z.string().default(''),
 })
 
 export const hazardSchema = z.object({
@@ -56,6 +61,28 @@ export const minionSchema = z.object({
   rules_text: z.string().default(''),
   max_health: z.number().int().min(1),
   attack_damage: z.number().int().min(0).default(0),
+})
+
+// A Status Effect definition (D-033). Statuses were engine-only until now:
+// Riposte Ready and Fortified were constructed in code at hardcoded moments.
+// Authoring them here makes them shared vocabulary — one Sundered, with one
+// title, one rules text, and one answer to whether it stacks.
+export const statusSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  rules_text: z.string().default(''),
+  // Which side of the fight the payload is written for. The mechanism is the
+  // same for both; only the fields that matter differ (D-032).
+  applies_to: z.enum(['hero', 'enemy']),
+  triggers: z.array(z.enum(['on_round_start', 'on_enter_hex', 'on_damage_taken', 'on_slot_fired'])).default([]),
+  // Per-status rather than one global rule, because canon already holds both
+  // behaviours: Riposte Ready never stacks, Fortified stacks additively.
+  stacking: z.boolean().default(false),
+  duration_rounds: z.number().int().min(1).default(1),
+  // Enemy-facing payload (D-034). Two named fields rather than a general
+  // effect list, following the ADR 0021 precedent.
+  damage_taken_bonus: z.number().int().min(0).default(0),
+  damage_dealt_penalty: z.number().int().min(0).default(0),
 })
 
 export const bossBeatSchema = z.object({
@@ -179,6 +206,7 @@ export type ChargeModifier = z.infer<typeof chargeModifierSchema>
 export type Card = z.infer<typeof cardSchema>
 export type Hazard = z.infer<typeof hazardSchema>
 export type Minion = z.infer<typeof minionSchema>
+export type StatusDefinition = z.infer<typeof statusSchema>
 export type EscalationThreshold = z.infer<typeof escalationThresholdSchema>
 export type BossBeat = z.infer<typeof bossBeatSchema>
 export type BossProgram = z.infer<typeof bossProgramSchema>

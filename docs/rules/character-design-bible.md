@@ -145,9 +145,15 @@ The vocabulary is fixed and the pricing is per card, deliberately. A single stan
 
 ## Commitments
 
-A card whose job is to answer a *named future* Boss Beat should be authored as a **Commitment** rather than as a Status Effect that happens to land at the right moment (D-028, see the [Encounter Design Bible](encounter-design-bible.md)). Fortify is the first of them: its fiction is "prepare for what is coming," and binding it to the Beat it answers makes that fiction visible to the whole Party instead of hidden in the Hero's status list.
+A card whose job is to answer a *named future* Boss Beat should be authored as a **Commitment** rather than as a Status Effect (D-028, see the [Encounter Design Bible](encounter-design-bible.md)). **No card is one yet.** Fortify was originally reclassified as the first Commitment and that was retracted: it prepares for whatever next Round opens with rather than for a named Beat, and next Round's Instant Row is visible only as a Forecast entry, which a Commitment may not bind to. Fortify is a Status Effect with delayed onset — which is the honest reading of a card that buffs its own Hero.
 
-Two authoring consequences. A Commitment may only bind to a Beat whose parameters are disclosed, so a card cannot promise preparation against something the party can only see at family level. And a Commitment prepares — it never redirects a Beat's target or changes what the Beat is; those belong to positioning and Threat, not to card text.
+Two authoring consequences. A Commitment may only bind to a Beat whose parameters are disclosed, so a card cannot promise preparation against something the party can only see at family level; a card that wants to prepare for a *kind* of problem is a Status Effect, not a Commitment. And a Commitment prepares — it never redirects a Beat's target or changes what the Beat is. That ban is effect-level: it binds any mechanism that could produce the same effect, including a status applied to the Boss.
+
+## Authored Statuses
+
+A card may apply a Status Effect by naming one from the status catalog (D-033). Where it lands comes from the card's `target_type`: `none` applies it to the firing Hero, `piece` to a selected Enemy, `board_slot` to an ally's Top Card. An Enemy-facing status carries `damageTakenBonus` or `damageDealtPenalty`; a Hero-facing one carries the Armor and Boss-damage fields already in use.
+
+Two authoring rules. Reuse the target kind's existing rule rather than inventing one — a Minion must be within `range_tiles`, the Boss needs no range, an ally's card needs no adjacency. And check the catalog before writing a new status: if a status with the meaning you want exists, apply that one, because a second Sundered with different text is how a vocabulary stops being shared.
 
 ## Card Family Guidance
 

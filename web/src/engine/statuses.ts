@@ -1,3 +1,4 @@
+import type { StatusDefinition } from './content/schemas'
 import type { EncounterState, Phase, StatusInstance } from './types'
 
 export const RIPOSTE_READY = 'riposte_ready'
@@ -17,8 +18,14 @@ export function hasStatus(state: EncounterState, entityId: string, statusId: str
   return getStatus(state, entityId, statusId) !== undefined
 }
 
+// The entity gate has always accepted any board entity, so an Enemy could
+// always host a status; what D-034 added is a payload that does something
+// (`damageTakenBonus`, `damageDealtPenalty`) and this stacking rule.
 export function addStatus(state: EncounterState, entityId: string, effect: StatusInstance): boolean {
   if (!state.board.entities[entityId]) {
+    return false
+  }
+  if (!effect.stacking && hasStatus(state, entityId, effect.id)) {
     return false
   }
   if (!state.statusEffects[entityId]) {
@@ -65,16 +72,20 @@ export function statusEvent(effect: StatusInstance, event: string, reason: strin
 // A Slow-window Armor commitment (D-019): the Armor lands at the NEXT Round
 // start, after the wipe, so Fortify answers the next Round's pressure —
 // including Instant-row hits nothing else can pre-block.
-export function createFortified(sourceCardId: string, amount: number, round: number, phase: Phase): StatusInstance {
+export function createFortified(catalog: { statuses: Record<string, StatusDefinition> }, sourceCardId: string, amount: number, round: number, phase: Phase): StatusInstance {
+  const definition = catalog.statuses[FORTIFIED]
   return {
     id: FORTIFIED,
-    title: 'Fortified',
-    remainingRounds: 1,
-    triggers: ['on_round_start'],
+    title: definition?.title ?? 'Fortified',
+    remainingRounds: definition?.duration_rounds ?? 1,
+    triggers: definition ? [...definition.triggers] : ['on_round_start'],
     armorOnRoundStart: amount,
     damageReduction: 0,
     bonusBossDamageOnSlotFired: 0,
     bonusBossDamageOffPayoff: 0,
+    damageTakenBonus: 0,
+    damageDealtPenalty: 0,
+    stacking: definition?.stacking ?? true,
     triggerReason: 'slow_commitment',
     expiresAtWindowEnd: '',
     consumeOnCardId: '',
@@ -95,6 +106,9 @@ export function createRiposteReady(sourceId: string, sourceBeatId: string, round
     damageReduction: 0,
     bonusBossDamageOnSlotFired: 2,
     bonusBossDamageOffPayoff: 1,
+    damageTakenBonus: 0,
+    damageDealtPenalty: 0,
+    stacking: false,
     triggerReason: 'qualifying_tank_hit',
     expiresAtWindowEnd: 'quick',
     consumeOnCardId: SHIELD_SLAM,
@@ -102,5 +116,34 @@ export function createRiposteReady(sourceId: string, sourceBeatId: string, round
     sourceBeatId,
     triggerRound: round,
     triggerPhase: phase,
+  }
+}
+
+// Builds a live instance from an authored definition (D-033). Amounts a card
+// supplies — Fortify's stored Armor, for instance — are passed in rather than
+// authored on the status, so one definition serves cards of different sizes.
+export function createFromDefinition(
+  definition: StatusDefinition,
+  source: { sourceId: string; sourceBeatId?: string; round: number; phase: Phase; armorOnRoundStart?: number },
+): StatusInstance {
+  return {
+    id: definition.id,
+    title: definition.title,
+    remainingRounds: definition.duration_rounds,
+    triggers: [...definition.triggers],
+    armorOnRoundStart: source.armorOnRoundStart ?? 0,
+    damageReduction: 0,
+    bonusBossDamageOnSlotFired: 0,
+    bonusBossDamageOffPayoff: 0,
+    damageTakenBonus: definition.damage_taken_bonus,
+    damageDealtPenalty: definition.damage_dealt_penalty,
+    stacking: definition.stacking,
+    triggerReason: 'authored_status',
+    expiresAtWindowEnd: '',
+    consumeOnCardId: '',
+    sourceId: source.sourceId,
+    sourceBeatId: source.sourceBeatId ?? '',
+    triggerRound: source.round,
+    triggerPhase: source.phase,
   }
 }

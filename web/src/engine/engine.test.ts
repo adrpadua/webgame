@@ -283,6 +283,119 @@ describe('Fortify Slow commitment (D-019)', () => {
   })
 })
 
+describe('Authored Status Effects (D-032 to D-034)', () => {
+  // No live card applies a status yet — the first one changes the damage
+  // economy and owes the deck-evaluation gate — so the vocabulary is proven
+  // against a catalog variant, the pattern the acceleration test established.
+  function withStatusCard(cardId: string, patch: Record<string, unknown>) {
+    const variant = structuredClone(catalog)
+    variant.cards[cardId] = { ...variant.cards.steady_strike, id: cardId, title: 'Test Card', boss_damage: 0, damage: 0, ...patch }
+    return variant
+  }
+
+  function firedAt(variant: ReturnType<typeof withStatusCard>, cardId: string, targetId?: string) {
+    let state = start()
+    state = stepPhases(state, 2).state
+    expect(state.phase).toBe('quick')
+    hero(state).hand = [card('t1', cardId), card('t2', 'steady_strike')]
+    state = resolve(variant, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 't1' }).state
+    state = resolve(variant, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 't2' }).state
+    return resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetId })
+  }
+
+  it('authors every status in the catalog, and validates card references', () => {
+    expect(Object.keys(catalog.statuses).sort()).toEqual(['fortified', 'sundered', 'weakened'])
+    expect(catalog.statuses.sundered).toMatchObject({ applies_to: 'enemy', damage_taken_bonus: 1, stacking: false })
+    expect(catalog.statuses.weakened).toMatchObject({ applies_to: 'enemy', damage_dealt_penalty: 1 })
+    // Fortified's definition is authored; its Armor amount still rides the card.
+    expect(catalog.statuses.fortified).toMatchObject({ applies_to: 'hero', stacking: true, triggers: ['on_round_start'] })
+  })
+
+  it('lands an enemy status on the Boss with no range requirement', () => {
+    // The Boss is selectable for a status but never range-gated, which keeps
+    // the positionless `boss_damage` ruling intact.
+    const variant = withStatusCard('sunder_test', { applies_status: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const state = start()
+    const fired = firedAt(variant, 'sunder_test', state.bossId)
+    expect(fired.facts[0].succeeded).toBe(true)
+    expect(fired.state.statusEffects[state.bossId]?.[0]).toMatchObject({ id: 'sundered', damageTakenBonus: 1 })
+  })
+
+  it('raises damage the Sundered Boss takes', () => {
+    const variant = withStatusCard('sunder_test', { applies_status: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const state = start()
+    const sundered = firedAt(variant, 'sunder_test', state.bossId).state
+    const before = sundered.board.entities[sundered.bossId].health
+    const hit = resolve(catalog, sundered, {
+      kind: 'damage',
+      sourceId: sundered.primaryHeroId,
+      targetId: sundered.bossId,
+      amount: 3,
+      reasonText: 'test',
+    })
+    expect(hit.facts[0].resolutionFact).toMatchObject({ requested: 4 })
+    expect(hit.state.board.entities[hit.state.bossId].health).toBe(before - 4)
+  })
+
+  it('lowers damage a Weakened Enemy deals', () => {
+    const variant = withStatusCard('weaken_test', { applies_status: 'weakened', target_type: 'piece', range_tiles: 0 })
+    const state = start()
+    const weakened = firedAt(variant, 'weaken_test', state.bossId).state
+    const healthBefore = hero(weakened).health
+    const armorBefore = hero(weakened).armor
+    const hit = resolve(catalog, weakened, {
+      kind: 'damage',
+      sourceId: weakened.bossId,
+      targetId: weakened.primaryHeroId,
+      amount: 4,
+      reasonText: 'Raking Claw',
+    })
+    expect(hit.facts[0].resolutionFact).toMatchObject({ requested: 3 })
+    expect(healthBefore - hit.state.heroes[weakened.primaryHeroId].health + armorBefore).toBeGreaterThan(0)
+  })
+
+  it('refuses a second copy of a non-stacking status', () => {
+    const variant = withStatusCard('sunder_test', { applies_status: 'sundered', target_type: 'piece', range_tiles: 0 })
+    let state = stepPhases(start(), 2).state
+    expect(state.phase).toBe('quick')
+    // Two Slots, same quick-speed card, one window: the Slot activation limit
+    // is per Slot, so the second fire is legal and the status is what refuses.
+    hero(state).hand = [card('a1', 'sunder_test'), card('a2', 'steady_strike'), card('b1', 'sunder_test'), card('b2', 'steady_strike')]
+    for (const [slotIndex, top, charge] of [
+      [0, 'a1', 'a2'],
+      [1, 'b1', 'b2'],
+    ] as const) {
+      state = resolve(variant, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId: top }).state
+      state = resolve(variant, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId: charge }).state
+    }
+    const first = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetId: state.bossId })
+    expect(first.facts[0].succeeded).toBe(true)
+    expect(first.facts[0].detail.appliedStatusGranted).toBe(true)
+    const second = resolve(variant, first.state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 1, targetId: state.bossId })
+    expect(second.facts[0].succeeded).toBe(true)
+    expect(second.facts[0].detail.appliedStatusGranted).toBe(false)
+    expect(second.state.statusEffects[state.bossId] ?? []).toHaveLength(1)
+  })
+
+  it('refuses an enemy-facing status with no Enemy target', () => {
+    const variant = withStatusCard('sunder_test', { applies_status: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const fired = firedAt(variant, 'sunder_test', undefined)
+    expect(fired.facts[0].succeeded).toBe(false)
+    expect(fired.facts[0].reason).toContain('Enemy target')
+  })
+
+  it('still lands Fortified from its authored definition (D-019 unchanged)', () => {
+    let state = stepPhases(start(), 4).state
+    expect(state.phase).toBe('slow')
+    hero(state).hand = [card('f1', 'fortify'), card('f2', 'steady_strike')]
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'f1' }).state
+    state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'f2' }).state
+    const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+    const fortified = fired.state.statusEffects[state.primaryHeroId]?.find((effect) => effect.id === 'fortified')
+    expect(fortified).toMatchObject({ title: catalog.statuses.fortified.title, stacking: true, armorOnRoundStart: 6 })
+  })
+})
+
 describe('Forecast Row (D-021, ADR 0026)', () => {
   it('previews the next Round\'s whole program at family level', () => {
     const state = start()

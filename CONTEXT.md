@@ -95,15 +95,15 @@ A hostile combatant in an Encounter. The Boss and every Minion are Enemies.
 _Avoid_: Hostile target, foe
 
 **Status Effect**:
-A temporary rule attached to a combatant that responds to an explicit trigger, such as the start of a Round, taking damage, or firing a Slot.
-_Avoid_: Passive, invisible buff
+A temporary rule attached to one combatant — a Hero **or** an Enemy — that responds to an explicit trigger, such as the start of a Round, taking damage, or firing a Slot (D-032). The mechanism is identical on both sides; only which payload fields matter differs, so an Enemy-facing status uses `damageTakenBonus` and `damageDealtPenalty` where a Hero-facing one uses Armor and Boss-damage fields. Status definitions are authored content in `data/statuses/` and each one states whether it stacks (D-033). Every Status Effect is visible to the whole Party. A Status Effect may never redirect a Boss Beat's target or change what that Beat is.
+_Avoid_: Passive, invisible buff, Enemy Status
 
 **Riposte Ready**:
 A non-stacking, non-refreshing Elian Voss Status Effect. When a Boss Tank Hit resolves against Captain Elian Voss while they occupy the Guarded Front and causes `0` Health loss, grant Riposte Ready if they do not already have it. It expires at the end of the first Quick Window after that qualifying hit, whether the hit occurred in an Instant Row or an Incoming Row. The first card that deals Boss damage while it is active consumes it: a legal Shield Slam gains `2` additional Boss damage, and any other Boss-damage card gains `1` (D-015). Cards that deal no Boss damage never consume it. The effect must show its qualifying trigger, expiry, and consumption; it is not a general posture category or a resource meter.
 _Avoid_: Awakening, stacking buff, generic stance
 
 **Fortified**:
-An Elian Voss Status Effect created by firing Fortify in the Slow Window (D-019). In canon it is a `Commitment` against the next Round's Instant Row (D-028) and will be modelled as one when that seam exists; today it is a Status Effect that happens to land at the right moment. At the start of the next Round, immediately after the Armor wipe, it grants its stored Armor and expires; the granted Armor is ordinary Armor thereafter. Multiple Fortified commitments stack additively. Because it lands before the next Instant Row, it is the one way to pre-block Instant-row pressure.
+An Elian Voss Status Effect created by firing Fortify in the Slow Window (D-019). It is a Status Effect with delayed onset, not a `Commitment`: it prepares for whatever the next Round opens with rather than for a named Beat, so it has no Beat to bind to. Its definition is authored in `data/statuses/`; the Armor amount comes from the card. At the start of the next Round, immediately after the Armor wipe, it grants its stored Armor and expires; the granted Armor is ordinary Armor thereafter. Multiple Fortified commitments stack additively. Because it lands before the next Instant Row, it is the one way to pre-block Instant-row pressure.
 _Avoid_: Delayed buff, second Armor pool
 
 **Hazard**:
@@ -131,7 +131,7 @@ The horizon that previews the next Round's whole Boss Program at family level: i
 _Avoid_: Preview row, hidden row, T+2
 
 **Commitment**:
-An authored card effect bound to one named Boss Beat, visible to the Party, resolving when that Beat resolves (D-028). A Commitment may only bind to a Beat whose parameters are disclosed — one in the `Incoming Row` or `Instant Row` — never to a `Forecast Row` entry, because a family-level entry states no parameters and a Commitment there would be a bet rather than a plan. Commitments prepare for a named future problem; they do not redirect its target or change what it is. Fortify is the first Commitment in canon.
+An authored card effect bound to one named Boss Beat, visible to the Party, resolving when that Beat resolves (D-028). A Commitment may only bind to a Beat whose parameters are disclosed — one in the `Incoming Row` or `Instant Row` — never to a `Forecast Row` entry, because a family-level entry states no parameters and a Commitment there would be a bet rather than a plan. Commitments prepare for a named future problem; they may never redirect its target or change what it is, and that ban is effect-level — it binds any mechanism that could produce the same effect. Nothing implements a Commitment yet: Fortify was reclassified as one and the reclassification was retracted, because it prepares for whatever the next Round opens with rather than for a named Beat.
 _Avoid_: Attachment, counterspell, reaction
 _Not yet in the engine_
 

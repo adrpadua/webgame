@@ -11,6 +11,7 @@ import { shuffle } from './rng'
 import {
   addStatus,
   createFortified,
+  createFromDefinition,
   createRiposteReady,
   getStatuses,
   hasStatus,
@@ -153,10 +154,27 @@ function resolveOne(
         fact.resolutionFact = { status_event: consumed.events[0] }
       }
       if (effects.armorNextRound > 0) {
-        const fortified = createFortified(card.id, effects.armorNextRound, draft.round, draft.phase)
+        const fortified = createFortified(catalog, card.id, effects.armorNextRound, draft.round, draft.phase)
         addStatus(draft, action.sourceId, fortified)
         if (consumed.events.length === 0) {
           fact.resolutionFact = { status_event: statusEvent(fortified, 'granted', fortified.triggerReason) }
+        }
+      }
+      // An authored status (D-033). `target_type` decides where it lands: a
+      // selected Enemy for an enemy-facing status, the firing Hero otherwise.
+      // `board_slot` — an ally's Top Card — is canon but unbuilt (D-035).
+      if (card.applies_status !== '') {
+        const definition = catalog.statuses[card.applies_status]
+        if (definition) {
+          const targetId = definition.applies_to === 'enemy' ? (action.targetId ?? '') : action.sourceId
+          const applied = createFromDefinition(definition, { sourceId: card.id, round: draft.round, phase: draft.phase })
+          const granted = addStatus(draft, targetId, applied)
+          fact.detail.appliedStatus = definition.id
+          fact.detail.appliedStatusTarget = targetId
+          fact.detail.appliedStatusGranted = granted
+          if (consumed.events.length === 0) {
+            fact.resolutionFact = { status_event: statusEvent(applied, granted ? 'granted' : 'refused', granted ? 'authored_status' : 'already_present') }
+          }
         }
       }
       succeed(fact)
@@ -271,7 +289,7 @@ function resolveOne(
       break
     }
     case 'damage': {
-      const resolutionFact = applyDamage(draft, action.targetId, action.amount)
+      const resolutionFact = applyDamage(draft, action.targetId, action.amount, action.sourceId)
       for (const [key, value] of Object.entries(action.factContext ?? {})) {
         if (!(key in resolutionFact)) {
           resolutionFact[key] = value
@@ -498,8 +516,25 @@ function slotFiredStatusActions(draft: EncounterState, entityId: string): Encoun
   return actions
 }
 
-function applyDamage(draft: EncounterState, targetId: string, amount: number): Record<string, unknown> {
-  const requested = Math.max(amount, 0)
+// Sums one enemy-facing payload field across a combatant's statuses (D-034).
+function statusSum(draft: EncounterState, entityId: string, field: 'damageTakenBonus' | 'damageDealtPenalty'): number {
+  let total = 0
+  for (const effect of getStatuses(draft, entityId)) {
+    if (effect.triggers.includes('on_damage_taken')) {
+      total += effect[field]
+    }
+  }
+  return total
+}
+
+function applyDamage(draft: EncounterState, targetId: string, amount: number, sourceId = ''): Record<string, unknown> {
+  // The two enemy-facing fields ride damage resolution that already existed:
+  // the source's Weakened lowers what it deals, the target's Sundered raises
+  // what it takes. Both resolve before mitigation, so Armor still answers the
+  // number the Party can read.
+  const dealtPenalty = sourceId === '' ? 0 : statusSum(draft, sourceId, 'damageDealtPenalty')
+  const takenBonus = statusSum(draft, targetId, 'damageTakenBonus')
+  const requested = Math.max(amount - dealtPenalty + takenBonus, 0)
   let adjusted = requested
   let prevented = 0
   for (const effect of getStatuses(draft, targetId)) {
