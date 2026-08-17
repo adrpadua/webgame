@@ -25,12 +25,15 @@ function BeatChip({ beat, track, active }: { beat: BossBeat; track: 'instant' | 
       data-testid="beat-chip"
       data-playing={playing}
       aria-label={`${beat.title}: ${beat.rules_text}`}
-      className={`wb-plate wb-plate-xs wb-face-dim wb-acc-none py-0.5 text-[11px] transition-colors ${
-        playing
-          ? 'animate-pulse bg-coral-400 font-bold text-coral-950 shadow-md shadow-coral-900 motion-reduce:animate-none'
-          : active
-            ? 'bg-coral-950 text-coral-200'
-            : 'bg-zinc-800 text-zinc-400'
+      // A plate paints its own face, so the chip's state has to be a face
+      // and not a background utility — a bg-* class on a wb-plate is
+      // discarded, and dark text on the default dim face read at 1:1.
+      // The resolving beat lights up as a coral plate with dark text; the
+      // active row's chips are dim plates with coral text; the rest are dim
+      // plates with neutral text. No pulse: the resolving beat is a state
+      // that lasts a whole moment, and the plate face already carries it.
+      className={`wb-plate wb-plate-xs wb-acc-none py-0.5 text-[11px] transition-colors ${
+        playing ? 'wb-face-coral font-bold text-coral-950' : active ? 'wb-face-dim text-coral-200' : 'wb-face-dim text-zinc-400'
       }`}
     >
       {beat.title}

@@ -136,7 +136,7 @@ export function CoachMark() {
           data-testid="coach-dismiss"
           aria-label="Dismiss tip"
           onClick={() => dismissTip(visibleTip.id)}
-          className={`min-h-11 min-w-11 shrink-0 px-2 text-[10px] font-bold tracking-wide uppercase opacity-70 transition hover:opacity-100 ${FOCUS_RING_CLASS}`}
+          className={`min-h-11 min-w-11 shrink-0 px-2 text-[10px] font-bold tracking-wide uppercase transition hover:scale-110 ${FOCUS_RING_CLASS}`}
         >
           Got it
         </button>

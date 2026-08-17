@@ -57,7 +57,9 @@ try {
   // their own build at a fixed path.
   const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined })
   const page = await browser.newPage({ viewport: { width: 1400, height: 950 } })
-  await page.goto(BASE_URL)
+  // The desktop pass drives the debug rail (Scenarios, time travel, seed),
+  // which is opt-in on a build: ?debug=1 shows it.
+  await page.goto(`${BASE_URL}?debug=1`)
   await page.waitForSelector('[data-testid="play-surface"]')
 
   // A fresh browser context counts as a first visit, so the How to Play
@@ -91,6 +93,128 @@ try {
     await boardCanvas.click({ position: await hexPosition(boardCanvas, q, r) })
     await page.waitForSelector('[data-testid="entity-inspect"]')
     return page.locator('[data-testid="entity-inspect"]').getAttribute('data-entity')
+  }
+
+  // WCAG 2.2 text contrast (1.4.3): every visible, live text node on the
+  // play surface must meet 4.5:1, or 3:1 if large (≥24px, or ≥18.66px bold).
+  // The background is composited down through translucent layers, and a
+  // wb-plate's face is read from its --wb-face variable since it paints on a
+  // pseudo-element. Inert text — gated, disabled, or in a receded Hand — is
+  // exempt, as the standard exempts inactive components. Returns failures.
+  const contrastFailures = (pg) =>
+    pg.evaluate(() => {
+      const parse = (c) => {
+        const m = c.match(/rgba?\(([^)]+)\)/)
+        if (!m) return null
+        const p = m[1].split(',').map((s) => parseFloat(s.trim()))
+        return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }
+      }
+      const over = (top, bot) => {
+        const a = top.a + bot.a * (1 - top.a)
+        if (a === 0) return { r: 0, g: 0, b: 0, a: 0 }
+        return {
+          r: (top.r * top.a + bot.r * bot.a * (1 - top.a)) / a,
+          g: (top.g * top.a + bot.g * bot.a * (1 - top.a)) / a,
+          b: (top.b * top.a + bot.b * bot.a * (1 - top.a)) / a,
+          a,
+        }
+      }
+      const lin = (v) => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)
+      const lum = (c) => 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b)
+      const ratio = (a, b) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05)
+      const resolveVar = (v) => {
+        const probe = document.createElement('div')
+        probe.style.color = v
+        document.body.appendChild(probe)
+        const c = parse(getComputedStyle(probe).color)
+        probe.remove()
+        return c
+      }
+      const bgOf = (el) => {
+        let acc = { r: 0, g: 0, b: 0, a: 0 }
+        for (let node = el; node && node !== document.documentElement; node = node.parentElement) {
+          const cs = getComputedStyle(node)
+          let bg = null
+          if (node.classList.contains('wb-plate')) {
+            const face = cs.getPropertyValue('--wb-face').trim()
+            if (face) bg = resolveVar(face)
+          }
+          if (!bg) bg = parse(cs.backgroundColor)
+          if (bg && bg.a > 0) {
+            acc = acc.a === 0 ? bg : over(acc, bg)
+            if (acc.a >= 0.999) return acc
+          }
+        }
+        const body = parse(getComputedStyle(document.body).backgroundColor) || { r: 9, g: 9, b: 11, a: 1 }
+        return acc.a === 0 ? body : over(acc, body)
+      }
+      // GATED_CLASS is `pointer-events-none opacity-30 saturate-50`. Match
+      // both halves: pointer-events-none alone rides live overlay wrappers
+      // (the toast, the Phase Banner, the MovePad), whose text is checked.
+      const isGated = (el) => {
+        for (let a = el; a && a !== document.body; a = a.parentElement) {
+          if (a.classList.contains('pointer-events-none') && a.classList.contains('opacity-30')) return true
+        }
+        return false
+      }
+      const fails = []
+      const seen = new Set()
+      const root = document.querySelector('[data-testid="play-surface"]') || document.body
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode: (n) => (n.textContent.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
+      })
+      for (let n; (n = walker.nextNode()); ) {
+        const el = n.parentElement
+        if (!el || seen.has(el)) continue
+        seen.add(el)
+        const r = el.getBoundingClientRect()
+        if (r.width === 0 || r.height === 0) continue
+        const cs = getComputedStyle(el)
+        if (cs.visibility === 'hidden' || cs.display === 'none') continue
+        let op = 1
+        for (let a = el; a && a !== document.body; a = a.parentElement) op *= parseFloat(getComputedStyle(a).opacity)
+        // Fully transparent text is not presented, so 1.4.3 has nothing to
+        // say about it. Everything else is held to the ratio at its real
+        // opacity: a live label dimmed to 0.4 by a bug must fail rather than
+        // slip under a blanket threshold. Only genuinely inactive components
+        // are exempt — disabled controls, the receded Hand, and the gated
+        // overlay, which is the one place opacity is the disabled styling.
+        if (op === 0 || el.closest('[disabled]') || el.closest('[data-inert="true"]') || isGated(el)) continue
+        const fg = parse(cs.color)
+        if (!fg) continue
+        const bg = bgOf(el)
+        const cr = ratio(over({ ...fg, a: fg.a * op }, bg), bg)
+        const px = parseFloat(cs.fontSize)
+        const bold = (parseInt(cs.fontWeight, 10) || 400) >= 700
+        const need = px >= 24 || (px >= 18.66 && bold) ? 3 : 4.5
+        if (cr < need) fails.push(`"${n.textContent.trim().slice(0, 24)}" ${cr.toFixed(2)}:1 < ${need}:1 (${el.closest('[data-testid]')?.dataset.testid ?? el.tagName.toLowerCase()})`)
+      }
+      return fails
+    })
+  // Optional visual record: SMOKE_SHOTS_DIR=<dir> writes a screenshot at
+  // each named state, so a reviewer gets the whole walk from one run rather
+  // than driving the app by hand.
+  const shotsDir = process.env.SMOKE_SHOTS_DIR ?? null
+  let shotIndex = 0
+  const shot = async (pg, name) => {
+    if (!shotsDir) return
+    shotIndex += 1
+    await pg.screenshot({ path: `${shotsDir}/${String(shotIndex).padStart(2, '0')}-${name}.png`, fullPage: false })
+  }
+  const assertContrast = async (pg, label) => {
+    // Entrance motion (wb-slide-up, wb-seat, the Phase Banner) passes
+    // through low opacity on its way in, so a probe that lands mid-flight
+    // scores a ratio no player is ever shown. Let every finite animation
+    // reach its end state first; ambient loops never finish by definition
+    // and are excluded, which is correct — they hold text opacity steady.
+    await pg.waitForFunction(() =>
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+        .every((a) => a.playState === 'finished'),
+    )
+    const fails = await contrastFailures(pg)
+    assert(fails.length === 0, `text contrast meets WCAG 1.4.3 ${label} (${fails.join(' | ') || 'all pass'})`)
   }
   // The card the scripted turn is pointing at is the only live card in Hand.
   const scriptedCard = () => page.locator('[data-testid="hand-card"][data-scripted="true"]')
@@ -149,6 +273,8 @@ try {
   // replay while the phase IS the Boss's window. The tank's stat panel goes
   // up first — it is the health readout now, and it rides the beats live.
   assert((await inspectTile(0, 0)) === 'guardian', 'tapping the Hero tile opens its stat panel')
+  await assertContrast(page, 'with the Hero Stat Panel open')
+  await shot(page, 'hero-stat-panel')
   await next()
   assert((await phase()) === 'instant', 'Next opens Boss Instant with its beats replaying')
   assert((await cueStep()) === 'boss-instant', 'the script narrates the Boss Instant')
@@ -167,6 +293,8 @@ try {
   assert((await slot0.getAttribute('data-charges')) === '1', 'a tucked hand card adds one Charge')
   assert((await cueStep()) === 'fire-quick', 'a charged Slot moves the script to firing')
   assert((await inspectTile(1, -1)) === 'embermaw', 'tapping the Boss tile switches the panel to Embermaw')
+  await assertContrast(page, 'with the Boss Stat Panel open')
+  await shot(page, 'boss-stat-panel')
   const bossBeforeQuick = await page.locator('[data-testid="boss-health"]').textContent()
   await slot0.click()
   await page.waitForTimeout(150)
@@ -273,6 +401,8 @@ try {
   await next()
   await page.waitForSelector('[data-testid="playout-continue"]')
   assert((await phase()) === 'instant', 'Round 2 Next opens Boss Instant and paces its beats')
+  await assertContrast(page, 'during a paced Boss row')
+  await shot(page, 'boss-row-paced')
   assert(
     (await page.locator('[data-testid="beat-chip"][data-playing="true"]').count()) >= 1,
     'the resolving beat lights its Boss Beat chip',
@@ -358,6 +488,8 @@ try {
   // scroll. A fresh context is a first visit, so this also proves the
   // scripted turn lays out on a phone.
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
+  // The phone pass tests what a player sees: no rail. Its fit-and-target
+  // guards are only honest against the surface a player is actually handed.
   await phone.goto(BASE_URL)
   await phone.waitForSelector('[data-testid="play-surface"]')
   await phone.locator('[data-testid="guide-skip"]').click()
@@ -432,6 +564,8 @@ try {
       .map(({ id, rect }) => `${id} ${Math.round(rect.width)}x${Math.round(rect.height)}`),
   )
   assert(undersized.length === 0, `every enabled control meets the 44px target at 390x844 (${undersized.join(' | ') || 'all pass'})`)
+  await assertContrast(phone, 'at 390x844')
+  await shot(phone, 'phone-390x844')
   const scrolls = await phone.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
   assert(!scrolls, 'the portrait play surface never scrolls sideways')
   // The whole HUD fits the phone's viewport: the frame spans it edge to
