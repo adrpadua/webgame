@@ -139,17 +139,17 @@ export default function App() {
           <PhaserBoard />
           <MovePad />
           {/* Transient guidance — the scripted cue, coach tips, the playout's
-              Continue bar — floats over the board's top edge instead of
-              stacking around it: bars appearing and disappearing must never
-              resize the board mid-Encounter, and the lower hexes stay clear
-              for play. pointer-events pass through the stack's empty space
-              so the hexes underneath stay tappable. */}
+              Continue bar — floats over the board's top edge: bars appearing
+              and disappearing must never resize the board mid-Encounter, and
+              the top edge keeps them out of the thumb path between the board
+              and the Hand. pointer-events pass through the stack's empty
+              space so the hexes underneath stay tappable. */}
           <div className="pointer-events-none absolute inset-x-2 top-2 z-10 flex flex-col gap-1.5">
             <FirstTurnCue />
             <CoachMark />
             <PlayoutContinue />
           </div>
-          {/* The tapped piece's stat panel floats over the board's lower
+          {/* The tapped piece's Stat Panel floats over the board's lower
               edge — the persistent Boss and Hero bars left the HUD. */}
           <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10">
             <EntityInspect />

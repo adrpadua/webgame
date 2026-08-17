@@ -3,16 +3,17 @@ import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { useDamageFlash } from './useDamageFlash'
 import { BossEmblem, HeartIcon, HeroEmblem, PresenceIcon, ShieldIcon } from './icons'
-import { HERO_STAT_DETAILS } from './holdDetails'
+import { encounterTerms, HERO_STAT_DETAILS } from './holdDetails'
 import { useHold, type HoldDetail } from './HoldPopover'
 import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS, healthBarScale } from './theme'
 
-// The stat panel a tapped tile opens. Persistent gauges left the HUD so the
-// board could have the height back: tapping a piece — the Boss, the Hero, a
-// Minion — is how its numbers are read now. The panel follows the piece, not
-// the hex, and its gauges ride the playout's staggered values, so it can sit
-// open through a Boss Row's telling as a live readout. It closes from its ✕,
-// from a tap on an empty hex, or with the session transitions.
+// The Stat Panel (CONTEXT.md) a tapped tile opens. Persistent gauges left
+// the HUD so the board could have the height back: tapping a piece — the
+// Boss, the Hero, a Minion — is how its numbers are read now. The panel
+// follows the piece, not the hex, and its gauges ride the playout's
+// staggered values, so it can sit open through a Boss Row's telling as a
+// live readout. It closes from its ✕, from a tap on an empty hex, or with
+// the session transitions.
 
 // Presence has no hard cap, so its bar fills against a display scale: the
 // value a strong round realistically reaches. Past it the bar pins full and
@@ -223,12 +224,10 @@ export function EntityInspect() {
   const isHero = state.heroes[entity.id] !== undefined
   const bossDetail: HoldDetail | null = isBoss
     ? {
+        ...encounterTerms(catalog, state),
         id: 'boss',
         title: entity.title,
         badge: currentProgram(catalog, state)?.title,
-        tone: 'boss',
-        text: catalog.encounters[state.encounterId]?.rules_text,
-        hint: state.enrageText,
       }
     : null
   return (
@@ -238,7 +237,13 @@ export function EntityInspect() {
       className="wb-slide-up pointer-events-auto flex items-center gap-1 rounded-xl border border-zinc-700 bg-zinc-900/95 px-2 py-1 shadow-xl"
     >
       <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-zinc-100">
-        {isBoss ? <BossEmblem className="h-4 w-4 text-red-500" /> : <HeroEmblem className="h-4 w-4 text-sky-400" />}
+        {/* A Minion is an Enemy, never a Hero: it wears the Enemy emblem in
+            its own tone, not the Hero's blue. */}
+        {isHero ? (
+          <HeroEmblem className="h-4 w-4 text-sky-400" />
+        ) : (
+          <BossEmblem className={`h-4 w-4 ${isBoss ? 'text-red-500' : 'text-amber-500'}`} />
+        )}
         {entity.title}
       </span>
       {isHero ? <HeroRows heroId={entity.id} /> : <EnemyGauge entity={entity} testId={isBoss ? 'boss-health' : undefined} detail={bossDetail} />}

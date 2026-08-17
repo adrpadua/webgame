@@ -4,7 +4,7 @@ import { selectState, useWorkbench, type WorkbenchStore } from '@/store/workbenc
 import type { EncounterState, Phase } from '@/engine'
 import { blocksTarget } from './firstTurnScript'
 import { useFirstTurnStep } from './useFirstTurn'
-import { phaseDetail } from './holdDetails'
+import { encounterTerms, phaseDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
 import { Modal } from './Modal'
 import { slotCanFire } from './slots'
@@ -97,12 +97,10 @@ export function PhaseControl() {
   // The Encounter Clock, compact: the Boss line left the HUD, so the Round
   // count rides the phase row and the Encounter's terms are a hold away.
   const clockHold = useHold({
+    ...encounterTerms(catalog, state),
     id: 'clock',
     title: 'Encounter Clock',
     badge: `Round ${state.round} of ${state.roundLimit}`,
-    tone: 'boss',
-    text: catalog.encounters[state.encounterId]?.rules_text,
-    hint: state.enrageText,
   })
   const nextGated = blocksTarget(step, 'next')
   const nextSpotlit = step !== null && step.targets.includes('next')

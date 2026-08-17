@@ -5,6 +5,7 @@ import {
   advancePhase,
   cardWindowSpeed,
   createEncounterState,
+  getEntityIdAt,
   resolve,
   runScenario,
   type Axial,
@@ -49,7 +50,7 @@ export interface WorkbenchStore {
   // Slot Replacement discards the Top Card and its whole Charge Stack, so it
   // never fires from a raw gesture: it parks here until confirmed.
   pendingReplacement: { cardInstanceId: string; slotIndex: number } | null
-  // The piece whose stat panel is open. Persistent gauges left the HUD, so
+  // The piece whose Stat Panel is open. Persistent gauges left the HUD, so
   // tapping a piece's tile is how health is read; the panel follows the
   // piece (and the playout's staggered values) until dismissed or the tap
   // lands on an empty hex. Session transitions close it; ordinary play
@@ -266,10 +267,11 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
         get().cardDroppedOnHex(selectedCardId, coords)
         return
       }
-      // A bare tap inspects: a tile holding a piece opens that piece's stat
-      // panel, an empty hex closes it.
-      const tapped = Object.values(state.board.entities).find((entity) => entity.coords.q === coords.q && entity.coords.r === coords.r)
-      set({ inspectedEntityId: tapped?.id ?? null })
+      // A bare tap inspects: a tile holding a piece opens that piece's Stat
+      // Panel, an empty hex closes it. Occupancy is the board's question
+      // (ADR 0017), so the engine answers it.
+      const tappedId = getEntityIdAt(state.board, coords)
+      set({ inspectedEntityId: tappedId === '' ? null : tappedId })
     },
 
     // Dragging a hand card to an adjacent legal hex discards it for 1 Stamina

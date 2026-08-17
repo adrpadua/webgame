@@ -188,6 +188,10 @@ _Avoid_: Full card, tooltip card
 The temporary reading surface for any named HUD object — a Compact Card, a Slot, a Boss Beat chip, a Hero stat, the Round track. It carries that object's numbers and complete authored text. Each input opens it its own way: touch presses and holds, a mouse hovers, the keyboard holds `Enter` or `Space`; it dismisses on release or when the pointer leaves. The HUD proper carries names, numbers, and colour; the sentences live here, one gesture away. Card Inspection is the Compact Card case of a Detail Popup.
 _Avoid_: Tooltip, card menu, help screen
 
+**Stat Panel**:
+The persistent readout for one piece on the board — the Boss, a Hero, or a Minion — opened by tapping that piece's tile and floated over the board's lower edge. It carries the piece's gauges: health for every piece, plus armor, presence, deck, and Status Effects for a Hero. The panel follows the piece rather than the hex and shows the staggered playout values while a Boss Row replays, so it reads as a live gauge; it closes from its own control, a tap on an empty hex, or a session transition, and stays up through ordinary play. Unlike a Detail Popup it persists instead of dismissing on release. Presentation only: it is never a rules surface.
+_Avoid_: Tooltip, Detail Popup, HUD gauge, unit frame
+
 **Scripted First Turn**:
 The guided Round a first-time player meets: it walks prepare, charge, fire in the Quick Window, step out of a telegraph, and fire in the Slow Window, gating input to one control at a time. Its current step is derived from the live Encounter state rather than counted off, so it stays correct when the player wanders, restarts, or time-travels. It runs once, and finishing or skipping it retires it.
 _Avoid_: Tutorial mode, onboarding wizard, scripted encounter
