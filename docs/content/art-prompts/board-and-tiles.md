@@ -17,6 +17,8 @@ Every tile prompt below therefore demands **neutral near-white art on a fully tr
 
 Current call sites and the exact treatment each asset receives:
 
+> **The integration column below describes the frozen Godot build (ADR 0019).** The `.gd` paths and their modulate colours are kept as a record of how the borrowed placeholders were tinted; they are not where the live board gets its colour. The Encounter Workbench draws the board in `web/src/board/BoardScene.ts` from the tokens in `web/src/board/palette.ts`, and what each value is allowed to mean is decided by [oathcraft-board-direction.md](../oathcraft-board-direction.md) — which, among other things, retires the green hover tint below, because green names no material. The sizes and the prompt guidance are still live.
+
 | Asset | Drawn by | Drawn at | Runtime modulate |
 | --- | --- | --- | --- |
 | Hover tile | `scripts/hex/HexTile.gd:128` | 68×66 px | `Color(0.56, 0.96, 0.70, 0.84)` — green |
