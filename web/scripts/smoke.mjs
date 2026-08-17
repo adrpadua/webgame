@@ -395,6 +395,33 @@ try {
     boardBox.height <= areaBox.height + 1 && boardBox.width <= areaBox.width + 1,
     `the board fits its play area (${Math.round(boardBox.width)}x${Math.round(boardBox.height)} in ${Math.round(areaBox.width)}x${Math.round(areaBox.height)})`,
   )
+  // Movement's third gesture: drag the Hero itself. The board can only name
+  // a destination — what a step costs is a rules question — so the drag
+  // stops on a prompt asking which card pays. A dismissed prompt has to
+  // leave the Hand and the Scenario exactly as it found them, or a drag the
+  // player thought better of has already cost them a card.
+  const dragHero = async (q, r) => {
+    const from = await hexPosition(boardCanvas, 0, 0)
+    const to = await hexPosition(boardCanvas, q, r)
+    await page.mouse.move(boardBox.x + from.x, boardBox.y + from.y)
+    await page.mouse.down()
+    await page.mouse.move(boardBox.x + to.x, boardBox.y + to.y, { steps: 8 })
+    await page.mouse.up()
+  }
+  const stepsBeforeDrag = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
+  await dragHero(-1, 0)
+  await page.waitForSelector('[data-testid="move-cost"]')
+  assert((await page.locator('[data-testid="move-cost"]').count()) === 1, 'dragging the Hero to a legal hex asks which card pays for the step')
+  assert(
+    (await page.locator('[data-testid="move-cost-card"]').count()) === handBeforeMove,
+    'the move prompt offers every card in the Hand',
+  )
+  await page.locator('[data-testid="cancel-move"]').click()
+  await page.waitForSelector('[data-testid="move-cost"]', { state: 'detached' })
+  assert((await page.locator('[data-testid="hand-card"]').count()) === handBeforeMove, 'a dismissed move prompt spends no card')
+  const stepsAfterDragCancel = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
+  assert(stepsAfterDragCancel === stepsBeforeDrag, 'a dismissed move prompt records no Scenario step')
+
   await scriptedCard().dragTo(boardCanvas, { targetPosition: await hexPosition(boardCanvas, -1, 0) })
   await page.waitForTimeout(150)
   assert((await page.locator('[data-testid="hand-card"]').count()) === handBeforeMove - 1, 'the Stamina discard left the Hand')
@@ -704,6 +731,40 @@ try {
   })
   assert(overflows.length === 0, `the full HUD fits the phone viewport without scrolling (${overflows.join(' | ') || 'fits'})`)
   await phone.screenshot({ path: process.env.SMOKE_PHONE_SHOT ?? 'smoke-portrait.png', fullPage: false })
+
+  // Drag the Hero and pay, on the surface the gesture is really for. The
+  // desktop pass proves a dismissed prompt costs nothing; this one carries
+  // the gesture through to the move it promises, on a touch viewport where
+  // the Hero is a thumb-sized target rather than a mouse-sized one.
+  // Walk the script to the dodge first, so the drag answers the step the
+  // game is actually asking for.
+  const phoneSlot0 = phone.locator('[data-testid="slot-0"]')
+  await phoneScripted().dragTo(phoneSlot0)
+  await phoneSlot0.click()
+  await phone.waitForTimeout(400)
+  const phoneBoard = phone.locator('[data-testid="board"] canvas')
+  const phoneBoardBox = await phoneBoard.boundingBox()
+  const handBeforeDrag = await phone.locator('[data-testid="hand-card"]').count()
+  const phoneHeroFrom = await hexPosition(phoneBoard, 0, 0)
+  const phoneHeroTo = await hexPosition(phoneBoard, -1, 0)
+  await phone.mouse.move(phoneBoardBox.x + phoneHeroFrom.x, phoneBoardBox.y + phoneHeroFrom.y)
+  await phone.mouse.down()
+  await phone.mouse.move(phoneBoardBox.x + phoneHeroTo.x, phoneBoardBox.y + phoneHeroTo.y, { steps: 8 })
+  await phone.mouse.up()
+  await phone.waitForSelector('[data-testid="move-cost"]')
+  assert((await phone.locator('[data-testid="move-cost"]').count()) === 1, 'the Hero drag opens the move prompt on a touch viewport too')
+  await phone.locator('[data-testid="move-cost-card"]').first().click()
+  await phone.waitForSelector('[data-testid="move-cost"]', { state: 'detached' })
+  await phone.waitForTimeout(300)
+  assert((await phone.locator('[data-testid="hand-card"]').count()) === handBeforeDrag - 1, 'paying the prompt discards exactly the card that was pressed')
+  // The panel follows the piece by its tile, so it is also the readout for
+  // where the Hero ended up.
+  await phoneBoard.click({ position: await hexPosition(phoneBoard, -1, 0) })
+  await phone.waitForSelector('[data-testid="entity-inspect"]')
+  assert(
+    (await phone.locator('[data-testid="entity-inspect"]').getAttribute('data-entity')) === 'guardian',
+    'the paid drag stepped the Hero onto the hex it was dragged to',
+  )
   await phone.close()
 
   await browser.close()

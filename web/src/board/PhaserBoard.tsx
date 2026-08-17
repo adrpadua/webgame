@@ -49,6 +49,7 @@ export function PhaserBoard() {
     const scene = new BoardScene({
       onHexClicked: (coords) => useWorkbench.getState().hexClicked(coords),
       onHeroPressChange: (pressed) => useWorkbench.getState().setHeroRoutePreview(pressed),
+      onHeroDraggedTo: (destination) => useWorkbench.getState().heroDraggedToHex(destination),
     })
     const game = new Phaser.Game({
       type: Phaser.AUTO,

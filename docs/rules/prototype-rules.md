@@ -112,7 +112,13 @@ Current movement rules:
 - The destination must be empty
 - The player may not move onto the boss or an occupied enemy hex
 
-Movement is performed by dragging a hand card onto a valid adjacent empty hex. Dragging the Hero previews routes but does not pay for or commit movement.
+Movement can be asked for three ways, and all three resolve as the same paid move:
+
+- drag a hand card onto a valid adjacent empty hex — the dragged card pays;
+- tap a hand card, then tap a legal hex or a `MovePad` direction — the selected card pays;
+- drag the Hero itself onto a valid adjacent empty hex — the gesture names only the destination, so it opens a prompt asking which hand card pays, and the move resolves when one is picked. Dismissing the prompt spends nothing.
+
+Pressing and holding the Hero still previews legal routes; a press that releases on the Hero's own hex is the ordinary tap that opens its Stat Panel.
 
 Moving also sets the player's facing to the traversed hex edge. Facing is always one of `E`, `NE`, `NW`, `W`, `SW`, or `SE`; no in-between directions are legal.
 

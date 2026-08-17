@@ -73,6 +73,11 @@ export interface BoardSceneCallbacks {
   onHexClicked: (coords: Axial) => void
   // Pressing and holding the Hero previews legal routes; release ends it.
   onHeroPressChange: (pressed: boolean) => void
+  // A press that began on the Hero and released on another hex: the third
+  // way to ask for a move, beside dragging a hand card and the tap path.
+  // The scene reports the destination only — what a move costs is a rules
+  // question, and the board asks none of them (ADR 0019).
+  onHeroDraggedTo: (destination: Axial) => void
 }
 
 // The board's colour language runs on two axes.
@@ -242,6 +247,8 @@ export class BoardScene extends Phaser.Scene {
   private labelsHaveEffects = false
   private active: ActiveEffect[] = []
   private readonly sprites = new Map<string, Phaser.GameObjects.Sprite>()
+  // Where a live press on the Hero began, or null when no press is in flight.
+  private heroPressOrigin: Axial | null = null
   private readonly callbacks: BoardSceneCallbacks
   private readonly reducedMotion: boolean
 
@@ -261,16 +268,41 @@ export class BoardScene extends Phaser.Scene {
     this.graphicsLayer = this.add.graphics()
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       const coords = pixelToAxial(pointer.x, pointer.y)
-      this.callbacks.onHexClicked(coords)
       const heroCoords = this.snapshot ? this.snapshot.state.board.entities[this.snapshot.state.primaryHeroId]?.coords : undefined
       if (heroCoords && heroCoords.q === coords.q && heroCoords.r === coords.r) {
+        // A press on the Hero is not yet a tap: it becomes one on release at
+        // the same hex, and a move on release anywhere else. Reporting the
+        // tap here instead would open the Hero's Stat Panel under the
+        // player's own finger the moment a drag started.
+        this.heroPressOrigin = coords
         this.callbacks.onHeroPressChange(true)
+        return
       }
+      this.callbacks.onHexClicked(coords)
     })
-    this.input.on('pointerup', () => this.callbacks.onHeroPressChange(false))
-    this.input.on('pointerupoutside', () => this.callbacks.onHeroPressChange(false))
-    this.input.on('gameout', () => this.callbacks.onHeroPressChange(false))
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => this.endHeroPress(pixelToAxial(pointer.x, pointer.y)))
+    // Released off the canvas — over the HUD, or off the page entirely. The
+    // gesture is abandoned, never resolved against whatever hex the pointer
+    // was last over.
+    this.input.on('pointerupoutside', () => this.endHeroPress(null))
+    this.input.on('gameout', () => this.endHeroPress(null))
     this.renderSnapshot()
+  }
+
+  // Ends a press that began on the Hero. A release on the Hero's own hex is
+  // the tap it always was; a release on another hex asks to move there.
+  private endHeroPress(released: Axial | null): void {
+    const origin = this.heroPressOrigin
+    this.heroPressOrigin = null
+    this.callbacks.onHeroPressChange(false)
+    if (origin === null || released === null) {
+      return
+    }
+    if (released.q === origin.q && released.r === origin.r) {
+      this.callbacks.onHexClicked(released)
+      return
+    }
+    this.callbacks.onHeroDraggedTo(released)
   }
 
   updateSnapshot(snapshot: BoardSnapshot): void {

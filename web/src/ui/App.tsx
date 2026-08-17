@@ -13,6 +13,7 @@ import { FirstTurnCue } from './FirstTurnCue'
 import { GuideModal } from './GuideModal'
 import { Hand } from './Hand'
 import { HoldPopoverLayer } from './HoldPopover'
+import { MoveCostModal } from './MoveCostModal'
 import { MovePad } from './MovePad'
 import { PhaseBanner } from './PhaseBanner'
 import { PhaseControl } from './PhaseControl'
@@ -178,6 +179,7 @@ export default function App() {
         <TargetingBanner />
         <PhaseBanner />
         <ReplaceConfirmModal />
+        <MoveCostModal />
         <OutcomeBanner />
         <GuideModal />
       </main>
