@@ -131,7 +131,7 @@ function ForecastRow({ ahead }: { ahead: Forecast }) {
 function Track({ program, track, label, active }: { program: BossProgram; track: 'instant' | 'incoming'; label: string; active: boolean }) {
   const beats = track === 'instant' ? program.instant_beats : program.incoming_beats
   return (
-    <div className="flex items-center gap-2 pb-1">
+    <div className="flex items-center gap-2 pb-1" data-testid="beat-track" data-track={track}>
       <span className={`w-16 shrink-0 text-[11px] font-semibold ${active ? 'text-coral-400' : 'text-steel-500'}`}>{label}</span>
       <div className="flex flex-wrap gap-1">
         {beats.map((beat, index) => (
