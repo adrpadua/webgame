@@ -14,10 +14,11 @@ import { FOCUS_RING_CLASS } from './theme'
 // candidate and lost: it is already the width of the Round track.
 //
 // The gauge carries no label. A word costs more room than the reading it
-// buys, and the reading is in the shape: five bars climbing left to right,
-// filling in the Boss's coral as the fight escalates. What each band DOES
-// is the popup's job, and the popup teaches it as a ladder rather than
-// telling it as a list.
+// buys, and the reading is in the shape: a bar filling left to right in the
+// Boss's coral as the fight escalates, with the last band — the one that
+// ends it — already washed in at the far end. What each band DOES is the
+// popup's job, and the popup teaches it as a ladder rather than telling it
+// as a list.
 
 export interface EscalationPip {
   value: number
@@ -138,32 +139,31 @@ export function EscalationGauge({ state, enrageText }: { state: EncounterState; 
       aria-valuemax={ESCALATION_MAX}
       aria-label={`Escalation ${state.escalation} of ${ESCALATION_MAX}.${next === null ? '' : ` Next: ${next.title}.`}`}
       tabIndex={0}
-      // The bars are a few pixels wide, but the gauge is operable — held for its detail, and
+      // The bar is 8px tall, but the gauge is operable — held for its detail, and
       // reachable by keyboard — so it takes the same 44px target every other
       // control does. The smoke check only scans button and input, so this one
       // is honoured on the rule's intent rather than under its selector.
       className={`flex min-h-11 shrink-0 items-center gap-1.5 ${FOCUS_RING_CLASS}`}
     >
-      <span className="flex items-end gap-[3px]" aria-hidden="true">
-        {pips.map((pip, index) => (
+      {/* The gauge language the Hero's panel and the Boss line already speak
+          (theme.ts): a dark track, and a fill measured from the left. Here it
+          is drawn compact, and divided at the band boundaries so the five
+          steps are still countable — a bar that only slides is a percentage,
+          and Escalation moves in bands that each land once. */}
+      <span className="relative block h-2 w-16 overflow-hidden rounded-sm bg-steel-950 ring-1 ring-steel-800 ring-inset" aria-hidden="true">
+        {/* The last band ends the fight, so its stretch of the track is
+            washed in the Boss's own colour before the clock ever reaches it. */}
+        <span className="absolute inset-y-0 right-0 w-1/5 bg-coral-900/70" />
+        <span
+          className="absolute inset-y-0 left-0 bg-coral-500 transition-[width] duration-300"
+          style={{ width: `${(state.escalation / ESCALATION_MAX) * 100}%` }}
+        />
+        {pips.slice(0, -1).map((pip) => (
           <span
             key={pip.value}
             data-crossed={pip.crossed}
-            // Each band stands taller than the one before it, so the gauge
-            // says "escalation" as a shape and needs no word above it.
-            // Crossed bands read in the Boss's own coral; pending bands are
-            // hollow. The wipe keeps a heavier edge at every state, because
-            // "one more and the fight is over" is worth seeing before it lands.
-            style={{ height: 6 + index * 2 }}
-            className={`w-[6px] rounded-[1px] border ${
-              pip.crossed
-                ? pip.isWipe
-                  ? 'border-coral-200 bg-coral-400'
-                  : 'border-coral-500 bg-coral-500'
-                : pip.isWipe
-                  ? 'border-coral-700 bg-steel-900'
-                  : 'border-steel-600 bg-steel-900'
-            }`}
+            className="absolute inset-y-0 w-px bg-steel-950"
+            style={{ left: `${(pip.value / ESCALATION_MAX) * 100}%` }}
           />
         ))}
       </span>
