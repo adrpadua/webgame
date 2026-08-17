@@ -10,9 +10,10 @@ import { BEAT_STAGGER_MS, EFFECT_SETTLE_MS, type BoardEffect, type HealthPlayout
 // yet (ground scorched or Whelps spawned by unplayed moments).
 //
 // Pacing: the first moment plays when the batch lands. Between moments the
-// playout pauses on a Continue prompt so the player can read each Boss
-// Beat as it resolves — except in auto mode (the scripted first turn,
-// which gates its own controls), where moments advance on a timer.
+// playout pauses on a Continue prompt naming the beat that press will play,
+// so the player can read each Boss Beat before it resolves — except in auto
+// mode (the scripted first turn, which gates its own controls), where
+// moments advance on a timer.
 //
 // Presentation only: nothing reads these values back into the rules, and
 // clearing the store (a new batch, time travel, unmount) always lands
@@ -23,9 +24,12 @@ interface PlayoutStore {
   // True while a batch that ended the Encounter is still replaying: the
   // outcome presentation (banner, Restart control) waits for it.
   outcomeHeld: boolean
-  // The beat playing right now, for the Boss Beat chip and the prompt.
+  // The beat playing right now, for the Boss Beat chip.
   activeBeatId: string | null
-  activeBeatTitle: string | null
+  // The beat the next Continue will play, for the prompt. A prompt names
+  // what it is about to show, never what it has already shown: the player
+  // reads "Raking Claw" and presses to watch the claw land.
+  nextBeatTitle: string | null
   // True while the playout is paused between moments, waiting for a tap.
   awaitingContinue: boolean
   // True while a prompt-paced (non-auto) playout is running: Next defers to
@@ -80,7 +84,7 @@ const IDLE = {
   overrides: {},
   outcomeHeld: false,
   activeBeatId: null,
-  activeBeatTitle: null,
+  nextBeatTitle: null,
   awaitingContinue: false,
   paced: false,
   pendingScorchKeys: [],
@@ -97,7 +101,7 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
     set((store) => ({
       overrides: { ...store.overrides, ...moment.gauges },
       activeBeatId: moment.beatId,
-      activeBeatTitle: moment.beatTitle,
+      nextBeatTitle: moments[index + 1]?.beatTitle ?? null,
       awaitingContinue: false,
       momentSeq: store.momentSeq + 1,
       momentEffects: moment.effects,

@@ -485,11 +485,20 @@ try {
   )
   const promptText = await page.locator('[data-testid="playout-continue"]').textContent()
   assert((promptText ?? '').includes('Continue'), `the playout pauses on a Continue prompt (${promptText?.trim()})`)
-  await page.locator('[data-testid="playout-continue"]').click()
-  await page.waitForSelector('[data-testid="playout-continue"]', { state: 'detached' })
-  await page.waitForSelector('[data-testid="playout-continue"]')
-  await page.locator('[data-testid="playout-continue"]').click()
-  await page.waitForSelector('[data-testid="playout-continue"]', { state: 'detached' })
+  // The prompt is a trailer, not a caption: the beat it names is the beat
+  // the press plays. Naming the beat already on the board made every press
+  // read as a skip, so hold the promise against what actually lights.
+  for (const press of ['first', 'second']) {
+    const prompt = page.locator('[data-testid="playout-continue"]')
+    await page.waitForSelector('[data-testid="playout-continue"]')
+    const promised = (await prompt.getAttribute('data-next-beat')) ?? ''
+    assert(promised !== '', `the ${press} Continue prompt names the beat it will play`)
+    assert((await prompt.textContent())?.includes(promised), `the ${press} prompt shows that beat's name (${promised})`)
+    await prompt.click()
+    const playing = ((await page.locator('[data-testid="beat-chip"][data-playing="true"]').first().textContent()) ?? '').trim()
+    assert(playing === promised, `the ${press} Continue plays the beat it promised (promised ${promised}, played ${playing})`)
+    await page.waitForSelector('[data-testid="playout-continue"]', { state: 'detached' })
+  }
   // The last beat needs no prompt: give a wrongly-armed one time to appear.
   await page.waitForTimeout(900)
   assert((await page.locator('[data-testid="playout-continue"]').count()) === 0, 'the last beat needs no prompt and the playout settles')

@@ -43,11 +43,16 @@ function RejectionToast() {
 }
 
 // The playout's pacing control: while it waits between beats, one amber bar
-// names the beat that just played and hands the player the next one. The
-// rules already resolved the whole track — this only paces the telling.
+// names the beat the press will play and hands it to the player. The bar is
+// a trailer, not a caption — it names what is about to happen, because
+// "Raking Claw · Continue" reads as a promise to show the claw, and naming
+// the beat already on the board made every press look like it skipped one.
+// What just resolved is still readable beside it: its Boss Beat chip stays
+// lit until the next moment fires. The rules already resolved the whole
+// track — this only paces the telling.
 function PlayoutContinue() {
   const awaiting = usePlayout((store) => store.awaitingContinue)
-  const beatTitle = usePlayout((store) => store.activeBeatTitle)
+  const nextBeatTitle = usePlayout((store) => store.nextBeatTitle)
   const continuePlayout = usePlayout((store) => store.continuePlayout)
   if (!awaiting) {
     return null
@@ -56,13 +61,19 @@ function PlayoutContinue() {
     <button
       type="button"
       data-testid="playout-continue"
+      data-next-beat={nextBeatTitle ?? ''}
       onClick={continuePlayout}
       className={`wb-slide-up wb-face-pulse pointer-events-auto wb-plate wb-plate-sm wb-face-steel wb-acc-ember flex min-h-12 w-full items-center justify-between gap-2 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
     >
-      <span className="text-xs font-bold text-coral-100">{beatTitle ?? 'Boss beat'}</span>
+      <span className="flex min-w-0 items-center gap-2">
+        {/* "Up next", not "Next": the phase control's Next button is a
+            different move, and the two must not read as the same word. */}
+        <span className="shrink-0 text-[9px] font-semibold tracking-widest text-steel-400 uppercase">Up next</span>
+        <span className="truncate text-xs font-bold text-coral-100">{nextBeatTitle ?? 'Boss beat'}</span>
+      </span>
       {/* The plate breathes to say "waiting on you"; the label does not, so
           Continue never dips under its contrast floor while it waits. */}
-      <span className="text-xs font-black tracking-widest text-coral-300 uppercase">Continue ▸</span>
+      <span className="shrink-0 text-xs font-black tracking-widest text-coral-300 uppercase">Continue ▸</span>
     </button>
   )
 }
