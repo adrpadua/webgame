@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { facingName, hexKey, parseHexKey, type Axial, type EncounterState } from '@/engine'
-import { axialToPixel, hexCorners, pixelToAxial, HEX_SIZE } from './layout'
+import { axialToPixel, hexCorners, pixelToAxial, BOARD_CENTER_X, BOARD_CENTER_Y, BOARD_HEIGHT, BOARD_WIDTH, HEX_SIZE } from './layout'
+import { BACKDROP_DEPTH, BACKDROPS, backdropFor } from './backdrop'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 import { idleBobOffset } from './ambience'
 import { boardPalette, toneColors } from './palette'
@@ -103,6 +104,10 @@ const HIGHLIGHT_SPAN = (Math.PI * 2) / 3
 const RIM_ANGLE = LIGHT_ANGLE + Math.PI
 const RIM_SPAN = Math.PI / 2
 
+// The backdrop is square art covering a board that is not, so it is sized by
+// the board's longer side and overhangs the shorter one.
+const BACKDROP_COVER = Math.max(BOARD_WIDTH, BOARD_HEIGHT)
+
 // How far a tile's darker skirt drops below its face.
 const TILE_DEPTH = 6
 const TILE_SKIRT_SHADE = 0.45
@@ -186,6 +191,7 @@ function tileJitter(coords: Axial): number {
 export class BoardScene extends Phaser.Scene {
   private snapshot: BoardSnapshot | null = null
   private graphicsLayer: Phaser.GameObjects.Graphics | null = null
+  private backdrop: Phaser.GameObjects.Image | null = null
   private labels: Phaser.GameObjects.Text[] = []
   // What the live labels were built from. Board Ambience redraws the board
   // every frame, and every Phaser Text rasterises its own texture, so
@@ -212,9 +218,13 @@ export class BoardScene extends Phaser.Scene {
     for (const sheet of Object.values(SHEETS)) {
       this.load.spritesheet(sheet.key, sheet.url, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight })
     }
+    for (const backdrop of BACKDROPS) {
+      this.load.image(backdrop.key, backdrop.url)
+    }
   }
 
   create(): void {
+    this.placeBackdrop()
     this.graphicsLayer = this.add.graphics()
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       const coords = pixelToAxial(pointer.x, pointer.y)
@@ -237,6 +247,21 @@ export class BoardScene extends Phaser.Scene {
     this.input.on('pointerupoutside', () => this.endHeroPress(null))
     this.input.on('gameout', () => this.endHeroPress(null))
     this.renderSnapshot()
+  }
+
+  // The arena, drawn once and then only ever re-textured. It is square art
+  // scaled to cover the board rather than to fit it, so the ring of
+  // containment rigs it is composed around stays concentric with the hex grid
+  // at any board size; the overhang is clipped by the canvas.
+  private placeBackdrop(): void {
+    const first = BACKDROPS[0]
+    if (!this.textures.exists(first.key)) {
+      return
+    }
+    this.backdrop = this.add
+      .image(BOARD_CENTER_X, BOARD_CENTER_Y, first.key)
+      .setDisplaySize(BACKDROP_COVER, BACKDROP_COVER)
+      .setDepth(BACKDROP_DEPTH)
   }
 
   // Ends a press that began on the Hero. A release on the Hero's own hex is
@@ -490,6 +515,15 @@ export class BoardScene extends Phaser.Scene {
       this.labelsHaveEffects = hasEffects
     }
     const { state } = snapshot
+    // The arena answers the phase on every snapshot rather than swapping once
+    // at the Phase Reveal. A one-time swap would be right going forward and
+    // wrong going back: stepping through time travel across the Phase Trigger
+    // has to restore the first arena, and re-reading the phase does that for
+    // free. setTexture resets the display size, so the cover is re-applied.
+    const arena = backdropFor(state.bossPhase)
+    if (this.backdrop !== null && this.backdrop.texture.key !== arena.key && this.textures.exists(arena.key)) {
+      this.backdrop.setTexture(arena.key).setDisplaySize(BACKDROP_COVER, BACKDROP_COVER)
+    }
     const legalMoves = new Set(snapshot.legalMoveKeys)
     const guidedMoves = new Set(snapshot.guidedMoveKeys)
     // The snapshot is the batch's final state, but a staggered playout means

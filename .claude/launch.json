@@ -4,7 +4,8 @@
     {
       "name": "workbench",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "web"],
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "web",
       "port": 5173
     }
   ]
