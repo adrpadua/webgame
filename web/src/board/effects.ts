@@ -57,6 +57,17 @@ function detailAxial(fact: ResolvedActionFact, key: string): Axial | null {
   return axialFrom(fact.detail, key)
 }
 
+function detailAxials(fact: ResolvedActionFact, key: string): Axial[] {
+  const value = fact.detail[key]
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.flatMap((candidate) => {
+    const axial = candidate as Partial<Axial>
+    return typeof axial?.q === 'number' && typeof axial.r === 'number' ? [{ q: axial.q, r: axial.r }] : []
+  })
+}
+
 function axialFrom(source: Record<string, unknown> | undefined, key: string): Axial | null {
   const value = source?.[key] as Axial | undefined
   return value && typeof value.q === 'number' && typeof value.r === 'number' ? { q: value.q, r: value.r } : null
@@ -102,8 +113,13 @@ export function deriveBoardEffects(
         }
         if (card.boss_damage > 0 || card.damage > 0 || card.push_tiles > 0 || card.pull_tiles > 0) {
           const targetId = detailString(fact, 'targetId')
-          const toward = (targetId !== '' ? coordsOf(before, targetId) : bossCoords) ?? bossCoords ?? undefined
+          const burstCenter = detailAxial(fact, 'burstCenter')
+          const toward = burstCenter ?? (targetId !== '' ? coordsOf(before, targetId) : bossCoords) ?? bossCoords ?? undefined
           add({ kind: 'strike', entityId: fact.sourceId, at: from, toward: toward ?? undefined, tone: 'hero' })
+          const burstHexes = detailAxials(fact, 'burstHexes')
+          if (burstCenter && burstHexes.length > 0) {
+            add({ kind: 'blast', entityId: fact.sourceId, at: burstCenter, hexes: burstHexes, tone: 'hero' })
+          }
           break
         }
         // A guard or a heal has no target to lunge at: it reads as a pulse

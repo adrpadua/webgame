@@ -43,6 +43,7 @@ export const cardSchema = z.object({
   boss_damage: z.number().int().default(0),
   range_tiles: z.number().int().default(0),
   damage: z.number().int().default(0),
+  burst_radius: z.number().int().min(0).default(0),
   push_tiles: z.number().int().min(0).default(0),
   pull_tiles: z.number().int().min(0).default(0),
   tags: z.array(z.string()).default([]),
@@ -209,7 +210,13 @@ export const evaluationDeckSchema = z.object({
 export const scenarioActionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('load_slot'), sourceId: z.string(), slotIndex: z.number().int().min(0), cardInstanceId: z.string() }),
   z.object({ kind: z.literal('charge_slot'), sourceId: z.string(), slotIndex: z.number().int().min(0), cardInstanceId: z.string() }),
-  z.object({ kind: z.literal('fire_slot'), sourceId: z.string(), slotIndex: z.number().int().min(0), targetId: z.string().optional() }),
+  z.object({
+    kind: z.literal('fire_slot'),
+    sourceId: z.string(),
+    slotIndex: z.number().int().min(0),
+    targetId: z.string().optional(),
+    targetHex: axialSchema.optional(),
+  }),
   z.object({ kind: z.literal('move_hero'), sourceId: z.string(), destination: axialSchema, cardInstanceId: z.string() }),
   z.object({ kind: z.literal('discard_for_stamina'), sourceId: z.string(), cardInstanceId: z.string() }),
 ])

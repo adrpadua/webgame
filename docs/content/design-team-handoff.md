@@ -99,7 +99,7 @@ file is the authority when this table and the code disagree.
 
 | Type and home | Required authoring contract |
 | --- | --- |
-| Card: `data/cards/` | `id`, `title`, complete `rules_text`, `speed` (`quick`/`slow`), `max_charge`, `target_type` (`none`/`hex`/`board_slot`/`piece`), `range_tiles` for piece targets, effect fields, registered Keyword ids in `tags`, optional `charge_modifiers`, optional `applies_status`. `push_tiles` moves the target away from the firing Hero and `pull_tiles` moves it toward the Hero; either requires a piece target and range of at least 1, and one Card cannot declare both. The Top Card owns timing, target, and Charge Value. |
+| Card: `data/cards/` | `id`, `title`, complete `rules_text`, `speed` (`quick`/`slow`), `max_charge`, `target_type` (`none`/`hex`/`board_slot`/`piece`), `range_tiles` for selected pieces or hexes, effect fields, registered Keyword ids in `tags`, optional `charge_modifiers`, optional `applies_status`. `burst_radius >= 1` deals positive `damage` to every Enemy within that radius of a selected hex, including the Boss; the center may be empty and requires `target_type: "hex"` (ADR 0030). `push_tiles` moves the target away from the firing Hero and `pull_tiles` moves it toward the Hero; either requires a piece target and range of at least 1, and one Card cannot declare both. The Top Card owns timing, target, and Charge Value. |
 | Keyword: `data/keywords/` | Stable `id`, display `title`, one concise mechanical definition. Cards reference the id in `tags`; a card contributes each distinct Keyword once to each matching modifier. Set `role_marker: true` for a Keyword that only says which Role a card belongs to — the HUD leaves those off the glance surfaces. |
 | Charge Modifier: `data/charge_modifiers/` | Stable identity and rules text, optional `keyword_id` (empty counts every charged card), `effect` (`armor`, `healing`, `boss_damage`, `target_damage`), and positive `amount_per_match`. It modifies the Top Card; a tucked card never resolves itself. |
 | Status: `data/statuses/` | Identity, `applies_to` (`hero`/`enemy`), `triggers`, `stacking`, `duration_rounds`, and the enemy payload `damage_taken_bonus` / `damage_dealt_penalty`. A Card lands it through `applies_status`; where it lands comes from that Card's `target_type` — `none` on the firing Hero, `piece` on a selected Enemy, `board_slot` on an ally's Top Card. |
@@ -135,6 +135,11 @@ Encounter ashen_trial_variant (data/encounters/ashen_trial_variant.json) thresho
 - **Forced Movement from a Card**: a Card with `"target_type": "piece"`,
   `"range_tiles": 2`, and `"push_tiles": 1` can shove a selected Whelp one
   hex away. Edge and occupancy stops are partial successes (ADR 0029).
+- **Burst from a Card**: a Card with `"target_type": "hex"`,
+  `"range_tiles": 2`, `"damage": 1`, and `"burst_radius": 1` may center on
+  empty ground and deals that damage to every Enemy in the footprint. Existing
+  `target_damage` modifiers increase each Enemy's damage, not the radius
+  (ADR 0030).
 - **A whole fight**: `data/encounters/embermaw_prototype.json` provides the deck,
   the three-program loop, starts, Whelp edge candidates, the Phase II trigger,
   four Escalation Thresholds, the seed, and the eight-Round Encounter Clock.
@@ -149,7 +154,7 @@ Engineering owns anything that widens the vocabulary, because each of these is a
 closed set the engine switches on:
 
 - **Card effects.** Armor (now and next round), healing, Boss damage, ranged
-  target damage, Push, Pull, and applying one authored Status. Anything else —
+  target damage, hex-centered Burst damage, Push, Pull, and applying one authored Status. Anything else —
   drawing a card, changing a cost, scaling off board state — is new engine
   code.
 - **Boss Beat kinds.** `turn_toward_player`, `targeted_hit`,
@@ -159,7 +164,7 @@ closed set the engine switches on:
   `count` — is an authored field on the Beat.
 - **Status triggers.** `on_round_start`, `on_enter_hex`, `on_damage_taken`,
   `on_slot_fired`.
-- **Target families.** `none`, `hex`, `board_slot`, `piece`.
+- **Target families.** `none`, `hex` (Burst center), `board_slot`, `piece`.
 - **Charge Modifier effects.** `armor`, `healing`, `boss_damage`,
   `target_damage`.
 

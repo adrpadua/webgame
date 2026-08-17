@@ -10,7 +10,7 @@ export const ENCOUNTER_SOURCE = 'encounter'
 export type EncounterActionInput =
   | { kind: 'load_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
   | { kind: 'charge_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
-  | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string }
+  | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string; targetHex?: Axial }
   | { kind: 'move_hero'; sourceId: string; destination: Axial; cardInstanceId: string }
   | { kind: 'displace_piece'; sourceId: string; targetId: string; distance: number; movement: 'push' | 'pull'; reasonText: string }
   | { kind: 'resolve_boss'; sourceId: string; beat: BossBeat; track: 'instant' | 'incoming' }

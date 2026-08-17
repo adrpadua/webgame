@@ -211,6 +211,51 @@ describe('board effects', () => {
     expect(effects[1].label).toBe('-3')
   })
 
+  it('turns a fired burst into a Hero blast plus the existing per-Enemy hits', () => {
+    const variant = structuredClone(catalog)
+    variant.cards.burst_test = {
+      ...variant.cards.sweeping_blow,
+      id: 'burst_test',
+      title: 'Burst Test',
+      target_type: 'hex',
+      range_tiles: 1,
+      damage: 1,
+      burst_radius: 1,
+    }
+    let state = createEncounterState(variant, FIRST_TURN_ENCOUNTER_ID)
+    state = resolve(variant, state, {
+      kind: 'spawn_minion',
+      sourceId: state.bossId,
+      minionId: 'burst_whelp',
+      coords: { q: -1, r: 0 },
+      minionContentId: 'ember_whelp',
+    }).state
+    state.phase = 'quick'
+    state.heroes[state.primaryHeroId].actionBar[0] = {
+      topCard: { instanceId: 'burst', cardId: 'burst_test' },
+      charges: [{ instanceId: 'charge', cardId: 'iron_guard' }],
+      activatedWindow: null,
+      placedThisLoadout: false,
+    }
+    const center = { q: 0, r: -1 }
+    const result = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetHex: center,
+    })
+    const effects = deriveBoardEffects(variant, state, result.state, result.facts)
+
+    expect(effects[0]).toMatchObject({ kind: 'strike', entityId: state.primaryHeroId, toward: center, tone: 'hero' })
+    expect(effects[1]).toMatchObject({ kind: 'blast', entityId: state.primaryHeroId, at: center, tone: 'hero' })
+    const factHexes = result.facts[0].detail.burstHexes
+    expect(Array.isArray(factHexes)).toBe(true)
+    expect(effects[1].hexes?.map((hex) => `${hex.q},${hex.r}`)).toEqual(
+      (factHexes as { q: number; r: number }[]).map((hex) => `${hex.q},${hex.r}`),
+    )
+    expect(effects.slice(2).some((effect) => effect.kind === 'hit' && effect.entityId === 'burst_whelp')).toBe(true)
+  })
+
   it('reads a Hero step as a glide from the hex it left', () => {
     let state = openedRound()
     state = advance(state).state

@@ -56,3 +56,10 @@ export function hexesInRadius(radius: number): Record<HexKey, true> {
 export function containsHex(coordsList: Axial[], coords: Axial): boolean {
   return coordsList.some((entry) => axialEquals(entry, coords))
 }
+
+export function hexesWithinRadius(hexes: Record<HexKey, true>, center: Axial, radius: number): Axial[] {
+  return Object.keys(hexes)
+    .map(parseHexKey)
+    .filter((coords) => hexDistance(center, coords) <= radius)
+    .sort((a, b) => hexDistance(center, a) - hexDistance(center, b) || a.q - b.q || a.r - b.r)
+}

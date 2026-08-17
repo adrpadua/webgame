@@ -164,6 +164,12 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
   }
 
   for (const card of Object.values(catalog.cards)) {
+    if (card.burst_radius > 0 && card.damage < 1) {
+      throw new Error(`${cardAt(card.id)} declares burst_radius ${card.burst_radius} but deals no damage`)
+    }
+    if (card.burst_radius > 0 && card.target_type !== 'hex') {
+      throw new Error(`${cardAt(card.id)} declares burst_radius ${card.burst_radius} but does not target a hex`)
+    }
     if (card.push_tiles > 0 && card.pull_tiles > 0) {
       throw new Error(`${cardAt(card.id)} declares both push_tiles and pull_tiles`)
     }

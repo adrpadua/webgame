@@ -7,6 +7,7 @@ import {
   buildEncounterRecord,
   contentIdentity,
   createEncounterState,
+  fireTargeting,
   hexDistance,
   hexKey,
   legality,
@@ -21,6 +22,7 @@ import {
   runScenario,
   type EncounterState,
   type ResolvedActionFact,
+  type Scenario,
 } from '@/engine'
 
 const catalog = loadCatalog()
@@ -210,6 +212,111 @@ describe('content catalog', () => {
         push_tiles: 1,
         pull_tiles: 0,
       })
+    })
+
+    it('rejects a burst Card that deals no damage and names its file', () => {
+      const bad = {
+        source: 'data/cards/ember_sweep.json',
+        payload: {
+          id: 'ember_sweep',
+          title: 'Ember Sweep',
+          speed: 'quick',
+          target_type: 'hex',
+          range_tiles: 2,
+          burst_radius: 2,
+        },
+      }
+      expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow(
+        'Card ember_sweep (data/cards/ember_sweep.json) declares burst_radius 2 but deals no damage',
+      )
+    })
+
+    it('rejects a burst Card that does not target a hex', () => {
+      const bad = {
+        source: 'data/cards/body_bound_burst.json',
+        payload: {
+          id: 'body_bound_burst',
+          title: 'Body-Bound Burst',
+          speed: 'quick',
+          target_type: 'piece',
+          range_tiles: 2,
+          damage: 1,
+          burst_radius: 1,
+        },
+      }
+      expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow(
+        'Card body_bound_burst (data/cards/body_bound_burst.json) declares burst_radius 1 but does not target a hex',
+      )
+    })
+
+    it('loads and resolves a data-only burst Card with no engine registration step', () => {
+      const authored = {
+        source: 'data/cards/ember_sweep.json',
+        payload: {
+          id: 'ember_sweep',
+          title: 'Ember Sweep',
+          rules_text: 'Choose a hex within Range 1. Deal 2 damage to every Enemy within 1 hex of it.',
+          speed: 'quick',
+          target_type: 'hex',
+          range_tiles: 1,
+          damage: 2,
+          burst_radius: 1,
+        },
+      }
+      const variant = buildCatalog({
+        cards: [...Object.values(catalog.cards), authored],
+        keywords: Object.values(catalog.keywords),
+        chargeModifiers: Object.values(catalog.chargeModifiers),
+        hazards: Object.values(catalog.hazards),
+        minions: Object.values(catalog.minions),
+        statuses: Object.values(catalog.statuses),
+        programs: Object.values(catalog.programs),
+        encounters: Object.values(catalog.encounters).map((encounter) =>
+          encounter.id === 'embermaw_prototype'
+            ? { ...encounter, player_deck: [{ card: 'ember_sweep', copies: 4 }] }
+            : encounter,
+        ),
+        decks: Object.values(catalog.decks),
+        scenarios: Object.values(catalog.scenarios),
+      })
+      expect(variant.cards.ember_sweep).toMatchObject({ target_type: 'hex', damage: 2, burst_radius: 1 })
+
+      let state = createEncounterState(variant, 'embermaw_prototype', 70)
+      for (const [minionId, coords] of [
+        ['data_whelp_a', { q: -2, r: 0 }],
+        ['data_whelp_b', { q: -1, r: 1 }],
+      ] as const) {
+        state = resolve(variant, state, {
+          kind: 'spawn_minion',
+          sourceId: state.bossId,
+          minionId,
+          coords,
+          minionContentId: 'ember_whelp',
+        }).state
+      }
+      const [top, charge] = hero(state).hand
+      state = resolve(variant, state, {
+        kind: 'load_slot',
+        sourceId: state.primaryHeroId,
+        slotIndex: 0,
+        cardInstanceId: top.instanceId,
+      }).state
+      state = advancePhase(variant, state).state
+      state = advancePhase(variant, state).state
+      state = resolve(variant, state, {
+        kind: 'charge_slot',
+        sourceId: state.primaryHeroId,
+        slotIndex: 0,
+        cardInstanceId: charge.instanceId,
+      }).state
+      const fired = resolve(variant, state, {
+        kind: 'fire_slot',
+        sourceId: state.primaryHeroId,
+        slotIndex: 0,
+        targetHex: { q: -1, r: 0 },
+      })
+      expect(fired.state.board.entities.data_whelp_a).toBeUndefined()
+      expect(fired.state.board.entities.data_whelp_b).toBeUndefined()
     })
   })
 })
@@ -1573,6 +1680,269 @@ describe('forced movement cards', () => {
       succeeded: false,
       reason: 'The displacement target is unavailable.',
     })
+  })
+})
+
+describe('area damage cards', () => {
+  function withBurstCard(patch: Record<string, unknown> = {}) {
+    const variant = structuredClone(catalog)
+    variant.cards.burst_test = {
+      ...variant.cards.sweeping_blow,
+      id: 'burst_test',
+      title: 'Burst Test',
+      target_type: 'hex',
+      range_tiles: 1,
+      damage: 1,
+      burst_radius: 1,
+      ...patch,
+    }
+    return variant
+  }
+
+  function readyBurst(variant: ReturnType<typeof withBurstCard>): EncounterState {
+    let state = start()
+    for (const [minionId, coords] of [
+      ['whelp_a', { q: -2, r: 0 }],
+      ['whelp_b', { q: -1, r: 1 }],
+      ['whelp_far', { q: 0, r: 2 }],
+    ] as const) {
+      state = resolve(variant, state, {
+        kind: 'spawn_minion',
+        sourceId: state.bossId,
+        minionId,
+        coords,
+        minionContentId: 'ember_whelp',
+      }).state
+    }
+    state.phase = 'quick'
+    hero(state).actionBar[0] = {
+      topCard: card('burst', 'burst_test'),
+      charges: [card('charge', 'iron_guard')],
+      activatedWindow: null,
+      placedThisLoadout: false,
+    }
+    return state
+  }
+
+  it('centres on empty ground and damages every nearby Enemy but no ally', () => {
+    const variant = withBurstCard()
+    const state = readyBurst(variant)
+    const heroHealthBefore = hero(state).health
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetHex: { q: -1, r: 0 },
+    })
+    expect(fired.facts[0].succeeded).toBe(true)
+    expect(fired.state.board.entities.whelp_a.health).toBe(1)
+    expect(fired.state.board.entities.whelp_b.health).toBe(1)
+    expect(fired.state.board.entities.whelp_far.health).toBe(2)
+    expect(hero(fired.state).health).toBe(heroHealthBefore)
+  })
+
+  it('emits one damage fact per Enemy in stable id order and records its footprint', () => {
+    const variant = withBurstCard()
+    const state = readyBurst(variant)
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetHex: { q: -1, r: 0 },
+    })
+    expect(fired.facts.filter((fact) => fact.kind === 'damage').map((fact) => fact.detail.targetId)).toEqual(['whelp_a', 'whelp_b'])
+    expect(fired.facts[0].detail).toMatchObject({
+      burstCenter: { q: -1, r: 0 },
+      burstHexes: [
+        { q: -1, r: 0 },
+        { q: -2, r: 0 },
+        { q: -2, r: 1 },
+        { q: -1, r: -1 },
+        { q: -1, r: 1 },
+        { q: 0, r: -1 },
+        { q: 0, r: 0 },
+      ],
+    })
+  })
+
+  it('includes the Boss as an Enemy and deals ordinary target damage', () => {
+    const variant = withBurstCard({ burst_radius: 2 })
+    const state = readyBurst(variant)
+    const healthBefore = boss(state).health
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetHex: { q: -1, r: 0 },
+    })
+    expect(boss(fired.state).health).toBe(healthBefore - 1)
+    expect(fired.facts.find((fact) => fact.kind === 'damage' && fact.detail.targetId === state.bossId)?.detail.amount).toBe(1)
+  })
+
+  it('applies target-damage Charge Modifiers to every affected Enemy', () => {
+    const variant = withBurstCard({ charge_modifiers: ['burst_damage'] })
+    variant.chargeModifiers.burst_damage = {
+      ...variant.chargeModifiers.each_charge_boss_damage,
+      id: 'burst_damage',
+      title: 'Burst Damage',
+      effect: 'target_damage',
+    }
+    const state = readyBurst(variant)
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetHex: { q: -1, r: 0 },
+    })
+    expect(fired.state.board.entities.whelp_a).toBeUndefined()
+    expect(fired.state.board.entities.whelp_b).toBeUndefined()
+    expect(fired.facts.filter((fact) => fact.kind === 'damage').map((fact) => fact.detail.amount)).toEqual([2, 2])
+  })
+
+  it('damages every captured Minion before a lethal hit ends the Encounter', () => {
+    const variant = withBurstCard({ burst_radius: 2, damage: 99 })
+    const state = readyBurst(variant)
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetHex: { q: -1, r: 0 },
+    })
+    expect(fired.state.outcome).toBe('victory')
+    expect(fired.state.board.entities.whelp_a).toBeUndefined()
+    expect(fired.state.board.entities.whelp_b).toBeUndefined()
+    expect(fired.facts.filter((fact) => fact.kind === 'damage').map((fact) => fact.detail.targetId)).toEqual([
+      'whelp_a',
+      'whelp_b',
+      state.bossId,
+    ])
+  })
+
+  it('finishes every Burst hit before a mixed Card applies lethal direct Boss damage', () => {
+    const variant = withBurstCard({ burst_radius: 2, damage: 1, boss_damage: 99 })
+    const state = readyBurst(variant)
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetHex: { q: -1, r: 0 },
+    })
+    expect(fired.state.outcome).toBe('victory')
+    expect(fired.state.board.entities.whelp_a.health).toBe(1)
+    expect(fired.state.board.entities.whelp_b.health).toBe(1)
+    expect(fired.facts.filter((fact) => fact.kind === 'damage').map((fact) => fact.detail.targetId)).toEqual([
+      'whelp_a',
+      'whelp_b',
+      state.bossId,
+    ])
+  })
+
+  it('consumes Riposte Ready when the Burst includes the Boss and bonuses only that hit', () => {
+    const variant = withBurstCard({ burst_radius: 2, damage: 1 })
+    let state = readyBurst(variant)
+    hero(state).armor = 5
+    state = resolve(variant, state, {
+      kind: 'damage',
+      sourceId: state.bossId,
+      targetId: state.primaryHeroId,
+      amount: 4,
+      reasonText: 'Raking Claw',
+      factContext: { damage_classification: 'tank_hit' },
+    }).state
+    expect(state.statusEffects[state.primaryHeroId]?.[0]?.id).toBe('riposte_ready')
+    const bossHealthBefore = boss(state).health
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetHex: { q: -1, r: 0 },
+    })
+    expect(state.board.entities.whelp_a.health).toBe(2)
+    expect(fired.state.board.entities.whelp_a.health).toBe(1)
+    expect(boss(fired.state).health).toBe(bossHealthBefore - 2)
+    expect(fired.state.statusEffects[state.primaryHeroId] ?? []).toHaveLength(0)
+    expect(fired.facts.find((fact) => fact.kind === 'damage' && fact.detail.targetId === state.bossId)?.resolutionFact).toMatchObject({
+      base_amount: 1,
+      status_bonus: 1,
+      payoff_card_id: 'burst_test',
+    })
+  })
+
+  it('keeps radius zero on the existing single-Minion path', () => {
+    const variant = withBurstCard({ target_type: 'piece', burst_radius: 0 })
+    const state = readyBurst(variant)
+    const fired = resolve(variant, state, {
+      kind: 'fire_slot',
+      sourceId: state.primaryHeroId,
+      slotIndex: 0,
+      targetId: 'whelp_b',
+    })
+    expect(fired.state.board.entities.whelp_a.health).toBe(2)
+    expect(fired.state.board.entities.whelp_b.health).toBe(1)
+    expect(fired.facts.filter((fact) => fact.kind === 'damage').map((fact) => fact.detail.targetId)).toEqual(['whelp_b'])
+  })
+
+  it('requires an on-board centre within the Card range', () => {
+    const variant = withBurstCard()
+    const state = readyBurst(variant)
+    expect(legality(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })).toMatchObject({
+      legal: false,
+      reason: 'The Top Card needs an on-board hex target.',
+    })
+    expect(
+      legality(variant, state, {
+        kind: 'fire_slot',
+        sourceId: state.primaryHeroId,
+        slotIndex: 0,
+        targetHex: { q: -2, r: 0 },
+      }),
+    ).toMatchObject({ legal: false, reason: "The chosen hex is outside the Top Card's range.", targetRange: 2 })
+    expect(
+      legality(variant, state, {
+        kind: 'fire_slot',
+        sourceId: state.primaryHeroId,
+        slotIndex: 0,
+        targetHex: { q: -1, r: 0 },
+      }),
+    ).toMatchObject({ legal: true, targetRange: 1 })
+  })
+
+  it('offers legal hex centres and previews the hovered burst footprint', () => {
+    const variant = withBurstCard()
+    const state = readyBurst(variant)
+    const targeting = fireTargeting(variant, state, state.primaryHeroId, 0, { q: -1, r: 0 })
+    expect(targeting.mode).toBe('hex')
+    expect(targeting.legalHexes.map(hexKey)).toContain('-1,0')
+    expect(targeting.previewHexes.map(hexKey)).toEqual(['-1,0', '-2,0', '-2,1', '-1,-1', '-1,1', '0,-1', '0,0'])
+  })
+
+  it('replays the same burst centre to the same ordered facts and state', () => {
+    const variant = withBurstCard({ burst_radius: 1 })
+    variant.encounters.embermaw_prototype.player_deck = [{ card: 'burst_test', copies: 4 }]
+    const seeded = createEncounterState(variant, 'embermaw_prototype', 70)
+    const [top, charge] = hero(seeded).hand
+    const scenario: Scenario = {
+      id: 'burst-replay',
+      title: 'Burst replay',
+      version: 1,
+      description: '',
+      encounter: 'embermaw_prototype',
+      seed: 70,
+      steps: [
+        { action: { kind: 'load_slot', sourceId: seeded.primaryHeroId, slotIndex: 0, cardInstanceId: top.instanceId } },
+        { advance: true },
+        { advance: true },
+        { action: { kind: 'charge_slot', sourceId: seeded.primaryHeroId, slotIndex: 0, cardInstanceId: charge.instanceId } },
+        { action: { kind: 'fire_slot', sourceId: seeded.primaryHeroId, slotIndex: 0, targetHex: { q: 0, r: -1 } } },
+      ],
+    }
+    const first = runScenario(variant, scenario)
+    const second = runScenario(variant, scenario)
+    expect(second.facts).toEqual(first.facts)
+    expect(second.state).toEqual(first.state)
+    expect(first.facts.filter((fact) => fact.kind === 'damage' && fact.sourceId === seeded.primaryHeroId).map((fact) => fact.detail.targetId)).toEqual([
+      seeded.bossId,
+    ])
   })
 })
 

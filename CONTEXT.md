@@ -94,6 +94,10 @@ _Avoid_: Random phase change, hidden breakpoint
 A hostile combatant in an Encounter. The Boss and every Minion are Enemies.
 _Avoid_: Hostile target, foe
 
+**Burst**:
+A player Card effect centered on a selected on-board hex within Range of the firing Hero. The center may be empty. Every Enemy whose hex lies within the authored radius — including the Boss and all Minions, but never Heroes or allies — receives one ordinary damage action, with Minions in stable entity order and the Boss last (ADR 0030). The firing action records the center and its ordered on-board footprint so preview and resolution share one geometry result.
+_Avoid_: Piece-targeted area attack, splash estimate, friendly fire
+
 **Status Effect**:
 A temporary rule attached to one combatant — a Hero **or** an Enemy — that responds to an explicit trigger, such as the start of a Round, taking damage, or firing a Slot (D-032). The mechanism is identical on both sides; only which payload fields matter differs, so an Enemy-facing status uses `damageTakenBonus` and `damageDealtPenalty` where a Hero-facing one uses Armor and Boss-damage fields. Status definitions are authored content in `data/statuses/` and each one states whether it stacks (D-033). Every Status Effect is visible to the whole Party. A Status Effect may never redirect a Boss Beat's target or change what that Beat is.
 _Avoid_: Passive, invisible buff, Enemy Status

@@ -1,5 +1,5 @@
 import { cardChargeCap, cardWindowSpeed, type ContentCatalog } from './content/catalog'
-import { hexDistance } from './hex'
+import { hexDistance, hexKey } from './hex'
 import { isLegalMove } from './board'
 import { getStatus } from './statuses'
 import type { EncounterActionInput } from './actions'
@@ -95,7 +95,19 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       }
       const hasDisplacement = card.push_tiles > 0 || card.pull_tiles > 0
       let targetVerdict: LegalityVerdict | undefined
-      if (card.damage > 0) {
+      if (card.burst_radius > 0) {
+        const targetHex = action.targetHex
+        const source = state.board.entities[action.sourceId]
+        if (!targetHex || !source || state.board.hexes[hexKey(targetHex)] === undefined) {
+          return illegal('The Top Card needs an on-board hex target.')
+        }
+        const targetRange = hexDistance(source.coords, targetHex)
+        if (targetRange > card.range_tiles) {
+          return { ...illegal("The chosen hex is outside the Top Card's range."), targetRange }
+        }
+        targetVerdict = { ...legal(), targetRange }
+      }
+      if (card.damage > 0 && card.burst_radius === 0) {
         const targetId = action.targetId ?? ''
         const target = state.board.entities[targetId]
         if (!target || target.kind !== 'minion') {

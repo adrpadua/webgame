@@ -1,5 +1,5 @@
 import { addEntity, addHazard, advanceBoardRound, damageEntity, facingToward, getHazards, isGuardedFront, isOccupied, isOnBoard, moveEntity } from './board'
-import { axialAdd, axialSubtract, type Axial } from './hex'
+import { axialAdd, axialSubtract, hexDistance, hexesWithinRadius, type Axial } from './hex'
 import { axialDeltaFor, directionForAxialDelta, FACING_NW } from './facing'
 import type { ContentCatalog } from './content/catalog'
 import type { Card } from './content/schemas'
@@ -144,12 +144,25 @@ function resolveOne(
       const card = catalog.cards[topCard.cardId]
       const effects = resolveFire(catalog, card, slot.charges.map((charge) => catalog.cards[charge.cardId]))
       const baseBossDamage = effects.bossDamage
+      const burstCenter = effects.burstRadius > 0 ? (action.targetHex as Axial) : null
+      const burstHexes = burstCenter === null ? [] : hexesWithinRadius(draft.board.hexes, burstCenter, effects.burstRadius)
+      const burstEnemyIds =
+        burstCenter === null
+          ? []
+          : Object.values(draft.board.entities)
+              .filter((entity) => entity.team === 'enemy' && hexDistance(entity.coords, burstCenter) <= effects.burstRadius)
+              .map((entity) => entity.id)
+              .sort()
+      const burstIncludesBoss = burstEnemyIds.includes(draft.bossId)
+      if (burstCenter !== null) {
+        fact.detail.burstCenter = { ...burstCenter }
+        fact.detail.burstHexes = burstHexes
+      }
       hero.armor += effects.armor
       hero.health = Math.min(hero.maxHealth, hero.health + effects.healing)
       slot.activatedWindow = draft.phase
       syncHeroEntity(draft, action.sourceId)
-      const consumed = consumeStatusesForSlot(draft, action.sourceId, card, effects.bossDamage > 0)
-      effects.bossDamage += consumed.bonusBossDamage
+      const consumed = consumeStatusesForSlot(draft, action.sourceId, card, baseBossDamage > 0 || burstIncludesBoss)
       if (consumed.events.length > 0) {
         fact.resolutionFact = { status_event: consumed.events[0] }
       }
@@ -178,33 +191,70 @@ function resolveOne(
         }
       }
       succeed(fact)
-      if (effects.bossDamage > 0) {
+      if (burstCenter !== null) {
+        // Every non-Boss Enemy resolves first. The Boss receives one combined
+        // ordinary damage action for Burst damage, any direct Boss damage,
+        // and the one-shot Riposte bonus. Keeping the Boss last guarantees a
+        // lethal hit cannot suppress sibling Burst consequences.
+        for (const targetId of burstEnemyIds.filter((enemyId) => enemyId !== draft.bossId)) {
+          generated.push({
+            kind: 'damage',
+            sourceId: action.sourceId,
+            targetId,
+            amount: effects.targetDamage,
+            reasonText: card.title,
+          })
+        }
+        const bossBaseAmount = baseBossDamage + (burstIncludesBoss ? effects.targetDamage : 0)
+        const bossAmount = bossBaseAmount + consumed.bonusBossDamage
         let factContext: Record<string, unknown> | undefined
         if (consumed.bonusBossDamage > 0) {
           factContext = {
-            base_amount: baseBossDamage,
+            base_amount: bossBaseAmount,
             status_bonus: consumed.bonusBossDamage,
             status_id: (consumed.events[0] as { status_id: string }).status_id,
             payoff_card_id: card.id,
           }
         }
-        generated.push({
-          kind: 'damage',
-          sourceId: action.sourceId,
-          targetId: draft.bossId,
-          amount: effects.bossDamage,
-          reasonText: card.title,
-          factContext,
-        })
-      }
-      if (effects.targetDamage > 0) {
-        generated.push({
-          kind: 'damage',
-          sourceId: action.sourceId,
-          targetId: action.targetId ?? '',
-          amount: effects.targetDamage,
-          reasonText: card.title,
-        })
+        if (bossAmount > 0) {
+          generated.push({
+            kind: 'damage',
+            sourceId: action.sourceId,
+            targetId: draft.bossId,
+            amount: bossAmount,
+            reasonText: card.title,
+            factContext,
+          })
+        }
+      } else {
+        if (baseBossDamage + consumed.bonusBossDamage > 0) {
+          let factContext: Record<string, unknown> | undefined
+          if (consumed.bonusBossDamage > 0) {
+            factContext = {
+              base_amount: baseBossDamage,
+              status_bonus: consumed.bonusBossDamage,
+              status_id: (consumed.events[0] as { status_id: string }).status_id,
+              payoff_card_id: card.id,
+            }
+          }
+          generated.push({
+            kind: 'damage',
+            sourceId: action.sourceId,
+            targetId: draft.bossId,
+            amount: baseBossDamage + consumed.bonusBossDamage,
+            reasonText: card.title,
+            factContext,
+          })
+        }
+        if (effects.targetDamage > 0) {
+          generated.push({
+            kind: 'damage',
+            sourceId: action.sourceId,
+            targetId: action.targetId ?? '',
+            amount: effects.targetDamage,
+            reasonText: card.title,
+          })
+        }
       }
       if (effects.pushTiles > 0 || effects.pullTiles > 0) {
         generated.push({
