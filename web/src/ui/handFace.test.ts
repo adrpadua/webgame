@@ -37,14 +37,15 @@ function adjacentHexKey(state: EncounterState): string {
 }
 
 describe('hand face', () => {
-  it('shows the card as itself outside the Quick Window', () => {
+  it('shows the card as itself where it is chosen as a Top Card, or cannot be played at all', () => {
     expect(handFace(opening('loadout'), false)).toBe('card')
     expect(handFace(opening('instant'), false)).toBe('card')
-    expect(handFace(opening('slow'), false)).toBe('card')
+    expect(handFace(opening('incoming'), false)).toBe('card')
   })
 
-  it('leads with Keywords in the Quick Window', () => {
+  it('leads with Keywords in both player windows', () => {
     expect(handFace(opening('quick'), false)).toBe('keywords')
+    expect(handFace(opening('slow'), false)).toBe('keywords')
   })
 
   it('becomes movement currency while a move is being lined up', () => {
@@ -82,7 +83,11 @@ describe('move prep', () => {
 
   it('never reads a move outside the one window movement is legal in', () => {
     const state = opening('slow')
-    expect(movePrepped(state, { ...NO_GESTURE, hoveredHexKey: adjacentHexKey(state), draggingCardId: 'card-1' })).toBe(false)
+    const gesture = { ...NO_GESTURE, hoveredHexKey: adjacentHexKey(state), draggingCardId: 'card-1' }
+    expect(movePrepped(state, gesture)).toBe(false)
+    // Slow wears the Keyword face, and no gesture over the board changes it:
+    // there is nothing to spend Stamina on until the next Quick Window.
+    expect(handFace(state, movePrepped(state, gesture))).toBe('keywords')
   })
 
   it('lines up nothing with an empty gesture', () => {

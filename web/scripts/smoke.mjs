@@ -434,6 +434,10 @@ try {
 
   // Step 8: charge and fire the slow Slot before the Round turns.
   assert((await cueStep()) === 'charge-slow', 'the Slow Window opens on the slow charge step')
+  // Charge Timing puts any card in either window, so a hand card is Keywords
+  // here for the same reason it was in Quick — minus the Stamina it can no
+  // longer pay, movement being a Quick Window action.
+  assert((await handFace()) === 'keywords', 'the Slow Window keeps the Hand on its Keyword face')
   await scriptedCard().dragTo(slot1)
   assert((await cueStep()) === 'fire-slow', 'a charged slow Slot moves the script to firing')
   await inspectTile(1, -1)

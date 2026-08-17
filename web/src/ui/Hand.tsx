@@ -48,14 +48,15 @@ function CardFace({ card }: { card: Card }) {
   )
 }
 
-// The Quick Window face: the card's Keywords, in the Hero's own marks, above
+// The player-window face: the card's Keywords, in the Hero's own marks, above
 // a demoted name. A Keyword a loaded Top Card would pay off for takes living
 // gold — the material of every mechanism the player operates — and the rest
 // stay steel. Gone from this face are the window speed and the Charge Value
 // pips: both describe the card as a Top Card, and a card being tucked adds
 // one Charge whatever its own speed or capacity says (CONTEXT.md, Charge
-// Timing). The name stays, small, because a Slot that is still empty can be
-// prepared here and that is the one choice the name is needed for.
+// Timing) — which is also why Slow wears this face as readily as Quick. The
+// name stays, small, because a Slot that is still empty can be prepared in
+// either window and that is the one choice the name is needed for.
 function KeywordFace({ card, heroId, paying }: { card: Card; heroId: string; paying: Set<string> }) {
   return (
     <>

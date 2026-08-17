@@ -4,10 +4,10 @@ import { cardChargeCap, hexDistance, isLegalMove, parseHexKey, type ContentCatal
 //
 // The Compact Card face states a card's identity — title, window speed,
 // Charge Value — and every one of those is a fact about the card as a *Top
-// Card*. In the Quick Window it is rarely going to be one: both Slots are
-// normally loaded already, and the two things a hand card can do there read
-// nothing off its identity. Tucked, it adds one Charge and its Keywords meet
-// the Top Card's Charge Modifiers; spent, it is one Stamina and one hex, and
+// Card*. Inside a player window it is rarely going to be one: both Slots are
+// normally loaded already, and what a hand card can do there reads nothing
+// off its identity. Tucked, it adds one Charge and its Keywords meet the Top
+// Card's Charge Modifiers; spent in Quick, it is one Stamina and one hex, and
 // which card paid does not matter at all.
 //
 // So the Hand wears one of three faces, and each says what the card is for in
@@ -15,7 +15,10 @@ import { cardChargeCap, hexDistance, isLegalMove, parseHexKey, type ContentCatal
 export type HandFace =
   // The card as itself: its name, its timing, what it would hold in a Slot.
   | 'card'
-  // The Quick Window: Keywords, because that is the part a Slot reads.
+  // A player window: Keywords, because that is the part a Slot reads. Both
+  // windows take this face — Charge Timing lets any card be tucked in either
+  // one regardless of its own speed, so a Compact Card's timing is no more
+  // use in Slow than in Quick.
   | 'keywords'
   // A move is being lined up: every card is one Stamina and nothing else.
   | 'stamina'
@@ -57,7 +60,10 @@ export function handFace(state: EncounterState, prepped: boolean): HandFace {
   if (prepped) {
     return 'stamina'
   }
-  return state.active && state.phase === 'quick' ? 'keywords' : 'card'
+  // Loadout is the exception among the three phases a card is playable in: it
+  // is the step for choosing Top Cards, and a Top Card is exactly what the
+  // card face describes.
+  return state.active && (state.phase === 'quick' || state.phase === 'slow') ? 'keywords' : 'card'
 }
 
 // The Keywords that would pay off if a card carrying one were tucked right
