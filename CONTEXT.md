@@ -198,7 +198,11 @@ _Avoid_: Tutorial mode, onboarding wizard, scripted encounter
 
 **Board Feedback**:
 The transient motion the board plays for a resolved batch of actions: a lunge toward what was struck, a flash and floating number on what was hit, a pulse on a Hero who guarded, a glide for a step taken, a flare over a resolved telegraph. Every beat of it is derived from Resolution Facts, so the board can never show a blow the Encounter did not resolve.
-_Avoid_: Animation state, VFX layer
+_Avoid_: Animation state, VFX layer, Board Ambience
+
+**Board Ambience**:
+Continuous board motion that carries no rules information and applies uniformly to every piece, such as the slow bob of a piece at rest. It is never derived from Resolution Facts and never distinguishes one piece from another, which is what keeps it from being read as a state signal. It yields to Board Feedback for any piece an effect currently owns, and it stops entirely under reduced motion.
+_Avoid_: Idle animation, Board Feedback, juice
 
 **Bottom Interaction Zone**:
 The thumb-reachable portrait HUD area that contains the Action Bar immediately above the Hand. It is reserved for player input rather than encounter telemetry.

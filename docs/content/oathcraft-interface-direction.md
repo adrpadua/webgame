@@ -55,17 +55,18 @@ This is the constraint that settles most arguments: **the illustrations are flat
 
 One low-contrast gradient per surface is permitted, and only on large surfaces. Roughly a 10% value drop with no hue shift, which is what makes a plate read as a plate. Never on a chip, a pip, or a tumbler — at phone size a gradient on a small element reads as mud. An earlier revision of this document banned gradients outright; the preamble says *minimal*, not *none*, and the flat ban is what made the first pass read flat rather than solid.
 
-Exactly three textures are permitted beyond that, and each belongs to one material:
+Exactly four textures are permitted beyond that, and each belongs to one material or one surface:
 
 - **Inlay seam** — a 1px cyan hairline with a small bloom, on oathsteel edges only.
 - **Glyph grid** — a fine square grid at roughly 12px, inside runeglass panes only, under 15% opacity.
 - **Heat vein** — thin diagonal darker striations, inside ember coral only.
+- **Surface jitter** — a deterministic per-tile value shift on the board only. Value, never hue; ±6% ceiling; derived from the tile's coordinates so the same tile always lands on the same shade; never on a piece. It breaks the vector-art read of one fill repeated across a grid, and because it is deterministic the floor holds still between frames.
 
-There is no fourth texture, and no surface carries two.
+There is no fifth texture, and no surface carries two.
 
 Banned outright, with the reason each one matters:
 
-- **Drop shadows.** Elevation is read from edge value. A 1px light top edge and a 1px dark bottom edge is the entire depth budget.
+- **Blurred shadows.** Elevation is read from edge value. A 1px light top edge and a 1px dark bottom edge is the entire depth budget for chrome. A *hard-edged* cast shadow is permitted on the board, where it states the light direction — see The Board below. Chrome plates never cast.
 - **Multiple gradients on one surface, and any gradient on a small element.** One per large surface is the ceiling.
 - **Frosted glass and backdrop blur.** A 3D-render idiom. Runeglass is translucent but *drawn* — a flat tint plus a faint glyph grid, with hard edges.
 - **Rounded corners.** The shape language is hard geometric edges. Every plate is raked instead — see Plate Geometry below, which replaces the earlier 45° chamfer rule.
@@ -183,7 +184,9 @@ The runeglass strike on a spent Slot is the one place a cyan mark lands on a gol
 
 ### Motion
 
-The seat fires **once**, when the last pin drops, and stops. No idle pulse. A Primed Slot can persist for several rounds, and anything that breathes for that long becomes furniture the eye edits out — which is the meter-that-means-nothing failure that got Presence deleted.
+The seat fires **once**, when the last pin drops, and stops. A Primed Slot can persist for several rounds, and a signal that breathes for that long becomes furniture the eye edits out — which is the meter-that-means-nothing failure that got Presence deleted.
+
+**The general rule: motion that carries state fires once; ambient motion may loop, but must never distinguish one element from another.** An earlier revision banned idle motion outright, which was too broad — a loop that applies uniformly and carries no information cannot be misread as a status signal. The board's `Board Ambience` is the sanctioned case and is bounded in `CONTEXT.md`.
 
 A Compact Card in hand has a Charge Value but no Charge Stack and no Slot, so it can never be Primed. The card frame must not imply otherwise.
 
@@ -289,51 +292,52 @@ Counted on 2026-08-16 against `web/src/`. Treat these as a snapshot, not a contr
 
 Neither number is an argument against the direction. They are the reason to adopt it as a deliberate pass rather than by opportunistic edits, which would leave the interface half in one language and half in the other — worse than either.
 
-## Open: Reconciling The Board
+## The Board
 
-The board landed its own art direction in August 2026 — tile skirts, a board-wide light, a warm/cool danger palette, and an idle bob on resting pieces — derived from [dead-cells-art-style-research.md](../artifacts/dead-cells-art-style-research.md). That research states plainly that it "is not an art-direction decision and it does not create canon", and it was written without knowledge of this file. So the board is running an implemented direction that no document ratifies, and this section states what still has to be settled.
+Settled August 2026, after the board landed its own direction from [dead-cells-art-style-research.md](../artifacts/dead-cells-art-style-research.md) — a document that states it "is not an art-direction decision and it does not create canon" and was written without knowledge of this file.
 
-**Less conflicts than it first appears.** The piece shading is two flat fills against one light — a shadow tone across the whole circle, then the lit tone offset toward the key. That is a hard two-tone step, not a gradient ramp, which is exactly the flat cel model this document requires. The research reaches the same place independently: Dead Cells' entire toon model is `dot(N, L) > 0.3 ? light : ambient`, and the research's own recommended route bakes light into the sprite rather than shipping normal maps. Lighting is not the disagreement.
+**Ownership splits by concern, not by surface.** This document owns the material language, the palette, motion policy, and the texture bans, and they bind the board as well as the chrome. [oathcraft-board-direction.md](oathcraft-board-direction.md) owns board implementation — tint application, lighting angles, sprite pipeline, pixel scale, hex-versus-pixel-grid geometry. A surface split would put the palette in two places, which is the failure that produced this reconciliation.
 
-### Q1 — Is a hard-edged cast shadow a "drop shadow"?
+### Colour Resolves In Two Steps
 
-The banned-list forbids drop shadows on the grounds that elevation is read from edge value. The board draws a flat black circle at 35% alpha, offset two by three pixels, with no blur. That is a drawn shape rather than a blur radius.
+**Objects take their material. Hex tints take their temperature.**
 
-- **(a)** Permit hard-edged cast shadows on the board only, and restate the ban as *no blurred shadows* rather than *no shadows*.
-- **(b)** Extend the permission to chrome as well, so plates may cast.
-- **(c)** Hold the ban and remove the board's shadow.
+An object is anything that *is* something — a piece, the ground, a structure. A tint painted over a hex is information about that hex, not an object made of runeglass, so it takes its side from what it means: **warm is their beat, cool is your move.** That line is where the fiction already draws it. A pattern projector is a real oathcraft device; the light it paints on the floor is a message about the floor.
 
-### Q2 — How does the board palette reconcile with the material language?
+| Role | Kind | Takes |
+| --- | --- | --- |
+| Hero token | Object | Signal cloth, per role |
+| Boss token | Object | Ember coral |
+| Minion token | Object | Ember coral, lower saturation and smaller |
+| Scorched ground | Object | Ember coral — a substance lying there, not a projection |
+| Telegraph | Tint | Warm — their beat |
+| Legal destination | Tint | Cool — your move |
+| Target marker | Tint | Cool — a player affordance |
+| Board Feedback flash | Event | Axis for the side, material for the value |
 
-Three specific collisions, all in `BoardScene.ts`:
+Boss and Minion share a material because `world-style-bible.md` says a Whelp is *"splintered furnace sparks"* — a piece of the furnace. Giving it its own hue asserts a separation the fiction denies and makes a Brood Call spawn read as a different faction arriving rather than the Boss shedding part of itself. **Green is not a material and does not appear**; healing is aether ceramic, which the world already assigns to medical technology.
 
-- `heal: 0x34d399` puts **green** on the board. Green is in neither the material language nor the core palette. It is the same defect as `emerald-400` in `theme.ts` — a framework default arriving instead of a decision.
-- `TARGET_STROKE 0xfacc15` makes a gold-ish stroke mean **target** on the board, while living gold means **operable control** in the chrome, two centimetres away.
-- Five warms ship — orange, rose, red, amber, brown — against this document's rule that ember and ember coral are one family in two jobs.
+### Saturation Ranks By Imminence
 
-- **(a)** Bind the board to the material palette: every board colour names a material, and anything that cannot is redesigned.
-- **(b)** Let the board keep a wider palette than the chrome, on the grounds that terrain is not chrome, and record the boundary explicitly.
-- **(c)** Keep the warm/cool axis as the board's organising rule and re-derive its specific values from the material set.
+Within each temperature, the more imminent thing is the more saturated. The research's rule is that colour is a targeting aid and *"anything new or dangerous gets a hue and saturation nothing else on screen is using"* — but *newest* and *most dangerous* conflict routinely, and imminence subsumes both.
 
-### Q3 — Does ambient motion violate the once-only rule?
+- **Warm**, most to least: the beat resolving now, a telegraphed beat landing next window, the Boss, a Minion, scorched ground.
+- **Cool**, most to least: legal destinations while choosing, the Hero, the ground.
 
-The Slot States section says motion "fires once, on the seat, and stops. No idle pulse." Every resting piece now rides a slow sine.
+Imminence rather than novelty, or a spawned Minion outshouts the cone about to land on you. Imminence rather than damage, or scorched ground never fades after it has been paid for.
 
-The rule as written is too broad. The bob carries no information and applies to every piece uniformly, so it cannot be misread as a status signal — which is what the rule was actually protecting against.
+### Lighting Was Never The Disagreement
 
-- **(a)** Restate the rule: *motion that carries state fires once; ambient motion may loop but must never distinguish one piece from another.*
-- **(b)** Hold the rule as written and remove the bob.
+The board's piece shading is two flat fills against one light — a shadow tone across the whole circle, then the lit tone offset toward the key. That is a hard two-tone step, not a gradient ramp, and it is exactly the cel model this document requires. The research arrives independently at the same place: Dead Cells' entire toon model is one threshold and two values, and its recommended route bakes light into the sprite rather than shipping normal maps.
 
-### Q4 — Does state go back onto the token?
+Two consequences:
 
-`BoardScene.ts` comments that a tile "stays clean until it is tapped", which matches the Stat Panel decision. The board-first layout work argues the other way, since comparable games put health and status directly on the unit. This is the same tension recorded under Layout and it needs one answer, not two.
+- **A hard-edged cast shadow is permitted on the board.** It states the light direction, which is information, and the research treats the existing one as the convention that establishes it. Canon already assumes a lighting environment — void basalt *"eats rim light"*. Chrome plates still never cast.
+- **Keep the key-side highlight and add a lower-right rim.** They do different jobs: the highlight says where the light is, the rim separates a dark piece from a dark tile. A faint full ring separates equally in every direction, which flattens the light it sits inside.
 
-### Q5 — Who owns the board's direction?
+### State Stays In The Stat Panel
 
-This document covers chrome and says the board needs a separate pass. The research covers the board and disclaims being a decision. Nothing currently owns the board.
-
-- **(a)** Extend this document to cover the board, making it the single interface direction.
-- **(b)** Promote a separate board direction document, with this one owning chrome only and both naming the boundary.
+The board keeps tiles clean until tapped. Board-first layout argues for health on the token, but health bars on every token are chrome that never recedes, and with two or three pieces the tap cost is low. **Revisit when the multi-Hero party model lands** — Engineering rank 6 — and four friendly pieces have health that matters at once.
 
 ## What This Does Not Decide
 
@@ -355,5 +359,7 @@ Before approving a new interface element, ask:
 - Does it carry at most one texture and at most one gradient?
 - If it shows a Slot, can a player tell Primed from a full Slot that already fired?
 - Does it float over the board rather than adding a band that displaces it?
+- If it is on the board: is it an object taking a material, or a tint taking a temperature?
+- If it moves continuously, does it apply uniformly and carry no state?
 - If it is persistent, is it useful in every phase — or should it recede in the ones where it is inert?
 - Does it still read at 390 points wide?
