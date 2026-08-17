@@ -4,6 +4,8 @@ This document describes the current playable rules of the prototype as they exis
 
 Use [CONTEXT.md](../../CONTEXT.md) for canonical terms and the ADRs for why the model exists.
 
+**Adopted but not yet in the engine.** One rules decision is canon and is not described below, because nothing implements it yet: randomize-before-commitment (D-022, [ADR 0025](../adr/0025-randomize-before-the-window-that-answers-it.md)). It currently forbids nothing, because the authored encounter resolves with no rules randomness at all.
+
 Use [player-card-authoring.md](player-card-authoring.md) when creating or editing player cards.
 
 ## Encounter Structure
@@ -18,14 +20,24 @@ Each round follows this order:
 
 When the `Slow Window` ends, the next round begins and the boss timeline rolls forward.
 
-`Embermaw: Ashen Trial` has an `Encounter Clock` of `8` rounds. At the start of round `9`, the encounter ends in enrage defeat unless Embermaw has already been defeated.
+## Escalation
+
+Escalation is the encounter's only clock (D-023, [ADR 0027](../adr/0027-make-escalation-the-encounters-single-clock.md)). Embermaw carries a value from `0` to `5`:
+
+- **Automatic tick.** At each round's end step, from round `escalation start` onward, Escalation gains `1`. The start round is derived as `Encounter Clock - 4`, so on Embermaw's `8`-round clock the ticks land at the ends of rounds `4` through `8`.
+- **Acceleration.** An authored Boss Beat may add Escalation when its demand is still standing at a round's end step. A Minion that arrived during the current round does not count — it spawns in the `Incoming Row`, so no player window could reach it. Embermaw currently authors this at `0`, because the live deck has no Whelp answer (D-003).
+- **Thresholds.** Reaching a value applies its authored effect for the rest of the fight, and effects at different values stack. Embermaw: `1` Ashen Verge (the western edge — `(-2,0)`, `(-2,1)`, `(-2,2)` — becomes permanently Scorched), `2` Wider Brood (Brood Call summons one more Whelp, and the telegraph shows it), `3` Fed on Ash (Whelp bites `+1`), `4` Closing Jaws (the burn spreads to `(-1,-1)` and `(-1,2)`). Structural thresholds place permanent Scorched hazards that no Round boundary clears, and never a hex adjacent to Embermaw, so the Guarded Front cannot burn (D-031).
+- **The top threshold ends the fight.** At `5`, the encounter ends in enrage defeat unless Embermaw has already been defeated. There is no separate round-limit check; with no acceleration this lands at the end of round `8`, exactly where the old clock expired.
+
+`Embermaw: Ashen Trial` therefore has an `Encounter Clock` of `8` rounds, and a party that leaves demands standing reaches the end sooner.
 
 ## Boss Timeline
 
-The boss has a visible two-row timeline:
+The boss has a visible three-horizon timeline. Row names state *when*; how much a beat discloses is the beat's own property (D-021, [ADR 0026](../adr/0026-disclose-boss-beats-in-stages-across-three-timeline-horizons.md)):
 
-- `Instant Row`: the action already resolving this round
-- `Incoming Row`: the action telegraphed for later this round and then promoted into the next round's instant
+- `Forecast Row`: next round's whole boss program at family level — its title, the union of its counter tags, and its highest Consequence Tier. No targets, magnitudes, or hexes. It never resolves, so the per-round event order is unchanged. Round `1` is not forecast, because no earlier round could have shown it.
+- `Instant Row`: the action already resolving this round, with every parameter
+- `Incoming Row`: the action telegraphed for later this round, with every parameter, then promoted into the next round's instant
 
 The current prototype boss is `Embermaw`, using a short scripted loop of authored boss actions.
 
@@ -79,7 +91,9 @@ The playable surface is the web Encounter Workbench (ADR 0019): the portrait pla
 
 The prototype currently uses this practical player resource:
 
-- `Armor`: damage mitigation that is cleared at the start of each new round. A `Fortified` commitment (Fortify, D-019) grants its Armor at the next Round start, immediately after that wipe.
+- `Armor`: damage mitigation that is cleared at the start of each new round. A `Fortified` status (Fortify, D-019) grants its Armor at the next Round start, immediately after that wipe.
+
+Status Effects are authored content in `data/statuses/` and may attach to a Hero **or** an Enemy (D-032, D-033). A card names one through `applies_status`, and `target_type` decides where it lands: `none` on the firing Hero, `piece` on a selected Enemy. An Enemy-facing status raises the damage that Enemy takes or lowers the damage it deals, and each status states whether it stacks. No card in the live deck applies a status yet — the mechanism is proven by tests, and the first such card owes the deck-evaluation gate. Attaching to an ally's Top Card (`board_slot`) and binding to a named Boss Beat are canon but unbuilt (D-035).
 
 Stamina is a direct card-discard movement payment, not a stored resource. The opening hand is `4` cards. At the end of each Round, draw until the hand contains `4` cards; this is a refill target rather than a hard hand limit. Cards remaining in hand stay there; discarded cards shuffle back into the deck when the deck runs out.
 

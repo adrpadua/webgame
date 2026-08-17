@@ -103,10 +103,14 @@ export function addHazard(board: BoardState, coords: Axial, hazard: HazardInstan
 }
 
 // Round boundary upkeep: every hazard loses one round of duration and
-// expired hazards leave the board.
+// expired hazards leave the board. A permanent Hazard is exempt — the arena
+// does not recover from a structural Escalation Threshold (D-031).
 export function advanceBoardRound(board: BoardState): void {
   for (const key of Object.keys(board.hazards)) {
     const remaining = board.hazards[key].filter((hazard) => {
+      if (hazard.permanent === true) {
+        return true
+      }
       hazard.remainingRounds -= 1
       return hazard.remainingRounds > 0
     })

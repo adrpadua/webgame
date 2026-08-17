@@ -1,0 +1,10 @@
+{
+  "id": "sundered",
+  "title": "Sundered",
+  "rules_text": "This Enemy takes 1 more damage from every source.",
+  "applies_to": "enemy",
+  "triggers": ["on_damage_taken"],
+  "stacking": false,
+  "duration_rounds": 1,
+  "damage_taken_bonus": 1
+}

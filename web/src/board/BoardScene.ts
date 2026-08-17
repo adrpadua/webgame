@@ -4,27 +4,46 @@ import { axialToPixel, hexCorners, pixelToAxial, HEX_SIZE } from './layout'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 import { boardPalette, toneColors } from './palette'
 import heroIdleUrl from '@/assets/elian-voss-idle.png'
+import bossIdleUrl from '@/assets/embermaw-idle.png'
+import minionIdleUrl from '@/assets/whelp-idle.png'
 
-// Elian's idle sheet, built from the authored contact sheet by
+// Idle sheets, built from the authored contact sheets by
 // tools/build_sprite_sheet.py. Rows are the engine's facing indices and the
 // four columns are the idle cycle, so the frame for a piece is simply
 // facing * 4 + step — no lookup table, which is the whole reason the build
 // step reorders the artist's rows.
-const HERO_TEXTURE = 'elian-idle'
-const HERO_FRAME_W = 162
-const HERO_FRAME_H = 210
-const HERO_IDLE_FRAMES = 4
+const IDLE_FRAMES = 4
 // Milliseconds per idle frame. Board Ambience: it loops uniformly for every
 // piece that has a sheet, carries no state, and stops dead under reduced
 // motion.
-const HERO_IDLE_MS = 190
-// The sprite stands about one and a third hexes tall. Taller reads as a
-// diorama piece rather than a token on a grid, and starts occluding the hex
-// behind it.
-const HERO_TARGET_H = 74
-// Feet land slightly below the hex centre so the piece stands on the tile
-// rather than floating at its midpoint.
-const HERO_FOOT_OFFSET = 12
+const IDLE_MS = 190
+
+interface SheetSpec {
+  key: string
+  url: string
+  frameWidth: number
+  frameHeight: number
+  // Rendered height on the board. Pieces are scaled by height rather than
+  // drawn at a shared scale: the sheets are cropped to their own content, so
+  // a shared scale would size each piece by however much empty space its
+  // contact sheet happened to leave around it.
+  targetHeight: number
+  // How far below the hex centre the piece's base sits, so it stands on the
+  // tile rather than floating at its midpoint.
+  footOffset: number
+}
+
+// Elian stands about one and a third hexes tall. Embermaw is drawn low and
+// wide and overlaps its neighbours, which is the design's boss that dominates
+// several hexes. A Whelp is roughly half the Hero: it has to read as a piece
+// of the furnace that broke off, never as a small Embermaw, and size is half
+// of how those two stay apart — the other half is that they share a material
+// and separate by saturation, per the board direction.
+const SHEETS: Record<string, SheetSpec> = {
+  hero: { key: 'elian-idle', url: heroIdleUrl, frameWidth: 162, frameHeight: 210, targetHeight: 74, footOffset: 12 },
+  boss: { key: 'embermaw-idle', url: bossIdleUrl, frameWidth: 238, frameHeight: 176, targetHeight: 80, footOffset: 22 },
+  minion: { key: 'whelp-idle', url: minionIdleUrl, frameWidth: 178, frameHeight: 164, targetHeight: 40, footOffset: 10 },
+}
 // The board is three layers: tiles and their tints, then the pieces, then the
 // text that has to be read over both. Phaser falls back to creation order
 // within a depth, and the graphics layer is built once while labels are
@@ -233,7 +252,9 @@ export class BoardScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.load.spritesheet(HERO_TEXTURE, heroIdleUrl, { frameWidth: HERO_FRAME_W, frameHeight: HERO_FRAME_H })
+    for (const sheet of Object.values(SHEETS)) {
+      this.load.spritesheet(sheet.key, sheet.url, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight })
+    }
   }
 
   create(): void {
@@ -643,11 +664,9 @@ export class BoardScene extends Phaser.Scene {
   // Which pieces have authored art. Everything else stays a token, which is
   // not a placeholder: a token reads its facing and its state at a glance,
   // and only the pieces with a sheet have earned the right to be a body.
-  private textureFor(entity: { id: string; kind: string }): string | null {
-    if (entity.kind === 'hero' && this.textures.exists(HERO_TEXTURE)) {
-      return HERO_TEXTURE
-    }
-    return null
+  private sheetFor(entity: { kind: string }): SheetSpec | null {
+    const sheet = SHEETS[entity.kind]
+    return sheet && this.textures.exists(sheet.key) ? sheet : null
   }
 
   // Draws a piece from its sheet. Returns false when the piece has no art, so
@@ -655,28 +674,32 @@ export class BoardScene extends Phaser.Scene {
   // otherwise immediate-mode renderer, so they are created on first sight and
   // reaped in renderSnapshot when their piece leaves the board.
   private placeSprite(entity: { id: string; kind: string; facing: number }, x: number, y: number, motion: Motion): boolean {
-    const texture = this.textureFor(entity)
-    if (texture === null) {
+    const sheet = this.sheetFor(entity)
+    if (sheet === null) {
       return false
     }
     let sprite = this.sprites.get(entity.id)
     if (!sprite) {
-      sprite = this.add.sprite(x, y, texture, 0)
+      sprite = this.add.sprite(x, y, sheet.key, 0)
       // Feet at the origin: the sprite stands on the point it is given, and
       // its height never shifts where that point is.
       sprite.setOrigin(0.5, 1)
-      sprite.setScale(HERO_TARGET_H / HERO_FRAME_H)
-      // Above the tiles and their overlays, below the floating labels.
-      sprite.setDepth(SPRITE_DEPTH)
       this.sprites.set(entity.id, sprite)
     }
-    sprite.setPosition(x, y + HERO_FOOT_OFFSET)
+    const footY = y + sheet.footOffset
+    sprite.setPosition(x, footY)
+    // Above the tiles and below the labels, and within that, sorted by where
+    // the piece stands: a piece further down the board is nearer the camera
+    // and has to occlude the one behind it. Embermaw is drawn low and wide
+    // and overlaps the hexes in front of it, so without this the two pieces
+    // take turns being in front depending on the order they were created in.
+    sprite.setDepth(SPRITE_DEPTH + footY / 10000)
     // Rows are facing indices and columns are the idle cycle, so the frame is
     // arithmetic. Reduced motion holds the cycle on its first frame — the
     // sheet is ambience, and ambience is what that setting turns off.
-    const step = this.reducedMotion ? 0 : Math.floor(this.time.now / HERO_IDLE_MS) % HERO_IDLE_FRAMES
-    sprite.setFrame(entity.facing * HERO_IDLE_FRAMES + step)
-    sprite.setScale((HERO_TARGET_H / HERO_FRAME_H) * motion.scale)
+    const step = this.reducedMotion ? 0 : Math.floor(this.time.now / IDLE_MS) % IDLE_FRAMES
+    sprite.setFrame(entity.facing * IDLE_FRAMES + step)
+    sprite.setScale((sheet.targetHeight / sheet.frameHeight) * motion.scale)
     // The token flashed by filling itself with the tone; a body takes the
     // same tone as a tint, which reads on the armour without flattening it.
     if (motion.flash > 0) {

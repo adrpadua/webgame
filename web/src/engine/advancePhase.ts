@@ -1,6 +1,7 @@
 import { cardChargeCap } from './content/catalog'
 import type { ContentCatalog } from './content/catalog'
 import { applyAction, checkResolution } from './resolve'
+import { ESCALATION_MAX, escalationActionsForRoundEnd, escalationModifiers } from './escalation'
 import { minionIntent } from './minions'
 import { actionsForTrack, refreshTelegraphs } from './timeline'
 import { getStatuses, statusEvent } from './statuses'
@@ -112,13 +113,18 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
           continue
         }
         if (intent.damage > 0) {
+          const escalationBonus = escalationModifiers(draft).minionDamageBonus
           submit({
             kind: 'damage',
             sourceId: minionId,
             targetId: intent.targetHeroId,
-            amount: intent.damage,
+            amount: intent.damage + escalationBonus,
             reasonText: `${draft.board.entities[minionId].title} bites`,
-            factContext: { minion_intent: true, damage_classification: 'raid_hit' },
+            factContext: {
+              minion_intent: true,
+              damage_classification: 'raid_hit',
+              ...(escalationBonus > 0 ? { escalation_bonus: escalationBonus } : {}),
+            },
           })
         } else if (intent.destination) {
           submit({ kind: 'move_minion', sourceId: minionId, destination: intent.destination })
@@ -127,8 +133,16 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
       if (!draft.active) {
         return { state: draft, facts }
       }
+      // The Escalation step (ADR 0027): the automatic tick once it has begun,
+      // then acceleration for any demand still standing — after the Minion end
+      // step, so a bite that downs the Hero resolves first. Escalation is the
+      // only clock, so its top threshold ends the fight; there is no separate
+      // round-limit check.
+      for (const action of escalationActionsForRoundEnd(catalog, draft)) {
+        submit(action)
+      }
       const nextRound = draft.round + 1
-      if (nextRound > draft.roundLimit) {
+      if (draft.escalation >= ESCALATION_MAX) {
         submit({ kind: 'end_of_clock', sourceId: ENCOUNTER_SOURCE, round: nextRound, reason: draft.enrageText })
         return { state: draft, facts }
       }

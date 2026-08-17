@@ -4,15 +4,16 @@ import type { Phase } from './types'
 
 export const ENCOUNTER_SOURCE = 'encounter'
 
-// Every mutation rides one of these sixteen action kinds, mirroring the
-// frozen reference EncounterAction catalog one-for-one.
+// Every mutation rides one of these action kinds. The first seventeen mirror
+// the frozen reference EncounterAction catalog one-for-one; `gain_escalation`
+// is the one addition past it (ADR 0027).
 export type EncounterActionInput =
   | { kind: 'load_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
   | { kind: 'charge_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
   | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string }
   | { kind: 'move_hero'; sourceId: string; destination: Axial; cardInstanceId: string }
   | { kind: 'resolve_boss'; sourceId: string; beat: BossBeat; track: 'instant' | 'incoming' }
-  | { kind: 'apply_hazard'; sourceId: string; coords: Axial; hazardId: string | null; fallbackDurationRounds: number }
+  | { kind: 'apply_hazard'; sourceId: string; coords: Axial; hazardId: string | null; fallbackDurationRounds: number; permanent?: boolean }
   | { kind: 'spawn_minion'; sourceId: string; minionId: string; coords: Axial; minionContentId?: string }
   | { kind: 'move_minion'; sourceId: string; destination: Axial }
   | { kind: 'damage'; sourceId: string; targetId: string; amount: number; reasonText: string; factContext?: Record<string, unknown> }
@@ -23,6 +24,7 @@ export type EncounterActionInput =
   | { kind: 'full_charge_cleanup'; sourceId: string; slotIndex: number; window: Phase }
   | { kind: 'draw_card'; sourceId: string }
   | { kind: 'shuffle_deck'; sourceId: string; label: string }
+  | { kind: 'gain_escalation'; sourceId: typeof ENCOUNTER_SOURCE; amount: number; reason: string; beatId: string }
   | { kind: 'end_of_clock'; sourceId: typeof ENCOUNTER_SOURCE; round: number; reason: string }
 
 export type ActionKind = EncounterActionInput['kind']

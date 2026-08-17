@@ -1,8 +1,10 @@
 # Raid Card Tactics
 
-A cooperative fantasy boss battler on a hex grid. The core domain is a scripted raid encounter where players coordinate simultaneous action windows against a visible boss timeline before an enrage timer expires.
+A cooperative fantasy boss battler on a hex grid. The core domain is a scripted raid encounter where players coordinate simultaneous action windows against a visible boss timeline before the boss's Escalation reaches its final threshold.
 
 ## Language
+
+A term marked `_Not yet in the engine_` is settled language with no implemented behavior behind it. The team may use it in design and authoring discussion; nobody should expect it to resolve in a running Encounter yet.
 
 **Encounter**:
 A single boss fight from setup through victory, defeat, or enrage. An encounter is the top-level unit that owns the boss script, the round count, and the board state.
@@ -21,36 +23,64 @@ An Encounter attempt ended by restart or manual abort before victory, defeat, or
 _Avoid_: Deleted run, incomplete log
 
 **Round**:
-One full cycle of boss resolution and player response. A round advances the enrage timer by exactly one.
+One full cycle of boss resolution and player response. A round adds exactly one Escalation to the Boss automatically, before any authored acceleration.
 _Avoid_: Turn, tick
 
-**Enrage Timer**:
-The round limit for an encounter. When the timer reaches its limit, the boss wins or enters an unwinnable state.
-_Avoid_: Timeout, clock
+**Escalation**:
+A counted Boss value on one fixed scale from `0` to `5`, identical on every Boss so the party reads it without arithmetic. It gains `1` automatically at the end of each Round once automatic escalation begins, which is derived so that automatic ticks alone reach the top threshold exactly at the Encounter Clock. It gains more, from Round `1` onward, from authored Beat penalties when a demand goes unanswered — so ignoring a demand pulls the collapse forward. It is the encounter's only clock: the Boss has no separate round-limit timer. Boss identity lives in the effects at each threshold, never in the length of the scale; a Boss may name it something else in its own rules text, but Escalation is the only mechanical name for it (ADR 0027).
+_Avoid_: Enrage timer, dread meter, per-boss scale
+
+**Escalation Threshold**:
+The authored effect a Boss applies on reaching one Escalation value. Values `1` through `4` change how the fight behaves; the threshold at `5` is the hard wipe. A threshold is preferably **structural** — permanently closing part of the arena — rather than numeric, so the collapse is felt as space running out rather than as another damage number (D-031). No structural threshold may touch a hex adjacent to the Boss, because burning the `Guarded Front` would remove the Tank's own answer. A Beat that can add Escalation must disclose it in the Forecast Row, which makes that Beat `Severe`.
+_Avoid_: Soft enrage stage, phase trigger
 
 **Encounter Clock**:
-The boss-specific round budget for an encounter, usually eight rounds before modifiers. Player count, difficulty, or boss rules may adjust the encounter clock.
-_Avoid_: Turn cap, hard timer
+The number of Rounds that automatic Escalation ticks alone need to reach the top Escalation Threshold, usually eight before modifiers. Player count, difficulty, or boss rules may adjust it, and authored acceleration can only shorten it in play.
+_Avoid_: Turn cap, hard timer, enrage timer
 
 **End-of-Clock Behavior**:
-The boss-specific rule that defines what happens when the encounter clock runs out. Different bosses may lose the party immediately, trigger a final enrage round, or enter another authored failure state.
-_Avoid_: Global enrage rule, overtime
+The effect a Boss applies at its top Escalation Threshold. Different bosses may lose the party immediately or enter another authored failure state; it is that threshold's effect rather than a rule running beside Escalation.
+_Avoid_: Global enrage rule, overtime, parallel timer
 
 **Boss Timeline**:
-The visible sequence of boss actions arranged into the `Instant` row and the `Incoming` row. The boss timeline is mostly scripted rather than random.
+The visible sequence of boss actions arranged into three horizons: the `Forecast` row, the `Instant` row, and the `Incoming` row. Row names state when, never how much is known. The boss timeline is mostly scripted rather than random.
 _Avoid_: Deck, queue, stack
 
 **Boss Program**:
-The authored pair of ordered Instant and Incoming rows used by the Boss for one Round. An Encounter may sequence or loop multiple Boss Programs.
+The authored pair of ordered Instant and Incoming rows used by the Boss for one Round. An Encounter may sequence or loop multiple Boss Programs. The sequence of Programs is the Boss's learnable spine.
 _Avoid_: Boss card, turn script
 
+**Module Slot**:
+The one position a Boss Program may declare for bounded variation, filled by one of several authored Beat groups. The spine stays learnable while the filling varies; the Raid Seed chooses the filling, and the choice is settled before the Forecast Row announces that module's family. Modules are validated in combination, never one at a time, because module interactions are where difficulty actually comes from.
+_Avoid_: Random beat, shuffled program, per-beat randomization
+_Not yet in the engine_
+
+**Difficulty Layer**:
+A named set of authored changes that must change at least one mechanic or requirement. Numbers may support that change but are never a layer on their own: if nobody can name the new decision the layer creates, it is inflation rather than difficulty.
+_Avoid_: Health multiplier, hard mode, scaling
+_Not yet in the engine_
+
+**Practice Mode**:
+An economic tolerance applied on top of whichever Difficulty Layer is active, such as additional maximum health after repeated defeats. It may never remove, soften, or delay a mechanic's failure condition. It is deliberately not a Difficulty Layer, because it creates no new decision.
+_Avoid_: Easy mode, casual difficulty, Difficulty Layer
+_Not yet in the engine_
+
+**Raid Seed**:
+The single printed value that determines an Encounter's variable content: which module fills each Module Slot, and any random target stream. Two parties entering the same Raid Seed at the same Difficulty Layer face the same encounter permutation, which is what makes attempts comparable across groups.
+_Avoid_: Run ID, random seed, save code
+_Not yet in the engine_
+
 **Boss Beat**:
-One ordered authored action inside a Boss Program row. A Boss Beat states its visible counterplay and all Resources needed by its resolution, such as a Hazard or Minion.
+One ordered authored action inside a Boss Program row. A Boss Beat discloses in stages (ADR 0026): its family and counter tags while its Program sits in the Forecast Row, then every parameter needed by its resolution — target, magnitude, hexes, and Resources such as a Hazard or Minion — once that Program reaches the Incoming or Instant Row. A Beat is therefore legally incomplete in the Forecast Row and never incomplete anywhere else.
 _Avoid_: Event, command, hidden trigger
 
+**Consequence Tier**:
+The authored severity band that sets a Boss Beat's earliest legal horizon: `Chip` may originate in any row, `Structural` appears no later than the Incoming Row, and `Severe` must appear in the Forecast Row first. A Beat that can down a Hero or cross an Escalation Threshold is `Severe`, with no justification clause available.
+_Avoid_: Damage tier, priority, threat level
+
 **Encounter Briefing**:
-The pre-fight reference that shows a Boss's possible moves, each move's pattern and counterplay, and phase themes. It does not reveal exact beat order beyond the first Round.
-_Avoid_: Full script, surprise-only tutorial
+The pre-fight reference that shows a Boss's possible moves, each move's pattern and counterplay, its Module Slots and the families that can fill them, and phase themes. The Briefing is the catalog of what a Boss can do; the Forecast Row is the schedule. It never states rotation order, so first-attempt discovery survives.
+_Avoid_: Full script, surprise-only tutorial, schedule
 
 **Phase Reveal**:
 When the Party enters a later Boss phase, reveal that phase's exact program before its first Instant Row resolves.
@@ -65,19 +95,19 @@ A hostile combatant in an Encounter. The Boss and every Minion are Enemies.
 _Avoid_: Hostile target, foe
 
 **Status Effect**:
-A temporary rule attached to a combatant that responds to an explicit trigger, such as the start of a Round, taking damage, or firing a Slot.
-_Avoid_: Passive, invisible buff
+A temporary rule attached to one combatant — a Hero **or** an Enemy — that responds to an explicit trigger, such as the start of a Round, taking damage, or firing a Slot (D-032). The mechanism is identical on both sides; only which payload fields matter differs, so an Enemy-facing status uses `damageTakenBonus` and `damageDealtPenalty` where a Hero-facing one uses Armor and Boss-damage fields. Status definitions are authored content in `data/statuses/` and each one states whether it stacks (D-033). Every Status Effect is visible to the whole Party. A Status Effect may never redirect a Boss Beat's target or change what that Beat is.
+_Avoid_: Passive, invisible buff, Enemy Status
 
 **Riposte Ready**:
 A non-stacking, non-refreshing Elian Voss Status Effect. When a Boss Tank Hit resolves against Captain Elian Voss while they occupy the Guarded Front and causes `0` Health loss, grant Riposte Ready if they do not already have it. It expires at the end of the first Quick Window after that qualifying hit, whether the hit occurred in an Instant Row or an Incoming Row. The first card that deals Boss damage while it is active consumes it: a legal Shield Slam gains `2` additional Boss damage, and any other Boss-damage card gains `1` (D-015). Cards that deal no Boss damage never consume it. The effect must show its qualifying trigger, expiry, and consumption; it is not a general posture category or a resource meter.
 _Avoid_: Awakening, stacking buff, generic stance
 
 **Fortified**:
-An Elian Voss Status Effect created by firing Fortify in the Slow Window (D-019). At the start of the next Round, immediately after the Armor wipe, it grants its stored Armor and expires; the granted Armor is ordinary Armor thereafter. Multiple Fortified commitments stack additively. Because it lands before the next Instant Row, it is the one way to pre-block Instant-row pressure.
+An Elian Voss Status Effect created by firing Fortify in the Slow Window (D-019). It is a Status Effect with delayed onset, not a `Commitment`: it prepares for whatever the next Round opens with rather than for a named Beat, so it has no Beat to bind to. Its definition is authored in `data/statuses/`; the Armor amount comes from the card. At the start of the next Round, immediately after the Armor wipe, it grants its stored Armor and expires; the granted Armor is ordinary Armor thereafter. Multiple Fortified commitments stack additively. Because it lands before the next Instant Row, it is the one way to pre-block Instant-row pressure.
 _Avoid_: Delayed buff, second Armor pool
 
 **Hazard**:
-A temporary board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex.
+A board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex. Most Hazards are temporary and expire at a Round boundary; a Hazard placed by a structural Escalation Threshold is permanent, because the arena does not recover from it.
 _Avoid_: Surprise damage, ambient effect
 
 **Boss**:
@@ -95,6 +125,20 @@ _Avoid_: Delayed despawn, end-of-turn cleanup, defeated-but-blocking
 **Minion Intent**:
 The visible end-step action a living Minion will take: advance one hex toward its nearest Hero, or bite for its authored attack once adjacent. Intent is derived deterministically from the live board, resolves after the Slow Window before the Round wraps, and Minion damage is a Raid Hit — never a Tank Hit and never a Riposte Ready trigger.
 _Avoid_: Hidden AI, random wander, aggro table
+
+**Forecast Row**:
+The horizon that previews the next Round's whole Boss Program at family level: its title and the union of its counter tags. It tells the party what kind of raid problem is developing, so resources can be reserved for a category before a specific hit can be answered. It also carries the program's highest Consequence Tier, so the party can size the reserve. A Forecast Row never resolves — it is next Round's program shown early, not a fourth resolution step — so it leaves the per-Round event order untouched. Round `1` is not forecast: at the pull there is no earlier Round to have shown it, which is why a first program may carry no `Severe` Beat.
+_Avoid_: Preview row, hidden row, T+2
+
+**Commitment**:
+An authored card effect bound to one named Boss Beat, visible to the Party, resolving when that Beat resolves (D-028). A Commitment may only bind to a Beat whose parameters are disclosed — one in the `Incoming Row` or `Instant Row` — never to a `Forecast Row` entry, because a family-level entry states no parameters and a Commitment there would be a bet rather than a plan. Commitments prepare for a named future problem; they may never redirect its target or change what it is, and that ban is effect-level — it binds any mechanism that could produce the same effect. Nothing implements a Commitment yet: Fortify was reclassified as one and the reclassification was retracted, because it prepares for whatever the next Round opens with rather than for a named Beat.
+_Avoid_: Attachment, counterspell, reaction
+_Not yet in the engine_
+
+**Encounter Responsibility**:
+A duty the Encounter assigns to one Hero, transferable during the fight, and never tied to an Archetype (D-029). It is orthogonal to Role: a Tank may hold one, and so may anyone else. Its answers obey the same asymmetric-efficiency rule as any other problem, so a Responsibility never becomes a role lock in disguise. Not every Encounter has one.
+_Avoid_: Role, job, class duty
+_Not yet in the engine_
 
 **Instant Row**:
 The boss actions that resolve before the party's `Quick Window`. These are urgent mechanics that are already live this round.
@@ -319,10 +363,12 @@ _Avoid_: Battle captain, support tank
 **Threat**:
 A persistent per-Hero value that normally determines which valid Hero a boss targets. Damage dealt to the boss gains equal Threat unless an effect says otherwise.
 _Avoid_: Aggro, hate
+_Not yet in the engine_
 
 **Taunt**:
 An effect that sets its user's Threat to one above the current highest Threat value.
 _Avoid_: Forced target, provoke
+_Not yet in the engine_
 
 **Target Selector**:
 The explicit visible rule on a Boss Timeline action that determines its target, such as Highest Threat, a specific Role, Lowest Health, Nearest, Farthest, or All. Its predicted target is highlighted before resolution. If a selected Role is absent or defeated, target the nearest living Hero instead. Resolve selector ties by highest Threat, then the public Party resolution order.

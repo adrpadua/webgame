@@ -6,10 +6,12 @@ import type { Card } from './content/schemas'
 import { resolveFire } from './cardResolver'
 import { legality } from './legality'
 import { resolveBossBeat, advanceProgram, applyPhaseBreak, phaseBreakDue } from './timeline'
+import { ESCALATION_MAX } from './escalation'
 import { shuffle } from './rng'
 import {
   addStatus,
   createFortified,
+  createFromDefinition,
   createRiposteReady,
   getStatuses,
   hasStatus,
@@ -19,8 +21,8 @@ import {
   statusExpiresOnRoundAdvance,
   TANK_HIT,
 } from './statuses'
-import type { EncounterActionInput } from './actions'
-import type { CardInstance, EncounterState, HeroState, Phase, ResolveResult, ResolvedActionFact } from './types'
+import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
+import type { CardInstance, EncounterState, HazardInstance, HeroState, Phase, ResolveResult, ResolvedActionFact } from './types'
 
 // The reducer seam (ADR 0019): resolve(state, action) returns the next
 // immutable snapshot plus the facts produced. The draft is a structuredClone,
@@ -152,10 +154,27 @@ function resolveOne(
         fact.resolutionFact = { status_event: consumed.events[0] }
       }
       if (effects.armorNextRound > 0) {
-        const fortified = createFortified(card.id, effects.armorNextRound, draft.round, draft.phase)
+        const fortified = createFortified(catalog, card.id, effects.armorNextRound, draft.round, draft.phase)
         addStatus(draft, action.sourceId, fortified)
         if (consumed.events.length === 0) {
           fact.resolutionFact = { status_event: statusEvent(fortified, 'granted', fortified.triggerReason) }
+        }
+      }
+      // An authored status (D-033). `target_type` decides where it lands: a
+      // selected Enemy for an enemy-facing status, the firing Hero otherwise.
+      // `board_slot` — an ally's Top Card — is canon but unbuilt (D-035).
+      if (card.applies_status !== '') {
+        const definition = catalog.statuses[card.applies_status]
+        if (definition) {
+          const targetId = definition.applies_to === 'enemy' ? (action.targetId ?? '') : action.sourceId
+          const applied = createFromDefinition(definition, { sourceId: card.id, round: draft.round, phase: draft.phase })
+          const granted = addStatus(draft, targetId, applied)
+          fact.detail.appliedStatus = definition.id
+          fact.detail.appliedStatusTarget = targetId
+          fact.detail.appliedStatusGranted = granted
+          if (consumed.events.length === 0) {
+            fact.resolutionFact = { status_event: statusEvent(applied, granted ? 'granted' : 'refused', granted ? 'authored_status' : 'already_present') }
+          }
         }
       }
       succeed(fact)
@@ -218,7 +237,7 @@ function resolveOne(
     }
     case 'apply_hazard': {
       const definition = action.hazardId === null ? null : catalog.hazards[action.hazardId]
-      const hazard = definition
+      const hazard: HazardInstance = definition
         ? {
             id: definition.id,
             title: definition.title,
@@ -233,6 +252,9 @@ function resolveOne(
             enterDamage: 1,
             blocksVoluntaryMovement: true,
           }
+      if (action.permanent === true) {
+        hazard.permanent = true
+      }
       if (!addHazard(draft.board, action.coords, hazard)) {
         fail(fact, 'The hazard could not be applied to that hex.')
         break
@@ -247,6 +269,7 @@ function resolveOne(
         fail(fact, 'The Minion spawn hex is unavailable.')
         break
       }
+      draft.board.entities[action.minionId].spawnedRound = draft.round
       if (minion) {
         draft.board.entities[action.minionId].contentId = minion.id
       }
@@ -266,7 +289,7 @@ function resolveOne(
       break
     }
     case 'damage': {
-      const resolutionFact = applyDamage(draft, action.targetId, action.amount)
+      const resolutionFact = applyDamage(draft, action.targetId, action.amount, action.sourceId)
       for (const [key, value] of Object.entries(action.factContext ?? {})) {
         if (!(key in resolutionFact)) {
           resolutionFact[key] = value
@@ -378,6 +401,37 @@ function resolveOne(
       succeed(fact)
       break
     }
+    case 'gain_escalation': {
+      const before = draft.escalation
+      draft.escalation = Math.min(ESCALATION_MAX, before + action.amount)
+      const crossedThresholds = draft.escalationThresholds.filter(
+        (threshold) => threshold.value > before && threshold.value <= draft.escalation,
+      )
+      const crossed = crossedThresholds.map((threshold) => threshold.title)
+      // A structural threshold changes the arena for good, so unlike the
+      // read-time modifiers it has to ride generated actions (D-031).
+      for (const threshold of crossedThresholds) {
+        for (const coords of threshold.scorch_hexes) {
+          generated.push({
+            kind: 'apply_hazard',
+            sourceId: ENCOUNTER_SOURCE,
+            coords,
+            hazardId: 'scorched',
+            fallbackDurationRounds: 1,
+            permanent: true,
+          })
+        }
+      }
+      fact.resolutionFact = {
+        escalation_before: before,
+        escalation_after: draft.escalation,
+        escalation_reason: action.reason,
+        thresholds_crossed: crossed,
+        ...(action.beatId === '' ? {} : { boss_beat_id: action.beatId }),
+      }
+      succeed(fact)
+      break
+    }
     case 'end_of_clock': {
       draft.round = action.round
       draft.active = false
@@ -473,8 +527,25 @@ function slotFiredStatusActions(draft: EncounterState, entityId: string): Encoun
   return actions
 }
 
-function applyDamage(draft: EncounterState, targetId: string, amount: number): Record<string, unknown> {
-  const requested = Math.max(amount, 0)
+// Sums one enemy-facing payload field across a combatant's statuses (D-034).
+function statusSum(draft: EncounterState, entityId: string, field: 'damageTakenBonus' | 'damageDealtPenalty'): number {
+  let total = 0
+  for (const effect of getStatuses(draft, entityId)) {
+    if (effect.triggers.includes('on_damage_taken')) {
+      total += effect[field]
+    }
+  }
+  return total
+}
+
+function applyDamage(draft: EncounterState, targetId: string, amount: number, sourceId = ''): Record<string, unknown> {
+  // The two enemy-facing fields ride damage resolution that already existed:
+  // the source's Weakened lowers what it deals, the target's Sundered raises
+  // what it takes. Both resolve before mitigation, so Armor still answers the
+  // number the Party can read.
+  const dealtPenalty = sourceId === '' ? 0 : statusSum(draft, sourceId, 'damageDealtPenalty')
+  const takenBonus = statusSum(draft, targetId, 'damageTakenBonus')
+  const requested = Math.max(amount - dealtPenalty + takenBonus, 0)
   let adjusted = requested
   let prevented = 0
   for (const effect of getStatuses(draft, targetId)) {
@@ -581,6 +652,8 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: 'Draw a card', detail }
     case 'shuffle_deck':
       return { title: `Shuffle deck (${action.label})`, detail }
+    case 'gain_escalation':
+      return { title: `Escalation +${action.amount} (${action.reason})`, detail }
     case 'end_of_clock':
       return { title: 'End of the Encounter Clock', detail }
   }

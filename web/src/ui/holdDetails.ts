@@ -4,8 +4,10 @@ import {
   type BossBeat,
   type BossProgram,
   type Card,
+  type ConsequenceTier,
   type ContentCatalog,
   type EncounterState,
+  type Forecast,
   type Phase,
   type SlotState,
 } from '@/engine'
@@ -140,6 +142,28 @@ export function programDetail(program: BossProgram): HoldDetail {
       ...program.incoming_beats.map(line),
     ],
     text: program.rules_text,
+  }
+}
+
+// The Forecast Row: next Round's program at family level. It deliberately
+// carries no target, magnitude, or hex — that is the disclosure contract
+// (ADR 0026), not an omission. What it does say is what kind of answer to keep
+// in reserve, which is the whole reason the horizon exists.
+const TIER_COPY: Record<ConsequenceTier, string> = {
+  chip: 'Routine pressure',
+  structural: 'Changes the board',
+  severe: 'Can down a Hero',
+}
+
+export function forecastDetail(ahead: Forecast): HoldDetail {
+  return {
+    id: `forecast:${ahead.programId}`,
+    title: ahead.title,
+    badge: 'Next Round',
+    tone: 'boss',
+    stats: [{ label: 'Severity', value: TIER_COPY[ahead.tier] }],
+    text: `${ahead.rulesText} Exact targets and hexes arrive when it reaches Incoming — plan for the kind of problem, not the numbers.`,
+    tags: ahead.counterTags,
   }
 }
 

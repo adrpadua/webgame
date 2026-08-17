@@ -132,6 +132,19 @@ Two asymmetric rules then apply, adapted from the champion balance framework in 
 | Class-fantasy clarity | Human rubric now | Play-feel | Ask whether the deck felt like the named Hero Archetype, using observed moments rather than lore preference. |
 | Repetition fatigue across repeated runs | Human rubric now | Play-feel | Ask after at least three runs with the same deck/scenario set. |
 
+### Required Encounter Metrics
+
+Four metrics are required of every encounter session, in addition to the deck metrics above (D-027). Each exists to falsify one adopted law, which is why these four and not the eleven originally proposed: a metric with no law behind it does not get collected. The full proposal came from revision 1 of the [cooperative-boss research](research/2026-08-17-coop-boss-design-repeatability.md), which revision 2 replaced without carrying the metrics table forward — so this section, not that document, is now their definition.
+
+| Metric | The law it tests | What to record | Healthy result |
+| --- | --- | --- | --- |
+| Timeline conversion rate | D-021's Forecast Row | When a threat is forecast, did the party take an action specifically preparing for it? | Rises across a party's first three attempts. A flat low rate means the Forecast Row is decorative UI, not information. |
+| Failure attribution | D-022's randomize-before-commitment | After a wipe, ask what decision could have prevented it. | High agreement on a causal mistake. Repeated "nothing, bad draw" is the named failure signal for randomness placement. |
+| Decision concentration | D-026's rejection of face-down commitment | Which player proposed or selected each significant response. | Responses spread across the Party. One player driving nearly everything is answered with more demand density, never a silence rule. |
+| Role counterfactual value | D-025 and the Role Contract | Remove or simulate away each role's key actions; measure the loss in survival and time. | Each role contributes uniquely without being the sole legal source of every solution. |
+
+Two more become required as soon as repeat-clear content exists, because both need multiple attempts by the same group and the solo slice cannot produce them: **attempts-to-first-clear curve** (clear rate must rise materially as players learn — if attempt ten is as random as attempt one, mastery is not transferring) and **wipe-cause distribution** (one mechanic dominating wipes signals an overtuned gate rather than a complete encounter). The remaining research metrics — post-clear retention, telegraph comprehension, successful-strategy diversity, RNG sensitivity, recovery rate — stay opt-in.
+
 ## Human Playtest Rubric
 
 After each run, ask the player or observer to answer each item from `1` to `5`.

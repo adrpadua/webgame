@@ -23,6 +23,8 @@ The split is the whole point. Style lives in exactly one file, so correcting the
 
 The exception is the tile and crest blocks in [board-and-tiles.md](board-and-tiles.md). Those are self-contained and take **no** preamble: the preamble describes painterly material rendering that a monochrome hex ring cannot express, and prepending it only dilutes the geometric instruction that decides whether the asset works.
 
+[board-sprite-sheets.md](board-sprite-sheets.md) is a narrower exception. It takes the preamble and overrides one paragraph of it — the rendering style, because a board piece is pixel art and a card is not. The materials, palette, and shape language still come from the shared file, which is what keeps a piece and its own card the same character.
+
 ## Templates
 
 | Template | Produces | Output path |
@@ -31,6 +33,7 @@ The exception is the tile and crest blocks in [board-and-tiles.md](board-and-til
 | [card-ability-art.md](card-ability-art.md) | Card and action-bar ability illustrations | `assets/art/cards/<hero-slug>/` |
 | [board-and-tiles.md](board-and-tiles.md) | Hover and target tiles, boss crest, arena backdrop | `assets/art/board/` |
 | [boss-and-minion.md](boss-and-minion.md) | Raid boss and minion art | `assets/art/bosses/`, `assets/art/minions/` |
+| [board-sprite-sheets.md](board-sprite-sheets.md) | Six-facing idle sheets for pieces on the board | `assets/art/characters/<entity-slug>/` |
 
 Supporting files: [`_style-preamble.md`](_style-preamble.md) holds the locked style contract, [`_tools.md`](_tools.md) holds the tool decisions.
 

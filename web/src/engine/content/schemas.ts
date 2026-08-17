@@ -39,6 +39,11 @@ export const cardSchema = z.object({
   damage: z.number().int().default(0),
   tags: z.array(z.string()).default([]),
   charge_modifiers: z.array(z.string()).default([]),
+  // The status this card applies, if any (D-033). Where it lands comes from
+  // `target_type`, which this finally makes load-bearing: `none` applies to
+  // the firing Hero, `piece` to a selected Enemy, `board_slot` to an ally's
+  // Top Card.
+  applies_status: z.string().default(''),
 })
 
 export const hazardSchema = z.object({
@@ -58,20 +63,69 @@ export const minionSchema = z.object({
   attack_damage: z.number().int().min(0).default(0),
 })
 
+// A Status Effect definition (D-033). Statuses were engine-only until now:
+// Riposte Ready and Fortified were constructed in code at hardcoded moments.
+// Authoring them here makes them shared vocabulary — one Sundered, with one
+// title, one rules text, and one answer to whether it stacks.
+export const statusSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  rules_text: z.string().default(''),
+  // Which side of the fight the payload is written for. The mechanism is the
+  // same for both; only the fields that matter differ (D-032).
+  applies_to: z.enum(['hero', 'enemy']),
+  triggers: z.array(z.enum(['on_round_start', 'on_enter_hex', 'on_damage_taken', 'on_slot_fired'])).default([]),
+  // Per-status rather than one global rule, because canon already holds both
+  // behaviours: Riposte Ready never stacks, Fortified stacks additively.
+  stacking: z.boolean().default(false),
+  duration_rounds: z.number().int().min(1).default(1),
+  // Enemy-facing payload (D-034). Two named fields rather than a general
+  // effect list, following the ADR 0021 precedent.
+  damage_taken_bonus: z.number().int().min(0).default(0),
+  damage_dealt_penalty: z.number().int().min(0).default(0),
+})
+
 export const bossBeatSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   rules_text: z.string().default(''),
   kind: z.enum(['turn_toward_player', 'raking_claw', 'scorch_last_pattern', 'cinder_breath', 'brood_call', 'warning']),
   counter_tags: z.array(z.string()).default([]),
+  // Consequence Tier (ADR 0026): sets the earliest horizon this Beat may
+  // appear in. `chip` anywhere, `structural` no later than Incoming, `severe`
+  // in the Forecast Row first. Authored rather than derived, and validated —
+  // see the ladder tests.
+  consequence_tier: z.enum(['chip', 'structural', 'severe']).default('chip'),
   target_selector: z.string().default(''),
   damage_classification: z.string().default(''),
   damage: z.number().int().default(0),
   unguarded_bonus: z.number().int().min(0).default(0),
+  // Escalation acceleration (ADR 0027): what it costs to leave this Beat's
+  // demand standing at a Round end. Only the living-Minion demand is
+  // supported, so today this rides `brood_call`.
+  escalation_if_unanswered: z.number().int().min(0).default(0),
   duration_rounds: z.number().int().min(1).default(1),
   hazard: z.string().optional(),
   minion: z.string().optional(),
   count: z.number().int().min(1).max(12).default(2),
+})
+
+// One authored Escalation Threshold (ADR 0027). Values `1` through `4` carry
+// effects; the wipe at `5` is a rule the engine owns, not authored content, so
+// there is one authority for the end of the fight.
+export const escalationThresholdSchema = z.object({
+  value: z.number().int().min(1).max(4),
+  title: z.string().min(1),
+  rules_text: z.string().default(''),
+  boss_damage_bonus: z.number().int().min(0).default(0),
+  extra_spawn_count: z.number().int().min(0).default(0),
+  minion_damage_bonus: z.number().int().min(0).default(0),
+  // Structural thresholds (D-031): hexes permanently Scorched when this
+  // threshold is crossed, so escalation is felt as the arena closing rather
+  // than as another damage number. Authored per hex and validated — no
+  // authored hex may be adjacent to the Boss, or the Guarded Front itself
+  // could burn and the Tank's own answer would become unreachable.
+  scorch_hexes: z.array(axialSchema).default([]),
 })
 
 export const bossProgramSchema = z.object({
@@ -125,6 +179,7 @@ export const encounterSchema = z.object({
   phase_break_text: z.string().default(''),
   random_seed: z.number().int(),
   brood_spawn_candidates: z.array(axialSchema).default([]),
+  escalation_thresholds: z.array(escalationThresholdSchema).default([]),
 })
 
 export const evaluationDeckSchema = z.object({
@@ -167,6 +222,8 @@ export type ChargeModifier = z.infer<typeof chargeModifierSchema>
 export type Card = z.infer<typeof cardSchema>
 export type Hazard = z.infer<typeof hazardSchema>
 export type Minion = z.infer<typeof minionSchema>
+export type StatusDefinition = z.infer<typeof statusSchema>
+export type EscalationThreshold = z.infer<typeof escalationThresholdSchema>
 export type BossBeat = z.infer<typeof bossBeatSchema>
 export type BossProgram = z.infer<typeof bossProgramSchema>
 export type EncounterDefinition = z.infer<typeof encounterSchema>
