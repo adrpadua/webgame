@@ -259,8 +259,15 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
     },
 
     hexClicked: (coords) => {
-      const { targetingSlotIndex, selectedCardId } = get()
+      const { targetingSlotIndex, selectedCardId, pendingMove } = get()
       const state = selectState(get())
+      // A move waiting on a card is answered in the Hand. Touching the board
+      // again is the player reconsidering the hex, so the offer comes down —
+      // and a fresh drag from the Hero simply names a new destination.
+      if (pendingMove !== null) {
+        set({ pendingMove: null })
+        return
+      }
       if (targetingSlotIndex !== null) {
         const target = Object.values(state.board.entities).find(
           (entity) => entity.coords.q === coords.q && entity.coords.r === coords.r && entity.kind === 'minion',

@@ -410,17 +410,26 @@ try {
   }
   const stepsBeforeDrag = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
   await dragHero(-1, 0)
-  await page.waitForSelector('[data-testid="move-cost"]')
-  assert((await page.locator('[data-testid="move-cost"]').count()) === 1, 'dragging the Hero to a legal hex asks which card pays for the step')
+  await page.waitForSelector('[data-testid="move-payment-cue"]')
   assert(
-    (await page.locator('[data-testid="move-cost-card"]').count()) === handBeforeMove,
-    'the move prompt offers every card in the Hand',
+    (await page.locator('[data-testid="move-payment-cue"]').getAttribute('data-direction')) === 'W',
+    'dragging the Hero west asks for the step west',
   )
+  // The Hand is the prompt: every card is offered, and the offer is a real
+  // animation rather than a class name nothing is listening to.
+  await page.waitForSelector('[data-testid="hand"][data-paying="true"]')
+  assert(
+    (await page.locator('[data-testid="hand-card"][data-offering="true"]').count()) === handBeforeMove,
+    'every card in the Hand is offered to pay for the step',
+  )
+  const offerAnimation = await page.evaluate(() => getComputedStyle(document.querySelector('[data-testid="hand-card"]')).animationName)
+  assert(offerAnimation.includes('wb-card-offer'), `the offered cards run the rise animation (${offerAnimation})`)
   await page.locator('[data-testid="cancel-move"]').click()
-  await page.waitForSelector('[data-testid="move-cost"]', { state: 'detached' })
-  assert((await page.locator('[data-testid="hand-card"]').count()) === handBeforeMove, 'a dismissed move prompt spends no card')
+  await page.waitForSelector('[data-testid="move-payment-cue"]', { state: 'detached' })
+  assert((await page.locator('[data-testid="hand-card"]').count()) === handBeforeMove, 'a dismissed move offer spends no card')
+  assert((await page.locator('[data-testid="hand-card"][data-offering="true"]').count()) === 0, 'the Hand settles back out of the offer')
   const stepsAfterDragCancel = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
-  assert(stepsAfterDragCancel === stepsBeforeDrag, 'a dismissed move prompt records no Scenario step')
+  assert(stepsAfterDragCancel === stepsBeforeDrag, 'a dismissed move offer records no Scenario step')
 
   await scriptedCard().dragTo(boardCanvas, { targetPosition: await hexPosition(boardCanvas, -1, 0) })
   await page.waitForTimeout(150)
@@ -751,12 +760,12 @@ try {
   await phone.mouse.down()
   await phone.mouse.move(phoneBoardBox.x + phoneHeroTo.x, phoneBoardBox.y + phoneHeroTo.y, { steps: 8 })
   await phone.mouse.up()
-  await phone.waitForSelector('[data-testid="move-cost"]')
-  assert((await phone.locator('[data-testid="move-cost"]').count()) === 1, 'the Hero drag opens the move prompt on a touch viewport too')
-  await phone.locator('[data-testid="move-cost-card"]').first().click()
-  await phone.waitForSelector('[data-testid="move-cost"]', { state: 'detached' })
+  await phone.waitForSelector('[data-testid="hand"][data-paying="true"]')
+  assert((await phone.locator('[data-testid="move-payment-cue"]').count()) === 1, 'the Hero drag hands the step to the Hand on a touch viewport too')
+  await phone.locator('[data-testid="hand-card"]').first().click()
+  await phone.waitForSelector('[data-testid="move-payment-cue"]', { state: 'detached' })
   await phone.waitForTimeout(300)
-  assert((await phone.locator('[data-testid="hand-card"]').count()) === handBeforeDrag - 1, 'paying the prompt discards exactly the card that was pressed')
+  assert((await phone.locator('[data-testid="hand-card"]').count()) === handBeforeDrag - 1, 'tapping an offered card discards exactly that card')
   // The panel follows the piece by its tile, so it is also the readout for
   // where the Hero ended up.
   await phoneBoard.click({ position: await hexPosition(phoneBoard, -1, 0) })

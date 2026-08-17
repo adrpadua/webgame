@@ -13,8 +13,8 @@ import { FirstTurnCue } from './FirstTurnCue'
 import { GuideModal } from './GuideModal'
 import { Hand } from './Hand'
 import { HoldPopoverLayer } from './HoldPopover'
-import { MoveCostModal } from './MoveCostModal'
 import { MovePad } from './MovePad'
+import { MovePaymentCue } from './MovePaymentCue'
 import { PhaseBanner } from './PhaseBanner'
 import { PhaseControl } from './PhaseControl'
 import { ProgramStrip } from './ProgramStrip'
@@ -165,6 +165,7 @@ export default function App() {
           <div className="pointer-events-none absolute inset-x-2 top-2 z-10 flex flex-col gap-1.5">
             <FirstTurnCue />
             <CoachMark />
+            <MovePaymentCue />
             <PlayoutContinue />
           </div>
           {/* The tapped piece's Stat Panel floats over the board's lower
@@ -179,7 +180,6 @@ export default function App() {
         <TargetingBanner />
         <PhaseBanner />
         <ReplaceConfirmModal />
-        <MoveCostModal />
         <OutcomeBanner />
         <GuideModal />
       </main>

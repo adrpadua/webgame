@@ -236,6 +236,31 @@ body {
   animation: wb-ring-pulse 1.4s ease-out infinite;
 }
 
+/* --- The Hand offers itself ----------------------------------------------
+   A move dragged from the Hero names a hex and nothing else, and a move is
+   paid for with a discarded card. Rather than a popup over the board — which
+   hides the hex the player just chose — the Hand answers: each Compact Card
+   rises in turn and holds there until one is tapped. The stagger is what
+   makes it read as the Hand offering itself rather than as the whole row
+   twitching, and it ends lifted at the same height selection uses, so the
+   gesture finishes exactly where the tap path would have started.
+   One shot, not a loop: the lift carries state, and this state ends the
+   moment a card is tapped or the move is called off. */
+@keyframes wb-card-offer {
+  0% {
+    transform: translateY(0);
+  }
+  60% {
+    transform: translateY(-14px);
+  }
+  100% {
+    transform: translateY(-8px);
+  }
+}
+.wb-card-offer {
+  animation: wb-card-offer 380ms ease-out both;
+}
+
 /* --- The Primed seat -----------------------------------------------------
    Fires once when a Slot's last tumbler drops and the lock head's ward ring
    closes, then stops. No idle pulse: a Primed Slot can persist for rounds,
@@ -465,6 +490,12 @@ body {
   .wb-hex-step,
   .wb-damage-flash {
     animation: none;
+  }
+  .wb-card-offer {
+    /* The lift is the state, not the flourish: hold the offered position
+       and drop only the rise that gets there. */
+    animation: none;
+    transform: translateY(-8px);
   }
   .wb-banner,
   .wb-banner-long {

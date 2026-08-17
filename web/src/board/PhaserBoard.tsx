@@ -15,6 +15,7 @@ function buildSnapshot(
   previewingRoutes: boolean,
   showCoordinates: boolean,
   guidedMoveKeys: string[],
+  pendingMoveKey: string | null,
 ): BoardSnapshot {
   const legalMoveKeys: string[] = []
   // Legal routes light up while dragging a hand card (the paid move) or
@@ -35,6 +36,7 @@ function buildSnapshot(
     targeting,
     legalMoveKeys,
     guidedMoveKeys,
+    pendingMoveKey,
     showCoordinates,
     pendingScorchKeys: playout.pendingScorchKeys,
     pendingSpawnIds: playout.pendingSpawnIds,
@@ -111,9 +113,12 @@ export function PhaserBoard() {
         buildSnapshot(
           selectState(store),
           store.targetingSlotIndex !== null,
-          store.draggingCardId !== null || store.selectedCardId !== null || store.heroRoutePreview,
+          // A move waiting on its card keeps the routes lit too: the board
+          // holds the offer open while the player reads their Hand.
+          store.draggingCardId !== null || store.selectedCardId !== null || store.heroRoutePreview || store.pendingMove !== null,
           store.showCoordinates,
           step?.safeHexKeys ?? [],
+          store.pendingMove === null ? null : hexKey(store.pendingMove.destination),
         ),
       )
       // The playout director hands each fired moment's effects to the board

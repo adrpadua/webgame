@@ -59,6 +59,10 @@ export interface BoardSnapshot {
   legalMoveKeys: string[]
   // Hexes the scripted first turn is pointing the player at.
   guidedMoveKeys: string[]
+  // The hex a dragged move is waiting to be paid for, if any. The player is
+  // looking at their Hand to choose the card; the board holds the hex they
+  // chose so the two halves of the gesture stay one sentence.
+  pendingMoveKey: string | null
   showCoordinates: boolean
   // What the playout's unplayed moments will show. The snapshot state is
   // the batch's final one, so until those moments fire the board holds
@@ -597,6 +601,14 @@ export class BoardScene extends Phaser.Scene {
       }
       if (legalMoves.has(key)) {
         this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), MOVE_OVERLAY, 0.35)
+      }
+      // The chosen hex takes the same runeglass at full strength and wears
+      // its own edge: while the Hand is being read, this is the one hex the
+      // player has already committed to.
+      if (snapshot.pendingMoveKey === key) {
+        this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), MOVE_OVERLAY, 0.6)
+        graphics.lineStyle(3, MOVE_OVERLAY, 1)
+        this.strokeHex(graphics, hexCorners(x, y, HEX_SIZE - 5))
       }
       // The scripted turn marks the hexes that answer the telegraph, with a
       // slow pulse so the eye lands there without any words.

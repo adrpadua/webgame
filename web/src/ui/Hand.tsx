@@ -17,20 +17,28 @@ function CompactCard({
   cardId,
   spotlit,
   gated,
+  offering,
+  offerDelayMs,
   width,
 }: {
   instanceId: string
   cardId: string
   spotlit: boolean
   gated: boolean
+  // A move dragged from the Hero is waiting on a card to pay for it, so this
+  // card is lifted and a tap spends it instead of selecting it.
+  offering: boolean
+  offerDelayMs: number
   width: string
 }) {
   const catalog = useWorkbench((store) => store.catalog)
   const setDraggingCard = useWorkbench((store) => store.setDraggingCard)
   const selectCard = useWorkbench((store) => store.selectCard)
+  const payForMove = useWorkbench((store) => store.payForMove)
+  const cancelMove = useWorkbench((store) => store.cancelMove)
   const selected = useWorkbench((store) => store.selectedCardId === instanceId)
   const card = catalog.cards[cardId]
-  const hold = useHold(cardDetail(card, 'hand', 'Drop it on a Slot to prepare or charge it.'))
+  const hold = useHold(cardDetail(card, 'hand', offering ? 'Tap it to spend it on the step.' : 'Drop it on a Slot to prepare or charge it.'))
   const windowSpeed = cardWindowSpeed(card)
   const effectTone = CARD_EFFECT_TONE[cardEffect(card)]
   const EffectIcon = effectTone.icon
@@ -44,25 +52,43 @@ function CompactCard({
       data-card-instance={instanceId}
       data-selected={selected}
       data-scripted={spotlit}
+      data-offering={offering || undefined}
       {...hold.holdProps}
       onClick={() => {
         // A press that opened the detail popup is not a selection tap.
-        if (!hold.consumeHold()) {
-          selectCard(instanceId)
+        if (hold.consumeHold()) {
+          return
         }
+        if (offering) {
+          payForMove(instanceId)
+          return
+        }
+        selectCard(instanceId)
       }}
       onDragStart={(event) => {
         event.dataTransfer.setData('text/plain', instanceId)
         event.dataTransfer.effectAllowed = 'move'
         setDraggingCard(instanceId)
+        // Dragging a card while the Hand is offering is the player changing
+        // their mind about where to spend it: the card's own drop decides
+        // now, so the waiting move steps aside rather than racing it.
+        cancelMove()
       }}
       onDragEnd={() => setDraggingCard(null)}
-      style={{ width }}
+      // The rise is staggered by position, so the row reads left to right as
+      // one offer rather than five cards jumping at once.
+      style={{ width, ...(offering ? { animationDelay: `${offerDelayMs}ms` } : {}) }}
       className={`wb-plate wb-plate-card wb-face-steel min-h-24 shrink-0 cursor-grab py-1.5 text-left transition hover:-translate-y-1 active:cursor-grabbing ${FOCUS_RING_CLASS} ${
         // A Compact Card is a raked oathsteel plate. Its timing seam is drawn by
         // the card body below; selection lifts it and takes the gold accent.
-        selected ? '-translate-y-1 wb-acc-gold ring-2 ring-gold-400' : 'wb-acc-none'
-      } ${spotlit ? `wb-acc-gold ${SPOTLIGHT_CLASS}` : ''} ${gated ? GATED_CLASS : ''}`}
+        selected && !offering ? '-translate-y-1 wb-acc-gold ring-2 ring-gold-400' : 'wb-acc-none'
+      } ${spotlit && !offering ? `wb-acc-gold ${SPOTLIGHT_CLASS}` : ''} ${
+        // Offered cards wear runeglass — the material of a live player
+        // affordance — and hold their lift until one of them is spent. The
+        // ring is static and the pulse rides beside it, so the card stays
+        // readable at every point in the breath.
+        offering ? 'wb-card-offer wb-acc-glass wb-ring-pulse ring-2 ring-glass-400' : ''
+      } ${gated ? GATED_CLASS : ''}`}
     >
       {/* A five-card Hand leaves each card 56px of content. The title takes
           all of it: sharing the row with the effect icon left 38px, and the
@@ -90,6 +116,9 @@ function CompactCard({
 export function Hand() {
   const state = useWorkbench(selectState)
   const step = useFirstTurnStep()
+  // A move dragged from the Hero is waiting on the card that pays for it.
+  // The whole Hand is that answer, so the row takes over as the prompt.
+  const paying = useWorkbench((store) => store.pendingMove !== null)
   const hero = state.heroes[state.primaryHeroId]
   if (!hero) {
     return null
@@ -101,7 +130,10 @@ export function Hand() {
   // through a phase in which every one of them is illegal. The band keeps
   // its height either way, because the board sizes to the space the HUD
   // leaves and must never resize mid-Encounter.
-  const handGated = blocksTarget(step, 'hand') || !handCanAct(state)
+  // ...and neither reason survives a move waiting to be paid for: a Hand
+  // gated while it is the only thing that can answer would strand the
+  // gesture with nothing to press.
+  const handGated = !paying && (blocksTarget(step, 'hand') || !handCanAct(state))
   // A Compact Card keeps one width — its share of a full Hand — whether
   // five cards remain or one. Cards that stretched to fill the row stopped
   // reading as cards; a thinning Hand stays centered, with the freed space
@@ -120,21 +152,29 @@ export function Hand() {
       // px-2/gap-1 rather than px-3/gap-1.5: at a five-card refill the row's
       // own chrome was costing 16px of card width, and the widest card name
       // in the catalogue needs every one of them to sit on one line.
-      className="flex min-h-30 flex-wrap content-center justify-center gap-1 border-t border-steel-800 bg-navy-950/90 px-2 py-3"
+      // The band takes the runeglass edge while it is the prompt, so the row
+      // reads as one lit surface rather than as cards that happen to glow.
+      className={`flex min-h-30 flex-wrap content-center justify-center gap-1 border-t bg-navy-950/90 px-2 py-3 transition-colors ${
+        paying ? 'border-glass-500' : 'border-steel-800'
+      }`}
       data-testid="hand"
+      data-paying={paying || undefined}
       data-inert={handCanAct(state) ? undefined : 'true'}
     >
-      {hero.hand.map((instance) => {
+      {hero.hand.map((instance, index) => {
         // The script points at one card at a time; the rest of the Hand
-        // waits its turn.
+        // waits its turn — but a Hand paying for a step offers every card,
+        // because any of them can be the one spent.
         const scripted = step?.cardInstanceId ?? null
         const spotlit = !handGated && scripted === instance.instanceId
-        const gated = handGated || (scripted !== null && scripted !== instance.instanceId)
+        const gated = !paying && (handGated || (scripted !== null && scripted !== instance.instanceId))
         return (
           <CompactCard
             key={instance.instanceId}
             instanceId={instance.instanceId}
             cardId={instance.cardId}
+            offering={paying}
+            offerDelayMs={index * 55}
             spotlit={spotlit}
             gated={gated}
             width={cardWidth}

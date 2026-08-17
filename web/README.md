@@ -38,8 +38,8 @@ same way, with `VITE_BASE` set to that host's serving path.
 
 Touch is first-class on iPadOS Safari: drag Compact Cards with a finger to
 prepare, charge, or move; press the Hero to preview routes, or drag it onto a
-legal hex and pick the hand card that pays for the step; tap the program strip
-to expand or collapse it. Every drag also has a tap path — tap a Compact Card
+legal hex — the Hand then lifts its cards and the one tapped pays for the
+step; tap the program strip to expand or collapse it. Every drag also has a tap path — tap a Compact Card
 to select it, then tap a Slot or a move-pad direction — and replacing an
 occupied Slot always asks for confirmation, since it discards the Top Card and
 its Charge Stack.

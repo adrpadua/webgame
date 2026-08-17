@@ -102,6 +102,19 @@ describe('dragging the Hero to a hex', () => {
     expect(store().lastRejection).toContain('Quick Window')
   })
 
+  it('takes the offer down when the board is touched again', () => {
+    const origin = heroCoords()
+    store().heroDraggedToHex(firstLegalDestination())
+
+    store().hexClicked(origin)
+
+    expect(store().pendingMove).toBeNull()
+    // The tap that called the move off is spent doing exactly that: it does
+    // not also open the piece's Stat Panel underneath.
+    expect(store().inspectedEntityId).toBeNull()
+    expect(heroCoords()).toEqual(origin)
+  })
+
   it('picks the target instead while a Top Card is waiting for a Minion', () => {
     const destination = firstLegalDestination()
     useWorkbench.setState({ targetingSlotIndex: 0 })
