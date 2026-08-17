@@ -8,6 +8,7 @@ import {
   keywordSchema,
   minionSchema,
   scenarioSchema,
+  statusSchema,
   type BossProgram,
   type Card,
   type ChargeModifier,
@@ -17,6 +18,7 @@ import {
   type Keyword,
   type Minion,
   type Scenario,
+  type StatusDefinition,
 } from './schemas'
 
 export interface ContentCatalog {
@@ -25,6 +27,7 @@ export interface ContentCatalog {
   chargeModifiers: Record<string, ChargeModifier>
   hazards: Record<string, Hazard>
   minions: Record<string, Minion>
+  statuses: Record<string, StatusDefinition>
   programs: Record<string, BossProgram>
   encounters: Record<string, EncounterDefinition>
   decks: Record<string, EvaluationDeck>
@@ -37,6 +40,7 @@ export interface RawContent {
   chargeModifiers: unknown[]
   hazards: unknown[]
   minions: unknown[]
+  statuses?: unknown[]
   programs: unknown[]
   encounters: unknown[]
   decks?: unknown[]
@@ -63,6 +67,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     chargeModifiers: indexById(raw.chargeModifiers.map((entry) => chargeModifierSchema.parse(entry)), 'charge modifier'),
     hazards: indexById(raw.hazards.map((entry) => hazardSchema.parse(entry)), 'hazard'),
     minions: indexById(raw.minions.map((entry) => minionSchema.parse(entry)), 'minion'),
+    statuses: indexById((raw.statuses ?? []).map((entry) => statusSchema.parse(entry)), 'status'),
     programs: indexById(raw.programs.map((entry) => bossProgramSchema.parse(entry)), 'boss program'),
     encounters: indexById(raw.encounters.map((entry) => encounterSchema.parse(entry)), 'encounter'),
     decks: indexById((raw.decks ?? []).map((entry) => evaluationDeckSchema.parse(entry)), 'deck'),
@@ -78,6 +83,21 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     for (const tag of card.tags) {
       if (!catalog.keywords[tag]) {
         throw new Error(`Card ${card.id} references unknown keyword ${tag}`)
+      }
+    }
+    if (card.applies_status !== '') {
+      const status = catalog.statuses[card.applies_status]
+      if (!status) {
+        throw new Error(`Card ${card.id} references unknown status ${card.applies_status}`)
+      }
+      // Targeting reuses the existing rule per kind (D-034), so the card's
+      // declared target has to match the side the status is written for.
+      const expected = status.applies_to === 'enemy' ? 'piece' : card.target_type
+      if (status.applies_to === 'enemy' && card.target_type !== 'piece') {
+        throw new Error(`Card ${card.id} applies the enemy status ${status.id} but does not target a piece`)
+      }
+      if (status.applies_to === 'hero' && card.target_type !== 'none' && card.target_type !== 'board_slot') {
+        throw new Error(`Card ${card.id} applies the hero status ${status.id} but targets ${expected}`)
       }
     }
   }

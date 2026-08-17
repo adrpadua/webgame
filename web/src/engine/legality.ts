@@ -90,6 +90,27 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
         }
         return { ...legal(), targetRange }
       }
+      // A card applying an enemy-facing status needs an Enemy, and each kind
+      // keeps the targeting rule it already had (D-034): a Minion must be in
+      // range, the Boss needs none — requiring one would contradict the
+      // positionless `boss_damage` ruling.
+      const appliedStatus = card.applies_status === '' ? undefined : catalog.statuses[card.applies_status]
+      if (appliedStatus?.applies_to === 'enemy') {
+        const targetId = action.targetId ?? ''
+        const target = state.board.entities[targetId]
+        if (!target || target.team !== 'enemy') {
+          return illegal('The Top Card needs an Enemy target.')
+        }
+        if (target.kind === 'boss') {
+          return legal()
+        }
+        const source = state.board.entities[action.sourceId]
+        const targetRange = hexDistance(source.coords, target.coords)
+        if (targetRange > card.range_tiles) {
+          return { ...illegal("The chosen Enemy is outside the Top Card's range."), targetRange }
+        }
+        return { ...legal(), targetRange }
+      }
       return legal()
     }
     case 'move_hero': {

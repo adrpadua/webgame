@@ -1,5 +1,6 @@
 import { addEntity, createBoard } from './board'
 import { FACING_NE, FACING_SW } from './facing'
+import { escalationStartRound } from './escalation'
 import { createRng, shuffle } from './rng'
 import { checkResolution } from './resolve'
 import { refreshTelegraphs } from './timeline'
@@ -18,6 +19,9 @@ export function createEncounterState(catalog: ContentCatalog, encounterId: strin
     phase: 'loadout',
     round: 1,
     roundLimit: Math.max(encounter.round_limit, 1),
+    escalation: 0,
+    escalationStartRound: escalationStartRound(Math.max(encounter.round_limit, 1)),
+    escalationThresholds: encounter.escalation_thresholds.map((threshold) => ({ ...threshold })),
     active: true,
     outcome: 'ongoing',
     outcomeReason: '',

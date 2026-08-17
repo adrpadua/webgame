@@ -1,4 +1,5 @@
 import { emptyHexes, facingToward, firstEmptyHexes, forwardCone, frontArc, isGuardedFront } from './board'
+import { escalationModifiers } from './escalation'
 import { normalizeFacing } from './facing'
 import { containsHex, hexKey, type Axial } from './hex'
 import type { BossBeat, BossProgram } from './content/schemas'
@@ -46,6 +47,9 @@ export function resolveBossBeat(
   let scorchedDurationRounds = 0
   let spawnHexes: Axial[] = []
   let unguardedBonusApplied = 0
+  // Escalation Thresholds apply at read time (ADR 0027), so they need no
+  // separate mutation and take effect from the Round after the value rose.
+  const escalated = escalationModifiers(draft)
   switch (beat.kind) {
     case 'turn_toward_player':
       if (boss) {
@@ -79,7 +83,7 @@ export function resolveBossBeat(
     case 'brood_call':
       spawnHexes = [...draft.telegraphedSpawnHexes]
       if (spawnHexes.length === 0) {
-        spawnHexes = firstEmptyHexes(draft.broodSpawnCandidates, emptyHexes(draft.board), beat.count)
+        spawnHexes = firstEmptyHexes(draft.broodSpawnCandidates, emptyHexes(draft.board), beat.count + escalated.extraSpawnCount)
       }
       break
     case 'warning':
@@ -90,6 +94,11 @@ export function resolveBossBeat(
     draft.previousImpactedHexes = [...impactedHexes]
   }
   const actions: EncounterActionInput[] = []
+  let escalationBonusApplied = 0
+  if (playerDamage > 0 && escalated.bossDamageBonus > 0) {
+    escalationBonusApplied = escalated.bossDamageBonus
+    playerDamage += escalationBonusApplied
+  }
   if (playerDamage > 0) {
     const factContext: Record<string, unknown> = {
       boss_beat_id: beat.id,
@@ -103,6 +112,9 @@ export function resolveBossBeat(
     }
     if (unguardedBonusApplied > 0) {
       factContext.unguarded_bonus = unguardedBonusApplied
+    }
+    if (escalationBonusApplied > 0) {
+      factContext.escalation_bonus = escalationBonusApplied
     }
     actions.push({
       kind: 'damage',
@@ -151,9 +163,11 @@ export function refreshTelegraphs(catalog: ContentCatalog, draft: EncounterState
           draft.telegraphs[hexKey(coords)] = 'breath'
         }
         break
-      case 'brood_call':
+      case 'brood_call': {
+        // The telegraph must not lie: it previews the escalated count.
+        const count = beat.count + escalationModifiers(draft).extraSpawnCount
         for (const coords of draft.broodSpawnCandidates) {
-          if (draft.telegraphedSpawnHexes.length >= beat.count) {
+          if (draft.telegraphedSpawnHexes.length >= count) {
             break
           }
           const key = hexKey(coords)
@@ -163,6 +177,7 @@ export function refreshTelegraphs(catalog: ContentCatalog, draft: EncounterState
           }
         }
         break
+      }
       default:
         break
     }

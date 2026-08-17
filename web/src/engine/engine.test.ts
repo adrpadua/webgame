@@ -11,6 +11,10 @@ import {
   legality,
   minionIntents,
   replayRecord,
+  ESCALATION_MAX,
+  escalationStartRound,
+  forecast,
+  highestTier,
   resolve,
   runScenario,
   type EncounterState,
@@ -35,6 +39,14 @@ function boss(state: EncounterState) {
 // from the content catalog, and instances are plain data.
 function card(instanceId: string, cardId: string) {
   return { instanceId, cardId }
+}
+
+// A Hero who cannot die of attrition, for tests about clocks and rotation
+// rather than about survival.
+function immortalHero(state: EncounterState): EncounterState {
+  state.heroes[state.primaryHeroId].maxHealth = 5000
+  state.heroes[state.primaryHeroId].health = 5000
+  return state
 }
 
 function stepPhases(state: EncounterState, count: number): { state: EncounterState; facts: ResolvedActionFact[] } {
@@ -415,6 +427,387 @@ describe('Fortify Slow commitment (D-019)', () => {
     state = stepPhases(state, 4).state
     expect(state.round).toBe(3)
     expect(hero(state).armor).toBe(0)
+  })
+})
+
+describe('Authored Status Effects (D-032 to D-034)', () => {
+  // No live card applies a status yet — the first one changes the damage
+  // economy and owes the deck-evaluation gate — so the vocabulary is proven
+  // against a catalog variant, the pattern the acceleration test established.
+  function withStatusCard(cardId: string, patch: Record<string, unknown>) {
+    const variant = structuredClone(catalog)
+    variant.cards[cardId] = { ...variant.cards.steady_strike, id: cardId, title: 'Test Card', boss_damage: 0, damage: 0, ...patch }
+    return variant
+  }
+
+  function firedAt(variant: ReturnType<typeof withStatusCard>, cardId: string, targetId?: string) {
+    let state = start()
+    state = stepPhases(state, 2).state
+    expect(state.phase).toBe('quick')
+    hero(state).hand = [card('t1', cardId), card('t2', 'steady_strike')]
+    state = resolve(variant, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 't1' }).state
+    state = resolve(variant, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 't2' }).state
+    return resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetId })
+  }
+
+  it('authors every status in the catalog, and validates card references', () => {
+    expect(Object.keys(catalog.statuses).sort()).toEqual(['fortified', 'sundered', 'weakened'])
+    expect(catalog.statuses.sundered).toMatchObject({ applies_to: 'enemy', damage_taken_bonus: 1, stacking: false })
+    expect(catalog.statuses.weakened).toMatchObject({ applies_to: 'enemy', damage_dealt_penalty: 1 })
+    // Fortified's definition is authored; its Armor amount still rides the card.
+    expect(catalog.statuses.fortified).toMatchObject({ applies_to: 'hero', stacking: true, triggers: ['on_round_start'] })
+  })
+
+  it('lands an enemy status on the Boss with no range requirement', () => {
+    // The Boss is selectable for a status but never range-gated, which keeps
+    // the positionless `boss_damage` ruling intact.
+    const variant = withStatusCard('sunder_test', { applies_status: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const state = start()
+    const fired = firedAt(variant, 'sunder_test', state.bossId)
+    expect(fired.facts[0].succeeded).toBe(true)
+    expect(fired.state.statusEffects[state.bossId]?.[0]).toMatchObject({ id: 'sundered', damageTakenBonus: 1 })
+  })
+
+  it('raises damage the Sundered Boss takes', () => {
+    const variant = withStatusCard('sunder_test', { applies_status: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const state = start()
+    const sundered = firedAt(variant, 'sunder_test', state.bossId).state
+    const before = sundered.board.entities[sundered.bossId].health
+    const hit = resolve(catalog, sundered, {
+      kind: 'damage',
+      sourceId: sundered.primaryHeroId,
+      targetId: sundered.bossId,
+      amount: 3,
+      reasonText: 'test',
+    })
+    expect(hit.facts[0].resolutionFact).toMatchObject({ requested: 4 })
+    expect(hit.state.board.entities[hit.state.bossId].health).toBe(before - 4)
+  })
+
+  it('lowers damage a Weakened Enemy deals', () => {
+    const variant = withStatusCard('weaken_test', { applies_status: 'weakened', target_type: 'piece', range_tiles: 0 })
+    const state = start()
+    const weakened = firedAt(variant, 'weaken_test', state.bossId).state
+    const healthBefore = hero(weakened).health
+    const armorBefore = hero(weakened).armor
+    const hit = resolve(catalog, weakened, {
+      kind: 'damage',
+      sourceId: weakened.bossId,
+      targetId: weakened.primaryHeroId,
+      amount: 4,
+      reasonText: 'Raking Claw',
+    })
+    expect(hit.facts[0].resolutionFact).toMatchObject({ requested: 3 })
+    expect(healthBefore - hit.state.heroes[weakened.primaryHeroId].health + armorBefore).toBeGreaterThan(0)
+  })
+
+  it('refuses a second copy of a non-stacking status', () => {
+    const variant = withStatusCard('sunder_test', { applies_status: 'sundered', target_type: 'piece', range_tiles: 0 })
+    let state = stepPhases(start(), 2).state
+    expect(state.phase).toBe('quick')
+    // Two Slots, same quick-speed card, one window: the Slot activation limit
+    // is per Slot, so the second fire is legal and the status is what refuses.
+    hero(state).hand = [card('a1', 'sunder_test'), card('a2', 'steady_strike'), card('b1', 'sunder_test'), card('b2', 'steady_strike')]
+    for (const [slotIndex, top, charge] of [
+      [0, 'a1', 'a2'],
+      [1, 'b1', 'b2'],
+    ] as const) {
+      state = resolve(variant, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId: top }).state
+      state = resolve(variant, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId: charge }).state
+    }
+    const first = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetId: state.bossId })
+    expect(first.facts[0].succeeded).toBe(true)
+    expect(first.facts[0].detail.appliedStatusGranted).toBe(true)
+    const second = resolve(variant, first.state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 1, targetId: state.bossId })
+    expect(second.facts[0].succeeded).toBe(true)
+    expect(second.facts[0].detail.appliedStatusGranted).toBe(false)
+    expect(second.state.statusEffects[state.bossId] ?? []).toHaveLength(1)
+  })
+
+  it('refuses an enemy-facing status with no Enemy target', () => {
+    const variant = withStatusCard('sunder_test', { applies_status: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const fired = firedAt(variant, 'sunder_test', undefined)
+    expect(fired.facts[0].succeeded).toBe(false)
+    expect(fired.facts[0].reason).toContain('Enemy target')
+  })
+
+  it('still lands Fortified from its authored definition (D-019 unchanged)', () => {
+    let state = stepPhases(start(), 4).state
+    expect(state.phase).toBe('slow')
+    hero(state).hand = [card('f1', 'fortify'), card('f2', 'steady_strike')]
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'f1' }).state
+    state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'f2' }).state
+    const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+    const fortified = fired.state.statusEffects[state.primaryHeroId]?.find((effect) => effect.id === 'fortified')
+    expect(fortified).toMatchObject({ title: catalog.statuses.fortified.title, stacking: true, armorOnRoundStart: 6 })
+  })
+})
+
+describe('Forecast Row (D-021, ADR 0026)', () => {
+  it('previews the next Round\'s whole program at family level', () => {
+    const state = start()
+    expect(state.currentProgramId).toBe('embermaw_hunt')
+    const ahead = forecast(catalog, state)!
+    // Family level only: a title, the union of counter tags, and a tier. No
+    // target, magnitude, or hex — those belong to Incoming and Instant.
+    expect(ahead).toMatchObject({
+      programId: 'embermaw_embers',
+      title: catalog.programs.embermaw_embers.title,
+      tier: 'structural',
+    })
+    expect(ahead.counterTags).toEqual(['Position', 'Move', 'Interrupt', 'Kill Adds', 'Mitigate'])
+    expect(Object.keys(ahead)).not.toContain('damage')
+  })
+
+  it('follows the rotation a Round ahead, and loops with it', () => {
+    let state = immortalHero(start())
+    expect(forecast(catalog, state)?.programId).toBe('embermaw_embers')
+    state = stepPhases(state, 5).state
+    expect(state.currentProgramId).toBe('embermaw_embers')
+    expect(forecast(catalog, state)?.programId).toBe('embermaw_brood')
+    state = stepPhases(state, 5).state
+    expect(state.currentProgramId).toBe('embermaw_brood')
+    // Looping: the Forecast wraps to the first program rather than emptying.
+    expect(forecast(catalog, state)?.programId).toBe('embermaw_hunt')
+  })
+
+  it('is a pure read: asking for it never changes the Encounter', () => {
+    const state = start()
+    const before = structuredClone(state)
+    forecast(catalog, state)
+    expect(state).toEqual(before)
+  })
+
+  it('stops forecasting once the Encounter is resolved', () => {
+    const state = start()
+    state.active = false
+    expect(forecast(catalog, state)).toBeNull()
+  })
+
+  it('empties rather than wrapping when a program list does not loop', () => {
+    const state = start()
+    state.loopPrograms = false
+    state.programIndex = state.programIds.length - 1
+    expect(forecast(catalog, state)).toBeNull()
+  })
+})
+
+describe('Consequence Tier ladder (D-021, ADR 0026)', () => {
+  const everyBeat = Object.values(catalog.programs).flatMap((program) => [
+    ...program.instant_beats.map((beat) => ({ beat, program })),
+    ...program.incoming_beats.map((beat) => ({ beat, program })),
+  ])
+
+  it('rates a Beat that can cross an Escalation Threshold as severe', () => {
+    // An Escalation Threshold crossing is one of D-025's run-ending outcomes,
+    // so such a Beat is severe by definition and must reach the Forecast Row.
+    for (const { beat } of everyBeat) {
+      if (beat.escalation_if_unanswered > 0) {
+        expect(beat.consequence_tier).toBe('severe')
+      }
+    }
+  })
+
+  it('rates a Beat that spawns or changes the board at least structural', () => {
+    for (const { beat } of everyBeat) {
+      if (beat.minion !== undefined || beat.hazard !== undefined) {
+        expect(highestTier({ ...catalog.programs.embermaw_hunt, instant_beats: [beat], incoming_beats: [] })).not.toBe('chip')
+      }
+    }
+  })
+
+  it('keeps the first program free of severe Beats, because Round 1 is never forecast', () => {
+    // The one honest hole in the ladder: at the pull there is no earlier Round
+    // to have forecast Round 1, so its program may not carry a severe Beat.
+    const firstProgramId = catalog.encounters.embermaw_prototype.boss_programs[0]
+    expect(highestTier(catalog.programs[firstProgramId])).not.toBe('severe')
+  })
+})
+
+describe('Escalation as the single clock (D-023, ADR 0027)', () => {
+  // A passive Hero who never clears an add: give them enough Health that
+  // Escalation, not attrition, is what ends the fight.
+  function immortal(seed?: number): EncounterState {
+    return immortalHero(start(seed))
+  }
+
+  function clearMinions(state: EncounterState): void {
+    for (const entity of Object.values(state.board.entities)) {
+      if (entity.kind === 'minion') {
+        delete state.board.entities[entity.id]
+      }
+    }
+  }
+
+  it('derives the start Round so automatic ticks alone reach the top at the Encounter Clock', () => {
+    expect(escalationStartRound(8)).toBe(4)
+    expect(start().escalationStartRound).toBe(4)
+    // Five ticks from the start Round through the clock: 4, 5, 6, 7, 8.
+    expect(8 - escalationStartRound(8) + 1).toBe(ESCALATION_MAX)
+  })
+
+  it('does not tick before the start Round, then ticks once per Round end', () => {
+    let state = immortal()
+    for (let round = 1; round < 4; round += 1) {
+      const wrap = stepPhases(state, 5)
+      // Clear each Round's Whelps so only the automatic tick can move the value.
+      state = wrap.state
+      clearMinions(state)
+      expect(state.escalation).toBe(0)
+    }
+    expect(state.round).toBe(4)
+    state = stepPhases(state, 5).state
+    clearMinions(state)
+    expect(state.escalation).toBe(1)
+    state = stepPhases(state, 5).state
+    clearMinions(state)
+    expect(state.escalation).toBe(2)
+  })
+
+  it('ends the fight at the end of Round 8 on automatic ticks alone', () => {
+    // Boundary identity with the retired round-limit check: a party that
+    // answers every demand reaches the wipe exactly where the old clock ended.
+    let state = immortal()
+    let guard = 0
+    while (state.active && guard < 60) {
+      guard += 1
+      const wrap = advancePhase(catalog, state)
+      state = wrap.state
+      if (state.phase === 'slow') {
+        clearMinions(state)
+      }
+    }
+    expect(state.active).toBe(false)
+    expect(state.outcome).toBe('defeat')
+    expect(state.outcomeReason).toBe('Enrage: Embermaw overwhelms the party.')
+    expect(state.round).toBe(9)
+    expect(state.escalation).toBe(ESCALATION_MAX)
+  })
+
+  it('accelerates from an unanswered Whelp, so the collapse arrives early', () => {
+    // Embermaw authors the penalty at 0 while the live deck has no Whelp
+    // answer (D-003), so the trigger is proven against a catalog variant that
+    // does price it. Nothing else changes: same passive Hero, adds never
+    // cleared, and the fight now ends before the Encounter Clock.
+    const priced = structuredClone(catalog)
+    for (const program of Object.values(priced.programs)) {
+      for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
+        if (beat.kind === 'brood_call') {
+          beat.escalation_if_unanswered = 1
+        }
+      }
+    }
+    let state = immortal()
+    let guard = 0
+    while (state.active && guard < 60) {
+      guard += 1
+      state = advancePhase(priced, state).state
+    }
+    expect(state.active).toBe(false)
+    expect(state.outcomeReason).toBe('Enrage: Embermaw overwhelms the party.')
+    expect(state.round).toBeLessThan(9)
+    expect(state.escalation).toBe(ESCALATION_MAX)
+  })
+
+  it('leaves the live encounter unaccelerated while no Whelp answer exists (D-003)', () => {
+    // A demand the deck cannot answer must not be priced: every authored
+    // Brood Call carries 0 until the Whelp-clearing card ships.
+    for (const program of Object.values(catalog.programs)) {
+      for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
+        if (beat.kind === 'brood_call') {
+          expect(beat.escalation_if_unanswered).toBe(0)
+        }
+      }
+    }
+  })
+
+  it('does not count a Whelp that arrived this Round as unanswered', () => {
+    // Whelps spawn in the Incoming Row, so no player window can reach them
+    // before the Round-end step: counting them would be a second automatic
+    // tick rather than earned acceleration.
+    let state = immortal()
+    state = stepPhases(state, 4).state
+    expect(state.phase).toBe('slow')
+    expect(Object.values(state.board.entities).some((entity) => entity.kind === 'minion')).toBe(true)
+    state = stepPhases(state, 1).state
+    expect(state.round).toBe(2)
+    expect(state.escalation).toBe(0)
+  })
+
+  it('permanently Scorches the arena at a structural threshold (D-031)', () => {
+    const threshold = catalog.encounters.embermaw_prototype.escalation_thresholds.find((entry) => entry.value === 1)!
+    expect(threshold.scorch_hexes.length).toBeGreaterThan(0)
+    expect(threshold.boss_damage_bonus).toBe(0)
+
+    const state = immortal()
+    state.escalation = 0
+    const crossed = resolve(catalog, state, { kind: 'gain_escalation', sourceId: 'encounter', amount: 1, reason: 'automatic_tick', beatId: '' })
+    for (const coords of threshold.scorch_hexes) {
+      const hazards = crossed.state.board.hazards[hexKey(coords)] ?? []
+      expect(hazards.some((hazard) => hazard.id === 'scorched' && hazard.permanent === true)).toBe(true)
+    }
+    // Permanent means permanent: the Round boundary does not clear it, unlike
+    // the Scorch a Cinder Breath leaves behind.
+    const later = stepPhases(crossed.state, 5).state
+    const first = threshold.scorch_hexes[0]
+    expect((later.board.hazards[hexKey(first)] ?? []).some((hazard) => hazard.permanent === true)).toBe(true)
+  })
+
+  it('never Scorches a hex adjacent to the Boss, so the Guarded Front cannot burn', () => {
+    // The acceleration lesson in another form: an effect that removes the
+    // Tank's own answer is a problem the party cannot answer.
+    const encounter = catalog.encounters.embermaw_prototype
+    for (const threshold of encounter.escalation_thresholds) {
+      for (const coords of threshold.scorch_hexes) {
+        expect(hexDistance(coords, encounter.boss_start)).toBeGreaterThan(1)
+      }
+    }
+  })
+
+  it('still applies a numeric threshold when one is authored', () => {
+    // The read-time modifiers stay supported for Bosses that want them; what
+    // D-031 changed is Embermaw's authored content, not the mechanism.
+    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'raking_claw')!
+    const state = start()
+    state.escalation = 1
+    state.escalationThresholds = [{ value: 1, title: 'Test Band', rules_text: '', boss_damage_bonus: 2, extra_spawn_count: 0, minion_damage_bonus: 0, scorch_hexes: [] }]
+    const hit = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
+    expect(hit.facts.find((fact) => fact.kind === 'damage')?.resolutionFact).toMatchObject({ requested: 6, escalation_bonus: 2 })
+  })
+
+  it('raises Whelp bite damage at threshold 3', () => {
+    const biting = stepPhases(immortal(), 4).state
+    biting.escalation = 3
+    const heroCoords = biting.board.entities[biting.primaryHeroId].coords
+    const whelp = Object.values(biting.board.entities).find((entity) => entity.kind === 'minion')!
+    biting.board.entities[whelp.id].coords = { ...heroCoords, q: heroCoords.q + 1 }
+    const bite = advancePhase(catalog, biting)
+    const biteFact = bite.facts.find((fact) => fact.kind === 'damage' && fact.resolutionFact?.minion_intent === true)
+    expect(biteFact?.resolutionFact).toMatchObject({ requested: 2, escalation_bonus: 1 })
+  })
+
+  it('widens the Brood Call at threshold 2, and the telegraph does not lie', () => {
+    const state = start()
+    state.escalation = 2
+    // refreshTelegraphs runs on the way into a player window; step to Quick.
+    const quick = stepPhases(state, 2).state
+    expect(quick.telegraphedSpawnHexes).toHaveLength(3)
+    const incoming = advancePhase(catalog, quick)
+    expect(incoming.facts.filter((fact) => fact.kind === 'spawn_minion')).toHaveLength(3)
+  })
+
+  it('records every Escalation gain with its reason and crossed thresholds', () => {
+    const state = immortal()
+    state.round = state.roundLimit
+    state.phase = 'slow'
+    const wrap = advancePhase(catalog, state)
+    const gain = wrap.facts.find((fact) => fact.kind === 'gain_escalation')
+    expect(gain?.resolutionFact).toMatchObject({
+      escalation_before: 0,
+      escalation_after: 1,
+      escalation_reason: 'automatic_tick',
+      thresholds_crossed: ['Ashen Verge'],
+    })
   })
 })
 
@@ -848,9 +1241,12 @@ describe('legality edges', () => {
     expect(advancePhase(catalog, state).facts).toHaveLength(0)
   })
 
-  it('ends in Enrage Defeat when the Encounter Clock expires', () => {
+  it('ends in Enrage Defeat when Escalation reaches its top threshold', () => {
     const state = start()
+    // The state the fight is in at the end of Round 8 under automatic ticks
+    // alone: four ticks banked (ends of Rounds 4-7), the fifth lands here.
     state.round = state.roundLimit
+    state.escalation = ESCALATION_MAX - 1
     state.phase = 'slow'
     const wrap = advancePhase(catalog, state)
     expect(wrap.facts.at(-1)?.kind).toBe('end_of_clock')
@@ -988,6 +1384,7 @@ describe('Encounter Records (schema_version 2)', () => {
   it('marks Encounter Clock expiry as end_kind end_of_clock', async () => {
     const state = start()
     state.round = state.roundLimit
+    state.escalation = ESCALATION_MAX - 1
     state.phase = 'slow'
     const wrap = advancePhase(catalog, state)
     const record = await buildEncounterRecord(catalog, {

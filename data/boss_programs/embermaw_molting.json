@@ -1,77 +1,83 @@
 {
- "id": "embermaw_molting",
- "title": "Molting Pattern",
- "rules_text": "The scales are gone. Embermaw opens Phase II by punishing an unheld front and burning the ground it stood on.",
- "instant_beats": [
-  {
-   "id": "turn_to_tank",
-   "title": "Stalk the Guardian",
-   "rules_text": "Embermaw turns to the guardian.",
-   "kind": "turn_toward_player",
-   "counter_tags": [
-    "Position"
-   ]
-  },
-  {
-   "id": "raking_claw",
-   "title": "Rending Claw",
-   "rules_text": "Target: Tank. Deal 6 damage. Movement does not evade this hit. An unheld Guarded Front suffers +5.",
-   "kind": "raking_claw",
-   "counter_tags": [
-    "Mitigate",
-    "Position"
-   ],
-   "target_selector": "tank",
-   "damage_classification": "tank_hit",
-   "damage": 6,
-   "unguarded_bonus": 5
-  },
-  {
-   "id": "claw_scorch",
-   "title": "Ash Trail",
-   "rules_text": "The struck front arc becomes Scorched, and stays for two Rounds.",
-   "kind": "scorch_last_pattern",
-   "counter_tags": [
-    "Move"
-   ],
-   "duration_rounds": 2,
-   "hazard": "scorched"
-  }
- ],
- "incoming_beats": [
-  {
-   "id": "cinder_breath",
-   "title": "Cinder Breath",
-   "rules_text": "Forward cone, range 1-2. Deal 7 damage.",
-   "kind": "cinder_breath",
-   "counter_tags": [
-    "Move",
-    "Interrupt"
-   ],
-   "damage": 7,
-   "duration_rounds": 2,
-   "hazard": "scorched"
-  },
-  {
-   "id": "brood_call",
-   "title": "Brood Call",
-   "rules_text": "Three Whelps emerge at the marked edge hexes.",
-   "kind": "brood_call",
-   "counter_tags": [
-    "Kill Adds"
-   ],
-   "minion": "whelp",
-   "count": 3
-  },
-  {
-   "id": "lane_warning",
-   "title": "Close the Lanes",
-   "rules_text": "Resolve the cone before Whelps close routes.",
-   "kind": "warning",
-   "counter_tags": [
-    "Move",
-    "Kill Adds"
-   ]
-  }
- ]
+  "id": "embermaw_molting",
+  "title": "Molting Pattern",
+  "rules_text": "The scales are gone. Embermaw opens Phase II by punishing an unheld front and burning the ground it stood on.",
+  "instant_beats": [
+    {
+      "id": "turn_to_tank",
+      "title": "Stalk the Guardian",
+      "rules_text": "Embermaw turns to the guardian.",
+      "kind": "turn_toward_player",
+      "counter_tags": [
+        "Position"
+      ],
+      "consequence_tier": "chip"
+    },
+    {
+      "id": "raking_claw",
+      "title": "Rending Claw",
+      "rules_text": "Target: Tank. Deal 6 damage. Movement does not evade this hit. An unheld Guarded Front suffers +5.",
+      "kind": "raking_claw",
+      "counter_tags": [
+        "Mitigate",
+        "Position"
+      ],
+      "consequence_tier": "chip",
+      "target_selector": "tank",
+      "damage_classification": "tank_hit",
+      "damage": 6,
+      "unguarded_bonus": 5
+    },
+    {
+      "id": "claw_scorch",
+      "title": "Ash Trail",
+      "rules_text": "The struck front arc becomes Scorched, and stays for two Rounds.",
+      "kind": "scorch_last_pattern",
+      "counter_tags": [
+        "Move"
+      ],
+      "consequence_tier": "structural",
+      "duration_rounds": 2,
+      "hazard": "scorched"
+    }
+  ],
+  "incoming_beats": [
+    {
+      "id": "cinder_breath",
+      "title": "Cinder Breath",
+      "rules_text": "Forward cone, range 1-2. Deal 7 damage.",
+      "kind": "cinder_breath",
+      "counter_tags": [
+        "Move",
+        "Interrupt"
+      ],
+      "consequence_tier": "structural",
+      "damage": 7,
+      "duration_rounds": 2,
+      "hazard": "scorched"
+    },
+    {
+      "id": "brood_call",
+      "title": "Brood Call",
+      "rules_text": "Three Whelps emerge at the marked edge hexes.",
+      "kind": "brood_call",
+      "counter_tags": [
+        "Kill Adds"
+      ],
+      "consequence_tier": "structural",
+      "minion": "whelp",
+      "count": 3
+    },
+    {
+      "id": "lane_warning",
+      "title": "Close the Lanes",
+      "rules_text": "Resolve the cone before Whelps close routes.",
+      "kind": "warning",
+      "counter_tags": [
+        "Move",
+        "Kill Adds"
+      ],
+      "consequence_tier": "chip"
+    }
+  ]
 }

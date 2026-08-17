@@ -1,12 +1,19 @@
 import { useState } from 'react'
-import { currentProgram, type BossBeat, type BossProgram } from '@/engine'
+import { currentProgram, forecast, type BossBeat, type BossProgram, type Forecast } from '@/engine'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
-import { beatDetail, programDetail } from './holdDetails'
+import { beatDetail, forecastDetail, programDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
 import { FOCUS_RING_CLASS } from './theme'
 
-// The boss-program strip: two tracks of named beats, in order.
+// The boss-program strip: three horizons, outermost first.
+//
+// `Forecast` previews next Round's whole program as one chip — a title and the
+// counter tags it will want — because the disclosure contract says the outer
+// horizon names the KIND of problem and nothing more (ADR 0026). Per-beat
+// forecasting would reveal the whole next Round and leave the complete
+// disclosure state with no job. `Instant` and `Incoming` then carry the named
+// beats, complete.
 //
 // The chips stay compact labels rather than tiny buttons — a 21px target
 // would break the pointer contract, and stacking six 44px chips would eat
@@ -46,6 +53,7 @@ export function ProgramStrip() {
   const catalog = useWorkbench((store) => store.catalog)
   const [expanded, setExpanded] = useState(true)
   const program = currentProgram(catalog, state)
+  const ahead = forecast(catalog, state)
   const detail = program ? programDetail(program) : null
   const headerHold = useHold(detail)
   // The rows hold for touch only: hovering here belongs to whichever chip
@@ -73,10 +81,49 @@ export function ProgramStrip() {
       </button>
       {expanded && (
         <div {...rowsHold.holdProps}>
+          {ahead && <ForecastRow ahead={ahead} />}
           <Track program={program} track="instant" label="Instant" active={state.phase === 'instant'} />
           <Track program={program} track="incoming" label="Incoming" active={state.phase === 'incoming'} />
         </div>
       )}
+    </div>
+  )
+}
+
+// The outer horizon: a dashed title chip for the program, then its counter tags
+// as secondary text, so the actionable half — what to hold in reserve — is not
+// swallowed by the program's name.
+//
+// The dashed border is what marks this row as not-yet-real, NOT a dimmer text
+// colour. The first version reached for steel-600 to make Forecast the faintest
+// row on the strip and landed at 2.35:1, well under WCAG AA; steel-500 is the
+// palette's quiet-label step precisely because it is the dimmest value that
+// still clears 4.5:1. A hierarchy built out of unreadable text is not a
+// hierarchy.
+function ForecastRow({ ahead }: { ahead: Forecast }) {
+  const hold = useHold(forecastDetail(ahead))
+  const severe = ahead.tier === 'severe'
+  return (
+    <div className="flex items-center gap-2 pb-1" data-testid="forecast-row">
+      <span className="w-16 shrink-0 text-[11px] font-semibold text-steel-500">Forecast</span>
+      <div
+        {...hold.holdProps}
+        data-testid="forecast-chip"
+        data-tier={ahead.tier}
+        aria-label={`Next Round: ${ahead.title}. Answers wanted: ${ahead.counterTags.join(', ')}.`}
+        className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5"
+      >
+        <span
+          className={`rounded border border-dashed px-1.5 py-0.5 text-[11px] ${
+            severe ? 'border-coral-700/80 text-coral-300' : 'border-steel-700 text-steel-400'
+          }`}
+        >
+          {ahead.title}
+        </span>
+        {ahead.counterTags.length > 0 && (
+          <span className="text-[9px] tracking-widest text-steel-500 uppercase">{ahead.counterTags.join(' · ')}</span>
+        )}
+      </div>
     </div>
   )
 }
