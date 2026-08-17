@@ -289,6 +289,52 @@ Counted on 2026-08-16 against `web/src/`. Treat these as a snapshot, not a contr
 
 Neither number is an argument against the direction. They are the reason to adopt it as a deliberate pass rather than by opportunistic edits, which would leave the interface half in one language and half in the other — worse than either.
 
+## Open: Reconciling The Board
+
+The board landed its own art direction in August 2026 — tile skirts, a board-wide light, a warm/cool danger palette, and an idle bob on resting pieces — derived from [dead-cells-art-style-research.md](../artifacts/dead-cells-art-style-research.md). That research states plainly that it "is not an art-direction decision and it does not create canon", and it was written without knowledge of this file. So the board is running an implemented direction that no document ratifies, and this section states what still has to be settled.
+
+**Less conflicts than it first appears.** The piece shading is two flat fills against one light — a shadow tone across the whole circle, then the lit tone offset toward the key. That is a hard two-tone step, not a gradient ramp, which is exactly the flat cel model this document requires. The research reaches the same place independently: Dead Cells' entire toon model is `dot(N, L) > 0.3 ? light : ambient`, and the research's own recommended route bakes light into the sprite rather than shipping normal maps. Lighting is not the disagreement.
+
+### Q1 — Is a hard-edged cast shadow a "drop shadow"?
+
+The banned-list forbids drop shadows on the grounds that elevation is read from edge value. The board draws a flat black circle at 35% alpha, offset two by three pixels, with no blur. That is a drawn shape rather than a blur radius.
+
+- **(a)** Permit hard-edged cast shadows on the board only, and restate the ban as *no blurred shadows* rather than *no shadows*.
+- **(b)** Extend the permission to chrome as well, so plates may cast.
+- **(c)** Hold the ban and remove the board's shadow.
+
+### Q2 — How does the board palette reconcile with the material language?
+
+Three specific collisions, all in `BoardScene.ts`:
+
+- `heal: 0x34d399` puts **green** on the board. Green is in neither the material language nor the core palette. It is the same defect as `emerald-400` in `theme.ts` — a framework default arriving instead of a decision.
+- `TARGET_STROKE 0xfacc15` makes a gold-ish stroke mean **target** on the board, while living gold means **operable control** in the chrome, two centimetres away.
+- Five warms ship — orange, rose, red, amber, brown — against this document's rule that ember and ember coral are one family in two jobs.
+
+- **(a)** Bind the board to the material palette: every board colour names a material, and anything that cannot is redesigned.
+- **(b)** Let the board keep a wider palette than the chrome, on the grounds that terrain is not chrome, and record the boundary explicitly.
+- **(c)** Keep the warm/cool axis as the board's organising rule and re-derive its specific values from the material set.
+
+### Q3 — Does ambient motion violate the once-only rule?
+
+The Slot States section says motion "fires once, on the seat, and stops. No idle pulse." Every resting piece now rides a slow sine.
+
+The rule as written is too broad. The bob carries no information and applies to every piece uniformly, so it cannot be misread as a status signal — which is what the rule was actually protecting against.
+
+- **(a)** Restate the rule: *motion that carries state fires once; ambient motion may loop but must never distinguish one piece from another.*
+- **(b)** Hold the rule as written and remove the bob.
+
+### Q4 — Does state go back onto the token?
+
+`BoardScene.ts` comments that a tile "stays clean until it is tapped", which matches the Stat Panel decision. The board-first layout work argues the other way, since comparable games put health and status directly on the unit. This is the same tension recorded under Layout and it needs one answer, not two.
+
+### Q5 — Who owns the board's direction?
+
+This document covers chrome and says the board needs a separate pass. The research covers the board and disclaims being a decision. Nothing currently owns the board.
+
+- **(a)** Extend this document to cover the board, making it the single interface direction.
+- **(b)** Promote a separate board direction document, with this one owning chrome only and both naming the boundary.
+
 ## What This Does Not Decide
 
 Typography for the game itself, status-effect iconography, and motion beyond the Primed seat are all open. The Layout section above decides how much of the frame the board gets and what may float over it, but not what the board itself draws.
