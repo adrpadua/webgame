@@ -161,6 +161,21 @@ body {
 @utility wb-plate-xs { --wb-off: 3px; --wb-notch: 2px; padding-inline: calc(var(--wb-off) + 8px); }   /* ~24px chips */
 @utility wb-plate-sm { --wb-off: 5px; --wb-notch: 3px; padding-inline: calc(var(--wb-off) + 14px); }  /* ~38-44px controls */
 @utility wb-plate-md { --wb-off: 7px; --wb-notch: 4px; padding-inline: calc(var(--wb-off) + 8px); }   /* ~48px cards */
+/* The Compact Card. A five-card Hand at 390 gives each card 68px, so the
+   symmetric padding-inline the other sizes use spends 30 of them on the cut
+   and leaves 38px for a title — not enough for a two-word card name, which
+   then overflowed the plate into its neighbour. The rake does not need
+   symmetric clearance: the leading edge is furthest in at the top (off +
+   notch) and the trailing edge at the bottom (off), so the padding is
+   asymmetric by the same measure and wins back 12px of content.
+   The offset stays the ~48px figure rather than this plate's true height x
+   tan(8deg) of 13px: a true rake would take a fifth of the card's width for
+   the cut alone. The Compact Card is the one plate raked to its width.
+   8px clears the cut where the content actually sits rather than at the
+   corners: the leading edge is only ~7px in beside the title and reaches 0
+   at the bottom, and the trailing edge is ~1px in beside the title and 7px
+   at the pips. The corners themselves hold no content. */
+@utility wb-plate-card { --wb-off: 7px; --wb-notch: 4px; padding-inline: 8px; }
 @utility wb-plate-lg { --wb-off: 9px; --wb-notch: 4px; padding-inline: calc(var(--wb-off) + 10px); }  /* ~62px slots */
 @utility wb-plate-xl { --wb-off: 16px; --wb-notch: 6px; padding-inline: calc(var(--wb-off) + 12px); } /* ~112px panels */
 /* Faces and accents. The accent is the status channel: gold on the live
