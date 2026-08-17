@@ -4,14 +4,14 @@
   "version": 1,
   "description": "The deepest solo push the policy search can manage, ending short of Boss defeat. Proves the solo ceiling holds (D-016): a lone Guardian cannot win the Ashen Trial.",
   "encounter": "embermaw_prototype",
-  "seed": 37,
+  "seed": 6,
   "steps": [
     {
       "action": {
         "kind": "load_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "steady_strike_4"
+        "cardInstanceId": "steady_strike_6"
       }
     },
     {
@@ -28,7 +28,7 @@
           "q": 1,
           "r": 0
         },
-        "cardInstanceId": "sweeping_blow_16"
+        "cardInstanceId": "fortify_18"
       }
     },
     {
@@ -36,7 +36,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "shield_slam_19"
+        "cardInstanceId": "iron_guard_10"
       }
     },
     {
@@ -44,7 +44,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "iron_guard_9"
+        "cardInstanceId": "sweeping_blow_15"
       }
     },
     {
@@ -68,7 +68,7 @@
         "kind": "load_slot",
         "sourceId": "guardian",
         "slotIndex": 1,
-        "cardInstanceId": "steady_strike_7"
+        "cardInstanceId": "steady_strike_5"
       }
     },
     {
@@ -85,7 +85,7 @@
           "q": 2,
           "r": -1
         },
-        "cardInstanceId": "fortify_18"
+        "cardInstanceId": "fortify_17"
       }
     },
     {
@@ -93,7 +93,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 1,
-        "cardInstanceId": "shield_slam_20"
+        "cardInstanceId": "iron_guard_14"
       }
     },
     {
@@ -101,7 +101,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 1,
-        "cardInstanceId": "iron_guard_10"
+        "cardInstanceId": "sweeping_blow_16"
       }
     },
     {
@@ -170,7 +170,7 @@
           "q": 2,
           "r": -2
         },
-        "cardInstanceId": "fortify_17"
+        "cardInstanceId": "iron_guard_11"
       }
     },
     {
@@ -210,7 +210,7 @@
           "q": 1,
           "r": -2
         },
-        "cardInstanceId": "iron_guard_14"
+        "cardInstanceId": "iron_guard_9"
       }
     },
     {

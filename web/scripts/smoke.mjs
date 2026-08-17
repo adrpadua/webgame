@@ -402,7 +402,11 @@ try {
 
   // Detail popups are where the words went. A mouse gets them by hovering,
   // one element at a time: a Compact Card explains the card...
-  const firstCard = page.locator('[data-testid="hand-card"]').first()
+  // The scripted first turn disables pointer events on every card except the one
+  // it is asking for, so "the first card in the Hand" is only hoverable by luck
+  // of the shuffle — a seed change elsewhere silently broke this. Target the
+  // scripted card, which the script guarantees is interactive.
+  const firstCard = page.locator('[data-testid="hand-card"][data-scripted="true"]').first()
   await firstCard.hover()
   await page.waitForSelector('[data-testid="hold-popover"]')
   assert(

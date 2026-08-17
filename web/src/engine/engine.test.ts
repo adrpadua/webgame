@@ -16,6 +16,7 @@ import {
   forecast,
   highestTier,
   programCounterTags,
+  programPredictability,
   resolve,
   runScenario,
   type EncounterState,
@@ -191,6 +192,50 @@ describe('Boss Program order (D-037)', () => {
 // The substance of the differentiation pass: three programs that were the same
 // six Beats under three names now ask for three different answers, which is
 // what gives the Forecast Row something to disclose.
+// The instrument that turns "is this countable?" from an argument into a number
+// (D-038). It assumes nothing about how the order is generated — it groups real
+// sequences by observed prefix and asks what the modal continuation is worth —
+// so it cannot be satisfied by a generator that only looks random.
+describe('Boss Program predictability (D-038)', () => {
+  const SEEDS = 800
+
+  it('measures the order as neither fixed nor uniform', () => {
+    const measured = programPredictability(catalog, 'embermaw_prototype', SEEDS)
+    // Round 1 is pinned to the authored opener, so naming it is recall rather
+    // than prediction and it is excluded from the estimate.
+    expect(measured.perRound[0].round).toBe(2)
+    expect(measured.meanAccuracy).toBeLessThan(1)
+    expect(measured.meanAccuracy).toBeGreaterThan(measured.uniformBaseline)
+    expect(measured.reliable).toBe(true)
+  })
+
+  it('keeps every Round that is not a cycle end near a coin flip', () => {
+    // This bound is what caught a real defect in the bag. The no-repeat rule
+    // used to swap a colliding program into slot 1, a fixed position, which
+    // concentrated the distribution enough to measure: Round 5 read 68% where a
+    // shuffle should give about 50%. Displacing to a uniformly chosen later slot
+    // fixed it. A generator that leaks position information fails here.
+    const measured = programPredictability(catalog, 'embermaw_prototype', SEEDS)
+    const uncertain = measured.perRound.filter((entry) => entry.accuracy < 1)
+    expect(uncertain.length).toBeGreaterThan(0)
+    for (const entry of uncertain) {
+      expect(entry.accuracy, `Round ${entry.round} is ${(100 * entry.accuracy).toFixed(0)}% predictable`).toBeLessThan(0.6)
+    }
+  })
+
+  it('records the ceiling a full-bag deal imposes', () => {
+    // Not a defect — a consequence, recorded so it is not rediscovered. Dealing
+    // every program exactly once per cycle is what keeps total fight pressure
+    // seed-invariant, and it necessarily makes the last slot in a cycle
+    // deducible. This is the ceiling on how unpredictable program order alone
+    // can be, and the standing argument for varying content *inside* a program
+    // (the Module Slot, D-024).
+    const measured = programPredictability(catalog, 'embermaw_prototype', SEEDS)
+    expect(measured.certainRounds).toBeGreaterThan(0)
+    expect(measured.certainRounds).toBeLessThan(measured.perRound.length)
+  })
+})
+
 describe('Program identity (D-036)', () => {
   it('gives each Phase I program a distinct set of demands', () => {
     const tags = (id: string) => programCounterTags(catalog.programs[id]).sort().join(',')

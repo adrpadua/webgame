@@ -21,3 +21,15 @@ Acceptance is stated structurally, in the shape ADR 0027's correction argued for
 - No program repeats back to back while three are available.
 - Advancing a Round never changes `programSequence`, only the cursor into it — the property that keeps the Forecast Row a read rather than a roll.
 - The sweep's `roundSpread` column is not a single value for any policy. Under the fixed rotation, twelve of eighteen policies ended on exactly one Round across thirty seeds; that column exists so the failure is visible in the default table instead of hiding inside an average.
+
+**Amended 2026-08-17 (D-038): predictability is measured, and the measurement found a defect in this decision's own implementation.**
+
+The acceptance list above asserts that different seeds produce different orders, which is necessary but far too weak: a generator can pass it while still being trivially countable. `programPredictability` reports the number that matters — the best-possible accuracy of a perfect counter guessing next Round's program, given perfect memory of the fight so far.
+
+It deliberately assumes **nothing** about how the order is generated. It groups real generated sequences by observed prefix and takes the modal continuation, which is the Bayes-optimal accuracy. A metric that re-derived the bag rule would move in lockstep with the implementation and could never catch the implementation being wrong.
+
+It caught this one being wrong on its first run. The no-repeat rule swapped a colliding program into slot `1` — a fixed position — which leaks information: the displaced program lands somewhere a counter can name. Round 5 measured `68%` where a shuffle should give about `50%`. The repair is to displace the collision to a uniformly chosen later slot, which brought Rounds 5 and 8 to `53%` and the mean from `69.5%` to `66%`. A test now bounds every non-cycle-end Round below `60%`, so a future generator that leaks position information fails rather than merely looking shuffled.
+
+What remains is structural and is recorded rather than fixed: a perfect counter is **certain** on Rounds 3 and 6, and never worse than a coin flip anywhere. That is the direct cost of dealing every program exactly once per cycle — the same property that keeps total fight pressure seed-invariant, which this decision chose deliberately over independent draws. The two cannot both be had by tuning the rotation: fixed quantity and low countability are one knob. Escaping the trade needs variation *inside* a program (the Module Slot, D-024), where knowing which program is next stops telling a player what it will do.
+
+The sweep prints the figure alongside the enrage-wall and checkpoint lines, and red-flags only the degenerate case — a fully predictable order, which is the regression this decision exists to prevent. It is not gated at a threshold, because no evidence yet says what threshold is good.

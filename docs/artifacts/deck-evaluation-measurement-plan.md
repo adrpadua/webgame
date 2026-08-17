@@ -48,6 +48,7 @@ Do not expand beyond these until the first scorecard has been reviewed.
 | Win/survival rate by seeded scenario | Encounter Record outcome, end kind, seed, content fingerprint | Supported for fixed baseline | Named scenario/run labels are emitted by the `deck_eval_baseline` Evidence Cohort path. |
 | Rounds survived | Encounter Record phase boundaries and final state | Supported | None. |
 | Outcome *variance* across seeds | `roundSpread` and `dmgSpread` in the sweep table | Supported | None. A single-value spread (`5-5`) means the draw order changed nothing about how the run ended, which no average can show. |
+| Boss Program predictability | `programPredictability`, reported as a sweep footer | Supported | None. Estimated from generated sequences with no knowledge of the generator's rule, so it catches an order that only looks shuffled. |
 | Rounds to stabilize | Per-Round health/Armor snapshots plus phase observations | Partial | Current report exposes per-Round Hand/Slot evidence; health/Armor remains available in full snapshots for manual review. |
 | Boss damage dealt | Damage Resolution Facts where target is Boss | Supported | Ensure report aggregates by target kind. |
 | Boss damage prevented/mitigated | Damage Resolution Facts `prevented` and Armor state | Partial | Attribute prevention source when Armor/status mitigation grows. |
@@ -93,6 +94,14 @@ Three columns read it: `reachedR8%` (did the run last to the Encounter Clock), `
 `checkpoint%` guards the teaching Rounds, but **not as a fixed list of percentages** — that form of the gate was retired for the same reason ADR 0027's recorded figures were. A literal baseline string reads like a rule while only encoding one version of the Boss's content, so the first deliberate content change silently falsified it. What has to hold is that the Round-4 checkpoint **discriminates**: some policies clear it and some do not. All-pass means the teaching Rounds ask nothing, and Tank Principle 4 has lost its evidence; all-fail means they are lethal. The sweep counts both sides and red-flags either collapse, alongside D-016's solo-victory flag and ADR 0027's enrage-wall count.
 
 The structural protection that the fixed baseline was standing in for is a test, not a percentage: automatic ticks begin at `roundLimit - 4`, asserted directly, so no Escalation tuning can reach into Rounds 1 through 3 by that route. Acceleration can and does reach them — a Brood Call answered late costs Escalation from Round 1 onward — and that is deliberate.
+
+## Forecast Row Readability
+
+Nothing in the sweep read the Forecast Row until D-038, which made ADR 0026's third horizon unfalsifiable: a fixed policy cannot benefit from information it never consults, so no result could have argued either way. The instrument is a matched pair — `forecast_reader` and `forecast_blind`, identical except that the reader consults `forecast()` before spending its Slow Window on Fortify. Fortify is the only card whose payoff lands next Round (D-019), so the Forecast Row is the only surface that can price the spend, which makes the pair a direct test rather than a proxy.
+
+Read it as a differential and nothing else: same seeds, same positions, and the only question is whether the reader outlives its twin. It currently does not — identical outcomes at `far` and `dodge`, and worse at `stay` — for two reasons recorded in ADR 0026's amendment. The `slowHeld` column shows the reader is genuinely behaving differently, so a null result is a null result rather than a policy that failed to act.
+
+This is the sweep's answer to the question a human playtest would answer better. When real Parties play, D-021's Timeline conversion rate supersedes it.
 
 ## Decision-Concentration Proxy
 

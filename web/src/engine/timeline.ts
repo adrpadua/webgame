@@ -2,7 +2,7 @@ import { emptyHexes, facingToward, firstEmptyHexes, forwardCone, frontArc, isGua
 import { escalationModifiers } from './escalation'
 import { normalizeFacing } from './facing'
 import { containsHex, hexKey, type Axial } from './hex'
-import { shuffle, type RngState } from './rng'
+import { randiRange, shuffle, type RngState } from './rng'
 import type { BossBeat, BossProgram } from './content/schemas'
 import type { ContentCatalog } from './content/catalog'
 import type { EncounterActionInput } from './actions'
@@ -237,9 +237,15 @@ export function buildProgramSequence(rng: RngState, pool: string[], length: numb
     // safeguard, it forces strict alternation and removes the variance this
     // function exists to add.
     if (pool.length > 2 && bag[0] === sequence[sequence.length - 1]) {
-      const swapped = bag[1]
-      bag[1] = bag[0]
-      bag[0] = swapped
+      // Send the collision to a uniformly chosen later slot rather than always
+      // to slot 1. Swapping with a fixed position leaks information: it puts the
+      // displaced program somewhere a counter can name, which concentrated the
+      // distribution enough to measure — `programPredictability` read 68% on
+      // Round 5 where the shuffle should have given 50%.
+      const target = randiRange(rng, 1, bag.length - 1, `${label}_no_repeat`)
+      const displaced = bag[target]
+      bag[target] = bag[0]
+      bag[0] = displaced
     }
     for (const programId of bag) {
       if (sequence.length >= length) {
