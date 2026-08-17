@@ -132,10 +132,13 @@ export default function App() {
         <PhaseControl />
         {/* overflow-hidden: the fixed-size Phaser canvas centers here and must
             clip, never spill over (or steal pointer events from) the HUD. */}
-        {/* px-11 reserves the MovePad's 44px side gutters structurally: the
-            fitted canvas can never reach the edges, so the pad's columns
-            always sit beside the board rather than over its outer hexes. */}
-        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-11">
+        {/* The board takes the full width of the play surface. It used to
+            reserve 44px gutters on each side for the MovePad, which pinned the
+            width-bound canvas at 302px and left 145px of the board area empty;
+            the pad now sits in the strip below the bottom hex row, which a
+            hexagonal board leaves empty across the full canvas width, so
+            nothing has to be set aside for it. */}
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <PhaserBoard />
           <MovePad />
           {/* Transient guidance — the scripted cue, coach tips, the playout's

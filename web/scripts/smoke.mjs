@@ -289,8 +289,17 @@ try {
   assert((await page.locator('[data-testid="playout-continue"]').count()) === 0, 'the last beat needs no prompt and the playout settles')
   // The resolved track waits in the Boss's window; Next moves on.
   assert((await phase()) === 'instant', 'the settled track waits in Boss Instant for Next')
+  // During a Boss row no card in hand has a legal action, so the Hand
+  // recedes — and it must come back the moment a player window opens. A
+  // Hand that hides has to be provably reachable, or the recession is a
+  // trap. Test intent (data-inert) and reality (a card can be selected).
+  assert((await page.locator('[data-testid="hand"]').getAttribute('data-inert')) === 'true', 'the Hand is inert during Boss Instant')
   await next()
   assert((await phase()) === 'quick', 'Next moves on into the Quick Window')
+  assert((await page.locator('[data-testid="hand"]').getAttribute('data-inert')) === null, 'the Hand is live again in the Quick Window')
+  await page.locator('[data-testid="hand-card"]').first().click()
+  assert((await page.locator('[data-testid="hand-card"][data-selected="true"]').count()) === 1, 'a Hand card can be selected once the window opens')
+  await page.locator('[data-testid="hand-card"]').first().click()
 
   // Skipping a window that still holds phase-appropriate actions warns
   // first: nothing has been fired or charged this Quick Window.
@@ -376,22 +385,29 @@ try {
   // The board refits itself when the HUD changes; give the scale manager
   // its poll interval before measuring.
   await phone.waitForTimeout(700)
-  const padOverBoard = await phone.evaluate(() => {
-    const canvas = document.querySelector('[data-testid="board"] canvas')?.getBoundingClientRect()
-    if (!canvas) {
-      return ['no board']
+  // Test overlap against the hexes themselves, not the canvas rectangle: the
+  // canvas is a hexagon's bounding box, and the strip below its bottom hex
+  // row is empty. The pad lives in that strip, so a canvas-box test would
+  // fail every button while none of them touches a hex.
+  const padOverHex = await phone.evaluate(() => {
+    const hexes = window.__workbench.hexRects()
+    if (hexes.length === 0) {
+      return ['no hexes']
     }
     return [...document.querySelectorAll('[data-testid="move-pad"] button')]
       .map((node) => ({ id: node.dataset.testid, rect: node.getBoundingClientRect() }))
-      .map(({ id, rect }) => ({
-        id,
-        w: Math.min(rect.right, canvas.right) - Math.max(rect.left, canvas.left),
-        h: Math.min(rect.bottom, canvas.bottom) - Math.max(rect.top, canvas.top),
-      }))
-      .filter(({ w, h }) => w > 0 && h > 0)
-      .map(({ id, w, h }) => `${id} covers ${Math.round(w)}x${Math.round(h)} of the board`)
+      .flatMap(({ id, rect }) =>
+        hexes
+          .map((hex) => ({
+            key: hex.key,
+            w: Math.min(rect.right, hex.right) - Math.max(rect.left, hex.left),
+            h: Math.min(rect.bottom, hex.bottom) - Math.max(rect.top, hex.top),
+          }))
+          .filter(({ w, h }) => w > 0 && h > 0)
+          .map(({ key, w, h }) => `${id} covers ${Math.round(w)}x${Math.round(h)} of hex ${key}`),
+      )
   })
-  assert(padOverBoard.length === 0, `the move pad flanks the board without covering a hex (${padOverBoard.join(' | ') || 'no overlap'})`)
+  assert(padOverHex.length === 0, `the move pad sits below the bottom hex row without covering a hex (${padOverHex.join(' | ') || 'no overlap'})`)
   const cropped = await phone.evaluate(() => {
     const canvas = document.querySelector('[data-testid="board"] canvas')
     const area = document.querySelector('[data-testid="board"]')

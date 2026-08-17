@@ -5,6 +5,7 @@ import { useFirstTurnStep } from './useFirstTurn'
 import { slotCanFire } from './slots'
 import { slotDetail } from './holdDetails'
 import { useHold, type HoldDetail } from './HoldPopover'
+import { LockHead, type LockState } from './icons'
 import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS, windowDotClass } from './theme'
 
 // The persistent Action Bar. Each Slot shows its Top Card, its Charge Stack
@@ -43,12 +44,22 @@ const STATE_LABEL: Record<SlotStateName, string> = {
   fired: 'Fired',
 }
 
+// Only Primed wears gold in the label: it is the state that can fire.
+// Fired is the state that cannot, and it must not borrow the live colour.
 const STATE_TONE: Record<SlotStateName, string> = {
   empty: 'text-zinc-600',
   loaded: 'text-zinc-500',
-  charged: 'text-amber-400',
-  primed: 'text-amber-300',
-  fired: 'text-gold-400',
+  charged: 'text-zinc-400',
+  primed: 'text-gold-400',
+  fired: 'text-zinc-500',
+}
+
+const LOCK_STATE: Record<SlotStateName, LockState> = {
+  empty: 'empty',
+  loaded: 'open',
+  charged: 'charging',
+  primed: 'primed',
+  fired: 'spent',
 }
 
 export function ActionBar() {
@@ -89,6 +100,14 @@ function Slot({ slotIndex }: { slotIndex: number }) {
   const spotlit = !gated && step !== null && step.targets.includes(target) && step.cardInstanceId === null
   // A gated Slot never pulses: an opacity animation outranks the dimming and
   // would make an inert control the brightest thing on screen.
+  //
+  // The pulse is reserved for the moment a dragged card is over the Slot —
+  // transient, ended by the drop. It no longer says "this can fire": that is
+  // carried by the ward ring closing and the tumblers seating into a shear
+  // line, which are shape changes and do not breathe. A Primed Slot can sit
+  // for rounds, and a persistent pulse would both fade its own text and
+  // become furniture the eye edits out — the idle motion the interface
+  // direction bans.
   const pulse = gated ? '' : 'animate-pulse motion-reduce:animate-none'
 
   // What would landing the in-hand card here do, and is it legal? A card
@@ -149,12 +168,14 @@ function Slot({ slotIndex }: { slotIndex: number }) {
             ? `wb-face-steel wb-acc-ember ${pulse}`
             : `wb-face-steel wb-acc-gold ${pulse}`
           : canFire
-            ? `wb-face-steel wb-acc-gold ${pulse}`
+            ? 'wb-face-steel wb-acc-gold'
             : stateName === 'primed'
               ? 'wb-face-steel wb-acc-gold'
-              : card
-                ? 'wb-face-steel wb-acc-none'
-                : 'wb-face-dim wb-acc-none opacity-80'
+              : stateName === 'fired'
+                ? 'wb-face-dim wb-acc-none'
+                : card
+                  ? 'wb-face-steel wb-acc-none'
+                  : 'wb-face-dim wb-acc-none opacity-80'
       } ${spotlit ? SPOTLIGHT_CLASS : ''} ${gated ? GATED_CLASS : ''}`}
     >
       {incomingAction !== null && (
@@ -172,16 +193,29 @@ function Slot({ slotIndex }: { slotIndex: number }) {
       )}
       {card ? (
         <>
-          <div className="flex items-baseline justify-between gap-1">
-            <span className="text-xs font-bold text-zinc-100">{card.title}</span>
+          <div className="flex items-center gap-1.5">
+            {/* Keyed on the state so entering Primed remounts the head and the
+                seat plays once, on that transition only. */}
+            <LockHead key={stateName} state={LOCK_STATE[stateName]} className={`h-4 w-4 shrink-0 ${stateName === 'primed' ? 'wb-seat' : ''}`} />
+            <span className={`min-w-0 flex-1 truncate text-xs font-bold ${stateName === 'fired' ? 'text-zinc-400' : 'text-zinc-100'}`}>{card.title}</span>
             <span className={`h-2 w-2 shrink-0 rounded-full ${windowDotClass(cardWindowSpeed(card))}`} aria-hidden="true" />
           </div>
-          <div className="mt-1.5 flex items-center gap-1">
+          {/* Charge tumblers. Separate raked pins with gaps while charging;
+              when the last one seats the gaps close and they read as one
+              continuous bar — the shear line clear, the lock free to turn.
+              Segmented becoming solid is a bigger perceptual change at this
+              size than any shift of value, and it is what a lock does. */}
+          <div className={`mt-1.5 flex items-center ${stateName === 'primed' || stateName === 'fired' ? 'gap-0' : 'gap-[3px]'}`} data-testid="charge-tumblers">
             {Array.from({ length: chargeCap }, (_, index) => (
-              <span key={index} className={`h-2.5 w-2.5 rounded-full ${index < slot.charges.length ? 'bg-amber-400' : 'bg-zinc-700'}`} />
+              <span
+                key={index}
+                className={`h-[5px] w-3.5 -skew-x-[8deg] ${
+                  index < slot.charges.length ? (stateName === 'fired' ? 'bg-gold-700' : 'bg-gold-400') : 'bg-steel-950 shadow-[inset_0_1px_0_rgba(0,0,0,0.6)]'
+                }`}
+              />
             ))}
           </div>
-          <div className={`mt-1 text-[10px] font-semibold ${STATE_TONE[stateName]}`}>{STATE_LABEL[stateName]}</div>
+          <div className={`mt-1 text-[10px] font-semibold tracking-wide uppercase ${STATE_TONE[stateName]}`}>{STATE_LABEL[stateName]}</div>
         </>
       ) : (
         <div className="flex h-full items-center justify-center text-2xl leading-none font-light text-zinc-700" aria-hidden="true">
