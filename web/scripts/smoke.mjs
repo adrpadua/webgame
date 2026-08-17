@@ -71,15 +71,21 @@ try {
   // and every frame silently shifts — the character would face the wrong way
   // and animate through pieces of two poses. The PNG's own header settles it.
   const sceneSource = readFileSync(new URL('../src/board/BoardScene.ts', import.meta.url), 'utf8')
-  const frameW = Number(/HERO_FRAME_W = (\d+)/.exec(sceneSource)?.[1])
-  const frameH = Number(/HERO_FRAME_H = (\d+)/.exec(sceneSource)?.[1])
-  const frames = Number(/HERO_IDLE_FRAMES = (\d+)/.exec(sceneSource)?.[1])
-  const png = readFileSync(new URL('../src/assets/elian-voss-idle.png', import.meta.url))
-  const sheetW = png.readUInt32BE(16)
-  const sheetH = png.readUInt32BE(20)
+  const frames = Number(/IDLE_FRAMES = (\d+)/.exec(sceneSource)?.[1])
+  const specs = [...sceneSource.matchAll(/(\w+): \{ key: '([\w-]+)', url: (\w+), frameWidth: (\d+), frameHeight: (\d+)/g)]
+  assert(specs.length > 0, 'the scene declares at least one sprite sheet')
+  const imports = Object.fromEntries([...sceneSource.matchAll(/import (\w+) from '@\/assets\/([\w.-]+)'/g)].map((m) => [m[1], m[2]]))
+  const mismatched = specs.flatMap(([, kind, , binding, frameW, frameH]) => {
+    const file = imports[binding]
+    if (!file) return [`${kind}: no asset import named ${binding}`]
+    const png = readFileSync(new URL(`../src/assets/${file}`, import.meta.url))
+    const [sheetW, sheetH] = [png.readUInt32BE(16), png.readUInt32BE(20)]
+    const [wantW, wantH] = [Number(frameW) * frames, Number(frameH) * 6]
+    return sheetW === wantW && sheetH === wantH ? [] : [`${kind}: ${file} is ${sheetW}x${sheetH}, sliced as ${wantW}x${wantH}`]
+  })
   assert(
-    sheetW === frameW * frames && sheetH === frameH * 6,
-    `the hero sheet slices into ${frames} frames across 6 facings (${sheetW}x${sheetH} vs ${frameW * frames}x${frameH * 6})`,
+    mismatched.length === 0,
+    `every sprite sheet slices into ${frames} frames across 6 facings (${mismatched.join(' | ') || `${specs.length} sheets checked`})`,
   )
 
   // Let Playwright resolve the browser it installed (`npx playwright install

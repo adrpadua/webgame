@@ -18,7 +18,8 @@ Do not spend prompt words on these. The builder keys the background out by flood
 
 - **The background may stay opaque.** Flat near-black is fine and is what the reference sheet used.
 - **Cell-to-cell drift is corrected.** Every pose is re-centred horizontally and stood on the bottom edge of its frame.
-- **A left gutter of facing labels is fine.** The builder finds five column bands and drops the first.
+- **A left gutter of facing labels is fine.** The builder drops it.
+- **Poses may touch.** A wide piece bridges the gutter between cells — Embermaw's coral reaches into its neighbours — so when the columns cannot be found by looking for empty space, the builder cuts at the thinnest part of the bridge and erases the fragments that crossed it.
 
 That last point is a deliberate exception to the preamble's ban on text. It is worth it: labels are the only way to check a row got the facing it was asked for, and they never reach the game.
 
@@ -112,4 +113,6 @@ Test the facings before anything else. A beautiful sheet with two rows pointing 
 
 ## Wiring A Finished Sheet
 
-`web/src/board/BoardScene.ts` maps a piece kind to a texture and scales it by a target height. Elian's constants are the worked example. A new sheet needs its own frame size, its own target height — Embermaw's is larger than the hero's, the Whelp's smaller — and the smoke's sheet-geometry assertion updated to cover it, since nothing in the type system ties the frame constants to the file they slice.
+`web/src/board/BoardScene.ts` holds a `SHEETS` table keyed by piece kind — Elian and Embermaw are the worked examples. A new sheet is one entry carrying its frame size, the height it renders at, and how far below the hex centre its base sits. The smoke reads that table and checks every sheet's PNG header against it, so a new entry is covered the moment it is added.
+
+Pieces are scaled by height rather than sharing a scale, because each sheet is cropped to its own content and a shared scale would size a piece by however much empty space its contact sheet happened to leave. They are also depth-sorted by where they stand: a wide piece like Embermaw overlaps the hexes in front of it, and the piece nearer the camera has to occlude the one behind.
