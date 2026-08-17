@@ -972,15 +972,60 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     expect((later.board.hazards[hexKey(first)] ?? []).some((hazard) => hazard.permanent === true)).toBe(true)
   })
 
-  it('never Scorches a hex adjacent to the Boss, so the Guarded Front cannot burn', () => {
-    // The acceleration lesson in another form: an effect that removes the
-    // Tank's own answer is a problem the party cannot answer.
-    const encounter = catalog.encounters.embermaw_prototype
-    for (const threshold of encounter.escalation_thresholds) {
-      for (const coords of threshold.scorch_hexes) {
-        expect(hexDistance(coords, encounter.boss_start)).toBeGreaterThan(1)
+  // The acceleration lesson in another form: an effect that removes the Tank's
+  // own answer is a problem the party cannot answer. The rule is enforced at
+  // load for every Encounter, so a new arena inherits it instead of having to
+  // remember it.
+  describe('the Guarded Front cannot burn (D-031)', () => {
+    it('holds for every authored Encounter', () => {
+      for (const encounter of Object.values(catalog.encounters)) {
+        for (const threshold of encounter.escalation_thresholds) {
+          for (const coords of threshold.scorch_hexes) {
+            expect(hexDistance(coords, encounter.boss_start)).toBeGreaterThan(1)
+          }
+        }
       }
-    }
+    })
+
+    it('is rejected at load, naming the Encounter and the hex', () => {
+      const encounter = structuredClone(catalog.encounters.embermaw_prototype)
+      // One hex north-east of the Boss: adjacent, and therefore part of the
+      // Guarded Front the Tank is written to hold.
+      encounter.escalation_thresholds[0].scorch_hexes = [
+        { q: encounter.boss_start.q, r: encounter.boss_start.r + 1 },
+      ]
+      const raw = {
+        cards: Object.values(catalog.cards),
+        keywords: Object.values(catalog.keywords),
+        chargeModifiers: Object.values(catalog.chargeModifiers),
+        hazards: Object.values(catalog.hazards),
+        minions: Object.values(catalog.minions),
+        statuses: Object.values(catalog.statuses),
+        programs: Object.values(catalog.programs),
+        encounters: [{ source: 'data/encounters/ashen_trial_variant.json', payload: encounter }],
+      }
+      expect(() => buildCatalog(raw)).toThrow(
+        /Encounter embermaw_prototype \(data\/encounters\/ashen_trial_variant\.json\) threshold 1 \("Ashen Verge"\) Scorches \(1, 0\), which is adjacent to the Boss at \(1, -1\)/,
+      )
+    })
+
+    it('accepts the same threshold one hex further out', () => {
+      const encounter = structuredClone(catalog.encounters.embermaw_prototype)
+      encounter.escalation_thresholds[0].scorch_hexes = [
+        { q: encounter.boss_start.q, r: encounter.boss_start.r + 2 },
+      ]
+      const raw = {
+        cards: Object.values(catalog.cards),
+        keywords: Object.values(catalog.keywords),
+        chargeModifiers: Object.values(catalog.chargeModifiers),
+        hazards: Object.values(catalog.hazards),
+        minions: Object.values(catalog.minions),
+        statuses: Object.values(catalog.statuses),
+        programs: Object.values(catalog.programs),
+        encounters: [encounter],
+      }
+      expect(() => buildCatalog(raw)).not.toThrow()
+    })
   })
 
   it('still applies a numeric threshold when one is authored', () => {

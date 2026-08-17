@@ -20,6 +20,7 @@ import {
   type Scenario,
   type StatusDefinition,
 } from './schemas'
+import { hexDistance } from '../hex'
 
 export interface ContentCatalog {
   cards: Record<string, Card>
@@ -133,6 +134,16 @@ function indexById<T extends { id: string }>(entries: ParsedEntry<T>[], label: s
 // Parses every payload and validates cross-references, taking over the job
 // the frozen ContentValidator.gd did for .tres resources (ADR 0020).
 export function buildCatalog(raw: RawContent): ContentCatalog {
+  // Encounters are parsed to one side so their source files stay reachable
+  // below: an Encounter carries the arena rules, so it is where a
+  // cross-reference failure most needs to name the file.
+  const parsedEncounters = parseAll(raw.encounters, encounterSchema, 'encounter')
+  const encounterSource = new Map(parsedEncounters.map((entry) => [entry.value.id, entry.source]))
+  const encounterAt = (id: string): string => {
+    const source = encounterSource.get(id)
+    return source === undefined || source === '' ? `Encounter ${id}` : `Encounter ${id} (${source})`
+  }
+
   const catalog: ContentCatalog = {
     cards: indexById(parseAll(raw.cards, cardSchema, 'card'), 'card'),
     keywords: indexById(parseAll(raw.keywords, keywordSchema, 'keyword'), 'keyword'),
@@ -141,7 +152,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     minions: indexById(parseAll(raw.minions, minionSchema, 'minion'), 'minion'),
     statuses: indexById(parseAll(raw.statuses ?? [], statusSchema, 'status'), 'status'),
     programs: indexById(parseAll(raw.programs, bossProgramSchema, 'boss program'), 'boss program'),
-    encounters: indexById(parseAll(raw.encounters, encounterSchema, 'encounter'), 'encounter'),
+    encounters: indexById(parsedEncounters, 'encounter'),
     decks: indexById(parseAll(raw.decks ?? [], evaluationDeckSchema, 'deck'), 'deck'),
     scenarios: indexById(parseAll(raw.scenarios ?? [], scenarioSchema, 'scenario'), 'scenario'),
   }
@@ -191,12 +202,32 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
   for (const encounter of Object.values(catalog.encounters)) {
     for (const entry of encounter.player_deck) {
       if (!catalog.cards[entry.card]) {
-        throw new Error(`Encounter ${encounter.id} deck references unknown card ${entry.card}`)
+        throw new Error(`${encounterAt(encounter.id)} deck references unknown card ${entry.card}`)
       }
     }
     for (const programId of encounter.boss_programs) {
       if (!catalog.programs[programId]) {
-        throw new Error(`Encounter ${encounter.id} references unknown Boss Program ${programId}`)
+        throw new Error(`${encounterAt(encounter.id)} references unknown Boss Program ${programId}`)
+      }
+    }
+    for (const programId of encounter.phase_two_programs) {
+      if (!catalog.programs[programId]) {
+        throw new Error(`${encounterAt(encounter.id)} references unknown Phase II Boss Program ${programId}`)
+      }
+    }
+    // The Guarded Front has to stay standable (D-031). A Scorched hex beside
+    // the Boss burns the one tile the Tank's whole kit is written for, so
+    // Escalation would remove the party's answer rather than raise the
+    // question — the acceleration lesson in another form. Held for every
+    // Encounter, because a new arena is exactly where the rule is easiest to
+    // author past by accident.
+    for (const threshold of encounter.escalation_thresholds) {
+      for (const coords of threshold.scorch_hexes) {
+        if (hexDistance(coords, encounter.boss_start) <= 1) {
+          throw new Error(
+            `${encounterAt(encounter.id)} threshold ${threshold.value} ("${threshold.title}") Scorches (${coords.q}, ${coords.r}), which is adjacent to the Boss at (${encounter.boss_start.q}, ${encounter.boss_start.r}) — the Guarded Front must stay standable`,
+          )
+        }
       }
     }
   }

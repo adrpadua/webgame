@@ -113,10 +113,14 @@ file is the authority when this table and the code disagree.
 Escalation Thresholds carry `boss_damage_bonus`, `extra_spawn_count`,
 `minion_damage_bonus`, and `scorch_hexes` at values `1` through `4`. The wipe at
 `5` is an engine rule, not content, so there is one authority for the end of the
-fight. No authored `scorch_hexes` entry should sit adjacent to the Boss — the
-Guarded Front has to stay reachable, or the Tank's own answer becomes
-unreachable. `npm test` enforces that for `embermaw_prototype`; on a new
-Encounter it is currently a rule you have to hold yourself.
+fight. No authored `scorch_hexes` entry may sit adjacent to the Boss — the
+Guarded Front has to stay standable, or Escalation removes the Tank's own
+answer rather than raising the question. That is enforced at load, for every
+Encounter, and the error names the file, the threshold, and the hex:
+
+```
+Encounter ashen_trial_variant (data/encounters/ashen_trial_variant.json) threshold 1 ("Ashen Verge") Scorches (1, 0), which is adjacent to the Boss at (1, -1) — the Guarded Front must stay standable
+```
 
 ## Complete Examples
 
