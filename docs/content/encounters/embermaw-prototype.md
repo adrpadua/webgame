@@ -45,7 +45,7 @@ The prototype uses the standard round structure:
 
 The authored program deck loops while the encounter remains active. The encounter ends when either combatant reaches `0` health, or when the clock advances beyond round `8`.
 
-The live encounter configuration is [resources/encounters/embermaw_prototype.tres](../../../resources/encounters/embermaw_prototype.tres). It owns the round limit and authored enrage text.
+The live encounter configuration is [data/encounters/embermaw_prototype.json](../../../data/encounters/embermaw_prototype.json) (ADR 0020). It owns the round limit and authored enrage text.
 
 ## Spatial Resolution
 
@@ -53,7 +53,7 @@ Embermaw teaches two different kinds of Boss pressure. The approved encounter-de
 
 - `Raking Claw` is a Targeted Boss Tank Hit. Its authored selector wording is **`Target: Tank. Deal 4 damage. Movement does not evade this hit. An unheld Guarded Front suffers +3.`** Its counter-tags are **`Mitigate`** and **`Position`**. Leaving a cone or changing board position does not evade it — and abandoning the Guarded Front makes it worse: the claw rakes an unbraced line for `4 + 3` (D-017, the authored counter-pressure against range camping). Elian may deliberately hold the Guarded Front, build Armor, and earn Riposte Ready from a zero-Health-loss hit, but a Tank Hit still deals damage if its mitigation answer is insufficient. Holding the Guarded Front is therefore both the Riposte setup and the way to keep the claw at its base 4.
 - `Cinder Breath` telegraphs a forward cone during Quick. Leaving the cone avoids the hit; resolved cone hexes become `Scorched` for one round.
-- `Brood Call` telegraphs two edge spawn hexes in solo play, then creates Whelps there. Whelps occupy their hexes and constrain movement routes.
+- `Brood Call` telegraphs two edge spawn hexes in solo play, then creates Whelps there. Whelps occupy their hexes, constrain movement routes, and act at each Round's end step: they advance one hex toward the nearest Hero and bite for `1` once adjacent (D-006). Their next action is always visible as a deterministic Minion Intent.
 
 Scorched terrain cannot be entered voluntarily, so it persists as a tactical constraint rather than a hidden damage source.
 
@@ -116,5 +116,5 @@ The scripted turn gates input to the control its current step names, which is a 
 ## Current Gaps
 
 - No phase break or boss transformation
-- No Ashen Brand, Molten Tail, or Whelp end-step intent yet
+- No Ashen Brand or Molten Tail yet
 - No explicit backstab or flank rules yet, only facing state

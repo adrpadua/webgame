@@ -127,8 +127,8 @@
         "kind": "move_hero",
         "sourceId": "guardian",
         "destination": {
-          "q": 0,
-          "r": 0
+          "q": 2,
+          "r": -1
         },
         "cardInstanceId": "sweeping_blow_16"
       }
@@ -167,8 +167,8 @@
         "kind": "move_hero",
         "sourceId": "guardian",
         "destination": {
-          "q": 1,
-          "r": 0
+          "q": 2,
+          "r": -2
         },
         "cardInstanceId": "iron_guard_14"
       }

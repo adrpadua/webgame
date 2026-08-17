@@ -17,7 +17,7 @@ Status labels: `Now` means content/design work can begin after its stated proof;
 | Rank | Gap | Why it blocks content | Minimum extension |
 | --- | --- | --- | --- |
 | 1 | Deck-evaluation reporting facts | Deck quality cannot be compared repeatably without viability and play-feel evidence. | Scenario/run label, report aggregation for viability basics, and per-Round hand/Slot summaries listed in [deck-evaluation-measurement-plan.md](../artifacts/deck-evaluation-measurement-plan.md). |
-| 2 | Minion end-of-Round intent | Whelps cannot pressure or advance, so `Kill Adds` has no deadline. | Authored Minion behavior, deterministic move/attack resolver, visible intent projection. |
+| 2 | ~~Minion end-of-Round intent~~ Shipped 2026-08-17 (D-006): Whelps advance and bite at the end step; `minionIntents` is the visible projection awaiting board UI wiring. | Whelps cannot pressure or advance, so `Kill Adds` has no deadline. | Authored Minion behavior, deterministic move/attack resolver, visible intent projection. |
 | 3 | Phase triggers and program swaps | Embermaw cannot enter the approved Conflagration package. | Encounter phase condition, post-Round transition, program selection, phase reveal UI. |
 | 4 | Delayed markers and board-origin patterns | Ashen Brand and Cinderstorm cannot be represented honestly. | Marker state, delayed resolution trigger, origin/pattern schema, board overlay. |
 | 5 | Rear arcs, displacement, and collision | Molten Tail and meaningful flanking are unavailable. | Rear-arc target query, forced movement action, deterministic collision policy. |

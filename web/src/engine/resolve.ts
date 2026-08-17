@@ -253,6 +253,18 @@ function resolveOne(
       succeed(fact)
       break
     }
+    case 'move_minion': {
+      const entity = draft.board.entities[action.sourceId]
+      if (!entity) {
+        fail(fact, 'The Minion no longer exists.')
+        break
+      }
+      const fromCoords = entity.coords
+      moveEntity(draft.board, action.sourceId, action.destination)
+      entity.facing = directionForAxialDelta(axialSubtract(action.destination, fromCoords))
+      succeed(fact)
+      break
+    }
     case 'damage': {
       const resolutionFact = applyDamage(draft, action.targetId, action.amount)
       for (const [key, value] of Object.entries(action.factContext ?? {})) {
@@ -540,6 +552,8 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: `Hazard at (${action.coords.q}, ${action.coords.r})`, detail }
     case 'spawn_minion':
       return { title: `Spawn ${action.minionId}`, detail }
+    case 'move_minion':
+      return { title: `${action.sourceId} advances to (${action.destination.q}, ${action.destination.r})`, detail }
     case 'damage':
       return { title: `Damage ${action.amount} to ${action.targetId} (${action.reasonText})`, detail }
     case 'discard_for_stamina':

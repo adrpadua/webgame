@@ -92,6 +92,10 @@ _Avoid_: Enemy, add, trash mob
 When a resolved damage action reduces a Minion's Health to `0`, it immediately removes that Minion from the board before the damage action completes. Its hex becomes unoccupied, the Minion cannot be targeted by any later action, and state owned exclusively by that Minion is discarded. This is part of damage resolution, not an end-of-window or end-of-Round cleanup. The damage action remains successful and its Resolution Fact records `target_removed = true`. Boss defeat and Hero Downed use their own rules.
 _Avoid_: Delayed despawn, end-of-turn cleanup, defeated-but-blocking
 
+**Minion Intent**:
+The visible end-step action a living Minion will take: advance one hex toward its nearest Hero, or bite for its authored attack once adjacent. Intent is derived deterministically from the live board, resolves after the Slow Window before the Round wraps, and Minion damage is a Raid Hit — never a Tank Hit and never a Riposte Ready trigger.
+_Avoid_: Hidden AI, random wander, aggro table
+
 **Instant Row**:
 The boss actions that resolve before the party's `Quick Window`. These are urgent mechanics that are already live this round.
 _Avoid_: Fast row, active row

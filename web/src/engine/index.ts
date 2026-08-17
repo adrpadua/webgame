@@ -42,3 +42,4 @@ export {
 export { currentProgram } from './timeline'
 export { getStatuses } from './statuses'
 export { getEntityIdAt, isLegalMove, neighbors, isGuardedFront } from './board'
+export { minionIntent, minionIntents, type MinionIntent } from './minions'

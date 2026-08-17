@@ -1,6 +1,7 @@
 {
   "id": "whelp",
   "title": "Whelp",
-  "rules_text": "A fragile Minion that occupies a hex and constrains movement.",
-  "max_health": 2
+  "rules_text": "Advances one hex toward its nearest Hero at the end of each Round, and bites for 1 once adjacent. Occupies its hex and constrains movement.",
+  "max_health": 2,
+  "attack_damage": 1
 }

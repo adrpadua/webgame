@@ -5,8 +5,10 @@ import {
   buildEncounterRecord,
   contentIdentity,
   createEncounterState,
+  hexDistance,
   hexKey,
   legality,
+  minionIntents,
   replayRecord,
   resolve,
   runScenario,
@@ -69,6 +71,10 @@ describe('content catalog', () => {
 describe('Boss Program rotation', () => {
   it('loops Hunt, Ember, then Brood across Rounds', () => {
     let state = start()
+    // Rotation is what is under test: give the idle hero enough Health to
+    // survive the accumulating boss pressure and Whelp bites (D-006).
+    hero(state).maxHealth = 500
+    hero(state).health = 500
     expect(state.currentProgramId).toBe('embermaw_hunt')
     state = stepPhases(state, 5).state
     expect(state.round).toBe(2)
@@ -165,6 +171,64 @@ describe('phase cycle', () => {
     expect(hero(state).hand).toHaveLength(4)
     expect(Object.keys(state.board.hazards)).toHaveLength(0)
     expect(wrap.facts.some((fact) => fact.kind === 'round_start')).toBe(true)
+  })
+})
+
+describe('Minion end-step intent (D-006)', () => {
+  it('a distant Whelp advances toward its Hero; an arrived Whelp bites', () => {
+    // Round 1's Incoming Brood Call spawns two Whelps at distance 2; reach Slow.
+    let state = stepPhases(start(), 4).state
+    expect(state.phase).toBe('slow')
+    const heroCoords = state.board.entities[state.primaryHeroId].coords
+    const spawned = Object.values(state.board.entities)
+      .filter((entity) => entity.kind === 'minion')
+      .map((entity) => ({ id: entity.id, distance: hexDistance(entity.coords, heroCoords) }))
+    expect(spawned).toHaveLength(2)
+    expect(spawned.every(({ distance }) => distance === 2)).toBe(true)
+
+    // The projection derives from the live state: both intend to advance.
+    const advanceIntents = minionIntents(catalog, state)
+    expect(advanceIntents).toHaveLength(2)
+    expect(advanceIntents.every((intent) => intent.damage === 0 && intent.destination !== null)).toBe(true)
+
+    // Round 1 wrap: no bites yet — the creep is the deadline.
+    const healthBefore = hero(state).health
+    const wrap = advancePhase(catalog, state)
+    state = wrap.state
+    expect(state.round).toBe(2)
+    expect(wrap.facts.filter((fact) => fact.kind === 'damage' && fact.resolutionFact?.minion_intent === true)).toHaveLength(0)
+    expect(hero(state).health).toBe(healthBefore)
+    for (const { id } of spawned) {
+      expect(hexDistance(state.board.entities[id].coords, heroCoords)).toBe(1)
+    }
+
+    // Round 2: the arrived Whelps bite; the Round's fresh Brood spawns only advance.
+    state = stepPhases(state, 4).state
+    expect(state.phase).toBe('slow')
+    const round2Health = hero(state).health
+    const wrap2 = advancePhase(catalog, state)
+    const bites = wrap2.facts.filter((fact) => fact.kind === 'damage' && fact.resolutionFact?.minion_intent === true)
+    expect(bites).toHaveLength(2)
+    expect(bites.every((fact) => fact.resolutionFact?.damage_classification === 'raid_hit')).toBe(true)
+    expect(hero(wrap2.state).health).toBe(round2Health - 2)
+    // A Raid Hit from a Minion never grants Riposte Ready.
+    expect((wrap2.state.statusEffects[state.primaryHeroId] ?? []).some((effect) => effect.id === 'riposte_ready')).toBe(false)
+  })
+
+  it('a cleared Whelp takes no end-step action', () => {
+    let state = stepPhases(start(), 4).state
+    const whelps = Object.values(state.board.entities).filter((entity) => entity.kind === 'minion')
+    state = resolve(catalog, state, {
+      kind: 'damage',
+      sourceId: state.primaryHeroId,
+      targetId: whelps[0].id,
+      amount: 2,
+      reasonText: 'test clear',
+    }).state
+    const wrap = advancePhase(catalog, state)
+    const moves = wrap.facts.filter((fact) => fact.kind === 'move_minion')
+    expect(moves).toHaveLength(1)
+    expect(moves[0].sourceId).toBe(whelps[1].id)
   })
 })
 

@@ -85,7 +85,7 @@ This is a future human-readable example only, not current Embermaw resource cont
 - **Pattern:** one spawn hex adjacent to each party member, selected from legal empty neighboring hexes; in solo, two edge spawns.
 - **Origin:** each party member or the arena edge.
 - **Answer:** clear Whelps before they occupy safe movement routes; use cleaves and targeted attacks efficiently.
-- **Failure:** each living Whelp contributes one Raid Hit at the next `End` step, then advances one hex toward its nearest player.
+- **Failure:** each living Whelp acts at the next `End` step: it advances one hex toward its nearest player, and bites for one Raid Hit once adjacent. The D-006 implementation gates the bite on adjacency — evaluation showed an unconditional same-round bite made the solo Round-4 checkpoint unreachable in principle, while the creep-then-bite form makes the advance itself the deadline.
 - **Teaching value:** adds are board pressure and route blockers, not merely extra health bars.
 
 Whelps must visibly show their next movement/attack intent. Their number scales with party size; their behavior does not change with difficulty.

@@ -102,6 +102,16 @@ Movement is performed by dragging a hand card onto a valid adjacent empty hex. D
 
 Moving also sets the player's facing to the traversed hex edge. Facing is always one of `E`, `NE`, `NW`, `W`, `SW`, or `SE`; no in-between directions are legal.
 
+## Minions
+
+Minions act at the end of each Round, after the Slow Window and before the Round wraps, in spawn order (D-006):
+
+- A Minion adjacent to its nearest Hero bites for its authored attack (`1` for a Whelp). Minion damage is a Raid Hit: Armor blocks it, and it never grants Riposte Ready.
+- A Minion not yet adjacent advances one hex toward its nearest Hero: the first neighbor in stable board order that shortens the distance and is unoccupied. A fully blocked Minion holds.
+- The creep is the deadline: `Kill Adds` means clearing a Minion before it arrives, and every step it takes also removes a route the party could have used.
+- Minion movement ignores Hazard blocking — Scorched is Embermaw's own element.
+- Each Minion's next action is a visible, deterministic Minion Intent derived from the live board; the engine exposes it as a projection (`minionIntents`).
+
 ## Targeting
 
 `Enemy` is the broad hostile-combatant term. The Boss and Minions are both Enemies, and are mutually exclusive: the Boss is never a Minion.

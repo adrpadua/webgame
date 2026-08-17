@@ -55,6 +55,7 @@ export const minionSchema = z.object({
   title: z.string().min(1),
   rules_text: z.string().default(''),
   max_health: z.number().int().min(1),
+  attack_damage: z.number().int().min(0).default(0),
 })
 
 export const bossBeatSchema = z.object({
