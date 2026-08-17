@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { axialToPixel, BOARD_WIDTH, HEX_SIZE } from '@/board/layout'
 import { DEFAULT_ENCOUNTER_ID, FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
 import { hasFinishedFirstTurn } from './onboarding'
 import {
@@ -352,13 +353,37 @@ export function slotWindowLabel(cardId: string): 'Quick' | 'Slow' {
 // session's Scenario and Encounter Record through the window object.
 declare global {
   interface Window {
-    __workbench?: { exportRecord: () => Promise<string>; exportScenario: () => string }
+    __workbench?: {
+      exportRecord: () => Promise<string>
+      exportScenario: () => string
+      hexRects: () => { key: string; left: number; right: number; top: number; bottom: number }[]
+    }
   }
 }
 if (typeof window !== 'undefined') {
   window.__workbench = {
     exportRecord: () => useWorkbench.getState().exportRecord(),
     exportScenario: () => useWorkbench.getState().exportScenario(),
+    // Every hex's on-screen bounding box, so a browser check can ask whether
+    // an overlay covers a hex rather than whether it overlaps the canvas —
+    // the canvas is a hexagon's bounding box and its corners are empty.
+    hexRects: () => {
+      const canvas = document.querySelector('[data-testid="board"] canvas')
+      const state = selectState(useWorkbench.getState())
+      if (!canvas || !state) {
+        return []
+      }
+      const bounds = canvas.getBoundingClientRect()
+      const scale = bounds.width / BOARD_WIDTH
+      const half = HEX_SIZE * scale
+      return Object.keys(state.board.hexes).map((key) => {
+        const [q, r] = key.split(',').map(Number)
+        const { x, y } = axialToPixel({ q, r })
+        const cx = bounds.left + x * scale
+        const cy = bounds.top + y * scale
+        return { key, left: cx - half * 0.866, right: cx + half * 0.866, top: cy - half, bottom: cy + half }
+      })
+    },
   }
 }
 
