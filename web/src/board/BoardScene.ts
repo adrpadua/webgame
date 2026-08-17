@@ -5,6 +5,7 @@ import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 import { boardPalette, toneColors } from './palette'
 import heroIdleUrl from '@/assets/elian-voss-idle.png'
 import bossIdleUrl from '@/assets/embermaw-idle.png'
+import minionIdleUrl from '@/assets/whelp-idle.png'
 
 // Idle sheets, built from the authored contact sheets by
 // tools/build_sprite_sheet.py. Rows are the engine's facing indices and the
@@ -32,12 +33,16 @@ interface SheetSpec {
   footOffset: number
 }
 
-// Elian stands about one and a third hexes tall. Embermaw is half again as
-// tall and much broader — the design calls for a boss that dominates several
-// hexes, and its sheet is drawn low and wide to match.
+// Elian stands about one and a third hexes tall. Embermaw is drawn low and
+// wide and overlaps its neighbours, which is the design's boss that dominates
+// several hexes. A Whelp is roughly half the Hero: it has to read as a piece
+// of the furnace that broke off, never as a small Embermaw, and size is half
+// of how those two stay apart — the other half is that they share a material
+// and separate by saturation, per the board direction.
 const SHEETS: Record<string, SheetSpec> = {
   hero: { key: 'elian-idle', url: heroIdleUrl, frameWidth: 162, frameHeight: 210, targetHeight: 74, footOffset: 12 },
   boss: { key: 'embermaw-idle', url: bossIdleUrl, frameWidth: 238, frameHeight: 176, targetHeight: 80, footOffset: 22 },
+  minion: { key: 'whelp-idle', url: minionIdleUrl, frameWidth: 178, frameHeight: 164, targetHeight: 40, footOffset: 10 },
 }
 // The board is three layers: tiles and their tints, then the pieces, then the
 // text that has to be read over both. Phaser falls back to creation order
