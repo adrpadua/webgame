@@ -13,6 +13,7 @@ var armor_on_round_start: int = 0
 var damage_on_enter_hex: int = 0
 var damage_reduction: int = 0
 var bonus_boss_damage_on_slot_fired: int = 0
+var bonus_boss_damage_off_payoff: int = 0
 var title: String = "Status Effect"
 var trigger_reason: StringName = &""
 var expires_at_window_end: StringName = &""
@@ -42,8 +43,12 @@ func outcome_for(trigger: StringName, context: Dictionary = {}) -> Dictionary:
 			return {"damage_reduction": damage_reduction}
 		ON_SLOT_FIRED:
 			var card = context.get("card")
-			if consume_on_card_id != &"" and (card == null or card.id != consume_on_card_id):
-				return {}
+			if consume_on_card_id != &"":
+				if card == null or not bool(context.get("deals_boss_damage", false)):
+					return {}
+				if card.id == consume_on_card_id:
+					return {"bonus_boss_damage": bonus_boss_damage_on_slot_fired}
+				return {"bonus_boss_damage": bonus_boss_damage_off_payoff}
 			return {"bonus_boss_damage": bonus_boss_damage_on_slot_fired}
 	return {}
 

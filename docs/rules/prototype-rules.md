@@ -203,7 +203,7 @@ The live/default tank deck is the approved five-identity Shield Wall list, carri
 - `Iron Guard` (6 copies): gain `3` Armor, plus `1` per charged `Guard` card.
 - `Sweeping Blow` (2 copies): deal `2` damage to a selected adjacent Minion.
 - `Fortify` (2 copies): Slow; gain `6` Armor.
-- `Shield Slam` (2 copies): deal `3` boss damage; a legal activation consumes Riposte Ready for `+2`.
+- `Shield Slam` (2 copies): deal `3` boss damage; a legal activation consumes Riposte Ready for `+2`. Any other Boss-damage card consumes an active Riposte Ready for `+1`; cards without Boss damage never consume it.
 
 The full specification and card roles live in [elian-voss-starter.md](../content/decks/elian-voss-starter.md). The prior `10x Steady Strike` / `10x Iron Guard` list is historical baseline evidence only.
 

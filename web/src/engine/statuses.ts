@@ -70,6 +70,7 @@ export function createRiposteReady(sourceId: string, sourceBeatId: string, round
     armorOnRoundStart: 0,
     damageReduction: 0,
     bonusBossDamageOnSlotFired: 2,
+    bonusBossDamageOffPayoff: 1,
     triggerReason: 'qualifying_tank_hit',
     expiresAtWindowEnd: 'quick',
     consumeOnCardId: SHIELD_SLAM,

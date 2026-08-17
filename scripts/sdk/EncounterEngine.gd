@@ -278,6 +278,7 @@ func _evaluate_damage_status(action, resolution_fact: Dictionary) -> void:
 		effect.expires_at_window_end = &"quick"
 		effect.consume_on_card_id = SHIELD_SLAM
 		effect.bonus_boss_damage_on_slot_fired = 2
+		effect.bonus_boss_damage_off_payoff = 1
 		effect.source_id = action.source_id
 		effect.source_beat_id = resolution_fact.get("boss_beat_id", &"")
 		effect.trigger_round = round
@@ -288,20 +289,25 @@ func _evaluate_damage_status(action, resolution_fact: Dictionary) -> void:
 		resolution_fact["status_event"] = _status_event(effect, &"granted", effect.trigger_reason)
 	resolution_fact["status_evaluation"] = evaluation
 
-func _consume_statuses_for_slot(entity_id: StringName, card) -> Dictionary:
+# A consumable payoff status (consume_on_card_id set) is cashed by ANY card
+# that deals Boss damage: the named payoff card takes the full bonus, every
+# other Boss-damage card takes the smaller off-payoff bonus. Cards that deal
+# no Boss damage never consume it.
+func _consume_statuses_for_slot(entity_id: StringName, card, deals_boss_damage: bool) -> Dictionary:
 	var result := {"bonus_boss_damage": 0, "events": []}
 	if card == null:
 		return result
 	var remaining: Array = []
 	for effect in status_effects.get(entity_id, []):
-		var consumes: bool = effect.consume_on_card_id != &"" and effect.consume_on_card_id == card.id and effect.responds_to(StatusEffectModel.ON_SLOT_FIRED)
+		var consumes: bool = effect.consume_on_card_id != &"" and deals_boss_damage and effect.responds_to(StatusEffectModel.ON_SLOT_FIRED)
 		if not consumes:
 			remaining.append(effect)
 			continue
-		var outcome_data: Dictionary = effect.outcome_for(StatusEffectModel.ON_SLOT_FIRED, {"card": card})
+		var outcome_data: Dictionary = effect.outcome_for(StatusEffectModel.ON_SLOT_FIRED, {"card": card, "deals_boss_damage": deals_boss_damage})
 		var bonus := int(outcome_data.get("bonus_boss_damage", 0))
 		result["bonus_boss_damage"] += bonus
-		var event := _status_event(effect, &"consumed", &"matching_card_fired")
+		var reason: StringName = &"matching_card_fired" if card.id == effect.consume_on_card_id else &"boss_damage_card_fired"
+		var event := _status_event(effect, &"consumed", reason)
 		event["card_id"] = card.id
 		event["bonus_boss_damage"] = bonus
 		result["events"].append(event)
@@ -716,7 +722,7 @@ func _fire_slot(action) -> Array:
 	slot["activated_window"] = phase
 	hero["action_bar"][slot_index] = slot
 	_put_hero(action.source_id, hero)
-	var consumed: Dictionary = _consume_statuses_for_slot(action.source_id, card)
+	var consumed: Dictionary = _consume_statuses_for_slot(action.source_id, card, int(effects["boss_damage"]) > 0)
 	var status_bonus: int = int(consumed.get("bonus_boss_damage", 0))
 	effects["boss_damage"] += status_bonus
 	if not consumed.get("events", []).is_empty():

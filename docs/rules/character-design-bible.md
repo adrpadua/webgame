@@ -136,7 +136,7 @@ Captain Elian Voss's machine is currently **Shield Wall**, not holy spellcasting
 | Engine nouns | Armor, `Guard` Keyword count in a Charge Stack, Riposte Ready, and the prepared Quick/Slow Slot. |
 | Setup | Install a defense or attack, then Charge it with cards that establish useful `Guard` interactions and take the Guarded Front. |
 | Convert | A `Guard` charge improves a defensive installed module; a Boss Tank Hit that causes `0` Health loss in the Guarded Front grants one Riposte Ready. |
-| Payoff | Consume Riposte Ready with Shield Slam for `+2` Boss damage, absorb the hit that would break the line, or clear a nearby Minion. |
+| Payoff | Cash Riposte Ready — any Boss-damage card for `+1`, Shield Slam for the full `+2` — absorb the hit that would break the line, or clear a nearby Minion. |
 | Recovery | Replace a Slot during Loadout, retain a partially charged plan where legal, or discard a hand card for Stamina and reposition. |
 | Spatial expression | The Guarded Front: the Boss-facing adjacent hex is where Elian's mitigation and the Riposte loop live. Leaving it costs the payoff condition. |
 | Counterpressure | Targeted Tank Hits (`Raking Claw`) cannot be dodged, only mitigated, so Armor sizing competes with damage progress every Round; telegraphed cones and Whelp spawns pull Elian between holding the Front and answering the board. |

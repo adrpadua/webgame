@@ -416,6 +416,51 @@ describe('damage and Resolution Facts', () => {
     expect(damageFact?.resolutionFact).toMatchObject({ base_amount: 3, status_bonus: 2, payoff_card_id: 'shield_slam' })
   })
 
+  it('consumes Riposte Ready for +1 when a non-Shield-Slam Boss-damage card fires', () => {
+    let state = start()
+    hero(state).armor = 5
+    state = resolve(catalog, state, {
+      kind: 'damage',
+      sourceId: state.bossId,
+      targetId: state.primaryHeroId,
+      amount: 4,
+      reasonText: 'Raking Claw',
+      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_classification: 'tank_hit' },
+    }).state
+    expect(state.statusEffects[state.primaryHeroId]?.[0]?.id).toBe('riposte_ready')
+
+    state.phase = 'quick'
+    hero(state).actionBar[0] = { topCard: card('s1', 'steady_strike'), charges: [card('s2', 'iron_guard')], activatedWindow: null, placedThisLoadout: false }
+    const bossHealthBefore = boss(state).health
+    const strike = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+    state = strike.state
+    // Steady Strike: 2 base + 1 per charged card + 1 off-payoff Riposte bonus.
+    expect(boss(state).health).toBe(bossHealthBefore - 4)
+    expect(state.statusEffects[state.primaryHeroId] ?? []).toHaveLength(0)
+    const damageFact = strike.facts.find((fact) => fact.kind === 'damage')
+    expect(damageFact?.resolutionFact).toMatchObject({ base_amount: 3, status_bonus: 1, payoff_card_id: 'steady_strike' })
+  })
+
+  it('does not consume Riposte Ready when a card with no Boss damage fires', () => {
+    let state = start()
+    hero(state).armor = 5
+    state = resolve(catalog, state, {
+      kind: 'damage',
+      sourceId: state.bossId,
+      targetId: state.primaryHeroId,
+      amount: 4,
+      reasonText: 'Raking Claw',
+      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_classification: 'tank_hit' },
+    }).state
+    expect(state.statusEffects[state.primaryHeroId]?.[0]?.id).toBe('riposte_ready')
+
+    state.phase = 'quick'
+    hero(state).actionBar[0] = { topCard: card('g1', 'iron_guard'), charges: [card('g2', 'steady_strike')], activatedWindow: null, placedThisLoadout: false }
+    const guard = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+    state = guard.state
+    expect(state.statusEffects[state.primaryHeroId]?.[0]?.id).toBe('riposte_ready')
+  })
+
   it('expires an unconsumed Riposte Ready at the end of the Quick Window', () => {
     let state = start()
     hero(state).armor = 5

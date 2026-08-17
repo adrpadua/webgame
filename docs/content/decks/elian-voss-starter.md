@@ -50,7 +50,7 @@ The deck is a five-identity Shield Wall kit built to express:
 - `Iron Guard`: quick Tank response. It grants `3` Armor, plus `1` Armor for each charged `Guard` card.
 - `Sweeping Blow`: quick adjacent-Minon answer.
 - `Fortify`: Slow Armor commitment for a future threat.
-- `Shield Slam`: quick Boss payoff that consumes Riposte Ready for `+2` Boss damage.
+- `Shield Slam`: quick Boss payoff that consumes Riposte Ready for the full `+2` Boss damage. Any other Boss-damage card cashes an active Riposte Ready for `+1`, so an earned opening is never wasted on a Slam-less hand; holding the window for the Slam is the stronger, riskier line.
 
 Any card can charge either Top Card. `Steady Strike` rewards total Charge, while `Iron Guard` demonstrates a Keyword-specific Charge Modifier. The player chooses between maintaining front-line defense, cashing in a Riposte opening, clearing a Minion, or committing to a Slow plan. Top Cards remain prepared at `0 Charge`, activate once after at least one card is tucked beneath them, and discard as a complete bundle only when activated at their Charge Value.
 

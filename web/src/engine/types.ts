@@ -75,6 +75,7 @@ export interface StatusInstance {
   armorOnRoundStart: number
   damageReduction: number
   bonusBossDamageOnSlotFired: number
+  bonusBossDamageOffPayoff: number
   triggerReason: string
   expiresAtWindowEnd: Phase | ''
   consumeOnCardId: string

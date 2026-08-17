@@ -997,13 +997,13 @@ func _get_riposte_ready_status_text() -> String:
 	var effect = _get_riposte_ready_effect()
 	if effect == null:
 		return ""
-	return "Riposte Ready  |  Tank Hit fully blocked. Shield Slam +2 before Quick ends."
+	return "Riposte Ready  |  Tank Hit fully blocked. Boss-damage card +1, Shield Slam +2, before Quick ends."
 
 func _get_riposte_ready_tooltip() -> String:
 	var effect = _get_riposte_ready_effect()
 	if effect == null:
 		return ""
-	return "Granted by %s in Round %d %s. Expires at end of the first following %s Window. A legal %s consumes it." % [
+	return "Granted by %s in Round %d %s. Expires at end of the first following %s Window. Any Boss-damage card consumes it for +1; a legal %s takes the full +2." % [
 		_riposte_reason_text(effect.trigger_reason),
 		effect.trigger_round,
 		String(effect.trigger_phase).capitalize(),
@@ -1037,7 +1037,8 @@ func _set_status_payoff_feedback() -> void:
 	var latest := _latest_riposte_payoff_fact()
 	if latest.is_empty():
 		return
-	_set_feedback("Riposte Ready consumed: Shield Slam dealt +%d Boss damage (%d total)." % [
+	_set_feedback("Riposte Ready consumed: %s dealt +%d Boss damage (%d total)." % [
+		_riposte_card_text(latest.get("payoff_card_id", &"")),
 		int(latest.get("status_bonus", 0)),
 		int(latest.get("requested", 0)),
 	])
