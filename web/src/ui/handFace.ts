@@ -1,4 +1,5 @@
-import { cardChargeCap, hexDistance, isLegalMove, parseHexKey, type ContentCatalog, type EncounterState } from '@/engine'
+import { hexDistance, isLegalMove, parseHexKey, type ContentCatalog, type EncounterState } from '@/engine'
+import { slotTakesCharge, slotWantedKeywords } from './slots'
 
 // What a card in hand actually is, right now.
 //
@@ -80,12 +81,12 @@ export function shownKeywords(catalog: ContentCatalog, tags: string[]): string[]
 }
 
 // The Keywords that would pay off if a card carrying one were tucked right
-// now: every keyword-specific Charge Modifier on a Top Card whose Slot can
-// still take a Charge. A Slot that has activated this window, or whose stack
-// is already full, cannot accept the card — so its modifiers promise nothing
-// and its Keywords stay quiet. Modifiers that count every charge regardless
-// of Keyword (Charged Assault) name none, and light none: they pay for the
-// Charge itself, which is not a property of the card being chosen.
+// now: what the Slots are hunting for, narrowed to the Slots that can still
+// take the card. A Slot that has activated this window, or whose stack is
+// already full, cannot accept it — so its wants promise nothing and stay off
+// the Hand. The Action Bar draws the same wants on the Slot itself, from the
+// same two predicates, so a gold Keyword in hand always has a Slot showing
+// the mark it answers.
 export function payingKeywords(catalog: ContentCatalog, state: EncounterState): Set<string> {
   const paying = new Set<string>()
   const hero = state.heroes[state.primaryHeroId]
@@ -93,18 +94,11 @@ export function payingKeywords(catalog: ContentCatalog, state: EncounterState): 
     return paying
   }
   for (const slot of hero.actionBar) {
-    if (slot.topCard === null || slot.activatedWindow === state.phase) {
+    if (!slotTakesCharge(catalog, state, slot)) {
       continue
     }
-    const topCard = catalog.cards[slot.topCard.cardId]
-    if (slot.charges.length >= cardChargeCap(topCard)) {
-      continue
-    }
-    for (const modifierId of topCard.charge_modifiers) {
-      const keywordId = catalog.chargeModifiers[modifierId]?.keyword_id ?? ''
-      if (keywordId !== '') {
-        paying.add(keywordId)
-      }
+    for (const keywordId of slotWantedKeywords(catalog, slot)) {
+      paying.add(keywordId)
     }
   }
   return paying

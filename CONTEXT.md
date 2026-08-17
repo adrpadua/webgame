@@ -213,7 +213,7 @@ Cards remain in hand until they are prepared, tucked as charges, discarded by an
 _Avoid_: End-turn discard, rotating hand
 
 **Charge Modifier**:
-An explicit Top Card rule that changes its effect according to the Keywords on cards in its Charge Stack. A tucked card always adds one Charge, but grants no universal numerical bonus.
+An explicit Top Card rule that changes its effect according to the Keywords on cards in its Charge Stack. A tucked card always adds one Charge, but grants no universal numerical bonus. A modifier that names a Keyword is shown on both ends of the choice it creates: the Slot carries that Keyword's mark beside its tumblers, and a hand card carrying the Keyword marks it live while that Slot can still take a Charge. A modifier that counts every charge alike names no Keyword and shows no mark, because no card in hand answers it better than another.
 _Avoid_: Default charge bonus, hidden synergy
 
 **Keyword**:

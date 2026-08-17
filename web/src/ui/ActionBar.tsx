@@ -2,7 +2,8 @@ import { cardChargeCap, cardWindowSpeed, legality, type SlotState } from '@/engi
 import { selectState, useWorkbench } from '@/store/workbench'
 import { blocksTarget } from './firstTurnScript'
 import { useFirstTurnStep } from './useFirstTurn'
-import { slotCanFire } from './slots'
+import { slotCanFire, slotTakesCharge, slotWantedKeywords } from './slots'
+import { keywordIcon } from './keywordIcons'
 import { slotDetail } from './holdDetails'
 import { useHold, type HoldDetail } from './HoldPopover'
 import { LockHead, type LockState } from './icons'
@@ -98,6 +99,8 @@ function Slot({ slotIndex }: { slotIndex: number }) {
   const chargeCap = card ? cardChargeCap(card) : 0
   const stateName = slotStateName(slot, chargeCap)
   const canFire = slotCanFire(catalog, state, slot)
+  const wanted = slotWantedKeywords(catalog, slot)
+  const takesCharge = slotTakesCharge(catalog, state, slot)
   const incomingCardId = selectedCardId ?? draggingCardId
   const hold = useHold(card ? slotDetail(card, slot, slotIndex, state.phase) : EMPTY_SLOT_DETAIL)
 
@@ -141,7 +144,17 @@ function Slot({ slotIndex }: { slotIndex: number }) {
       data-slot-state={stateName}
       data-incoming-action={incomingAction ?? ''}
       data-incoming-legal={incomingAction === null ? '' : String(incomingLegal)}
-      aria-label={card ? `Slot ${slotIndex + 1}: ${card.title}, ${STATE_LABEL[stateName]}` : `Slot ${slotIndex + 1}: empty`}
+      aria-label={
+        card
+          ? `Slot ${slotIndex + 1}: ${card.title}, ${STATE_LABEL[stateName]}${
+              // The want marks are the only thing on the plate with no word
+              // beside them, so the label is where they are spoken.
+              wanted.length > 0 && takesCharge
+                ? `, takes ${wanted.map((keywordId) => catalog.keywords[keywordId]?.title ?? keywordId).join(' or ')} cards`
+                : ''
+            }`
+          : `Slot ${slotIndex + 1}: empty`
+      }
       {...hold.holdProps}
       onClick={() => {
         if (hold.consumeHold()) {
@@ -211,15 +224,33 @@ function Slot({ slotIndex }: { slotIndex: number }) {
               continuous bar — the shear line clear, the lock free to turn.
               Segmented becoming solid is a bigger perceptual change at this
               size than any shift of value, and it is what a lock does. */}
-          <div className={`mt-1.5 flex items-center ${stateName === 'primed' || stateName === 'fired' ? 'gap-0' : 'gap-[3px]'}`} data-testid="charge-tumblers">
-            {Array.from({ length: chargeCap }, (_, index) => (
-              <span
-                key={index}
-                className={`h-[5px] w-3.5 -skew-x-[8deg] ${
-                  index < slot.charges.length ? (stateName === 'fired' ? 'bg-gold-700' : 'bg-gold-400') : 'bg-steel-950 shadow-[inset_0_1px_0_rgba(0,0,0,0.6)]'
-                }`}
-              />
-            ))}
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <div className={`flex items-center ${stateName === 'primed' || stateName === 'fired' ? 'gap-0' : 'gap-[3px]'}`} data-testid="charge-tumblers">
+              {Array.from({ length: chargeCap }, (_, index) => (
+                <span
+                  key={index}
+                  className={`h-[5px] w-3.5 -skew-x-[8deg] ${
+                    index < slot.charges.length ? (stateName === 'fired' ? 'bg-gold-700' : 'bg-gold-400') : 'bg-steel-950 shadow-[inset_0_1px_0_rgba(0,0,0,0.6)]'
+                  }`}
+                />
+              ))}
+            </div>
+            {/* What this Top Card is hunting for, on the row that holds the
+                pins it would fill: the same Keyword marks the Hand draws, so
+                the answer to "which card do I tuck here" is a match between
+                two glyphs rather than a rules sentence either end. Gold while
+                the Slot can still take a Charge — the same predicate that
+                lights those Keywords in hand — and steel when it cannot, so
+                a card's appetite stays learnable through the window it spends
+                unable to act on it. */}
+            {wanted.length > 0 && (
+              <div className="ml-auto flex shrink-0 items-center gap-1" data-testid="slot-wants">
+                {wanted.map((keywordId) => {
+                  const Icon = keywordIcon(state.primaryHeroId, keywordId)
+                  return <Icon key={keywordId} className={`h-4 w-4 ${takesCharge ? 'text-gold-400' : 'text-steel-600'}`} />
+                })}
+              </div>
+            )}
           </div>
           {SUBTITLE_STATES.has(stateName) && (
             <div className={`mt-1 text-[10px] font-semibold tracking-wide uppercase ${STATE_TONE[stateName]}`}>{STATE_LABEL[stateName]}</div>
