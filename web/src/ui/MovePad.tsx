@@ -60,10 +60,15 @@ export function MovePad() {
             disabled={!legal}
             data-testid={`move-${facingName(direction)}`}
             onClick={() => cardDroppedOnHex(selectedCardId, destination)}
-            className={`min-h-11 min-w-11 rounded-lg border text-xs font-bold shadow-lg transition ${FOCUS_RING_CLASS} ${
+            // The pad is six 44px targets in a gutter only a few pixels wider
+            // than 44, so it cannot carry the rake's horizontal padding without
+            // overlapping the board — the smoke suite asserts on exactly that.
+            // It stays a square steel plate: unrounded, edged, no rake. A legal
+            // destination is a player affordance, so it reads in runeglass.
+            className={`min-h-11 min-w-11 border text-xs font-bold transition ${FOCUS_RING_CLASS} ${
               legal
-                ? `border-emerald-500 bg-emerald-950/90 text-emerald-200 hover:bg-emerald-900/90 ${dimmed ? '' : 'animate-pulse motion-reduce:animate-none'}`
-                : 'border-zinc-800 bg-zinc-900/80 text-zinc-700'
+                ? `border-glass-500 bg-glass-950/90 text-glass-200 hover:bg-glass-900/90 ${dimmed ? '' : 'animate-pulse motion-reduce:animate-none'}`
+                : 'border-steel-800 bg-steel-950/80 text-zinc-700'
             } ${guided ? `border-zinc-100 ${SPOTLIGHT_CLASS}` : ''} ${dimmed ? 'opacity-40' : ''}`}
           >
             {facingName(direction)}

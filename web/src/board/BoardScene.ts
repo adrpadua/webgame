@@ -1,8 +1,7 @@
 import Phaser from 'phaser'
-import { facingName, hexKey, parseHexKey, type Axial, type EncounterState, type EntityKind } from '@/engine'
+import { facingName, hexKey, parseHexKey, type Axial, type EncounterState } from '@/engine'
 import { axialToPixel, hexCorners, pixelToAxial, HEX_SIZE } from './layout'
-import { healthBarScale } from '@/ui/theme'
-import type { BoardEffect, EffectTone, HealthPlayoutValue } from './effects'
+import type { BoardEffect, EffectTone } from './effects'
 
 // The board snapshot the scene renders. Phaser owns no game state: it draws
 // what it is handed and reports hex-level intents upward (ADR 0019).
@@ -13,9 +12,6 @@ export interface BoardSnapshot {
   // Hexes the scripted first turn is pointing the player at.
   guidedMoveKeys: string[]
   showCoordinates: boolean
-  // Staggered gauge values while a boss track replays: a piece listed here
-  // draws this health/armor instead of the state's (already final) numbers.
-  healthOverrides: Record<string, HealthPlayoutValue>
   // What the playout's unplayed moments will show. The snapshot state is
   // the batch's final one, so until those moments fire the board holds
   // back: these hazards stay undrawn, these pieces stay unseen, and these
@@ -31,32 +27,98 @@ export interface BoardSceneCallbacks {
   onHeroPressChange: (pressed: boolean) => void
 }
 
-const TILE_FILL = 0x272138
-const TILE_STROKE = 0x4c4368
-const SCORCHED_FILL = 0x7f1d1d
-const BREATH_OVERLAY = 0xf97316
-const BROOD_OVERLAY = 0xa855f7
-const MOVE_OVERLAY = 0x22c55e
+// The board's colour language runs on two axes.
+//
+// Temperature carries meaning: warm is threat, cool is the player and the
+// ground they stand on. Nothing safe is warm and nothing dangerous is cool,
+// so a glance at the board's temperature is a read on where the danger is.
+//
+// Saturation carries urgency, ranked by imminence within each temperature:
+// the beat resolving now outranks a telegraphed beat, which outranks the Boss,
+// then a Minion, then ground already scorched. Cool runs legal destinations,
+// then the Hero, then the ground. Newest and most dangerous conflict all the
+// time; imminence subsumes both.
+//
+// Objects take their MATERIAL. Hex tints take their TEMPERATURE. A tint is
+// information about a hex, not a thing made of runeglass, so it says whose it
+// is: warm is their beat, cool is your move. Every value here names one or
+// the other, per docs/content/oathcraft-board-direction.md.
+//
+// Cool objects — oathsteel ground, and a signal-cloth Hero standing on it.
+const TILE_FILL = 0x1b2434
+const TILE_STROKE = 0x37465f
+const HERO_FILL = 0x2f5680
+// Cool tint: where the Hero may step. Runeglass at tint saturation.
+const MOVE_OVERLAY = 0x62d2e6
+// Warm tints, most imminent first — the telegraphed beats landing next window.
+// One material, two saturations: the breath cone is the more imminent read.
+const BREATH_OVERLAY = 0xe0703b
+const BROOD_OVERLAY = 0xd9482f
+// Warm objects. Boss and Minion are one material, ember coral: a Whelp is a
+// piece of the furnace, and a hue of its own would say otherwise. They part by
+// saturation and size, and scorched ground is that material with the heat gone.
+const BOSS_FILL = 0xd9482f
+const MINION_FILL = 0xb8562f
+const SCORCHED_FILL = 0x5a2f22
+// The scripted turn's pointer is instruction from outside the fiction — the one
+// neutral on the board. The strike reticle is a player affordance, so it is a
+// cool tint like any other thing that is yours to choose.
 const GUIDED_STROKE = 0xfafafa
-const TARGET_STROKE = 0xfacc15
-const BOSS_FILL = 0xdc2626
-const HERO_FILL = 0x3b82f6
-const MINION_FILL = 0x16a34a
+const TARGET_STROKE = 0x62d2e6
 
+// One light direction for the whole board, from the upper left. Every piece
+// shades and rims against it, and the drop shadow falls the opposite way, so
+// the board reads as one lit scene rather than a set of flat tokens.
+const LIGHT_ANGLE = (-3 * Math.PI) / 4
+const LIGHT_DX = Math.cos(LIGHT_ANGLE)
+const LIGHT_DY = Math.sin(LIGHT_ANGLE)
+// The lit tone covers most of the piece and touches its rim on the lit side:
+// offset plus radius comes to exactly 1, leaving the shadow tone showing as a
+// crescent on the far side.
+const PIECE_LIT_OFFSET = 0.15
+const PIECE_LIT_RADIUS = 0.85
+const PIECE_SHADOW_SHADE = 0.55
+// Two arcs with two jobs. The highlight sits on the lit side and says where
+// the light is; the rim sits opposite, on the lower right, and lifts a dark
+// piece off a dark tile. A faint full ring would separate equally in every
+// direction and flatten the light it sits inside, so it is deliberately not
+// used for that.
+const HIGHLIGHT_SPAN = (Math.PI * 2) / 3
+const RIM_ANGLE = LIGHT_ANGLE + Math.PI
+const RIM_SPAN = Math.PI / 2
+
+// A small, slow rise and fall so a board with nothing happening on it still
+// breathes. Each piece takes its own phase from its id, so they never pulse
+// in unison and the board never looks metronomic. The drop shadow stays put
+// while the body moves, which is what sells the lift.
+const IDLE_BOB_PIXELS = 2
+const IDLE_BOB_PERIOD_MS = 2600
+
+// How far a tile's darker skirt drops below its face.
+const TILE_DEPTH = 6
+const TILE_SKIRT_SHADE = 0.45
+// Range of the per-hex value jitter, centred on 1.
+const TILE_JITTER = 0.12
+
+// A Board Feedback flash is an event, neither object nor tint: the AXIS says
+// whose event it was, and the MATERIAL involved supplies the value. Your
+// restoration is aether ceramic — the world's medical technology — and reads
+// pale against a board where everything else is saturated. There is no green
+// on the board, because green names no material.
 const TONE_COLOR: Record<EffectTone, number> = {
-  hero: 0x60a5fa,
-  boss: 0xf87171,
-  guard: 0x38bdf8,
-  heal: 0x34d399,
-  hazard: 0xfb923c,
+  hero: 0x2f5680,
+  boss: 0xd9482f,
+  guard: 0x62d2e6,
+  heal: 0xe4e8ee,
+  hazard: 0xe0703b,
 }
 
 const TONE_TEXT: Record<EffectTone, string> = {
-  hero: '#fca5a5',
-  boss: '#fca5a5',
-  guard: '#7dd3fc',
-  heal: '#6ee7b7',
-  hazard: '#fdba74',
+  hero: '#f6c9be',
+  boss: '#f6c9be',
+  guard: '#a6e6f0',
+  heal: '#f2f5f9',
+  hazard: '#f3c8ad',
 }
 
 // How long each beat of feedback stays on the board. Short enough that a
@@ -98,10 +160,44 @@ function easeOutCubic(t: number): number {
   return 1 - (1 - t) ** 3
 }
 
+// Scales a 0xRRGGBB colour's channels toward black (factor < 1) or white
+// (factor > 1), so one authored colour yields its own shadow and highlight
+// instead of needing a second constant per tone.
+function shade(color: number, factor: number): number {
+  const r = Math.min(255, Math.round(((color >> 16) & 0xff) * factor))
+  const g = Math.min(255, Math.round(((color >> 8) & 0xff) * factor))
+  const b = Math.min(255, Math.round((color & 0xff) * factor))
+  return (r << 16) | (g << 8) | b
+}
+
+// A stable pseudo-random value in [0, 1) for a hex. The same hex always lands
+// on the same shade, so the floor holds still between frames.
+function tileJitter(coords: Axial): number {
+  const h = Math.sin(coords.q * 127.1 + coords.r * 311.7) * 43758.5453
+  return h - Math.floor(h)
+}
+
+// Where in its bob cycle a piece starts, in [0, 1). Derived from the id so a
+// piece keeps the same phase for as long as it is on the board.
+function idlePhase(entityId: string): number {
+  let hash = 0
+  for (let index = 0; index < entityId.length; index += 1) {
+    hash = (hash * 31 + entityId.charCodeAt(index)) % 997
+  }
+  return hash / 997
+}
+
 export class BoardScene extends Phaser.Scene {
   private snapshot: BoardSnapshot | null = null
   private graphicsLayer: Phaser.GameObjects.Graphics | null = null
   private labels: Phaser.GameObjects.Text[] = []
+  // What the live labels were built from. The idle bob redraws the board every
+  // frame, and every Phaser Text rasterises its own texture, so rebuilding
+  // labels at that rate would churn textures for nothing: the bob moves piece
+  // bodies, never their labels. These two let an idle frame keep the labels it
+  // already has, while a snapshot change or a live effect still rebuilds them.
+  private labelsSnapshot: BoardSnapshot | null = null
+  private labelsHaveEffects = false
   private active: ActiveEffect[] = []
   private readonly callbacks: BoardSceneCallbacks
   private readonly reducedMotion: boolean
@@ -178,10 +274,22 @@ export class BoardScene extends Phaser.Scene {
       this.renderSnapshot()
       return
     }
-    // The scripted turn's destination pulse is the only other live pixel.
-    if (!this.reducedMotion && (this.snapshot?.guidedMoveKeys.length ?? 0) > 0) {
+    // A board with no feedback playing is still not a still image: pieces
+    // breathe and the scripted turn's destination pulses. Under reduced
+    // motion neither runs, and the board genuinely rests.
+    if (!this.reducedMotion && this.snapshot !== null) {
       this.renderSnapshot()
     }
+  }
+
+  // The piece's offset in its idle cycle right now. Zero under reduced motion,
+  // and zero while any effect owns the piece: a bob layered onto a strike or a
+  // move slide reads as a wobble, not a breath.
+  private idleBob(entityId: string): number {
+    if (this.reducedMotion || this.active.some((effect) => effect.entityId === entityId && effect.elapsed >= 0)) {
+      return 0
+    }
+    return Math.sin((this.time.now / IDLE_BOB_PERIOD_MS + idlePhase(entityId)) * Math.PI * 2) * IDLE_BOB_PIXELS
   }
 
   // --- Effect readouts -------------------------------------------------
@@ -325,10 +433,20 @@ export class BoardScene extends Phaser.Scene {
       return
     }
     graphics.clear()
-    for (const label of this.labels) {
-      label.destroy()
+    // Labels survive an idle frame untouched. They are rebuilt when the
+    // snapshot behind them changes, while an effect is live and moving them,
+    // and once more on the frame the last effect clears, so floaters from that
+    // effect are taken down with it.
+    const hasEffects = this.active.length > 0
+    const rebuildLabels = hasEffects || this.labelsHaveEffects || this.labelsSnapshot !== snapshot
+    if (rebuildLabels) {
+      for (const label of this.labels) {
+        label.destroy()
+      }
+      this.labels = []
+      this.labelsSnapshot = snapshot
+      this.labelsHaveEffects = hasEffects
     }
-    this.labels = []
     const { state } = snapshot
     const legalMoves = new Set(snapshot.legalMoveKeys)
     const guidedMoves = new Set(snapshot.guidedMoveKeys)
@@ -356,12 +474,30 @@ export class BoardScene extends Phaser.Scene {
         .map((entity) => hexKey(entity.coords)),
     )
 
-    for (const key of Object.keys(state.board.hexes)) {
+    const tiles = Object.keys(state.board.hexes).map((key) => {
       const coords = parseHexKey(key)
       const { x, y } = axialToPixel(coords)
-      const corners = hexCorners(x, y, HEX_SIZE - 2)
       const scorched = (state.board.hazards[key] ?? []).length > 0 && !pendingScorch.has(key)
-      this.fillHex(graphics, corners, scorched ? SCORCHED_FILL : TILE_FILL, 1, TILE_STROKE)
+      // A flat fill repeated across every hex reads as vector art. Nudging
+      // each hex's value a little breaks that up without introducing a
+      // second authored colour.
+      const fill = shade(scorched ? SCORCHED_FILL : TILE_FILL, 1 - TILE_JITTER / 2 + tileJitter(coords) * TILE_JITTER)
+      return { key, coords, x, y, fill, corners: hexCorners(x, y, HEX_SIZE - 2) }
+    })
+
+    // Every skirt before any face: a tile's skirt has to sit under the tiles
+    // in front of it, and hex keys arrive in no meaningful order.
+    for (const tile of tiles) {
+      graphics.fillStyle(shade(tile.fill, TILE_SKIRT_SHADE), 1)
+      this.fillPath(
+        graphics,
+        tile.corners.map((corner) => ({ x: corner.x, y: corner.y + TILE_DEPTH })),
+      )
+    }
+
+    for (const tile of tiles) {
+      const { key, coords, x, y, corners } = tile
+      this.fillHex(graphics, corners, tile.fill, 1, TILE_STROKE)
       const telegraph = state.telegraphs[key]
       if (telegraph === 'breath') {
         this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), BREATH_OVERLAY, 0.28)
@@ -382,7 +518,7 @@ export class BoardScene extends Phaser.Scene {
         graphics.lineStyle(3, TARGET_STROKE, 1)
         this.strokeHex(graphics, hexCorners(x, y, HEX_SIZE - 4))
       }
-      if (snapshot.showCoordinates) {
+      if (snapshot.showCoordinates && rebuildLabels) {
         this.labels.push(
           this.add
             .text(x, y + HEX_SIZE - 12, `${coords.q},${coords.r}`, {
@@ -403,25 +539,36 @@ export class BoardScene extends Phaser.Scene {
       const motion = this.motionFor(entity.id)
       const x = base.x + motion.dx
       const y = base.y + motion.dy
+      // The body breathes; the shadow it casts stays on the ground, which is
+      // what reads as a lift rather than the whole piece sliding.
+      const bodyY = y + this.idleBob(entity.id)
       const baseRadius = entity.kind === 'boss' ? 22 : entity.kind === 'hero' ? 16 : 12
       const radius = Math.max(baseRadius * motion.scale, 1)
       const fill = entity.kind === 'boss' ? BOSS_FILL : entity.kind === 'hero' ? HERO_FILL : MINION_FILL
       graphics.fillStyle(0x000000, 0.35)
       graphics.fillCircle(x + 2, y + 3, radius)
+      // Two values against one light: the piece fills with its shadow tone,
+      // then its lit tone lands offset toward the light, leaving a crescent
+      // of shadow on the far side.
+      graphics.fillStyle(shade(fill, PIECE_SHADOW_SHADE), 1)
+      graphics.fillCircle(x, bodyY, radius)
       graphics.fillStyle(fill, 1)
-      graphics.fillCircle(x, y, radius)
+      graphics.fillCircle(x + LIGHT_DX * radius * PIECE_LIT_OFFSET, bodyY + LIGHT_DY * radius * PIECE_LIT_OFFSET, radius * PIECE_LIT_RADIUS)
       if (motion.flash > 0) {
         graphics.fillStyle(motion.flashColor, motion.flash * 0.85)
-        graphics.fillCircle(x, y, radius)
+        graphics.fillCircle(x, bodyY, radius)
       }
-      graphics.lineStyle(2, 0xf4f4f5, 0.9)
-      graphics.strokeCircle(x, y, radius)
-      this.drawFacing(graphics, x, y, radius, this.facingAngleFor(entity.id, entity.facing))
-      const override = snapshot.healthOverrides[entity.id]
-      const shownHealth = override?.health ?? entity.health
-      const shownArmor = entity.kind === 'hero' ? (override?.armor ?? state.heroes[entity.id]?.armor ?? 0) : 0
-      this.drawHealthBar(graphics, x, y - radius - 13, entity.kind, shownHealth, entity.maxHealth, shownArmor)
-      if (entity.kind !== 'boss') {
+      // Highlight on the lit side says which way the light comes from; the
+      // rim on the far side is what lifts the piece off a dark tile.
+      this.strokeArc(graphics, x, bodyY, radius, LIGHT_ANGLE, HIGHLIGHT_SPAN, 0xf4f4f5, 1, 2.5)
+      this.strokeArc(graphics, x, bodyY, radius, RIM_ANGLE, RIM_SPAN, 0xf4f4f5, 0.55, 1.5)
+      this.drawFacing(graphics, x, bodyY, radius, this.facingAngleFor(entity.id, entity.facing))
+      // No health on the piece itself: a tile stays clean until it is
+      // tapped, and the tapped piece's Stat Panel is the health readout.
+      // The label sits at the piece's resting height, not its bobbed one: a
+      // rising and falling caption is noise, and holding it still is what
+      // lets an idle frame reuse it.
+      if (entity.kind !== 'boss' && rebuildLabels) {
         this.labels.push(
           this.add
             .text(x, y + radius + 10, facingName(entity.facing), {
@@ -435,7 +582,9 @@ export class BoardScene extends Phaser.Scene {
     }
 
     this.drawEffectOverlays(graphics)
-    this.drawFloaters()
+    if (rebuildLabels) {
+      this.drawFloaters()
+    }
   }
 
   private fillPath(graphics: Phaser.GameObjects.Graphics, corners: { x: number; y: number }[]): void {
@@ -467,40 +616,15 @@ export class BoardScene extends Phaser.Scene {
     }
   }
 
-  private strokeHex(graphics: Phaser.GameObjects.Graphics, corners: { x: number; y: number }[]): void {
-    this.strokePath(graphics, corners)
+  private strokeArc(graphics: Phaser.GameObjects.Graphics, x: number, y: number, radius: number, centerAngle: number, span: number, color: number, alpha: number, width: number): void {
+    graphics.lineStyle(width, color, alpha)
+    graphics.beginPath()
+    graphics.arc(x, y, radius, centerAngle - span / 2, centerAngle + span / 2, false)
+    graphics.strokePath()
   }
 
-  // A piece's health as a mini gauge in the HUD's language: red fill on a
-  // dark track, the hero's armor riding it as a sky segment. Small pools get
-  // segment ticks so an exact count stays readable without a number. The hex
-  // colors mirror the HUD gauges' Tailwind palette (red-500, sky-500,
-  // zinc-800) — change them together.
-  private drawHealthBar(graphics: Phaser.GameObjects.Graphics, x: number, top: number, kind: EntityKind, health: number, maxHealth: number, armor: number): void {
-    const width = kind === 'boss' ? 44 : kind === 'hero' ? 34 : 24
-    const height = 5
-    const left = x - width / 2
-    const scale = healthBarScale(health, maxHealth, armor)
-    graphics.fillStyle(0x09090b, 0.85)
-    graphics.fillRect(left - 1, top - 1, width + 2, height + 2)
-    graphics.fillStyle(0x27272a, 1)
-    graphics.fillRect(left, top, width, height)
-    const healthWidth = (Math.max(health, 0) / scale) * width
-    if (healthWidth > 0) {
-      graphics.fillStyle(0xef4444, 1)
-      graphics.fillRect(left, top, healthWidth, height)
-    }
-    if (armor > 0) {
-      graphics.fillStyle(0x0ea5e9, 1)
-      graphics.fillRect(left + healthWidth, top, (armor / scale) * width, height)
-    }
-    if (scale <= 6) {
-      graphics.lineStyle(1, 0x09090b, 0.9)
-      for (let segment = 1; segment < scale; segment += 1) {
-        const tickX = left + (segment / scale) * width
-        graphics.lineBetween(tickX, top, tickX, top + height)
-      }
-    }
+  private strokeHex(graphics: Phaser.GameObjects.Graphics, corners: { x: number; y: number }[]): void {
+    this.strokePath(graphics, corners)
   }
 
   // Facing angles for pointy-top axial with E toward +x and NE up-right.

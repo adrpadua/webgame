@@ -36,7 +36,6 @@ function buildSnapshot(
     legalMoveKeys,
     guidedMoveKeys,
     showCoordinates,
-    healthOverrides: playout.overrides,
     pendingScorchKeys: playout.pendingScorchKeys,
     pendingSpawnIds: playout.pendingSpawnIds,
     pendingFacings: playout.pendingFacings,
@@ -131,7 +130,8 @@ export function PhaserBoard() {
     const unsubscribe = useWorkbench.subscribe(pushSnapshot)
     // Skipping or finishing the script clears its board highlights too.
     const unsubscribeOnboarding = useOnboarding.subscribe(pushSnapshot)
-    // Each playout step redraws the board so the mini-bars step with it.
+    // Each playout step redraws the board so held-back hazards, spawns, and
+    // facings land with their moments (and each moment's effects fire).
     const unsubscribePlayout = usePlayout.subscribe(pushSnapshot)
     pushSnapshot()
     return () => {

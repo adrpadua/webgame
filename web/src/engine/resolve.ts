@@ -143,7 +143,6 @@ function resolveOne(
       const baseBossDamage = effects.bossDamage
       hero.armor += effects.armor
       hero.health = Math.min(hero.maxHealth, hero.health + effects.healing)
-      hero.presence += effects.presence
       slot.activatedWindow = draft.phase
       syncHeroEntity(draft, action.sourceId)
       const consumed = consumeStatusesForSlot(draft, action.sourceId, card, effects.bossDamage > 0)

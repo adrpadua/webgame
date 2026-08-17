@@ -25,7 +25,7 @@ function BeatChip({ beat, track, active }: { beat: BossBeat; track: 'instant' | 
       data-testid="beat-chip"
       data-playing={playing}
       aria-label={`${beat.title}: ${beat.rules_text}`}
-      className={`rounded px-1.5 py-0.5 text-[11px] transition-colors ${
+      className={`wb-plate wb-plate-xs wb-face-dim wb-acc-none py-0.5 text-[11px] transition-colors ${
         playing
           ? 'animate-pulse bg-amber-500 font-bold text-amber-950 shadow-md shadow-amber-900 motion-reduce:animate-none'
           : active

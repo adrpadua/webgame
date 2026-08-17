@@ -22,18 +22,18 @@ export function ReplaceConfirmModal() {
   const newCard = newInstance ? catalog.cards[newInstance.cardId] : null
   const chargeCount = slot.charges.length
   return (
-    <Modal onDismiss={cancelReplacement} labelledBy="replace-confirm-title" accentBorderClass="border-amber-500" testId="replace-confirm">
+    <Modal onDismiss={cancelReplacement} labelledBy="replace-confirm-title" accentBorderClass="wb-acc-ember" testId="replace-confirm">
       <h2 id="replace-confirm-title" className="text-sm font-bold text-amber-300">
         Replace this Slot?
       </h2>
       {/* The trade, as two lines rather than a paragraph: what leaves, what
           lands. */}
       <div className="mt-3 space-y-1 text-xs">
-        <div className="flex items-center justify-between gap-2 rounded-lg bg-red-950/60 px-2 py-1.5 text-red-200">
+        <div className="flex items-center justify-between gap-2 bg-ember-950/60 px-2 py-1.5 text-red-200">
           <span className="font-bold">{oldCard?.title ?? 'Top Card'}</span>
           <span className="text-[10px] uppercase">discarded{chargeCount > 0 ? ` + ${chargeCount} charged` : ''}</span>
         </div>
-        <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-950/60 px-2 py-1.5 text-emerald-200">
+        <div className="flex items-center justify-between gap-2 bg-gold-950/60 px-2 py-1.5 text-gold-200">
           <span className="font-bold">{newCard?.title ?? 'Chosen card'}</span>
           <span className="text-[10px] uppercase">loads at 0 charge</span>
         </div>
@@ -44,7 +44,7 @@ export function ReplaceConfirmModal() {
           autoFocus
           data-testid="cancel-replace"
           onClick={cancelReplacement}
-          className={`min-h-12 flex-1 rounded-lg bg-zinc-700 text-sm font-bold text-zinc-100 transition hover:bg-zinc-600 ${FOCUS_RING_CLASS}`}
+          className={`wb-plate wb-plate-sm wb-face-steel wb-acc-none min-h-12 flex-1 text-sm font-bold text-zinc-100 transition hover:brightness-125 ${FOCUS_RING_CLASS}`}
         >
           Keep the Slot
         </button>
@@ -52,7 +52,7 @@ export function ReplaceConfirmModal() {
           type="button"
           data-testid="confirm-replace"
           onClick={confirmReplacement}
-          className={`min-h-12 flex-1 rounded-lg bg-amber-600 text-sm font-bold text-white transition hover:bg-amber-500 ${FOCUS_RING_CLASS}`}
+          className={`wb-plate wb-plate-sm wb-face-steel wb-acc-ember min-h-12 flex-1 text-sm font-bold text-ember-100 transition hover:brightness-125 ${FOCUS_RING_CLASS}`}
         >
           Replace
         </button>

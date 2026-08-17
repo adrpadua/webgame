@@ -51,7 +51,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={labelledBy}
         onClick={(event) => event.stopPropagation()}
-        className={`wb-pop-in max-h-full w-full overflow-y-auto rounded-2xl border-2 ${accentBorderClass} bg-zinc-900 p-4 shadow-2xl`}
+        className={`wb-pop-in wb-plate wb-plate-xl wb-face-steel ${accentBorderClass} max-h-full w-full overflow-y-auto py-4`}
       >
         {children}
       </div>

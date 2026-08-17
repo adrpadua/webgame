@@ -1,5 +1,8 @@
 # Current Playable Loop Assessment
 
+**Point-in-time assessment, 2026-08-13.** Its evidence comes from the Godot client, now frozen (ADR 0019): the nine-probe suite, tile health bars, and the persistent resource strip it describes no longer exist. The findings and the Approval Gate are kept as the reasoning of that moment. Live design status belongs in [design-backlog.md](design-backlog.md), and Phase II scope has since been settled by ADR 0023.
+
+
 Date: 2026-08-13  
 Scope: `Embermaw: Ashen Trial`, the one-Hero tank vertical slice.
 

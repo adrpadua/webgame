@@ -60,14 +60,6 @@ export function HeartIcon({ className }: IconProps) {
   )
 }
 
-export function PresenceIcon({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 20 20" className={className} aria-hidden="true" fill="currentColor">
-      <path d="M10 2l2 5.5L18 8l-4.4 3.6L15 18l-5-3.3L5 18l1.4-6.4L2 8l6-.5L10 2Z" />
-    </svg>
-  )
-}
-
 export function BootIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 20 20" className={className} aria-hidden="true" fill="currentColor">
@@ -86,7 +78,7 @@ export function HexIcon({ className }: IconProps) {
 
 // The dominant effect a card has, in display-priority order. Drives both the
 // stat line and the vignette so a card's art always matches what it does.
-export type CardEffect = 'attack' | 'guard' | 'heal' | 'presence'
+export type CardEffect = 'attack' | 'guard' | 'heal' | 'utility'
 
 export function cardEffect(card: Card): CardEffect {
   if (card.damage > 0 || card.boss_damage > 0) {
@@ -98,14 +90,16 @@ export function cardEffect(card: Card): CardEffect {
   if (card.healing > 0) {
     return 'heal'
   }
-  return 'presence'
+  // No primary effect. No authored card lands here today; the bucket exists
+  // so the union stays total for a future pure-utility card.
+  return 'utility'
 }
 
 export const CARD_EFFECT_TONE: Record<CardEffect, { text: string; icon: typeof SwordIcon }> = {
   attack: { text: 'text-rose-400', icon: SwordIcon },
-  guard: { text: 'text-sky-400', icon: ShieldIcon },
-  heal: { text: 'text-emerald-400', icon: HeartIcon },
-  presence: { text: 'text-violet-400', icon: PresenceIcon },
+  guard: { text: 'text-glass-400', icon: ShieldIcon },
+  heal: { text: 'text-ceramic-300', icon: HeartIcon },
+  utility: { text: 'text-zinc-300', icon: HexIcon },
 }
 
 // One-glance stat line for a Compact Card: the card's primary numbers, e.g.
@@ -125,17 +119,14 @@ export function cardStatLine(card: Card): string {
   if (card.healing > 0) {
     parts.push(`Heal ${card.healing}`)
   }
-  if (card.presence_delta > 0) {
-    parts.push(`+${card.presence_delta} Presence`)
-  }
   return parts.join(' · ')
 }
 
 const VIGNETTE_TONE: Record<CardEffect, { from: string; glyph: string }> = {
   attack: { from: 'from-rose-950', glyph: 'text-rose-500' },
-  guard: { from: 'from-sky-950', glyph: 'text-sky-500' },
-  heal: { from: 'from-emerald-950', glyph: 'text-emerald-500' },
-  presence: { from: 'from-violet-950', glyph: 'text-violet-500' },
+  guard: { from: 'from-glass-950', glyph: 'text-glass-500' },
+  heal: { from: 'from-ceramic-950', glyph: 'text-ceramic-400' },
+  utility: { from: 'from-zinc-900', glyph: 'text-zinc-400' },
 }
 
 // Card art vignette: an effect-toned panel with the effect glyph as a large
@@ -147,7 +138,7 @@ export function CardArt({ card, className }: { card: Card; className?: string })
   const Glyph = CARD_EFFECT_TONE[effect].icon
   return (
     <div
-      className={`relative flex items-center justify-center overflow-hidden rounded-lg bg-linear-to-br ${tone.from} via-zinc-900 to-zinc-950 ${className ?? ''}`}
+      className={`relative flex items-center justify-center overflow-hidden bg-linear-to-br ${tone.from} via-zinc-900 to-zinc-950 ${className ?? ''}`}
     >
       <Glyph className={`h-14 w-14 ${tone.glyph} opacity-70`} />
       <div className="absolute inset-x-0 bottom-1 text-center text-[9px] tracking-[0.3em] text-zinc-600 uppercase">{effect}</div>

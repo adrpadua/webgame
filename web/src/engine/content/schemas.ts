@@ -34,7 +34,6 @@ export const cardSchema = z.object({
   armor_delta: z.number().int().default(0),
   healing: z.number().int().default(0),
   boss_damage: z.number().int().default(0),
-  presence_delta: z.number().int().default(0),
   range_tiles: z.number().int().default(0),
   damage: z.number().int().default(0),
   tags: z.array(z.string()).default([]),

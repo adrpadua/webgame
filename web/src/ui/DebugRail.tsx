@@ -60,7 +60,7 @@ function SeedControl() {
           value={seedDraft}
           data-testid="seed-input"
           onChange={(event) => setSeedDraft(event.target.value)}
-          className="min-h-11 w-32 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-100 focus:border-emerald-500 focus:outline-none"
+          className="min-h-11 w-32 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-100 focus:border-glass-500 focus:outline-none"
         />
         <button
           type="button"
@@ -84,7 +84,7 @@ function CoordinateToggle() {
   const toggleCoordinates = useWorkbench((store) => store.toggleCoordinates)
   return (
     <label className="mt-2 flex min-h-11 items-center gap-2 text-xs text-zinc-300">
-      <input type="checkbox" checked={showCoordinates} onChange={toggleCoordinates} data-testid="coords-toggle" className="accent-emerald-500" />
+      <input type="checkbox" checked={showCoordinates} onChange={toggleCoordinates} data-testid="coords-toggle" className="accent-glass-400" />
       Show hex coordinates
     </label>
   )
@@ -108,7 +108,7 @@ function ScenarioPicker() {
           value={selected}
           data-testid="scenario-select"
           onChange={(event) => setSelected(event.target.value)}
-          className="min-h-11 min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-950 px-2 text-sm text-zinc-100 focus:border-emerald-500 focus:outline-none"
+          className="min-h-11 min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-950 px-2 text-sm text-zinc-100 focus:border-glass-500 focus:outline-none"
         >
           <option value="">Pick a Scenario…</option>
           {scenarios.map((scenario) => (
@@ -128,7 +128,7 @@ function ScenarioPicker() {
         </button>
       </div>
       {activeScenarioId !== null && (
-        <p className="mt-2 text-[11px] text-emerald-400">Loaded: {catalog.scenarios[activeScenarioId]?.title ?? activeScenarioId}</p>
+        <p className="mt-2 text-[11px] text-glass-400">Loaded: {catalog.scenarios[activeScenarioId]?.title ?? activeScenarioId}</p>
       )}
       {scenarios.length === 0 && <p className="mt-2 text-[11px] text-zinc-500">No Scenarios in data/scenarios yet.</p>}
       <button
@@ -198,7 +198,7 @@ function TimeTravel() {
           value={index}
           data-testid="time-travel-slider"
           onChange={(event) => timeTravelTo(Number(event.target.value))}
-          className="min-w-0 flex-1 accent-emerald-500"
+          className="min-w-0 flex-1 accent-glass-400"
         />
         <button
           type="button"
@@ -250,7 +250,7 @@ export function DebugRail() {
           {facts.length === 0 && <p className="text-zinc-600">Actions resolve into facts here.</p>}
           {facts.map((fact) => (
             <div key={fact.id} className="flex items-start gap-1.5" style={{ paddingLeft: fact.depth * 12 }}>
-              <span className={fact.succeeded ? 'text-emerald-500' : 'text-red-500'}>{fact.succeeded ? '✓' : '✗'}</span>
+              <span className={fact.succeeded ? 'text-glass-400' : 'text-ember-400'}>{fact.succeeded ? '✓' : '✗'}</span>
               <div className="min-w-0">
                 <span className="text-zinc-500">
                   r{fact.round} {fact.phase}

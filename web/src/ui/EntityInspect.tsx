@@ -2,7 +2,7 @@ import { currentProgram, getStatuses, type BoardEntity, type HeroState, type Sta
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { useDamageFlash } from './useDamageFlash'
-import { BossEmblem, HeartIcon, HeroEmblem, PresenceIcon, ShieldIcon } from './icons'
+import { BossEmblem, HeartIcon, HeroEmblem, ShieldIcon } from './icons'
 import { encounterTerms, HERO_STAT_DETAILS } from './holdDetails'
 import { useHold, type HoldDetail } from './HoldPopover'
 import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS, healthBarScale } from './theme'
@@ -14,11 +14,6 @@ import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLAS
 // staggered values, so it can sit open through a Boss Row's telling as a
 // live readout. It closes from its ✕, from a tap on an empty hex, or with
 // the session transitions.
-
-// Presence has no hard cap, so its bar fills against a display scale: the
-// value a strong round realistically reaches. Past it the bar pins full and
-// the number keeps counting.
-const PRESENCE_BAR_SCALE = 6
 
 function StatBar({
   detail,
@@ -85,7 +80,7 @@ function HeroHealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing
       <span className={`${GAUGE_TRACK_CLASS} flex-1`}>
         <span className={`${GAUGE_FILL_CLASS} bg-red-500/70`} style={{ width: `${healthFraction * 100}%` }} />
         <span
-          className="absolute inset-y-0 bg-sky-500/70 transition-[left,width] duration-300"
+          className="absolute inset-y-0 bg-glass-500/70 transition-[left,width] duration-300"
           style={{ left: `${healthFraction * 100}%`, width: `${armorFraction * 100}%` }}
         />
         <span className={`${GAUGE_LABEL_CLASS} text-[10px] text-red-50`}>
@@ -95,8 +90,8 @@ function HeroHealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing
           </span>
           {hero.armor > 0 && (
             <>
-              <ShieldIcon className="ml-0.5 h-3 w-3 shrink-0 text-sky-300" />
-              <span data-testid="hero-armor" className="text-sky-100">
+              <ShieldIcon className="ml-0.5 h-3 w-3 shrink-0 text-glass-300" />
+              <span data-testid="hero-armor" className="text-glass-100">
                 {hero.armor}
               </span>
             </>
@@ -120,7 +115,7 @@ function StatusChip({ status }: { status: StatusInstance }) {
     <button
       type="button"
       {...hold.holdProps}
-      className={`min-h-11 min-w-11 rounded bg-amber-900 px-1.5 text-[10px] font-semibold text-amber-200 ${FOCUS_RING_CLASS}`}
+      className={`min-h-11 min-w-11 bg-amber-900 px-1.5 text-[10px] font-semibold text-amber-200 ${FOCUS_RING_CLASS}`}
     >
       {status.title}
     </button>
@@ -147,16 +142,6 @@ function HeroRows({ heroId }: { heroId: string }) {
   return (
     <>
       <HeroHealthBar hero={shownHero} flashing={flashing} flashKey={flashKey} />
-      <StatBar
-        detail={HERO_STAT_DETAILS.presence}
-        icon={PresenceIcon}
-        fillClass="bg-violet-500/70"
-        textClass="text-violet-50"
-        widthClass="w-14"
-        label="Presence"
-        value={String(hero.presence)}
-        fraction={hero.presence / PRESENCE_BAR_SCALE}
-      />
       {statuses.map((status) => (
         <StatusChip key={status.id} status={status} />
       ))}
@@ -234,13 +219,13 @@ export function EntityInspect() {
     <div
       data-testid="entity-inspect"
       data-entity={entity.id}
-      className="wb-slide-up pointer-events-auto flex items-center gap-1 rounded-xl border border-zinc-700 bg-zinc-900/95 px-2 py-1 shadow-xl"
+      className="wb-slide-up wb-plate wb-plate-lg wb-face-steel wb-acc-cloth pointer-events-auto flex items-center gap-1 py-1"
     >
       <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-zinc-100">
         {/* A Minion is an Enemy, never a Hero: it wears the Enemy emblem in
             its own tone, not the Hero's blue. */}
         {isHero ? (
-          <HeroEmblem className="h-4 w-4 text-sky-400" />
+          <HeroEmblem className="h-4 w-4 text-cloth-300" />
         ) : (
           <BossEmblem className={`h-4 w-4 ${isBoss ? 'text-red-500' : 'text-amber-500'}`} />
         )}
@@ -252,7 +237,7 @@ export function EntityInspect() {
         data-testid="inspect-dismiss"
         aria-label="Close the stat panel"
         onClick={dismissInspect}
-        className={`min-h-11 min-w-11 shrink-0 rounded-md text-xs font-bold text-zinc-400 transition hover:text-zinc-100 ${FOCUS_RING_CLASS}`}
+        className={`min-h-11 min-w-11 shrink-0 text-xs font-bold text-zinc-400 transition hover:text-zinc-100 ${FOCUS_RING_CLASS}`}
       >
         ✕
       </button>

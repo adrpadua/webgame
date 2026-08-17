@@ -57,11 +57,11 @@ function CompactCard({
       }}
       onDragEnd={() => setDraggingCard(null)}
       style={{ width }}
-      className={`relative min-h-24 shrink-0 cursor-grab rounded-xl border p-1.5 text-left shadow-md transition hover:-translate-y-1 active:cursor-grabbing ${FOCUS_RING_CLASS} ${
-        selected
-          ? '-translate-y-1 border-emerald-400 bg-linear-to-b from-emerald-900/60 to-zinc-800 ring-2 ring-emerald-400'
-          : 'border-zinc-600 bg-linear-to-b from-zinc-700 to-zinc-800 hover:border-zinc-400'
-      } ${spotlit ? `border-emerald-400 ${SPOTLIGHT_CLASS}` : ''} ${gated ? GATED_CLASS : ''}`}
+      className={`wb-plate wb-plate-md wb-face-steel min-h-24 shrink-0 cursor-grab py-1.5 text-left transition hover:-translate-y-1 active:cursor-grabbing ${FOCUS_RING_CLASS} ${
+        // A Compact Card is a raked oathsteel plate. Its timing seam is drawn by
+        // the card body below; selection lifts it and takes the gold accent.
+        selected ? '-translate-y-1 wb-acc-gold ring-2 ring-gold-400' : 'wb-acc-none'
+      } ${spotlit ? `wb-acc-gold ${SPOTLIGHT_CLASS}` : ''} ${gated ? GATED_CLASS : ''}`}
     >
       <div className="flex items-start justify-between gap-1">
         <div className="text-[11px] leading-tight font-bold text-zinc-50">{card.title}</div>

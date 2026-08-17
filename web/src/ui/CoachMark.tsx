@@ -42,7 +42,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | nul
     return tip(
       'prepare',
       ShieldIcon,
-      'border-emerald-700 bg-emerald-950/80 text-emerald-100',
+      'border-gold-700 bg-gold-950/80 text-gold-100',
       'Fill a Slot',
       'Prepare a Slot',
       'Drag a card from your Hand onto an empty Slot, or tap the card and then the Slot.',
@@ -52,7 +52,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | nul
     return tip(
       'loadout-next',
       BootIcon,
-      'border-emerald-700 bg-emerald-950/80 text-emerald-100',
+      'border-gold-700 bg-gold-950/80 text-gold-100',
       'Slots set — press Next',
       'Loadout done',
       'Embermaw acts first. Its coming beats are named on the amber strip up top.',
@@ -72,7 +72,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | nul
     return tip(
       'fire',
       SwordIcon,
-      'border-emerald-700 bg-emerald-950/80 text-emerald-100',
+      'border-gold-700 bg-gold-950/80 text-gold-100',
       'Fire the glowing Slot',
       'A Slot matches this window',
       'Tap the Slot to resolve its Top Card together with everything charged under it.',
@@ -82,7 +82,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | nul
     return tip(
       'charge',
       HexIcon,
-      'border-sky-700 bg-sky-950/80 text-sky-100',
+      'border-gold-700 bg-gold-950/80 text-gold-100',
       'Charge a Slot, or move',
       'Your window',
       'Drop a hand card on a loaded Slot to add Charge, or on a nearby hex to step there for 1 Stamina.',
@@ -128,7 +128,7 @@ export function CoachMark() {
   // hexes rather than shrinking the board when it appears.
   return (
     <div data-testid="coach-mark" data-tip={visibleTip.id}>
-      <div {...hold.holdProps} className={`wb-slide-up pointer-events-auto flex items-center gap-2 rounded-lg border px-2.5 py-1.5 shadow-xl ${visibleTip.tone}`}>
+      <div {...hold.holdProps} className={`wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-gold pointer-events-auto flex items-center gap-2 py-1.5 ${visibleTip.tone}`}>
         <Icon className="h-4 w-4 shrink-0 opacity-80" />
         <p className="flex-1 text-xs font-semibold">{visibleTip.cue}</p>
         <button
@@ -136,7 +136,7 @@ export function CoachMark() {
           data-testid="coach-dismiss"
           aria-label="Dismiss tip"
           onClick={() => dismissTip(visibleTip.id)}
-          className={`min-h-11 min-w-11 shrink-0 rounded-md px-2 text-[10px] font-bold tracking-wide uppercase opacity-70 transition hover:opacity-100 ${FOCUS_RING_CLASS}`}
+          className={`min-h-11 min-w-11 shrink-0 px-2 text-[10px] font-bold tracking-wide uppercase opacity-70 transition hover:opacity-100 ${FOCUS_RING_CLASS}`}
         >
           Got it
         </button>

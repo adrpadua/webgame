@@ -31,21 +31,21 @@ export function FirstTurnCue() {
       <div
         {...hold.holdProps}
         role="status"
-        className="wb-slide-up pointer-events-auto flex items-center gap-2 rounded-lg border border-emerald-600 bg-emerald-950/95 px-2.5 py-1.5 text-emerald-100 shadow-xl"
+        className="wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-gold pointer-events-auto flex items-center gap-2 py-1.5 text-gold-100"
       >
         <div className="flex shrink-0 gap-1" role="img" aria-label={`Step ${step.ordinal} of ${FIRST_TURN_STEP_COUNT}`}>
           {Array.from({ length: FIRST_TURN_STEP_COUNT }, (_, index) => (
-            <span key={index} className={`h-1.5 w-1.5 rounded-full ${index < step.ordinal ? 'bg-emerald-400' : 'bg-emerald-900'}`} />
+            <span key={index} className={`h-1.5 w-1.5 rounded-full ${index < step.ordinal ? 'bg-gold-400' : 'bg-gold-900'}`} />
           ))}
         </div>
         <span className="flex-1 text-xs font-bold">{step.cue}</span>
-        <span className="shrink-0 rounded bg-emerald-800/80 px-1.5 py-0.5 text-[9px] font-bold tracking-wide uppercase">{step.targetLabel}</span>
+        <span className="shrink-0 bg-gold-700/80 px-1.5 py-0.5 text-[9px] font-bold tracking-wide uppercase">{step.targetLabel}</span>
         <button
           type="button"
           data-testid="first-turn-skip"
           aria-label="Skip the guided first turn"
           onClick={finishFirstTurn}
-          className={`min-h-11 min-w-11 shrink-0 rounded-md px-2 text-[10px] font-bold tracking-wide uppercase opacity-70 transition hover:opacity-100 ${FOCUS_RING_CLASS}`}
+          className={`min-h-11 min-w-11 shrink-0 px-2 text-[10px] font-bold tracking-wide uppercase opacity-70 transition hover:opacity-100 ${FOCUS_RING_CLASS}`}
         >
           Skip
         </button>
