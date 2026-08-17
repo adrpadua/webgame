@@ -3,6 +3,48 @@ import { facingName, hexKey, parseHexKey, type Axial, type EncounterState } from
 import { axialToPixel, hexCorners, pixelToAxial, HEX_SIZE } from './layout'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 import { boardPalette, toneColors } from './palette'
+import heroIdleUrl from '@/assets/elian-voss-idle.png'
+import bossIdleUrl from '@/assets/embermaw-idle.png'
+
+// Idle sheets, built from the authored contact sheets by
+// tools/build_sprite_sheet.py. Rows are the engine's facing indices and the
+// four columns are the idle cycle, so the frame for a piece is simply
+// facing * 4 + step — no lookup table, which is the whole reason the build
+// step reorders the artist's rows.
+const IDLE_FRAMES = 4
+// Milliseconds per idle frame. Board Ambience: it loops uniformly for every
+// piece that has a sheet, carries no state, and stops dead under reduced
+// motion.
+const IDLE_MS = 190
+
+interface SheetSpec {
+  key: string
+  url: string
+  frameWidth: number
+  frameHeight: number
+  // Rendered height on the board. Pieces are scaled by height rather than
+  // drawn at a shared scale: the sheets are cropped to their own content, so
+  // a shared scale would size each piece by however much empty space its
+  // contact sheet happened to leave around it.
+  targetHeight: number
+  // How far below the hex centre the piece's base sits, so it stands on the
+  // tile rather than floating at its midpoint.
+  footOffset: number
+}
+
+// Elian stands about one and a third hexes tall. Embermaw is half again as
+// tall and much broader — the design calls for a boss that dominates several
+// hexes, and its sheet is drawn low and wide to match.
+const SHEETS: Record<string, SheetSpec> = {
+  hero: { key: 'elian-idle', url: heroIdleUrl, frameWidth: 162, frameHeight: 210, targetHeight: 74, footOffset: 12 },
+  boss: { key: 'embermaw-idle', url: bossIdleUrl, frameWidth: 238, frameHeight: 176, targetHeight: 80, footOffset: 22 },
+}
+// The board is three layers: tiles and their tints, then the pieces, then the
+// text that has to be read over both. Phaser falls back to creation order
+// within a depth, and the graphics layer is built once while labels are
+// rebuilt per frame, so the pieces need saying explicitly.
+const SPRITE_DEPTH = 1
+const LABEL_DEPTH = 2
 
 // The board snapshot the scene renders. Phaser owns no game state: it draws
 // what it is handed and reports hex-level intents upward (ADR 0019).
@@ -194,6 +236,7 @@ export class BoardScene extends Phaser.Scene {
   private labelsSnapshot: BoardSnapshot | null = null
   private labelsHaveEffects = false
   private active: ActiveEffect[] = []
+  private readonly sprites = new Map<string, Phaser.GameObjects.Sprite>()
   private readonly callbacks: BoardSceneCallbacks
   private readonly reducedMotion: boolean
 
@@ -201,6 +244,12 @@ export class BoardScene extends Phaser.Scene {
     super({ key: 'board' })
     this.callbacks = callbacks
     this.reducedMotion = typeof window !== 'undefined' && window.matchMedia !== undefined && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  }
+
+  preload(): void {
+    for (const sheet of Object.values(SHEETS)) {
+      this.load.spritesheet(sheet.key, sheet.url, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight })
+    }
   }
 
   create(): void {
@@ -423,7 +472,10 @@ export class BoardScene extends Phaser.Scene {
             strokeThickness: 4,
           })
           .setOrigin(0.5, 0.5)
-          .setAlpha(1 - t ** 2),
+          .setAlpha(1 - t ** 2)
+          // Above the sprites: a damage number the piece stands in front of
+          // is a damage number nobody reads.
+          .setDepth(LABEL_DEPTH),
       )
     }
   }
@@ -549,22 +601,31 @@ export class BoardScene extends Phaser.Scene {
       const fill = entity.kind === 'boss' ? BOSS_FILL : entity.kind === 'hero' ? HERO_FILL : MINION_FILL
       graphics.fillStyle(0x000000, 0.35)
       graphics.fillCircle(x + 2, y + 3, radius)
-      // Two values against one light: the piece fills with its shadow tone,
-      // then its lit tone lands offset toward the light, leaving a crescent
-      // of shadow on the far side.
-      graphics.fillStyle(shade(fill, PIECE_SHADOW_SHADE), 1)
-      graphics.fillCircle(x, bodyY, radius)
-      graphics.fillStyle(fill, 1)
-      graphics.fillCircle(x + LIGHT_DX * radius * PIECE_LIT_OFFSET, bodyY + LIGHT_DY * radius * PIECE_LIT_OFFSET, radius * PIECE_LIT_RADIUS)
-      if (motion.flash > 0) {
-        graphics.fillStyle(motion.flashColor, motion.flash * 0.85)
+      // A piece with an authored sheet is drawn as itself. The shadow above
+      // stays either way: it is what plants the piece on the tile, and it is
+      // cast from the resting position so it does not rise with the bob.
+      if (this.placeSprite(entity, x, bodyY, motion)) {
+        // The sheet draws its own facing, its own light, and its own rim, so
+        // the token's crescent, highlight and facing wedge would all be a
+        // second opinion drawn over the top of it.
+      } else {
+        // Two values against one light: the piece fills with its shadow tone,
+        // then its lit tone lands offset toward the light, leaving a crescent
+        // of shadow on the far side.
+        graphics.fillStyle(shade(fill, PIECE_SHADOW_SHADE), 1)
         graphics.fillCircle(x, bodyY, radius)
+        graphics.fillStyle(fill, 1)
+        graphics.fillCircle(x + LIGHT_DX * radius * PIECE_LIT_OFFSET, bodyY + LIGHT_DY * radius * PIECE_LIT_OFFSET, radius * PIECE_LIT_RADIUS)
+        if (motion.flash > 0) {
+          graphics.fillStyle(motion.flashColor, motion.flash * 0.85)
+          graphics.fillCircle(x, bodyY, radius)
+        }
+        // Highlight on the lit side says which way the light comes from; the
+        // rim on the far side is what lifts the piece off a dark tile.
+        this.strokeArc(graphics, x, bodyY, radius, LIGHT_ANGLE, HIGHLIGHT_SPAN, 0xf4f4f5, 1, 2.5)
+        this.strokeArc(graphics, x, bodyY, radius, RIM_ANGLE, RIM_SPAN, 0xf4f4f5, 0.55, 1.5)
+        this.drawFacing(graphics, x, bodyY, radius, this.facingAngleFor(entity.id, entity.facing))
       }
-      // Highlight on the lit side says which way the light comes from; the
-      // rim on the far side is what lifts the piece off a dark tile.
-      this.strokeArc(graphics, x, bodyY, radius, LIGHT_ANGLE, HIGHLIGHT_SPAN, 0xf4f4f5, 1, 2.5)
-      this.strokeArc(graphics, x, bodyY, radius, RIM_ANGLE, RIM_SPAN, 0xf4f4f5, 0.55, 1.5)
-      this.drawFacing(graphics, x, bodyY, radius, this.facingAngleFor(entity.id, entity.facing))
       // No health on the piece itself: a tile stays clean until it is
       // tapped, and the tapped piece's Stat Panel is the health readout.
       // The label sits at the piece's resting height, not its bobbed one: a
@@ -578,14 +639,79 @@ export class BoardScene extends Phaser.Scene {
               fontSize: '10px',
               color: '#a1a1aa',
             })
-            .setOrigin(0.5, 0.5),
+            .setOrigin(0.5, 0.5)
+            .setDepth(LABEL_DEPTH),
         )
       }
     }
 
+    // A defeated Minion or a Hero that left the board keeps no sprite: the
+    // graphics layer is cleared every frame, but a retained object would
+    // stand there after the piece it draws is gone.
+    this.reapSprites(new Set(Object.keys(state.board.entities)))
+
     this.drawEffectOverlays(graphics)
     if (rebuildLabels) {
       this.drawFloaters()
+    }
+  }
+
+  // Which pieces have authored art. Everything else stays a token, which is
+  // not a placeholder: a token reads its facing and its state at a glance,
+  // and only the pieces with a sheet have earned the right to be a body.
+  private sheetFor(entity: { kind: string }): SheetSpec | null {
+    const sheet = SHEETS[entity.kind]
+    return sheet && this.textures.exists(sheet.key) ? sheet : null
+  }
+
+  // Draws a piece from its sheet. Returns false when the piece has no art, so
+  // the caller falls back to the token. Sprites are retained objects in an
+  // otherwise immediate-mode renderer, so they are created on first sight and
+  // reaped in renderSnapshot when their piece leaves the board.
+  private placeSprite(entity: { id: string; kind: string; facing: number }, x: number, y: number, motion: Motion): boolean {
+    const sheet = this.sheetFor(entity)
+    if (sheet === null) {
+      return false
+    }
+    let sprite = this.sprites.get(entity.id)
+    if (!sprite) {
+      sprite = this.add.sprite(x, y, sheet.key, 0)
+      // Feet at the origin: the sprite stands on the point it is given, and
+      // its height never shifts where that point is.
+      sprite.setOrigin(0.5, 1)
+      this.sprites.set(entity.id, sprite)
+    }
+    const footY = y + sheet.footOffset
+    sprite.setPosition(x, footY)
+    // Above the tiles and below the labels, and within that, sorted by where
+    // the piece stands: a piece further down the board is nearer the camera
+    // and has to occlude the one behind it. Embermaw is drawn low and wide
+    // and overlaps the hexes in front of it, so without this the two pieces
+    // take turns being in front depending on the order they were created in.
+    sprite.setDepth(SPRITE_DEPTH + footY / 10000)
+    // Rows are facing indices and columns are the idle cycle, so the frame is
+    // arithmetic. Reduced motion holds the cycle on its first frame — the
+    // sheet is ambience, and ambience is what that setting turns off.
+    const step = this.reducedMotion ? 0 : Math.floor(this.time.now / IDLE_MS) % IDLE_FRAMES
+    sprite.setFrame(entity.facing * IDLE_FRAMES + step)
+    sprite.setScale((sheet.targetHeight / sheet.frameHeight) * motion.scale)
+    // The token flashed by filling itself with the tone; a body takes the
+    // same tone as a tint, which reads on the armour without flattening it.
+    if (motion.flash > 0) {
+      sprite.setTint(motion.flashColor)
+      sprite.setAlpha(1)
+    } else {
+      sprite.clearTint()
+    }
+    return true
+  }
+
+  private reapSprites(liveIds: Set<string>): void {
+    for (const [id, sprite] of this.sprites) {
+      if (!liveIds.has(id)) {
+        sprite.destroy()
+        this.sprites.delete(id)
+      }
     }
   }
 

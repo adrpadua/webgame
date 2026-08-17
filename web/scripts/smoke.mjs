@@ -66,6 +66,28 @@ try {
   })
   assert(drifted.length === 0, `every board palette fallback matches its token (${drifted.join(' | ') || 'all match'})`)
 
+  // A sprite sheet is sliced by numbers the scene carries, and nothing in the
+  // type system ties them to the file. Rebuild the sheet at a different size
+  // and every frame silently shifts — the character would face the wrong way
+  // and animate through pieces of two poses. The PNG's own header settles it.
+  const sceneSource = readFileSync(new URL('../src/board/BoardScene.ts', import.meta.url), 'utf8')
+  const frames = Number(/IDLE_FRAMES = (\d+)/.exec(sceneSource)?.[1])
+  const specs = [...sceneSource.matchAll(/(\w+): \{ key: '([\w-]+)', url: (\w+), frameWidth: (\d+), frameHeight: (\d+)/g)]
+  assert(specs.length > 0, 'the scene declares at least one sprite sheet')
+  const imports = Object.fromEntries([...sceneSource.matchAll(/import (\w+) from '@\/assets\/([\w.-]+)'/g)].map((m) => [m[1], m[2]]))
+  const mismatched = specs.flatMap(([, kind, , binding, frameW, frameH]) => {
+    const file = imports[binding]
+    if (!file) return [`${kind}: no asset import named ${binding}`]
+    const png = readFileSync(new URL(`../src/assets/${file}`, import.meta.url))
+    const [sheetW, sheetH] = [png.readUInt32BE(16), png.readUInt32BE(20)]
+    const [wantW, wantH] = [Number(frameW) * frames, Number(frameH) * 6]
+    return sheetW === wantW && sheetH === wantH ? [] : [`${kind}: ${file} is ${sheetW}x${sheetH}, sliced as ${wantW}x${wantH}`]
+  })
+  assert(
+    mismatched.length === 0,
+    `every sprite sheet slices into ${frames} frames across 6 facings (${mismatched.join(' | ') || `${specs.length} sheets checked`})`,
+  )
+
   // Let Playwright resolve the browser it installed (`npx playwright install
   // chromium`). PLAYWRIGHT_CHROMIUM_PATH overrides it for images that ship
   // their own build at a fixed path.
