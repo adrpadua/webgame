@@ -158,8 +158,8 @@ function HeroRows({ heroId }: { heroId: string }) {
           ],
         }}
         icon={DeckIcon}
-        fillClass="bg-zinc-600/80"
-        textClass="text-zinc-200"
+        fillClass="bg-steel-600/80"
+        textClass="text-ceramic-300"
         widthClass="w-14"
         label="Cards in deck"
         value={String(hero.deck.length)}
@@ -218,17 +218,33 @@ export function EntityInspect() {
         badge: currentProgram(catalog, state)?.title,
       }
     : null
+  // The Stat Panel is one surface for every piece, and only one is open at a
+  // time at the same coordinates — so a Hero's panel and the Boss's have to
+  // be unmistakable in the first glance after a tap, with no label read.
+  // The Hero's is the aether-ceramic console: a pale plate you read, with
+  // the role colour as its channel. The Boss's is dark oathsteel housing
+  // with an ember channel — a thing you watch. A Minion is a piece of the
+  // Boss and takes the Boss's housing at a quieter accent.
+  const shell = isHero
+    ? 'wb-face-ceramic wb-acc-cloth text-ceramic-950'
+    : isBoss
+      ? 'wb-face-steel wb-acc-ember text-ceramic-200'
+      : 'wb-face-steel wb-acc-none text-ceramic-200'
   return (
     <div
       data-testid="entity-inspect"
       data-entity={entity.id}
-      className="wb-slide-up wb-plate wb-plate-lg wb-face-steel wb-acc-cloth pointer-events-auto flex items-center gap-1 py-1"
+      className={`wb-slide-up wb-plate wb-plate-lg ${shell} pointer-events-auto flex items-center gap-1 py-1`}
     >
-      <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-zinc-100">
+      <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold">
         {/* A Minion is an Enemy, never a Hero: it wears the Enemy emblem in
             its own tone, not the Hero's blue. */}
         {isHero ? (
-          <HeroEmblem className="h-4 w-4 text-cloth-300" />
+          // cloth-500 here and cloth-300 in the guide is not a disagreement:
+          // the step follows the ground. The dark step reads on this ceramic
+          // face at 6.18:1 where the light one manages 2.15:1, and the two
+          // swap over on the guide's dark wells.
+          <HeroEmblem className="h-4 w-4 text-cloth-500" />
         ) : (
           <BossEmblem className={`h-4 w-4 ${isBoss ? 'text-coral-400' : 'text-coral-500'}`} />
         )}
@@ -240,7 +256,10 @@ export function EntityInspect() {
         data-testid="inspect-dismiss"
         aria-label="Close the stat panel"
         onClick={dismissInspect}
-        className={`min-h-11 min-w-11 shrink-0 text-xs font-bold text-zinc-400 transition hover:text-zinc-100 ${FOCUS_RING_CLASS}`}
+        // A live control never dims its own glyph: at opacity-60 the ✕ scored
+        // 3.99:1 on the Hero's ceramic face. It carries the shell's colour at
+        // full strength and answers the pointer by growing instead.
+        className={`min-h-11 min-w-11 shrink-0 text-xs font-bold transition hover:scale-110 ${FOCUS_RING_CLASS}`}
       >
         ✕
       </button>

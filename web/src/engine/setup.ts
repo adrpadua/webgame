@@ -35,6 +35,16 @@ export function createEncounterState(catalog: ContentCatalog, encounterId: strin
     loopPrograms: encounter.loop_boss_programs,
     programIndex: 0,
     currentProgramId: encounter.boss_programs[0] ?? null,
+    bossPhase: 1,
+    phaseTrigger:
+      encounter.phase_trigger && encounter.phase_two_programs.length > 0
+        ? {
+            bossHealthAtOrBelow: encounter.phase_trigger.boss_health_at_or_below ?? null,
+            roundAtOrAfter: encounter.phase_trigger.round_at_or_after ?? null,
+          }
+        : null,
+    phaseTwoProgramIds: [...encounter.phase_two_programs],
+    phaseBreakText: encounter.phase_break_text,
     broodSpawnCandidates: encounter.brood_spawn_candidates.map((coords) => ({ ...coords })),
     telegraphedSpawnHexes: [],
     telegraphs: {},

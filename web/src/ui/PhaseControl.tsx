@@ -16,7 +16,7 @@ import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS } from './theme'
 // How to Play guide's timeline diagram and the Phase Banner wear — the
 // track the tutorial teaches is the track the HUD shows. Change together.
 const PHASES: { phase: Phase; label: string; activeClass: string }[] = [
-  { phase: 'loadout', label: 'Loadout', activeClass: 'bg-zinc-600 text-zinc-50 shadow-zinc-950' },
+  { phase: 'loadout', label: 'Loadout', activeClass: 'bg-steel-600 text-ceramic-100 shadow-steel-950' },
   { phase: 'instant', label: 'Instant', activeClass: 'bg-coral-400 text-coral-950 shadow-coral-900' },
   { phase: 'quick', label: 'Quick', activeClass: 'bg-glass-400 text-glass-950 shadow-glass-900' },
   { phase: 'incoming', label: 'Incoming', activeClass: 'bg-coral-400 text-coral-950 shadow-coral-900' },
@@ -141,19 +141,22 @@ export function PhaseControl() {
   }
 
   return (
-    <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-900/60 px-3 py-1.5" data-phase={state.phase}>
+    <div className="flex items-center gap-2 border-b border-steel-800 bg-steel-950/60 px-3 py-1.5" data-phase={state.phase}>
       <button
         type="button"
         {...hold.holdProps}
         data-testid="phase-track"
         aria-label={`Current phase: ${state.phase}`}
-        className={`flex min-h-11 flex-1 items-center gap-1 text-left ${FOCUS_RING_CLASS}`}
+        // min-w-0 lets the track shrink below its chips' natural width; without
+        // it flex-1 will not go under content size and the row overflows the
+        // surface, which then scrolls sideways under any focus or modal.
+        className={`flex min-h-11 min-w-0 flex-1 items-center gap-1 overflow-hidden text-left ${FOCUS_RING_CLASS}`}
       >
         {PHASES.map((entry) => (
           <span
             key={entry.phase}
             className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wide uppercase transition-all duration-300 ${
-              state.phase === entry.phase ? `scale-105 font-bold shadow-md ${entry.activeClass}` : 'bg-zinc-800 text-zinc-500'
+              state.phase === entry.phase ? `scale-105 font-bold shadow-md ${entry.activeClass}` : 'bg-steel-900 text-steel-500'
             }`}
           >
             {entry.label}
@@ -165,7 +168,7 @@ export function PhaseControl() {
         {...clockHold.holdProps}
         data-testid="round-display"
         aria-label={`Round ${state.round} of ${state.roundLimit}`}
-        className={`min-h-11 min-w-11 shrink-0 text-[11px] font-semibold text-zinc-400 ${FOCUS_RING_CLASS}`}
+        className={`min-h-11 min-w-11 shrink-0 text-[11px] font-semibold text-steel-400 ${FOCUS_RING_CLASS}`}
       >
         {state.round}/{state.roundLimit}
       </button>
@@ -200,7 +203,7 @@ export function PhaseControl() {
           <h2 id="phase-skip-title" className="text-sm font-bold text-ember-300">
             {pendingSkip.title}
           </h2>
-          <p className="mt-3 text-xs leading-relaxed text-zinc-200">{pendingSkip.body}</p>
+          <p className="mt-3 text-xs leading-relaxed text-ceramic-300">{pendingSkip.body}</p>
           <div className="mt-4 flex gap-2">
             <button
               type="button"
@@ -215,7 +218,7 @@ export function PhaseControl() {
               type="button"
               data-testid="confirm-skip"
               onClick={confirmSkip}
-              className={`wb-plate wb-plate-sm wb-face-steel wb-acc-none min-h-12 flex-1 text-sm font-bold text-zinc-100 transition hover:brightness-125 ${FOCUS_RING_CLASS}`}
+              className={`wb-plate wb-plate-sm wb-face-steel wb-acc-none min-h-12 flex-1 text-sm font-bold text-ceramic-200 transition hover:brightness-125 ${FOCUS_RING_CLASS}`}
             >
               Skip anyway
             </button>

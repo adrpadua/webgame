@@ -89,7 +89,7 @@ const TONE_CLASS: Record<HoldTone, string> = {
 }
 
 const BADGE_CLASS: Record<HoldTone, string> = {
-  neutral: 'text-zinc-400',
+  neutral: 'text-steel-400',
   attack: 'text-coral-300',
   guard: 'text-glass-300',
   heal: 'text-ceramic-200',
@@ -227,7 +227,7 @@ export function HoldPopoverLayer() {
     >
       <div className={`wb-pop-in wb-plate wb-plate-lg wb-face-dim py-3 ${TONE_CLASS[tone]}`}>
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-sm font-bold text-zinc-50">{detail.title}</span>
+          <span className="text-sm font-bold text-ceramic-100">{detail.title}</span>
           {detail.badge !== undefined && (
             <span className={`shrink-0 text-[10px] font-semibold tracking-wide uppercase ${BADGE_CLASS[tone]}`}>{detail.badge}</span>
           )}
@@ -238,23 +238,23 @@ export function HoldPopoverLayer() {
                 since a Boss Program may run the same beat twice. */}
             {detail.stats.map((stat, index) => (
               <div key={index} className="contents">
-                <span className="text-[11px] text-zinc-500">{stat.label}</span>
-                <span className="text-right text-[11px] font-semibold text-zinc-100">{stat.value}</span>
+                <span className="text-[11px] text-steel-500">{stat.label}</span>
+                <span className="text-right text-[11px] font-semibold text-ceramic-200">{stat.value}</span>
               </div>
             ))}
           </div>
         )}
-        {detail.text !== undefined && detail.text !== '' && <p className="mt-2 text-xs leading-relaxed text-zinc-200">{detail.text}</p>}
+        {detail.text !== undefined && detail.text !== '' && <p className="mt-2 text-xs leading-relaxed text-ceramic-300">{detail.text}</p>}
         {detail.tags !== undefined && detail.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {detail.tags.map((tag) => (
-              <span key={tag} className="bg-zinc-800 px-1.5 py-0.5 text-[9px] text-zinc-400 uppercase">
+              <span key={tag} className="bg-steel-900 px-1.5 py-0.5 text-[9px] text-steel-400 uppercase">
                 {tag}
               </span>
             ))}
           </div>
         )}
-        {detail.hint !== undefined && <p className="mt-2 text-[10px] text-zinc-500">{detail.hint}</p>}
+        {detail.hint !== undefined && <p className="mt-2 text-[10px] text-steel-500">{detail.hint}</p>}
       </div>
     </div>
   )

@@ -48,6 +48,9 @@
     "embermaw_embers",
     "embermaw_brood"
   ],
+  "phase_trigger": { "boss_health_at_or_below": 18, "round_at_or_after": 5 },
+  "phase_two_programs": ["embermaw_molting", "embermaw_ashfall"],
+  "phase_break_text": "Molting Roar: Embermaw sheds its brittle scales and turns. The Whelps and the Scorched ground remain.",
   "loop_boss_programs": true,
   "random_seed": 1337,
   "brood_spawn_candidates": [

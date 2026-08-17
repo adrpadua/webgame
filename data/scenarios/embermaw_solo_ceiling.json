@@ -204,9 +204,12 @@
     },
     {
       "action": {
-        "kind": "charge_slot",
+        "kind": "move_hero",
         "sourceId": "guardian",
-        "slotIndex": 0,
+        "destination": {
+          "q": 1,
+          "r": -2
+        },
         "cardInstanceId": "iron_guard_11"
       }
     },
@@ -214,8 +217,16 @@
       "action": {
         "kind": "charge_slot",
         "sourceId": "guardian",
-        "slotIndex": 1,
+        "slotIndex": 0,
         "cardInstanceId": "iron_guard_9"
+      }
+    },
+    {
+      "action": {
+        "kind": "charge_slot",
+        "sourceId": "guardian",
+        "slotIndex": 1,
+        "cardInstanceId": "iron_guard_12"
       }
     },
     {

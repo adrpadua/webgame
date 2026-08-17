@@ -136,6 +136,16 @@ export const bossProgramSchema = z.object({
   incoming_beats: z.array(bossBeatSchema),
 })
 
+// A Phase Trigger is authored, never inferred: CONTEXT.md requires every one
+// of them to be shown in the Encounter Briefing and tracked visibly, which is
+// only possible if the condition is content. Both halves are optional and
+// either one fires it — a health-only trigger never fires against a slow deck,
+// and a round-only trigger never rewards a fast one (ADR 0023).
+export const phaseTriggerSchema = z.object({
+  boss_health_at_or_below: z.number().int().min(1).optional(),
+  round_at_or_after: z.number().int().min(2).optional(),
+})
+
 export const deckEntrySchema = z.object({
   card: z.string().min(1),
   copies: z.number().int().min(1),
@@ -161,6 +171,12 @@ export const encounterSchema = z.object({
   player_deck: z.array(deckEntrySchema).min(1),
   boss_programs: z.array(z.string()).min(1),
   loop_boss_programs: z.boolean().default(true),
+  // Phase II. Without both of these an Encounter has one phase and its
+  // Programs loop unchanged to the Encounter Clock, which is what the
+  // Ashen Trial did until ADR 0023.
+  phase_trigger: phaseTriggerSchema.optional(),
+  phase_two_programs: z.array(z.string()).default([]),
+  phase_break_text: z.string().default(''),
   random_seed: z.number().int(),
   brood_spawn_candidates: z.array(axialSchema).default([]),
   escalation_thresholds: z.array(escalationThresholdSchema).default([]),

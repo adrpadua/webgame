@@ -44,7 +44,7 @@ export function ReplaceConfirmModal() {
           autoFocus
           data-testid="cancel-replace"
           onClick={cancelReplacement}
-          className={`wb-plate wb-plate-sm wb-face-steel wb-acc-none min-h-12 flex-1 text-sm font-bold text-zinc-100 transition hover:brightness-125 ${FOCUS_RING_CLASS}`}
+          className={`wb-plate wb-plate-sm wb-face-steel wb-acc-none min-h-12 flex-1 text-sm font-bold text-ceramic-200 transition hover:brightness-125 ${FOCUS_RING_CLASS}`}
         >
           Keep the Slot
         </button>

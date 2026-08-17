@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { loadCatalog } from '@/content'
+import { cardSchema } from './content/schemas'
 import {
   advancePhase,
   buildEncounterRecord,
@@ -63,7 +64,13 @@ describe('content catalog', () => {
   it('loads and validates the full content port from data/', () => {
     expect(Object.keys(catalog.cards)).toHaveLength(12)
     expect(Object.keys(catalog.keywords)).toHaveLength(9)
-    expect(Object.keys(catalog.programs).sort()).toEqual(['embermaw_brood', 'embermaw_embers', 'embermaw_hunt'])
+    expect(Object.keys(catalog.programs).sort()).toEqual([
+      'embermaw_ashfall',
+      'embermaw_brood',
+      'embermaw_embers',
+      'embermaw_hunt',
+      'embermaw_molting',
+    ])
     expect(catalog.programs.embermaw_hunt.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',
       'raking_claw',
@@ -77,6 +84,24 @@ describe('content catalog', () => {
     expect(catalog.encounters.embermaw_prototype.boss_programs).toEqual(['embermaw_hunt', 'embermaw_embers', 'embermaw_brood'])
     expect(catalog.encounters.embermaw_prototype.player_deck.reduce((total, entry) => total + entry.copies, 0)).toBe(20)
     expect(catalog.decks.aegis_controlled_test_deck.encounter).toBe('embermaw_prototype')
+  })
+
+  // ADR 0022 removed Presence. The schema strips keys it does not declare
+  // rather than rejecting them, so a card reintroducing the stat would load
+  // silently and carry a field nothing reads — which is how a deleted
+  // concept comes back. Pin both halves: no card declares it, and a card
+  // that tries does not keep it.
+  it('carries no trace of Presence (ADR 0022)', () => {
+    for (const card of Object.values(catalog.cards)) {
+      expect(Object.keys(card).filter((key) => key.includes('presence'))).toEqual([])
+    }
+    const parsed = cardSchema.parse({
+      id: 'presence_probe',
+      title: 'Presence Probe',
+      speed: 'quick',
+      presence_delta: 2,
+    })
+    expect(parsed).not.toHaveProperty('presence_delta')
   })
 })
 
@@ -95,6 +120,128 @@ describe('Boss Program rotation', () => {
     expect(state.currentProgramId).toBe('embermaw_brood')
     state = stepPhases(state, 5).state
     expect(state.currentProgramId).toBe('embermaw_hunt')
+  })
+})
+
+// ADR 0023. Three Programs looping unchanged meant Round 7 played like Round
+// 2 and the fight never escalated. Phase II is built from the Beat kinds that
+// already exist, at harder values, and the dual trigger is kept as authored:
+// a Health-only trigger never fires against a slow deck, and a Round-only one
+// never rewards a fast one.
+describe('Phase Trigger (ADR 0023)', () => {
+  // Rotation and the break are what is under test throughout, so the idle
+  // hero is given enough Health to outlast the pressure it never answers.
+  function durableStart(): EncounterState {
+    const state = start()
+    hero(state).maxHealth = 500
+    hero(state).health = 500
+    return state
+  }
+
+  it('opens in Phase I on the Phase I Programs', () => {
+    const state = durableStart()
+    expect(state.bossPhase).toBe(1)
+    expect(state.currentProgramId).toBe('embermaw_hunt')
+    expect(state.phaseTrigger).toEqual({ bossHealthAtOrBelow: 18, roundAtOrAfter: 5 })
+  })
+
+  it('breaks on the Round half of the trigger, before Phase II’s first Instant Row', () => {
+    let state = durableStart()
+    // Rounds 2, 3 and 4 open on the Phase I loop.
+    state = stepPhases(state, 5).state
+    expect(state.round).toBe(2)
+    expect(state.bossPhase).toBe(1)
+    state = stepPhases(state, 10).state
+    expect(state.round).toBe(4)
+    expect(state.bossPhase).toBe(1)
+    // Round 5 opens Phase II, and it opens on Phase II's own first Program
+    // rather than wherever the Phase I loop had reached.
+    const opened = stepPhases(state, 5)
+    expect(opened.state.round).toBe(5)
+    expect(opened.state.bossPhase).toBe(2)
+    expect(opened.state.currentProgramId).toBe('embermaw_molting')
+    // The reveal has something authoritative to read, and it is recorded on
+    // the Round's own fact — before any Instant Beat resolves.
+    const breakFact = opened.facts.find((fact) => fact.kind === 'round_start' && fact.detail.phaseBreak !== undefined)
+    expect(breakFact?.detail).toMatchObject({ phaseBreak: 2, phaseProgram: 'embermaw_molting' })
+    const firstBeat = opened.facts.findIndex((fact) => fact.kind === 'boss_beat')
+    const breakIndex = opened.facts.indexOf(breakFact as ResolvedActionFact)
+    expect(breakIndex).toBeGreaterThanOrEqual(0)
+    if (firstBeat >= 0) {
+      expect(breakIndex).toBeLessThan(firstBeat)
+    }
+  })
+
+  it('breaks on the Health half before the Round half is reached', () => {
+    let state = durableStart()
+    boss(state).health = 18
+    state = stepPhases(state, 5).state
+    expect(state.round).toBe(2)
+    expect(state.bossPhase).toBe(2)
+    expect(state.currentProgramId).toBe('embermaw_molting')
+  })
+
+  it('waits for the Round boundary when the Health half is met mid-Round', () => {
+    let state = durableStart()
+    state = stepPhases(state, 2).state
+    expect(state.phase).toBe('quick')
+    // A trigger reached inside a player window takes effect after the Round
+    // finishes, never mid-window (CONTEXT.md, Phase Trigger).
+    boss(state).health = 10
+    expect(state.bossPhase).toBe(1)
+    state = stepPhases(state, 2).state
+    expect(state.bossPhase).toBe(1)
+    state = stepPhases(state, 1).state
+    expect(state.round).toBe(2)
+    expect(state.bossPhase).toBe(2)
+  })
+
+  it('sheds the scales: turns one edge clockwise and changes nothing else', () => {
+    // Measured against a control that crosses the same Round boundary without
+    // breaking. Hazards expire on their own duration at every boundary, so
+    // only a side-by-side comparison separates what the break did from what
+    // the boundary was going to do anyway.
+    const pre = stepPhases(durableStart(), 4).state
+    const control = structuredClone(pre)
+    const breaking = structuredClone(pre)
+    breaking.board.entities[breaking.bossId].health = 18
+    const after = stepPhases(breaking, 1).state
+    const afterControl = stepPhases(control, 1).state
+    expect(after.bossPhase).toBe(2)
+    expect(afterControl.bossPhase).toBe(1)
+    // Facings run counter-clockwise from E, so one edge clockwise is one step
+    // back around the ring. The turn is the Boss's own, not a re-facing at
+    // the hero — no Instant Beat has resolved yet.
+    expect(after.board.entities[after.bossId].facing).toBe((afterControl.board.entities[afterControl.bossId].facing + 5) % 6)
+    // Whelps and Scorched ground are exactly what the boundary left, and the
+    // break deals no damage of its own: it is a readability beat.
+    const minions = (state: EncounterState) => Object.values(state.board.entities).filter((entity) => entity.kind === 'minion').length
+    expect(Object.keys(after.board.hazards).sort()).toEqual(Object.keys(afterControl.board.hazards).sort())
+    expect(minions(after)).toBe(minions(afterControl))
+    expect(hero(after).health).toBe(hero(afterControl).health)
+  })
+
+  it('loops Phase II and never returns to Phase I', () => {
+    let state = durableStart()
+    boss(state).health = 18
+    state = stepPhases(state, 5).state
+    expect(state.currentProgramId).toBe('embermaw_molting')
+    state = stepPhases(state, 5).state
+    expect(state.currentProgramId).toBe('embermaw_ashfall')
+    state = stepPhases(state, 5).state
+    expect(state.currentProgramId).toBe('embermaw_molting')
+    expect(state.bossPhase).toBe(2)
+  })
+
+  it('leaves an Encounter with no authored Phase II in one phase', () => {
+    let state = createEncounterState(catalog, 'embermaw_first_turn')
+    expect(state.phaseTrigger).toBeNull()
+    hero(state).maxHealth = 500
+    hero(state).health = 500
+    boss(state).health = 1
+    state = stepPhases(state, 25).state
+    expect(state.round).toBeGreaterThanOrEqual(5)
+    expect(state.bossPhase).toBe(1)
   })
 })
 

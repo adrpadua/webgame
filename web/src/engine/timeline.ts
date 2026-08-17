@@ -1,5 +1,6 @@
 import { emptyHexes, facingToward, firstEmptyHexes, forwardCone, frontArc, isGuardedFront } from './board'
 import { escalationModifiers } from './escalation'
+import { normalizeFacing } from './facing'
 import { containsHex, hexKey, type Axial } from './hex'
 import type { BossBeat, BossProgram } from './content/schemas'
 import type { ContentCatalog } from './content/catalog'
@@ -180,6 +181,42 @@ export function refreshTelegraphs(catalog: ContentCatalog, draft: EncounterState
       default:
         break
     }
+  }
+}
+
+// Is the authored Phase Trigger satisfied as this Round opens? Either half
+// fires it, and the two are not interchangeable: a health-only trigger never
+// fires against a slow deck, and a round-only trigger never rewards a fast
+// one (ADR 0023). Read at the Round boundary rather than watched during play,
+// which is what makes "a trigger reached during a player window takes effect
+// after the current Round finishes" true by construction rather than by a
+// flag someone has to remember to clear.
+export function phaseBreakDue(state: EncounterState, round: number): boolean {
+  if (state.phaseTrigger === null || state.bossPhase !== 1 || state.phaseTwoProgramIds.length === 0) {
+    return false
+  }
+  const boss = state.board.entities[state.bossId]
+  const byHealth =
+    state.phaseTrigger.bossHealthAtOrBelow !== null && boss !== undefined && boss.health <= state.phaseTrigger.bossHealthAtOrBelow
+  const byRound = state.phaseTrigger.roundAtOrAfter !== null && round >= state.phaseTrigger.roundAtOrAfter
+  return byHealth || byRound
+}
+
+// Molting Roar, as authored in embermaw-ashen-trial-design.md: Embermaw sheds
+// its brittle scales, turns one hex edge clockwise, and keeps every Whelp and
+// every Scorched hex already on the board. The break deals no damage of its
+// own — it is a readability beat that changes what the board means, not a hit
+// the party has to survive.
+export function applyPhaseBreak(draft: EncounterState): void {
+  draft.bossPhase += 1
+  draft.programIds = [...draft.phaseTwoProgramIds]
+  draft.programIndex = 0
+  draft.currentProgramId = draft.programIds[0] ?? null
+  const boss = draft.board.entities[draft.bossId]
+  if (boss) {
+    // Facings run counter-clockwise from E, so one edge clockwise is one step
+    // back around the ring.
+    boss.facing = normalizeFacing(boss.facing - 1)
   }
 }
 

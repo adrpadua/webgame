@@ -58,23 +58,29 @@ function CompactCard({
       }}
       onDragEnd={() => setDraggingCard(null)}
       style={{ width }}
-      className={`wb-plate wb-plate-md wb-face-steel min-h-24 shrink-0 cursor-grab py-1.5 text-left transition hover:-translate-y-1 active:cursor-grabbing ${FOCUS_RING_CLASS} ${
+      className={`wb-plate wb-plate-card wb-face-steel min-h-24 shrink-0 cursor-grab py-1.5 text-left transition hover:-translate-y-1 active:cursor-grabbing ${FOCUS_RING_CLASS} ${
         // A Compact Card is a raked oathsteel plate. Its timing seam is drawn by
         // the card body below; selection lifts it and takes the gold accent.
         selected ? '-translate-y-1 wb-acc-gold ring-2 ring-gold-400' : 'wb-acc-none'
       } ${spotlit ? `wb-acc-gold ${SPOTLIGHT_CLASS}` : ''} ${gated ? GATED_CLASS : ''}`}
     >
-      <div className="flex items-start justify-between gap-1">
-        <div className="text-[11px] leading-tight font-bold text-zinc-50">{card.title}</div>
-        <EffectIcon className={`h-3.5 w-3.5 shrink-0 ${effectTone.text}`} />
-      </div>
+      {/* A five-card Hand leaves each card 56px of content. The title takes
+          all of it: sharing the row with the effect icon left 38px, and the
+          longest card name in the catalogue ("Unyielding", 60px at 11px)
+          overran that — first into the neighbouring plate, then into the
+          icon. At 10px every catalogue word fits its own line, and
+          break-words contains anything longer that arrives later. */}
+      <div className="text-[10px] leading-tight font-bold break-words text-ceramic-100">{card.title}</div>
+      {/* The speed word carries its own colour, so the tone dot that used to
+          lead this row said nothing the word did not — dropping it is what
+          makes room for the effect icon here. */}
       <div className={`mt-1 flex items-center gap-1 text-[9px] font-semibold uppercase ${windowToneClass(windowSpeed)}`}>
-        <span className="h-1.5 w-1.5 rounded-full bg-current" />
         {windowSpeed}
+        <EffectIcon className={`ml-auto h-3.5 w-3.5 shrink-0 ${effectTone.text}`} />
       </div>
       <div className="mt-1.5 flex gap-0.5" role="img" aria-label={`Charge value ${cardChargeCap(card)}`}>
         {Array.from({ length: cardChargeCap(card) }, (_, index) => (
-          <span key={index} className="h-1.5 w-3 rounded-full bg-zinc-600" />
+          <span key={index} className="h-1.5 w-3 rounded-full bg-steel-600" />
         ))}
       </div>
     </button>
@@ -103,15 +109,18 @@ export function Hand() {
   // outgrows its refill target: extra cards start a second row instead of
   // overflowing.
   const slotCount = Math.max(hero.refillTarget, hero.hand.length, 1)
-  // 0.375rem is the row's gap-1.5; change them together.
-  const cardWidth = `calc((100% - ${(slotCount - 1) * 0.375}rem) / ${slotCount})`
+  // 0.25rem is the row's gap-1; change them together.
+  const cardWidth = `calc((100% - ${(slotCount - 1) * 0.25}rem) / ${slotCount})`
 
   // min-h-30 reserves the full-hand row height (min-h-24 cards + py-3) even
   // as the Hand empties: the board above sizes to the space the HUD leaves,
   // and playing out the Hand must not make the board grow mid-Encounter.
   return (
     <div
-      className="flex min-h-30 flex-wrap content-center justify-center gap-1.5 border-t border-zinc-800 bg-zinc-950/90 px-3 py-3"
+      // px-2/gap-1 rather than px-3/gap-1.5: at a five-card refill the row's
+      // own chrome was costing 16px of card width, and the widest card name
+      // in the catalogue needs every one of them to sit on one line.
+      className="flex min-h-30 flex-wrap content-center justify-center gap-1 border-t border-steel-800 bg-navy-950/90 px-2 py-3"
       data-testid="hand"
       data-inert={handCanAct(state) ? undefined : 'true'}
     >
@@ -132,7 +141,7 @@ export function Hand() {
           />
         )
       })}
-      {hero.hand.length === 0 && <div className="flex-1 py-4 text-center text-xs text-zinc-600">Hand is empty</div>}
+      {hero.hand.length === 0 && <div className="flex-1 py-4 text-center text-xs text-steel-600">Hand is empty</div>}
     </div>
   )
 }
