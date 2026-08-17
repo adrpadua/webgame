@@ -226,9 +226,25 @@ Both are graded to the same warm ceiling, and the **difference** between them is
 | `arena-backdrop-phase-two.png` | Phase II, once `bossPhase` reaches 2 |
 | `*-source.png` | The ungraded generations, kept as the grade's input |
 
-### Wiring A Finished Backdrop
+### How It Is Wired
 
-No consumer today, and two plausible routes. As a CSS background on the board's container in `web/src/ui/App.tsx`, or as a Phaser image in `BoardScene.ts` at a depth below the tiles. The first is a one-line change and survives the canvas being transparent already; the second puts it in the same file as everything else it has to stay darker than. Neither is chosen — decide it when the art exists.
+[`web/src/board/backdrop.ts`](../../../web/src/board/backdrop.ts) holds the pair and the phase lookup; the scene loads both in `preload` and draws one at `BACKDROP_DEPTH`, under the tile layer.
+
+**A Phaser image, not a CSS background.** The CSS route was the shorter one — the canvas is already transparent — but the canvas is scaled `FIT` inside a larger container, so a background on that container would not move with the board. This art is composed as a ring around a centre, and the ring has to stay concentric with the hex grid at every viewport. Inside the scene it is in board space, so it does.
+
+The image is square and the board is not, so it is sized to **cover** the longer side and overhangs the shorter one, where the canvas clips it. Sizing to fit would letterbox the arena away from the grid it is drawn around.
+
+The phase is re-read on **every snapshot** rather than swapped once at the Phase Reveal. A one-time swap is right going forward and wrong going back: stepping through time travel across the Phase Trigger has to restore the first arena, and re-reading gets that for free.
+
+Export for the web from the graded PNG — the full-size source is 2.5 MB, which is not a thing to put in a mobile bundle:
+
+```bash
+python3 -c "from PIL import Image; Image.open('assets/art/board/arena-backdrop.png').convert('RGB').resize((1024, 1024), Image.LANCZOS).save('web/src/assets/arena-backdrop.webp', 'WEBP', quality=86, method=6)"
+```
+
+That lands both files near 150 KB, and the grade survives the round trip — worth re-measuring rather than assuming, since a lossy encoder is free to overshoot a ceiling that was exact in the source.
+
+The smoke measures the shipped bytes on every run: it decodes each backdrop and asserts no saturated warm pixel exceeds the telegraph composite. Verified to fail as well as pass — pointed at the ungraded generation it reports `7.3x a telegraph`.
 
 ## Acceptance Check
 

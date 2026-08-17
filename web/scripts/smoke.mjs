@@ -92,6 +92,66 @@ try {
   // chromium`). PLAYWRIGHT_CHROMIUM_PATH overrides it for images that ship
   // their own build at a fixed path.
   const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined })
+
+  // The backdrop is the one board asset that ships as finished colour rather
+  // than as a mask a runtime tint multiplies, so its discipline is baked in and
+  // nothing at runtime can restore it. The rule is that scenery never outshouts
+  // a telegraph: warm ranks by imminence, and a backdrop is the least imminent
+  // thing on screen. Both generations broke this before grading — one at seven
+  // times the ceiling — so a fresh drop-in silently reintroducing it is the
+  // likely failure, not a hypothetical one. Measured on the shipped bytes.
+  //
+  // The ceiling is what a Brood Call actually composites to, not the token it
+  // names: coral-400 over a steel-900 tile at 32% alpha. A tint is far duller
+  // on screen than its token suggests, which is exactly the trap.
+  const backdropPage = await browser.newPage()
+  const linear = (channel) => {
+    const v = channel / 255
+    return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+  }
+  const luminance = ([r, g, b]) => 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+  const broodComposite = [0x5a, 0x3c, 0x36]
+  const ceiling = luminance(broodComposite)
+  const backdropSource = readFileSync(new URL('../src/board/backdrop.ts', import.meta.url), 'utf8')
+  const backdropFiles = [...backdropSource.matchAll(/import \w+ from '@\/assets\/([\w.-]+)'/g)].map((match) => match[1])
+  assert(backdropFiles.length > 0, 'the board declares at least one arena backdrop')
+  const tooHot = []
+  for (const file of backdropFiles) {
+    const bytes = readFileSync(new URL(`../src/assets/${file}`, import.meta.url))
+    const peak = await backdropPage.evaluate(async (dataUrl) => {
+      const image = document.createElement('img')
+      image.src = dataUrl
+      await image.decode()
+      const canvas = document.createElement('canvas')
+      canvas.width = image.width
+      canvas.height = image.height
+      const context = canvas.getContext('2d')
+      context.drawImage(image, 0, 0)
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
+      const toLinear = (channel) => {
+        const v = channel / 255
+        return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+      }
+      let highest = 0
+      for (let index = 0; index < pixels.length; index += 4) {
+        const [r, g, b] = [pixels[index], pixels[index + 1], pixels[index + 2]]
+        // Saturated warm only. A bright neutral is lit stone and reads as
+        // scenery; an orange that carries chroma reads as a warning.
+        if (r - b <= 60) continue
+        const value = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b)
+        if (value > highest) highest = value
+      }
+      return highest
+    }, `data:image/${file.endsWith('.webp') ? 'webp' : 'png'};base64,${bytes.toString('base64')}`)
+    if (peak > ceiling) {
+      tooHot.push(`${file}: saturated warm peaks at L=${peak.toFixed(4)}, ${(peak / ceiling).toFixed(1)}x a telegraph`)
+    }
+  }
+  await backdropPage.close()
+  assert(
+    tooHot.length === 0,
+    `no backdrop outshouts a telegraph (${tooHot.join(' | ') || `${backdropFiles.length} checked against L=${ceiling.toFixed(4)}`})`,
+  )
   const page = await browser.newPage({ viewport: { width: 1400, height: 950 } })
   // The desktop pass drives the debug rail (Scenarios, time travel, seed),
   // which is opt-in on a build: ?debug=1 shows it.
