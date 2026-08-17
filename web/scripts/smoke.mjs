@@ -326,14 +326,18 @@ try {
   const recordPath = join(tmpdir(), `workbench-smoke-record-${process.pid}.json`)
   writeFileSync(recordPath, recordJson)
 
-  // M2 debug tooling: load the committed victory Scenario and walk its line
-  // with time travel.
+  // M2 debug tooling: load the committed terminal Scenario and walk its line
+  // with time travel. The solo-ceiling Scenario is the deepest solo push the
+  // policy search can manage and it ends short of Boss defeat by design —
+  // it exists to prove a lone Guardian cannot win the Ashen Trial (D-016) —
+  // so its terminal banner is Defeat. What this asserts is that a committed
+  // Scenario replays to its terminal outcome and time travel walks it.
   await page.selectOption('[data-testid="scenario-select"]', 'embermaw_solo_ceiling')
   await page.locator('[data-testid="load-scenario"]').click()
-  await page.waitForSelector('[data-testid="outcome-banner"][data-outcome="victory"]')
+  await page.waitForSelector('[data-testid="outcome-banner"][data-outcome="defeat"]')
   assert(
-    (await page.locator('[data-testid="outcome-banner"]').getAttribute('data-outcome')) === 'victory',
-    'the victory Scenario replays to the Victory banner',
+    (await page.locator('[data-testid="outcome-banner"]').getAttribute('data-outcome')) === 'defeat',
+    'the solo-ceiling Scenario replays to its Defeat banner',
   )
 
   const position = await page.locator('[data-testid="time-travel-position"]').textContent()

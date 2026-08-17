@@ -362,3 +362,23 @@ function findBeat(catalog: ContentCatalog, state: EncounterState, beatId: string
   }
   return undefined
 }
+
+// The lowest vertical lane not held by another live label at the same hex,
+// so two floaters spawning at one point never overprint. Beats that resolve
+// at the Boss in quick succession — Turn to the Tank, Raking Claw, Ash Trail
+// — each spawn a title there; stacked, each stays readable and the order is
+// legible, older below and newer above. Pure so the scene need not exist to
+// prove it.
+export function freeFloaterLane(live: { label?: string; at: Axial; lane: number }[], at: Axial): number {
+  const taken = new Set<number>()
+  for (const other of live) {
+    if (other.label !== undefined && other.at.q === at.q && other.at.r === at.r) {
+      taken.add(other.lane)
+    }
+  }
+  let lane = 0
+  while (taken.has(lane)) {
+    lane += 1
+  }
+  return lane
+}
