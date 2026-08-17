@@ -2,48 +2,10 @@ import Phaser from 'phaser'
 import { facingName, hexKey, parseHexKey, type Axial, type EncounterState, type HexKey } from '@/engine'
 import { axialToPixel, hexCorners, pixelToAxial, HEX_SIZE } from './layout'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
+import { idleBobOffset } from './ambience'
 import { boardPalette, toneColors } from './palette'
-import heroIdleUrl from '@/assets/elian-voss-idle.png'
-import bossIdleUrl from '@/assets/embermaw-idle.png'
-import minionIdleUrl from '@/assets/whelp-idle.png'
+import { idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
 
-// Idle sheets, built from the authored contact sheets by
-// tools/build_sprite_sheet.py. Rows are the engine's facing indices and the
-// four columns are the idle cycle, so the frame for a piece is simply
-// facing * 4 + step — no lookup table, which is the whole reason the build
-// step reorders the artist's rows.
-const IDLE_FRAMES = 4
-// Milliseconds per idle frame. Board Ambience: it loops uniformly for every
-// piece that has a sheet, carries no state, and stops dead under reduced
-// motion.
-const IDLE_MS = 190
-
-interface SheetSpec {
-  key: string
-  url: string
-  frameWidth: number
-  frameHeight: number
-  // Rendered height on the board. Pieces are scaled by height rather than
-  // drawn at a shared scale: the sheets are cropped to their own content, so
-  // a shared scale would size each piece by however much empty space its
-  // contact sheet happened to leave around it.
-  targetHeight: number
-  // How far below the hex centre the piece's base sits, so it stands on the
-  // tile rather than floating at its midpoint.
-  footOffset: number
-}
-
-// Elian stands about one and a third hexes tall. Embermaw is drawn low and
-// wide and overlaps its neighbours, which is the design's boss that dominates
-// several hexes. A Whelp is roughly half the Hero: it has to read as a piece
-// of the furnace that broke off, never as a small Embermaw, and size is half
-// of how those two stay apart — the other half is that they share a material
-// and separate by saturation, per the board direction.
-const SHEETS: Record<string, SheetSpec> = {
-  hero: { key: 'elian-idle', url: heroIdleUrl, frameWidth: 162, frameHeight: 210, targetHeight: 74, footOffset: 12 },
-  boss: { key: 'embermaw-idle', url: bossIdleUrl, frameWidth: 238, frameHeight: 176, targetHeight: 80, footOffset: 22 },
-  minion: { key: 'whelp-idle', url: minionIdleUrl, frameWidth: 178, frameHeight: 164, targetHeight: 40, footOffset: 10 },
-}
 // The board is three layers: tiles and their tints, then the pieces, then the
 // text that has to be read over both. Phaser falls back to creation order
 // within a depth, and the graphics layer is built once while labels are
@@ -59,6 +21,10 @@ export interface BoardSnapshot {
   legalMoveKeys: string[]
   // Hexes the scripted first turn is pointing the player at.
   guidedMoveKeys: string[]
+  // The hex a dragged move is waiting to be paid for, if any. The player is
+  // looking at their Hand to choose the card; the board holds the hex they
+  // chose so the two halves of the gesture stay one sentence.
+  pendingMoveKey: string | null
   showCoordinates: boolean
   // What the playout's unplayed moments will show. The snapshot state is
   // the batch's final one, so until those moments fire the board holds
@@ -76,6 +42,11 @@ export interface BoardSceneCallbacks {
   // Which hex the pointer is over, by key, or null once it is off the grid.
   // The scene reports it and holds no opinion about what it means.
   onHexHoverChange: (key: HexKey | null) => void
+  // A press that began on the Hero and released on another hex: the third
+  // way to ask for a move, beside dragging a hand card and the tap path.
+  // The scene reports the destination only — what a move costs is a rules
+  // question, and the board asks none of them (ADR 0019).
+  onHeroDraggedTo: (destination: Axial) => void
 }
 
 // The board's colour language runs on two axes.
@@ -134,13 +105,6 @@ const PIECE_SHADOW_SHADE = 0.55
 const HIGHLIGHT_SPAN = (Math.PI * 2) / 3
 const RIM_ANGLE = LIGHT_ANGLE + Math.PI
 const RIM_SPAN = Math.PI / 2
-
-// A small, slow rise and fall so a board with nothing happening on it still
-// breathes. Each piece takes its own phase from its id, so they never pulse
-// in unison and the board never looks metronomic. The drop shadow stays put
-// while the body moves, which is what sells the lift.
-const IDLE_BOB_PIXELS = 2
-const IDLE_BOB_PERIOD_MS = 2600
 
 // How far a tile's darker skirt drops below its face.
 const TILE_DEPTH = 6
@@ -222,29 +186,22 @@ function tileJitter(coords: Axial): number {
   return h - Math.floor(h)
 }
 
-// Where in its bob cycle a piece starts, in [0, 1). Derived from the id so a
-// piece keeps the same phase for as long as it is on the board.
-function idlePhase(entityId: string): number {
-  let hash = 0
-  for (let index = 0; index < entityId.length; index += 1) {
-    hash = (hash * 31 + entityId.charCodeAt(index)) % 997
-  }
-  return hash / 997
-}
-
 export class BoardScene extends Phaser.Scene {
   private snapshot: BoardSnapshot | null = null
   private graphicsLayer: Phaser.GameObjects.Graphics | null = null
   private labels: Phaser.GameObjects.Text[] = []
-  // What the live labels were built from. The idle bob redraws the board every
-  // frame, and every Phaser Text rasterises its own texture, so rebuilding
-  // labels at that rate would churn textures for nothing: the bob moves piece
-  // bodies, never their labels. These two let an idle frame keep the labels it
-  // already has, while a snapshot change or a live effect still rebuilds them.
+  // What the live labels were built from. Board Ambience redraws the board
+  // every frame, and every Phaser Text rasterises its own texture, so
+  // rebuilding labels at that rate would churn textures for nothing: ambience
+  // moves piece bodies and sheet frames, never their labels. These two let an
+  // idle frame keep the labels it already has, while a snapshot change or a
+  // live effect still rebuilds them.
   private labelsSnapshot: BoardSnapshot | null = null
   private labelsHaveEffects = false
   private active: ActiveEffect[] = []
   private readonly sprites = new Map<string, Phaser.GameObjects.Sprite>()
+  // Where a live press on the Hero began, or null when no press is in flight.
+  private heroPressOrigin: Axial | null = null
   private readonly callbacks: BoardSceneCallbacks
   private readonly reducedMotion: boolean
 
@@ -264,16 +221,25 @@ export class BoardScene extends Phaser.Scene {
     this.graphicsLayer = this.add.graphics()
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       const coords = pixelToAxial(pointer.x, pointer.y)
-      this.callbacks.onHexClicked(coords)
       const heroCoords = this.snapshot ? this.snapshot.state.board.entities[this.snapshot.state.primaryHeroId]?.coords : undefined
       if (heroCoords && heroCoords.q === coords.q && heroCoords.r === coords.r) {
+        // A press on the Hero is not yet a tap: it becomes one on release at
+        // the same hex, and a move on release anywhere else. Reporting the
+        // tap here instead would open the Hero's Stat Panel under the
+        // player's own finger the moment a drag started.
+        this.heroPressOrigin = coords
         this.callbacks.onHeroPressChange(true)
+        return
       }
+      this.callbacks.onHexClicked(coords)
     })
-    this.input.on('pointerup', () => this.callbacks.onHeroPressChange(false))
-    this.input.on('pointerupoutside', () => this.callbacks.onHeroPressChange(false))
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => this.endHeroPress(pixelToAxial(pointer.x, pointer.y)))
+    // Released off the canvas — over the HUD, or off the page entirely. The
+    // gesture is abandoned, never resolved against whatever hex the pointer
+    // was last over.
+    this.input.on('pointerupoutside', () => this.endHeroPress(null))
     this.input.on('gameout', () => {
-      this.callbacks.onHeroPressChange(false)
+      this.endHeroPress(null)
       this.callbacks.onHexHoverChange(null)
     })
     // A hex only counts as hovered if it is a hex: the canvas is a hexagon's
@@ -283,6 +249,22 @@ export class BoardScene extends Phaser.Scene {
       this.callbacks.onHexHoverChange(this.snapshot?.state.board.hexes[key] === undefined ? null : key)
     })
     this.renderSnapshot()
+  }
+
+  // Ends a press that began on the Hero. A release on the Hero's own hex is
+  // the tap it always was; a release on another hex asks to move there.
+  private endHeroPress(released: Axial | null): void {
+    const origin = this.heroPressOrigin
+    this.heroPressOrigin = null
+    this.callbacks.onHeroPressChange(false)
+    if (origin === null || released === null) {
+      return
+    }
+    if (released.q === origin.q && released.r === origin.r) {
+      this.callbacks.onHexClicked(released)
+      return
+    }
+    this.callbacks.onHeroDraggedTo(released)
   }
 
   updateSnapshot(snapshot: BoardSnapshot): void {
@@ -350,14 +332,15 @@ export class BoardScene extends Phaser.Scene {
     }
   }
 
-  // The piece's offset in its idle cycle right now. Zero under reduced motion,
-  // and zero while any effect owns the piece: a bob layered onto a strike or a
-  // move slide reads as a wobble, not a breath.
-  private idleBob(entityId: string): number {
-    if (this.reducedMotion || this.active.some((effect) => effect.entityId === entityId && effect.elapsed >= 0)) {
+  // The piece's offset in its idle cycle right now, which only a piece that
+  // flies has: see ambience.ts. Zero as well under reduced motion, and zero
+  // while any effect owns the piece — a bob layered onto a strike or a move
+  // slide reads as a wobble, not a breath.
+  private idleBob(entity: { id: string; kind: string }): number {
+    if (this.reducedMotion || this.active.some((effect) => effect.entityId === entity.id && effect.elapsed >= 0)) {
       return 0
     }
-    return Math.sin((this.time.now / IDLE_BOB_PERIOD_MS + idlePhase(entityId)) * Math.PI * 2) * IDLE_BOB_PIXELS
+    return idleBobOffset(entity.kind, entity.id, this.time.now)
   }
 
   // --- Effect readouts -------------------------------------------------
@@ -578,6 +561,14 @@ export class BoardScene extends Phaser.Scene {
       if (legalMoves.has(key)) {
         this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), MOVE_OVERLAY, 0.35)
       }
+      // The chosen hex takes the same runeglass at full strength and wears
+      // its own edge: while the Hand is being read, this is the one hex the
+      // player has already committed to.
+      if (snapshot.pendingMoveKey === key) {
+        this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), MOVE_OVERLAY, 0.6)
+        graphics.lineStyle(3, MOVE_OVERLAY, 1)
+        this.strokeHex(graphics, hexCorners(x, y, HEX_SIZE - 5))
+      }
       // The scripted turn marks the hexes that answer the telegraph, with a
       // slow pulse so the eye lands there without any words.
       if (guidedMoves.has(key)) {
@@ -610,9 +601,10 @@ export class BoardScene extends Phaser.Scene {
       const motion = this.motionFor(entity.id)
       const x = base.x + motion.dx
       const y = base.y + motion.dy
-      // The body breathes; the shadow it casts stays on the ground, which is
-      // what reads as a lift rather than the whole piece sliding.
-      const bodyY = y + this.idleBob(entity.id)
+      // A flying piece rises off the shadow it casts, and that gap is what
+      // reads as a lift rather than the whole piece sliding. A piece that
+      // stands keeps its feet on the tile and breathes inside its own sheet.
+      const bodyY = y + this.idleBob(entity)
       const baseRadius = entity.kind === 'boss' ? 22 : entity.kind === 'hero' ? 16 : 12
       const radius = Math.max(baseRadius * motion.scale, 1)
       const fill = entity.kind === 'boss' ? BOSS_FILL : entity.kind === 'hero' ? HERO_FILL : MINION_FILL
@@ -620,7 +612,8 @@ export class BoardScene extends Phaser.Scene {
       graphics.fillCircle(x + 2, y + 3, radius)
       // A piece with an authored sheet is drawn as itself. The shadow above
       // stays either way: it is what plants the piece on the tile, and it is
-      // cast from the resting position so it does not rise with the bob.
+      // cast from the resting position, so a flying piece rises off it while a
+      // standing one sits on it.
       if (this.placeSprite(entity, x, bodyY, motion)) {
         // The sheet draws its own facing, its own light, and its own rim, so
         // the token's crescent, highlight and facing wedge would all be a
@@ -709,8 +702,7 @@ export class BoardScene extends Phaser.Scene {
     // Rows are facing indices and columns are the idle cycle, so the frame is
     // arithmetic. Reduced motion holds the cycle on its first frame — the
     // sheet is ambience, and ambience is what that setting turns off.
-    const step = this.reducedMotion ? 0 : Math.floor(this.time.now / IDLE_MS) % IDLE_FRAMES
-    sprite.setFrame(entity.facing * IDLE_FRAMES + step)
+    sprite.setFrame(spriteFrame(entity.facing, idleStep(this.time.now, this.reducedMotion)))
     sprite.setScale((sheet.targetHeight / sheet.frameHeight) * motion.scale)
     // The token flashed by filling itself with the tone; a body takes the
     // same tone as a tint, which reads on the armour without flattening it.

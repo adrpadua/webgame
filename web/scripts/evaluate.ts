@@ -333,6 +333,12 @@ if (POLICY) {
 
 const rows: Record<string, string | number>[] = []
 const redFlags: string[] = []
+// ADR 0027's third standing criterion. It is counted rather than described
+// because the percentages this ADR once recorded went stale the moment someone
+// tuned Phase II damage: a gate that decays when unrelated work lands is not a
+// gate. The count is what must stay above zero; which policies produce it, and
+// how often, is a dated observation.
+let wallRuns = 0
 for (const knobs of variants) {
   const runs: RunMetrics[] = []
   for (let seed = 1; seed <= SEEDS; seed += 1) {
@@ -345,6 +351,11 @@ for (const knobs of variants) {
   if (victoryPct > 0) {
     redFlags.push(`${label}: ${victoryPct}% solo victories`)
   }
+  // The enrage wall, as ADR 0027 states it: a line that survives everything
+  // the Boss does still cannot kill it, and something ends the fight anyway.
+  wallRuns += runs.filter(
+    (run) => run.outcome === 'defeat' && run.outcomeReason !== 'A Hero has fallen.' && run.bossDamage === 0,
+  ).length
   rows.push({
     policy: label,
     'checkpoint%': pct((run) => run.checkpoint),
@@ -365,13 +376,25 @@ for (const knobs of variants) {
 
 console.table(rows)
 console.log(`${SEEDS} seeds per policy against '${ENCOUNTER_ID}' via the browser Encounter Engine.`)
+// The wall is a property of the whole sweep, so a `--policy` subset cannot be
+// held to it: most single policies legitimately never reach the clock.
+if (POLICY) {
+  console.log(`\nADR 0027 enrage wall: not asserted for a single-policy run (${wallRuns} qualifying run(s) here).`)
+} else if (wallRuns === 0) {
+  redFlags.push(
+    'ADR 0027 enrage wall unmet: no run reached the Encounter Clock and died to Escalation at 0 Boss damage. ' +
+      'Either no survival-biased policy can still reach the clock, or one that reaches it is now dealing damage.',
+  )
+} else {
+  console.log(`\nADR 0027 enrage wall: ${wallRuns} run(s) reached the Clock and died to Escalation at 0 Boss damage.`)
+}
 if (redFlags.length > 0) {
-  console.log(`\nD-016 RED FLAGS — solo victories are tuning defects, not successes:`)
+  console.log(`\nRED FLAGS — a solo victory is a tuning defect (D-016), and the enrage wall must hold (ADR 0027):`)
   for (const flag of redFlags) {
     console.log(`  ⚠ ${flag}`)
   }
 }
 if (JSON_OUT) {
-  writeFileSync(JSON_OUT, `${JSON.stringify({ encounterId: ENCOUNTER_ID, seeds: SEEDS, rows, redFlags }, null, 2)}\n`)
+  writeFileSync(JSON_OUT, `${JSON.stringify({ encounterId: ENCOUNTER_ID, seeds: SEEDS, rows, redFlags, wallRuns }, null, 2)}\n`)
   console.log(`Aggregates written to ${JSON_OUT}`)
 }

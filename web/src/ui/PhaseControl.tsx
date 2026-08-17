@@ -1,32 +1,29 @@
 import { useState } from 'react'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench, type WorkbenchStore } from '@/store/workbench'
-import type { EncounterState, Phase } from '@/engine'
+import type { EncounterState } from '@/engine'
 import { blocksTarget } from './firstTurnScript'
 import { useFirstTurnStep } from './useFirstTurn'
 import { encounterTerms, phaseDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
 import { Modal } from './Modal'
+import { PHASE_TRACK, roundTrackDetail, type PhaseMark } from './phaseTrack'
 import { slotCanFire } from './slots'
 import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS } from './theme'
 
-// One word per phase, in the Encounter's own vocabulary and its own colour:
-// amber beats (Instant, Incoming) belong to the Boss, green Quick and blue
-// Slow are yours, grey Loadout is setup. The tones are the same ones the
-// How to Play guide's timeline diagram and the Phase Banner wear — the
-// track the tutorial teaches is the track the HUD shows. Change together.
-const PHASES: { phase: Phase; label: string; activeClass: string }[] = [
-  { phase: 'loadout', label: 'Loadout', activeClass: 'bg-steel-600 text-ceramic-100 shadow-steel-950' },
-  { phase: 'instant', label: 'Instant', activeClass: 'bg-coral-400 text-coral-950 shadow-coral-900' },
-  { phase: 'quick', label: 'Quick', activeClass: 'bg-glass-400 text-glass-950 shadow-glass-900' },
-  { phase: 'incoming', label: 'Incoming', activeClass: 'bg-coral-400 text-coral-950 shadow-coral-900' },
-  { phase: 'slow', label: 'Slow', activeClass: 'bg-gold-400 text-gold-950 shadow-gold-900' },
-]
+// The Round track plus the one control that moves it.
+//
+// The track is five flat marks, one per window, in the phase tones (see
+// phaseTrack.tsx). It used to be five labelled chips, and five words never
+// fit: at phone width the row ran out of room and cut Slow in half. A mark
+// costs a fifth of the width and does not truncate, so the whole Round is
+// legible on the narrowest screen the game supports.
+//
+// The words are still one gesture away, by whichever gesture the device
+// has. Hovering a mark names its window and explains it; holding anywhere
+// on the track draws the whole Round in order with the live window lit,
+// which is the reading a finger cannot assemble a mark at a time.
 
-// The Round track plus the one control that moves it. Holding the track
-// explains the window you are standing in. The five chips stay on one
-// unwrapped row: at phone width they used to wrap and push the track into a
-// second line under the Next button.
 // The actions Next would leave on the table, phrased for the window being
 // skipped. Advisory only: "Skip anyway" always goes through.
 interface SkipWarning {
@@ -87,13 +84,45 @@ function skipWarning(store: WorkbenchStore, state: EncounterState): SkipWarning 
   }
 }
 
+// One window's mark. It carries its own detail so a mouse can learn the row
+// a mark at a time; the track underneath it holds for touch.
+function PhaseWindowMark({ mark, active }: { mark: PhaseMark; active: boolean }) {
+  const hold = useHold(phaseDetail(mark.phase, active))
+  const Icon = mark.Icon
+  return (
+    <span
+      {...hold.holdProps}
+      data-testid="phase-mark"
+      data-mark={mark.phase}
+      data-active={active}
+      className="flex flex-1 flex-col items-center gap-1 py-1"
+    >
+      <Icon className={`h-[18px] w-[18px] transition-colors duration-300 ${active ? mark.activeClass : 'text-steel-500'}`} />
+      {/* The live window is marked twice: in tone, and by this rule under
+          it. Colour alone would be the only channel otherwise, and two of
+          the five windows share one. */}
+      <span className={`h-0.5 w-4 rounded-full transition-colors duration-300 ${active ? mark.barClass : 'bg-transparent'}`} />
+    </span>
+  )
+}
+
 export function PhaseControl() {
   const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)
   const advance = useWorkbench((store) => store.advance)
   const restart = useWorkbench((store) => store.restart)
   const step = useFirstTurnStep()
-  const hold = useHold(phaseDetail(state.phase, true))
+  // Hover belongs to whichever mark the mouse is actually over; the track
+  // itself answers a touch hold — and it answers with the whole Round.
+  //
+  // A press on a mark bubbles to this button, and both bindings arm the same
+  // timer, so the outer one always won: on touch, pressing any mark opened
+  // the live window's detail. Pressing Slow and reading Loadout is worse
+  // than not asking. Rather than stop the press from bubbling — which would
+  // make a 47px mark the only way to reach the popup — the track answers
+  // with the thing a finger cannot get any other way: every window, in
+  // order, with this one marked.
+  const hold = useHold(roundTrackDetail(state.phase), { hover: false })
   // The Encounter Clock, compact: the Boss line left the HUD, so the Round
   // count rides the phase row and the Encounter's terms are a hold away.
   const clockHold = useHold({
@@ -147,21 +176,14 @@ export function PhaseControl() {
         type="button"
         {...hold.holdProps}
         data-testid="phase-track"
-        aria-label={`Current phase: ${state.phase}`}
-        // min-w-0 lets the track shrink below its chips' natural width; without
+        aria-label={`Round track: ${state.phase}. Hold for every window in order.`}
+        // min-w-0 lets the track shrink below its marks' natural width; without
         // it flex-1 will not go under content size and the row overflows the
         // surface, which then scrolls sideways under any focus or modal.
-        className={`flex min-h-11 min-w-0 flex-1 items-center gap-1 overflow-hidden text-left ${FOCUS_RING_CLASS}`}
+        className={`flex min-h-11 min-w-0 flex-1 items-center gap-1 text-left ${FOCUS_RING_CLASS}`}
       >
-        {PHASES.map((entry) => (
-          <span
-            key={entry.phase}
-            className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wide uppercase transition-all duration-300 ${
-              state.phase === entry.phase ? `scale-105 font-bold shadow-md ${entry.activeClass}` : 'bg-steel-900 text-steel-500'
-            }`}
-          >
-            {entry.label}
-          </span>
+        {PHASE_TRACK.map((mark) => (
+          <PhaseWindowMark key={mark.phase} mark={mark} active={state.phase === mark.phase} />
         ))}
       </button>
       <button

@@ -6,6 +6,8 @@ These go to a **vector generator**, per [`_tools.md`](_tools.md). They take **no
 
 The arena backdrop is not here. It is an illustration, composes normally with the preamble, and lives in [board-and-tiles.md](board-and-tiles.md).
 
+The **hex tile floor** is not here either, for a different reason: its prompt has no slots to fill, so it is already ready to send where it stands, and copying it into a second file would leave two versions to drift apart. Send it from [board-and-tiles.md](board-and-tiles.md). Its export target is in the table below with the rest, since this file is where export sizes live.
+
 ## Export Targets
 
 Author as vector, then export raster at the size below. These are 4× the draw rect, matching what the current placeholders already do — the engine downsamples with filtering, so oversampling is what keeps edges clean on high-DPI screens.
@@ -15,6 +17,7 @@ Author as vector, then export raster at the size below. These are 4× the draw r
 | Hover tile | 68×66 | **272×264** | `assets/art/board/tile_hover.png` |
 | Target tile | 46×46 and 42×42 | **184×184** | `assets/art/board/tile_target.png` |
 | Boss crest | 46×46 | **184×184** | `assets/art/board/boss_crest.png` |
+| Hex tile floor | 59×68 | **236×272** | `assets/art/board/tile_floor.png` |
 
 Two things the current placeholders get wrong, which the replacements should not repeat:
 

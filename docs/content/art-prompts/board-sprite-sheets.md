@@ -98,7 +98,58 @@ Both use the canon in [boss-and-minion.md](boss-and-minion.md); the hooks and ma
 
 Explicitly not a baby dragon, and explicitly not a small Embermaw: it is debris from the furnace that achieved motion and is still dangerously hot. It shares the boss's material because [oathcraft-board-direction.md](../oathcraft-board-direction.md) requires it — a separate hue would make a Brood Call read as a different faction arriving rather than the boss shedding part of itself. They separate by saturation and size, never by hue.
 
+## Phase Variants
+
+A second sheet for a piece that already has one, drawn for a boss phase change. The template above still applies in full; this appends one block to it.
+
+**The thesis comes from content, not from the art brief.** Embermaw's Phase II is already written:
+
+- `data/encounters/embermaw_prototype.json` — *"Molting Roar: Embermaw sheds its brittle scales and turns."*
+- `data/boss_programs/embermaw_molting.json` — *"The scales are gone."*
+
+So the variant is not an angrier Embermaw. It is the same furnace **with its containment gone**, and the prompt should say only that.
+
+### Three Traps, All Specific To A Second Sheet
+
+**It must not become a giant Whelp.** Today the two pieces separate at board size by the blackened oathsteel plating: Embermaw wears it, a Whelp is bare coral around a bright core. Strip the plating and the prompt has described a Whelp at four times the size. Two things have to replace that separation. The evidence of the plating stays — snapped anchor stubs and empty mounts where it used to sit, which is also the preamble's rule that magic leaves evidence — and the furnace throat becomes *more* legible rather than less, because a Whelp has a core and only Embermaw has a directional throat.
+
+**It must not out-saturate its own telegraphs.** The instinct for a second phase is more glow. [oathcraft-board-direction.md](../oathcraft-board-direction.md) ranks warm by imminence — a telegraphed beat outranks the Boss, which outranks a Minion, which outranks scorched ground — so a brighter Boss climbs above the Cinder Breath cone that is about to land and inverts the ordering the entire warm side rests on. A phase variant differs in **silhouette and value structure**, never in brightness or saturation. The throat may be more exposed without being brighter.
+
+**No detached particles.** Not a style note — a pipeline constraint. `build_sprite_sheet.py` trims each cell to its content and re-centres it, so an ember drifting off the body moves that frame's bounding box and the piece jitters against the ones that have none. Ash, sparks, and smoke have to stay inside the outline or not exist.
+
+### The Addendum Block
+
+Paste after the main block, in the same message.
+
+```text
+PHASE VARIANT. This is a second sheet of a piece that already exists, not a new piece. Attach the accepted sheet for its first form and match it exactly on rendering, scale, palette, lighting, grid layout, and label gutter. A viewer must recognise this as the same creature at a glance; only the stated change may differ.
+
+WHAT CHANGED: {{PHASE_CHANGE}}.
+
+WHAT MUST NOT CHANGE: its overall size and proportions, its colour range, and how brightly it glows. This form is not brighter and not more saturated than the first. The game reserves its most saturated warm colours for attack warnings, and a piece that outshines its own warning breaks the reading order the player depends on. Carry the difference in the silhouette and in the arrangement of light and dark, never by turning the glow up.
+
+The six facings must point the same directions as the first sheet, row for row, so the piece does not appear to spin when the game swaps one sheet for the other.
+
+Nothing may leave the body's outline. No drifting embers, falling ash, smoke, sparks, or floating debris in any cell, even where they would suit the subject. The build step trims each frame to its contents, so a particle outside the silhouette moves that frame's edges and makes the piece jitter.
+```
+
+### Embermaw, Phase II
+
+| Slot | Value |
+| --- | --- |
+| `PIECE_NAME` | `Embermaw` |
+| `ONE_LINE_HOOK` | `a living furnace that treats an arena as a kiln to be heated evenly, now shed of the plating that was holding it in` |
+| `MATERIALS` | `bare ember coral with the heat veins exposed across the whole body, snapped anchor stubs and empty mounts along its back and flanks where blackened oathsteel plating used to sit, and an unshuttered furnace throat` |
+| `BOARD_READ` | `the furnace throat, now unshuttered and the single clearest thing on the piece — its position still tells a player which way the heat is about to go, and it has to carry that read without the plating that used to frame it` |
+| `IDLE_MOTION` | `heat moving through veins that nothing covers any more, the throat working open and closed as it draws breath, and the broken plate mounts flexing with it` |
+| `SCALE` | `identical to the first sheet — low and wide, filling most of its cell, about one and a half times the height of a human figure and considerably broader. This form is not larger than the first` |
+| `PHASE_CHANGE` | `the blackened oathsteel plating has been shed. On the first sheet it hung off the body like failing containment; here it is gone, leaving snapped anchor stubs and empty mounts, the coral beneath fully exposed, and the furnace throat unshuttered. It reads as a furnace that has lost its casing — not as a different creature, and not merely as an angrier one` |
+
+Composed and ready to send in [embermaw-sprite-prompts.md](embermaw-sprite-prompts.md). Save the accepted sheet as `assets/art/characters/embermaw/idle-contact-sheet-phase-two.png` and build it to `web/src/assets/embermaw-phase-two-idle.png`.
+
 ## Acceptance Check
+
+Build the sheet first, then run the checks in the **Sprite Inspector** — the debug rail's "Inspect sheets" button, on any build with the rail (`npm run dev`, or `?debug=1`). It lays every frame out in the engine's facing order with the direction each row is supposed to face, so the checks below are a read rather than an investigation. Its `checker` ground is the one that shows keying damage; its `board size` zoom is the one that answers whether the piece reads at all.
 
 Test the facings before anything else. A beautiful sheet with two rows pointing the same way is a sheet that has to be regenerated or mirrored.
 
@@ -111,8 +162,25 @@ Test the facings before anything else. A beautiful sheet with two rows pointing 
 - Any text outside the left label gutter? Reject.
 - Is the background flat near-black with no baked drop shadow? The board casts its own, and a baked one keys into the sprite and doubles.
 
+For a phase variant, after all of the above:
+
+- Open both sheets in the Sprite Inspector and step through them row for row. Does each row face the same direction in both? A mismatch spins the piece at the phase break.
+- Is the variant the same size and the same brightness as the first form? A phase that arrives brighter outranks the telegraph it is about to fire.
+- Is anything outside the body's outline in any cell? One drifting ember is a frame that trims differently from its neighbours.
+- Held at board size, is it still obviously the same creature — and still obviously not a Whelp?
+
 ## Wiring A Finished Sheet
 
-`web/src/board/BoardScene.ts` holds a `SHEETS` table keyed by piece kind — Elian and Embermaw are the worked examples. A new sheet is one entry carrying its frame size, the height it renders at, and how far below the hex centre its base sits. The smoke reads that table and checks every sheet's PNG header against it, so a new entry is covered the moment it is added.
+[`web/src/board/sheets.ts`](../../../web/src/board/sheets.ts) holds a `SHEETS` table keyed by piece kind — Elian, Embermaw, and the Whelp are the worked examples. A new sheet is one entry carrying its frame size, the height it renders at, and how far below the hex centre its base sits. Two things then cover it for free: the smoke reads that table and checks every sheet's PNG header against it, and the Sprite Inspector enumerates the same table, so a new entry arrives with its own button and needs no view written for it.
 
 Pieces are scaled by height rather than sharing a scale, because each sheet is cropped to its own content and a shared scale would size a piece by however much empty space its contact sheet happened to leave. They are also depth-sorted by where they stand: a wide piece like Embermaw overlaps the hexes in front of it, and the piece nearer the camera has to occlude the one behind.
+
+### A Phase Variant Needs Two More Edits
+
+A second sheet for the same piece is not just a second table entry, because two assumptions in the scene are about to stop holding.
+
+**`sheetFor` resolves by kind alone.** It reads `SHEETS[entity.kind]`, and a Boss in either phase has the kind `boss`. The phase has to reach that lookup — the scene already has the snapshot, so the smallest shape is a second entry and a resolver that sends `boss` to it once `bossPhase` is 2 or more.
+
+**Sprites are created on first sight and kept.** `placeSprite` builds a sprite the first time it sees an entity id and reuses it after, so a Boss that changes phase mid-Encounter keeps the texture it was born with and the phase break shows nothing. The swap has to be applied to the sprite that already exists.
+
+It has to survive time travel in both directions, too. Stepping back across the Phase Trigger has to restore the first form, which is the same reason the Phase Reveal fires only on `bossPhase` increasing rather than on it changing.

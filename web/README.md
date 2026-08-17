@@ -37,11 +37,12 @@ anyone with the URL. Any static host (Netlify, Cloudflare Pages) works the
 same way, with `VITE_BASE` set to that host's serving path.
 
 Touch is first-class on iPadOS Safari: drag Compact Cards with a finger to
-prepare, charge, or move; drag or press the Hero to preview routes; tap the
-program strip to expand or collapse it. Every drag also has a tap path — tap
-a Compact Card to select it, then tap a Slot or a move-pad direction — and
-replacing an occupied Slot always asks for confirmation, since it discards
-the Top Card and its Charge Stack.
+prepare, charge, or move; press the Hero to preview routes, or drag it onto a
+legal hex — the Hand then lifts its cards and the one tapped pays for the
+step; tap the program strip to expand or collapse it. Every drag also has a tap path — tap a Compact Card
+to select it, then tap a Slot or a move-pad direction — and replacing an
+occupied Slot always asks for confirmation, since it discards the Top Card and
+its Charge Stack.
 
 Press and hold anything named on the HUD — a Compact Card, a Slot, a boss
 beat chip, a Hero stat, the round track, the boss bar — for a Detail Popup

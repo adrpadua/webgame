@@ -70,7 +70,7 @@ try {
   // type system ties them to the file. Rebuild the sheet at a different size
   // and every frame silently shifts — the character would face the wrong way
   // and animate through pieces of two poses. The PNG's own header settles it.
-  const sceneSource = readFileSync(new URL('../src/board/BoardScene.ts', import.meta.url), 'utf8')
+  const sceneSource = readFileSync(new URL('../src/board/sheets.ts', import.meta.url), 'utf8')
   const frames = Number(/IDLE_FRAMES = (\d+)/.exec(sceneSource)?.[1])
   const specs = [...sceneSource.matchAll(/(\w+): \{ key: '([\w-]+)', url: (\w+), frameWidth: (\d+), frameHeight: (\d+)/g)]
   assert(specs.length > 0, 'the scene declares at least one sprite sheet')
@@ -113,6 +113,30 @@ try {
   await page.keyboard.press('Escape')
   await page.waitForSelector('[data-testid="guide-modal"]', { state: 'detached' })
   assert((await page.locator('[data-testid="guide-modal"]').count()) === 0, 'Escape dismisses the reopened guide')
+
+  // The Sprite Inspector is how a facing or a broken idle loop gets found, so
+  // it is worth knowing it still opens and still lays every frame out: a
+  // debug view that quietly stopped rendering would be discovered at exactly
+  // the moment someone needed it.
+  await page.locator('[data-testid="open-sprite-inspector"]').click()
+  await page.waitForSelector('[data-testid="sprite-inspector"]')
+  const sheetKinds = await page.locator('[data-testid^="sprite-kind-"]').count()
+  const inspectorGrid = []
+  for (let index = 0; index < sheetKinds; index += 1) {
+    await page.locator('[data-testid^="sprite-kind-"]').nth(index).click()
+    const rows = await page.locator('[data-testid="sprite-row"]').count()
+    const frames = await page.locator('[data-testid="sprite-frame"]').count()
+    if (rows !== 6 || frames !== 24) {
+      inspectorGrid.push(`sheet ${index}: ${rows} rows, ${frames} frames`)
+    }
+  }
+  assert(
+    sheetKinds > 0 && inspectorGrid.length === 0,
+    `the Sprite Inspector lays out 6 facings x 4 frames per sheet (${inspectorGrid.join(' | ') || `${sheetKinds} sheets`})`,
+  )
+  await page.keyboard.press('Escape')
+  await page.waitForSelector('[data-testid="sprite-inspector"]', { state: 'detached' })
+  assert((await page.locator('[data-testid="sprite-inspector"]').count()) === 0, 'Escape closes the Sprite Inspector')
 
   const phase = () => page.locator('[data-phase]').getAttribute('data-phase')
   // A Boss Row resolves in the batch that opens its window and replays
@@ -403,14 +427,56 @@ try {
     boardBox.height <= areaBox.height + 1 && boardBox.width <= areaBox.width + 1,
     `the board fits its play area (${Math.round(boardBox.width)}x${Math.round(boardBox.height)} in ${Math.round(areaBox.width)}x${Math.round(areaBox.height)})`,
   )
-  // Held over a hex the Hero can step to, every card in hand is one Stamina
-  // and nothing else, and the Hand says so while the card is still in flight.
+  // Movement's third gesture: drag the Hero itself. The board can only name
+  // a destination — what a step costs is a rules question — so the drag
+  // stops on a prompt asking which card pays. A dismissed prompt has to
+  // leave the Hand and the Scenario exactly as it found them, or a drag the
+  // player thought better of has already cost them a card.
+  const dragHero = async (q, r) => {
+    const from = await hexPosition(boardCanvas, 0, 0)
+    const to = await hexPosition(boardCanvas, q, r)
+    await page.mouse.move(boardBox.x + from.x, boardBox.y + from.y)
+    await page.mouse.down()
+    await page.mouse.move(boardBox.x + to.x, boardBox.y + to.y, { steps: 8 })
+    await page.mouse.up()
+  }
+  const stepsBeforeDrag = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
+  await dragHero(-1, 0)
+  await page.waitForSelector('[data-testid="move-payment-cue"]')
+  assert(
+    (await page.locator('[data-testid="move-payment-cue"]').getAttribute('data-direction')) === 'W',
+    'dragging the Hero west asks for the step west',
+  )
+  // The Hand is the prompt: every card is offered, and the offer is a real
+  // animation rather than a class name nothing is listening to.
+  await page.waitForSelector('[data-testid="hand"][data-paying="true"]')
+  assert(
+    (await page.locator('[data-testid="hand-card"][data-offering="true"]').count()) === handBeforeMove,
+    'every card in the Hand is offered to pay for the step',
+  )
+  const offerAnimation = await page.evaluate(() => getComputedStyle(document.querySelector('[data-testid="hand-card"]')).animationName)
+  assert(offerAnimation.includes('wb-card-offer'), `the offered cards run the rise animation (${offerAnimation})`)
+  // An offer asks a different question than lining a move up does — not
+  // "have I got a step" but "which card do I burn" — so the Hand keeps its
+  // Keyword face here instead of collapsing to interchangeable Stamina
+  // marks: the gold Keywords are exactly the cards a Slot is waiting for,
+  // which is what makes one of them the wrong card to spend.
+  assert((await handFace()) === 'keywords', 'a Hand offering to pay for a step still names what each card is for')
+  await page.locator('[data-testid="cancel-move"]').click()
+  await page.waitForSelector('[data-testid="move-payment-cue"]', { state: 'detached' })
+  assert((await page.locator('[data-testid="hand-card"]').count()) === handBeforeMove, 'a dismissed move offer spends no card')
+  assert((await page.locator('[data-testid="hand-card"][data-offering="true"]').count()) === 0, 'the Hand settles back out of the offer')
+  const stepsAfterDragCancel = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
+  assert(stepsAfterDragCancel === stepsBeforeDrag, 'a dismissed move offer records no Scenario step')
+
+  // Held over a hex the Hero can step to, with nothing committed yet, every
+  // card in hand is one Stamina and nothing else — and the Hand says so
+  // while the card is still in flight.
   const dropAt = await hexPosition(boardCanvas, -1, 0)
-  const boardOrigin = await boardCanvas.boundingBox()
   const cardBox = await scriptedCard().boundingBox()
   await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2)
   await page.mouse.down()
-  await page.mouse.move(boardOrigin.x + dropAt.x, boardOrigin.y + dropAt.y, { steps: 12 })
+  await page.mouse.move(boardBox.x + dropAt.x, boardBox.y + dropAt.y, { steps: 12 })
   await page.waitForTimeout(150)
   assert((await handFace()) === 'stamina', 'lining up a move turns the Hand to movement currency')
   await page.mouse.up()
@@ -727,6 +793,40 @@ try {
   })
   assert(overflows.length === 0, `the full HUD fits the phone viewport without scrolling (${overflows.join(' | ') || 'fits'})`)
   await phone.screenshot({ path: process.env.SMOKE_PHONE_SHOT ?? 'smoke-portrait.png', fullPage: false })
+
+  // Drag the Hero and pay, on the surface the gesture is really for. The
+  // desktop pass proves a dismissed prompt costs nothing; this one carries
+  // the gesture through to the move it promises, on a touch viewport where
+  // the Hero is a thumb-sized target rather than a mouse-sized one.
+  // Walk the script to the dodge first, so the drag answers the step the
+  // game is actually asking for.
+  const phoneSlot0 = phone.locator('[data-testid="slot-0"]')
+  await phoneScripted().dragTo(phoneSlot0)
+  await phoneSlot0.click()
+  await phone.waitForTimeout(400)
+  const phoneBoard = phone.locator('[data-testid="board"] canvas')
+  const phoneBoardBox = await phoneBoard.boundingBox()
+  const handBeforeDrag = await phone.locator('[data-testid="hand-card"]').count()
+  const phoneHeroFrom = await hexPosition(phoneBoard, 0, 0)
+  const phoneHeroTo = await hexPosition(phoneBoard, -1, 0)
+  await phone.mouse.move(phoneBoardBox.x + phoneHeroFrom.x, phoneBoardBox.y + phoneHeroFrom.y)
+  await phone.mouse.down()
+  await phone.mouse.move(phoneBoardBox.x + phoneHeroTo.x, phoneBoardBox.y + phoneHeroTo.y, { steps: 8 })
+  await phone.mouse.up()
+  await phone.waitForSelector('[data-testid="hand"][data-paying="true"]')
+  assert((await phone.locator('[data-testid="move-payment-cue"]').count()) === 1, 'the Hero drag hands the step to the Hand on a touch viewport too')
+  await phone.locator('[data-testid="hand-card"]').first().click()
+  await phone.waitForSelector('[data-testid="move-payment-cue"]', { state: 'detached' })
+  await phone.waitForTimeout(300)
+  assert((await phone.locator('[data-testid="hand-card"]').count()) === handBeforeDrag - 1, 'tapping an offered card discards exactly that card')
+  // The panel follows the piece by its tile, so it is also the readout for
+  // where the Hero ended up.
+  await phoneBoard.click({ position: await hexPosition(phoneBoard, -1, 0) })
+  await phone.waitForSelector('[data-testid="entity-inspect"]')
+  assert(
+    (await phone.locator('[data-testid="entity-inspect"]').getAttribute('data-entity')) === 'guardian',
+    'the paid drag stepped the Hero onto the hex it was dragged to',
+  )
   await phone.close()
 
   await browser.close()

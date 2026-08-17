@@ -75,7 +75,7 @@ One ordered authored action inside a Boss Program row. A Boss Beat discloses in 
 _Avoid_: Event, command, hidden trigger
 
 **Consequence Tier**:
-The authored severity band that sets a Boss Beat's earliest legal horizon: `Chip` may originate in any row, `Structural` appears no later than the Incoming Row, and `Severe` must appear in the Forecast Row first. A Beat that can down a Hero or cross an Escalation Threshold is `Severe`, with no justification clause available.
+The authored severity band that sets a Boss Beat's earliest legal horizon: `Chip` may originate in any row, `Structural` appears no later than the Incoming Row, and `Severe` must appear in the Forecast Row first. A Beat that can down a Hero **from full health**, or cross an Escalation Threshold, is `Severe`, with no justification clause available. The full-health floor is what keeps the band a property of the Beat: lethality at whatever health attrition has left behind is a property of the moment, not the Beat.
 _Avoid_: Damage tier, priority, threat level
 
 **Encounter Briefing**:
@@ -233,7 +233,7 @@ The player's currently available cards, presented as compact cards in the bottom
 _Avoid_: Hand row, card tray
 
 **Compact Card**:
-A hand-sized card that exposes only what the card is for in the current window, for rapid scanning. It is not the canonical full-card reading surface. In the `Loadout Step` — and in the Boss rows, where it is inert — it shows the card as a prospective Top Card: name, timing, and Charge Value. In either player window it shows the card's `Keywords` instead, because tucking and moving are the only things a hand card does there and neither reads its timing or Charge Value; a Keyword a loaded Top Card's `Charge Modifier` would pay off is marked as live. While a move is being lined up it shows one `Stamina` mark and nothing else, because the cards are interchangeable at that moment. Presentation only: which face is showing is derived from the phase and the in-flight gesture, and creates no legal action.
+A hand-sized card that exposes only what the card is for in the current window, for rapid scanning. It is not the canonical full-card reading surface. In the `Loadout Step` — and in the Boss rows, where it is inert — it shows the card as a prospective Top Card: name, timing, and Charge Value. In either player window it shows the card's `Keywords` instead, because tucking and moving are the only things a hand card does there and neither reads its timing or Charge Value; a Keyword a loaded Top Card's `Charge Modifier` would pay off is marked as live. While a move is being lined up — held over a hex the Hero could enter, with nothing committed — it shows one `Stamina` mark and nothing else, because the question there is only whether a step is available and any card answers it. Once a destination is committed and the Hand is offering to pay for it, the Keyword face returns: that question is which card to burn, and the live Keywords are what make one of them the wrong answer. Presentation only: which face is showing is derived from the phase and the in-flight gesture, and creates no legal action.
 _Avoid_: Full card, tooltip card
 
 **Detail Popup**:
@@ -253,7 +253,7 @@ The transient motion the board plays for a resolved batch of actions: a lunge to
 _Avoid_: Animation state, VFX layer, Board Ambience
 
 **Board Ambience**:
-Continuous board motion that carries no rules information and applies uniformly to every piece, such as the slow bob of a piece at rest. It is never derived from Resolution Facts and never distinguishes one piece from another, which is what keeps it from being read as a state signal. It yields to Board Feedback for any piece an effect currently owns, and it stops entirely under reduced motion.
+Continuous board motion that carries no rules information and applies uniformly to every piece, such as the idle cycle a piece plays at rest. It is never derived from Resolution Facts and never distinguishes one piece from another, which is what keeps it from being read as a state signal. A piece that stands takes its ambience entirely from its idle sheet, which animates inside the silhouette and leaves the feet on the tile; the bob that raises a body off its cast shadow is reserved for a piece that flies, because that gap between body and shadow is what flight looks like. It yields to Board Feedback for any piece an effect currently owns, and it stops entirely under reduced motion.
 _Avoid_: Idle animation, Board Feedback, juice
 
 **Bottom Interaction Zone**:
