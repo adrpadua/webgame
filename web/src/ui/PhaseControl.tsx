@@ -89,10 +89,21 @@ function skipWarning(store: WorkbenchStore, state: EncounterState): SkipWarning 
 
 export function PhaseControl() {
   const state = useWorkbench(selectState)
+  const catalog = useWorkbench((store) => store.catalog)
   const advance = useWorkbench((store) => store.advance)
   const restart = useWorkbench((store) => store.restart)
   const step = useFirstTurnStep()
   const hold = useHold(phaseDetail(state.phase, true))
+  // The Encounter Clock, compact: the Boss line left the HUD, so the Round
+  // count rides the phase row and the Encounter's terms are a hold away.
+  const clockHold = useHold({
+    id: 'clock',
+    title: 'Encounter Clock',
+    badge: `Round ${state.round} of ${state.roundLimit}`,
+    tone: 'boss',
+    text: catalog.encounters[state.encounterId]?.rules_text,
+    hint: state.enrageText,
+  })
   const nextGated = blocksTarget(step, 'next')
   const nextSpotlit = step !== null && step.targets.includes('next')
   // While a fatal batch is still replaying, the Restart control would give
@@ -150,6 +161,15 @@ export function PhaseControl() {
             {entry.label}
           </span>
         ))}
+      </button>
+      <button
+        type="button"
+        {...clockHold.holdProps}
+        data-testid="round-display"
+        aria-label={`Round ${state.round} of ${state.roundLimit}`}
+        className={`min-h-11 min-w-11 shrink-0 rounded-lg text-[11px] font-semibold text-zinc-400 ${FOCUS_RING_CLASS}`}
+      >
+        {state.round}/{state.roundLimit}
       </button>
       {state.active || outcomeHeld ? (
         <button
