@@ -98,11 +98,11 @@ describe('content catalog', () => {
     expect(catalog.programs.embermaw_hunt.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',
       'targeted_hit',
-      'scorch_last_pattern',
+      'hazard_last_impact',
     ])
     expect(catalog.programs.embermaw_embers.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',
-      'scorch_last_pattern',
+      'hazard_last_impact',
     ])
     expect(catalog.encounters.embermaw_prototype.boss_programs).toEqual(['embermaw_hunt', 'embermaw_embers', 'embermaw_brood'])
     expect(catalog.encounters.embermaw_prototype.player_deck.reduce((total, entry) => total + entry.copies, 0)).toBe(20)
@@ -1097,8 +1097,8 @@ describe('Raking Claw counter-pressure (D-017)', () => {
 })
 
 describe('impact memory across a missed Beat', () => {
-  it('leaves the last connected hit standing for scorch_last_pattern when a cone misses', () => {
-    // `scorch_last_pattern` burns wherever the Boss last actually connected,
+  it('leaves the last connected hit standing for hazard_last_impact when a cone misses', () => {
+    // `hazard_last_impact` burns wherever the Boss last actually connected,
     // so the memory only moves when a Beat impacts something. A miss is not an
     // impact of zero hexes; it is no impact, and Ash Trail keeps its target.
     // Without that distinction a dodged Cinder Breath would silently disarm
@@ -1106,7 +1106,7 @@ describe('impact memory across a missed Beat', () => {
     // twice.
     const hunt = catalog.programs.embermaw_hunt
     const claw = hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
-    const trail = hunt.instant_beats.find((beat) => beat.kind === 'scorch_last_pattern')!
+    const trail = hunt.instant_beats.find((beat) => beat.kind === 'hazard_last_impact')!
     const breath = hunt.incoming_beats.find((beat) => beat.kind === 'cinder_breath')!
 
     let state = start()

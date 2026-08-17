@@ -68,7 +68,11 @@ export function resolveBossBeat(
       }
       impactedHexes.push(playerCoords)
       break
-    case 'scorch_last_pattern':
+    // Named for the field it actually reads. `scorch_last_pattern` claimed
+    // `lastPattern` — the telegraphed shape — when it has always used
+    // `previousImpactedHexes`, where a Beat connected. The two differ exactly
+    // when a pattern misses, which is the case the guard below exists for.
+    case 'hazard_last_impact':
       scorchedHexes = [...draft.previousImpactedHexes]
       scorchedDurationRounds = beat.duration_rounds
       break
@@ -93,7 +97,7 @@ export function resolveBossBeat(
   draft.lastPattern = [...patternHexes]
   // Only a Beat that actually connected rewrites the remembered impact, so a
   // Cinder Breath the Hero stepped clear of leaves the previous hit's hex
-  // standing for `scorch_last_pattern` to burn. A miss is not an impact of
+  // standing for `hazard_last_impact` to burn. A miss is not an impact of
   // zero hexes; it is no impact at all, and Ash Trail still has its target.
   if (impactedHexes.length > 0) {
     draft.previousImpactedHexes = [...impactedHexes]

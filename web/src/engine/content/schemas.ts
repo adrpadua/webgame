@@ -95,11 +95,13 @@ export const bossBeatSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   rules_text: z.string().default(''),
-  // Beat kinds name the mechanic, never one Boss's flavour for it:
-  // `targeted_hit` is the generic selector-targeted hit that Embermaw's Raking
-  // Claw happens to be the first user of, so a second Boss can author its own
-  // basic hit without claiming to rake anything.
-  kind: z.enum(['turn_toward_player', 'targeted_hit', 'scorch_last_pattern', 'cinder_breath', 'brood_call', 'warning']),
+  // Beat kinds name the mechanic, never one Boss's flavour for it. `title` and
+  // `rules_text` carry the flavour, and the parameters a Boss varies —
+  // `hazard`, `minion`, `damage` — are authored fields, so a kind that named
+  // Embermaw's version of the mechanic was duplicating a field it could not
+  // keep in sync: nothing stopped a frost Boss authoring `hazard: "frozen"` on
+  // a Beat kind called `cinder_breath`.
+  kind: z.enum(['turn_toward_player', 'targeted_hit', 'hazard_last_impact', 'cinder_breath', 'brood_call', 'warning']),
   counter_tags: z.array(z.string()).default([]),
   // Consequence Tier (ADR 0026): sets the earliest horizon this Beat may
   // appear in. `chip` anywhere, `structural` no later than Incoming, `severe`
