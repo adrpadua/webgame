@@ -135,7 +135,7 @@ export const CARD_EFFECT_TONE: Record<CardEffect, { text: string; icon: typeof S
   attack: { text: 'text-coral-400', icon: SwordIcon },
   guard: { text: 'text-glass-400', icon: ShieldIcon },
   heal: { text: 'text-ceramic-300', icon: HeartIcon },
-  utility: { text: 'text-zinc-300', icon: HexIcon },
+  utility: { text: 'text-ceramic-400', icon: HexIcon },
 }
 
 // One-glance stat line for a Compact Card: the card's primary numbers, e.g.
@@ -162,7 +162,7 @@ const VIGNETTE_TONE: Record<CardEffect, { from: string; glyph: string }> = {
   attack: { from: 'from-coral-950', glyph: 'text-coral-500' },
   guard: { from: 'from-glass-950', glyph: 'text-glass-500' },
   heal: { from: 'from-ceramic-950', glyph: 'text-ceramic-400' },
-  utility: { from: 'from-zinc-900', glyph: 'text-zinc-400' },
+  utility: { from: 'from-steel-950', glyph: 'text-steel-400' },
 }
 
 // Card art vignette: an effect-toned panel with the effect glyph as a large
@@ -174,10 +174,10 @@ export function CardArt({ card, className }: { card: Card; className?: string })
   const Glyph = CARD_EFFECT_TONE[effect].icon
   return (
     <div
-      className={`relative flex items-center justify-center overflow-hidden bg-linear-to-br ${tone.from} via-zinc-900 to-zinc-950 ${className ?? ''}`}
+      className={`relative flex items-center justify-center overflow-hidden bg-linear-to-br ${tone.from} via-steel-950 to-navy-950 ${className ?? ''}`}
     >
       <Glyph className={`h-14 w-14 ${tone.glyph} opacity-70`} />
-      <div className="absolute inset-x-0 bottom-1 text-center text-[9px] tracking-[0.3em] text-zinc-600 uppercase">{effect}</div>
+      <div className="absolute inset-x-0 bottom-1 text-center text-[9px] tracking-[0.3em] text-steel-600 uppercase">{effect}</div>
     </div>
   )
 }

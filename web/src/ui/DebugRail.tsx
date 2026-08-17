@@ -29,13 +29,13 @@ function factSummary(fact: FactEntry): string | null {
 function GuideControl() {
   const openGuide = useOnboarding((store) => store.openGuide)
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
-      <h2 className="text-xs font-bold tracking-widest text-zinc-400 uppercase">How to play</h2>
+    <div className="flex items-center justify-between rounded-2xl border border-steel-800 bg-steel-950 p-4">
+      <h2 className="text-xs font-bold tracking-widest text-steel-400 uppercase">How to play</h2>
       <button
         type="button"
         data-testid="open-guide"
         onClick={openGuide}
-        className="min-h-11 rounded-lg bg-zinc-700 px-4 text-sm font-semibold text-zinc-100 transition hover:bg-zinc-600"
+        className="min-h-11 rounded-lg bg-steel-700 px-4 text-sm font-semibold text-ceramic-200 transition hover:bg-steel-600"
       >
         Open guide
       </button>
@@ -52,26 +52,26 @@ function SeedControl() {
     setSeedDraft(String(seed))
   }, [seed])
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
-      <h2 className="text-xs font-bold tracking-widest text-zinc-400 uppercase">Seed control</h2>
+    <div className="rounded-2xl border border-steel-800 bg-steel-950 p-4">
+      <h2 className="text-xs font-bold tracking-widest text-steel-400 uppercase">Seed control</h2>
       <div className="mt-2 flex gap-2">
         <input
           type="number"
           value={seedDraft}
           data-testid="seed-input"
           onChange={(event) => setSeedDraft(event.target.value)}
-          className="min-h-11 w-32 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-100 focus:border-glass-500 focus:outline-none"
+          className="min-h-11 w-32 rounded-lg border border-steel-700 bg-navy-950 px-3 text-sm text-ceramic-200 focus:border-glass-500 focus:outline-none"
         />
         <button
           type="button"
           data-testid="restart-with-seed"
           onClick={() => restart(Number(seedDraft) || 1)}
-          className="min-h-11 rounded-lg bg-zinc-700 px-4 text-sm font-semibold text-zinc-100 transition hover:bg-zinc-600"
+          className="min-h-11 rounded-lg bg-steel-700 px-4 text-sm font-semibold text-ceramic-200 transition hover:bg-steel-600"
         >
           Restart with seed
         </button>
       </div>
-      <p className="mt-2 text-[11px] text-zinc-500">
+      <p className="mt-2 text-[11px] text-steel-500">
         Seed {state.rng.seed} · {state.rng.choices.length} audited RNG calls
       </p>
       <CoordinateToggle />
@@ -83,7 +83,7 @@ function CoordinateToggle() {
   const showCoordinates = useWorkbench((store) => store.showCoordinates)
   const toggleCoordinates = useWorkbench((store) => store.toggleCoordinates)
   return (
-    <label className="mt-2 flex min-h-11 items-center gap-2 text-xs text-zinc-300">
+    <label className="mt-2 flex min-h-11 items-center gap-2 text-xs text-ceramic-400">
       <input type="checkbox" checked={showCoordinates} onChange={toggleCoordinates} data-testid="coords-toggle" className="accent-glass-400" />
       Show hex coordinates
     </label>
@@ -101,14 +101,14 @@ function ScenarioPicker() {
   const [selected, setSelected] = useState('')
   const [copied, setCopied] = useState(false)
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
-      <h2 className="text-xs font-bold tracking-widest text-zinc-400 uppercase">Scenarios</h2>
+    <div className="rounded-2xl border border-steel-800 bg-steel-950 p-4">
+      <h2 className="text-xs font-bold tracking-widest text-steel-400 uppercase">Scenarios</h2>
       <div className="mt-2 flex gap-2">
         <select
           value={selected}
           data-testid="scenario-select"
           onChange={(event) => setSelected(event.target.value)}
-          className="min-h-11 min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-950 px-2 text-sm text-zinc-100 focus:border-glass-500 focus:outline-none"
+          className="min-h-11 min-w-0 flex-1 rounded-lg border border-steel-700 bg-navy-950 px-2 text-sm text-ceramic-200 focus:border-glass-500 focus:outline-none"
         >
           <option value="">Pick a Scenario…</option>
           {scenarios.map((scenario) => (
@@ -122,7 +122,7 @@ function ScenarioPicker() {
           data-testid="load-scenario"
           disabled={selected === ''}
           onClick={() => loadScenario(selected)}
-          className="min-h-11 rounded-lg bg-zinc-700 px-3 text-sm font-semibold text-zinc-100 transition hover:bg-zinc-600 disabled:opacity-40"
+          className="min-h-11 rounded-lg bg-steel-700 px-3 text-sm font-semibold text-ceramic-200 transition hover:bg-steel-600 disabled:opacity-40"
         >
           Load
         </button>
@@ -130,7 +130,7 @@ function ScenarioPicker() {
       {activeScenarioId !== null && (
         <p className="mt-2 text-[11px] text-glass-400">Loaded: {catalog.scenarios[activeScenarioId]?.title ?? activeScenarioId}</p>
       )}
-      {scenarios.length === 0 && <p className="mt-2 text-[11px] text-zinc-500">No Scenarios in data/scenarios yet.</p>}
+      {scenarios.length === 0 && <p className="mt-2 text-[11px] text-steel-500">No Scenarios in data/scenarios yet.</p>}
       <button
         type="button"
         data-testid="copy-scenario"
@@ -140,7 +140,7 @@ function ScenarioPicker() {
             setTimeout(() => setCopied(false), 2000)
           })
         }}
-        className="mt-2 min-h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm font-semibold text-zinc-300 transition hover:bg-zinc-800"
+        className="mt-2 min-h-11 w-full rounded-lg border border-steel-700 bg-navy-950 px-3 text-sm font-semibold text-ceramic-400 transition hover:bg-steel-900"
       >
         {copied ? 'Copied to clipboard' : 'Copy session as Scenario JSON'}
       </button>
@@ -166,7 +166,7 @@ function RecordExportButton() {
             setTimeout(() => setCopied(false), 2000)
           })
       }}
-      className="mt-2 min-h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm font-semibold text-zinc-300 transition hover:bg-zinc-800"
+      className="mt-2 min-h-11 w-full rounded-lg border border-steel-700 bg-navy-950 px-3 text-sm font-semibold text-ceramic-400 transition hover:bg-steel-900"
     >
       {copied ? 'Copied to clipboard' : 'Copy Encounter Record (v2) JSON'}
     </button>
@@ -179,15 +179,15 @@ function TimeTravel() {
   const timeTravelTo = useWorkbench((store) => store.timeTravelTo)
   const current = entries[index]
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4" data-testid="time-travel">
-      <h2 className="text-xs font-bold tracking-widest text-zinc-400 uppercase">Time travel</h2>
+    <div className="rounded-2xl border border-steel-800 bg-steel-950 p-4" data-testid="time-travel">
+      <h2 className="text-xs font-bold tracking-widest text-steel-400 uppercase">Time travel</h2>
       <div className="mt-2 flex items-center gap-2">
         <button
           type="button"
           data-testid="tt-prev"
           disabled={index === 0}
           onClick={() => timeTravelTo(index - 1)}
-          className="min-h-11 w-11 rounded-lg bg-zinc-700 text-lg font-bold text-zinc-100 transition hover:bg-zinc-600 disabled:opacity-40"
+          className="min-h-11 w-11 rounded-lg bg-steel-700 text-lg font-bold text-ceramic-200 transition hover:bg-steel-600 disabled:opacity-40"
         >
           ‹
         </button>
@@ -205,16 +205,16 @@ function TimeTravel() {
           data-testid="tt-next"
           disabled={index === entries.length - 1}
           onClick={() => timeTravelTo(index + 1)}
-          className="min-h-11 w-11 rounded-lg bg-zinc-700 text-lg font-bold text-zinc-100 transition hover:bg-zinc-600 disabled:opacity-40"
+          className="min-h-11 w-11 rounded-lg bg-steel-700 text-lg font-bold text-ceramic-200 transition hover:bg-steel-600 disabled:opacity-40"
         >
           ›
         </button>
       </div>
-      <p className="mt-2 text-[11px] text-zinc-500" data-testid="time-travel-position">
+      <p className="mt-2 text-[11px] text-steel-500" data-testid="time-travel-position">
         Step {index} / {entries.length - 1} · r{current.state.round} {current.state.phase} · {current.label}
       </p>
       {index < entries.length - 1 && (
-        <p className="mt-1 text-[11px] text-amber-400">Viewing the past — the next action branches from here.</p>
+        <p className="mt-1 text-[11px] text-gold-400">Viewing the past — the next action branches from here.</p>
       )}
     </div>
   )
@@ -244,20 +244,20 @@ export function DebugRail() {
       <TimeTravel />
       <SeedControl />
       <GuideControl />
-      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
-        <h2 className="text-xs font-bold tracking-widest text-zinc-400 uppercase">Fact log</h2>
+      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-steel-800 bg-steel-950 p-4">
+        <h2 className="text-xs font-bold tracking-widest text-steel-400 uppercase">Fact log</h2>
         <div ref={logRef} className="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1 font-mono text-[11px]" data-testid="fact-log">
-          {facts.length === 0 && <p className="text-zinc-600">Actions resolve into facts here.</p>}
+          {facts.length === 0 && <p className="text-steel-600">Actions resolve into facts here.</p>}
           {facts.map((fact) => (
             <div key={fact.id} className="flex items-start gap-1.5" style={{ paddingLeft: fact.depth * 12 }}>
               <span className={fact.succeeded ? 'text-glass-400' : 'text-ember-400'}>{fact.succeeded ? '✓' : '✗'}</span>
               <div className="min-w-0">
-                <span className="text-zinc-500">
+                <span className="text-steel-500">
                   r{fact.round} {fact.phase}
                 </span>{' '}
-                <span className="text-zinc-200">{fact.title}</span>
+                <span className="text-ceramic-300">{fact.title}</span>
                 {fact.reason !== '' && <span className="text-red-400"> — {fact.reason}</span>}
-                {factSummary(fact) && <div className="text-amber-300/80">{factSummary(fact)}</div>}
+                {factSummary(fact) && <div className="text-gold-300/80">{factSummary(fact)}</div>}
               </div>
             </div>
           ))}

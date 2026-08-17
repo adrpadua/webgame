@@ -70,7 +70,7 @@ function CompactCard({
           overran that — first into the neighbouring plate, then into the
           icon. At 10px every catalogue word fits its own line, and
           break-words contains anything longer that arrives later. */}
-      <div className="text-[10px] leading-tight font-bold break-words text-zinc-50">{card.title}</div>
+      <div className="text-[10px] leading-tight font-bold break-words text-ceramic-100">{card.title}</div>
       {/* The speed word carries its own colour, so the tone dot that used to
           lead this row said nothing the word did not — dropping it is what
           makes room for the effect icon here. */}
@@ -80,7 +80,7 @@ function CompactCard({
       </div>
       <div className="mt-1.5 flex gap-0.5" role="img" aria-label={`Charge value ${cardChargeCap(card)}`}>
         {Array.from({ length: cardChargeCap(card) }, (_, index) => (
-          <span key={index} className="h-1.5 w-3 rounded-full bg-zinc-600" />
+          <span key={index} className="h-1.5 w-3 rounded-full bg-steel-600" />
         ))}
       </div>
     </button>
@@ -120,7 +120,7 @@ export function Hand() {
       // px-2/gap-1 rather than px-3/gap-1.5: at a five-card refill the row's
       // own chrome was costing 16px of card width, and the widest card name
       // in the catalogue needs every one of them to sit on one line.
-      className="flex min-h-30 flex-wrap content-center justify-center gap-1 border-t border-zinc-800 bg-zinc-950/90 px-2 py-3"
+      className="flex min-h-30 flex-wrap content-center justify-center gap-1 border-t border-steel-800 bg-navy-950/90 px-2 py-3"
       data-testid="hand"
       data-inert={handCanAct(state) ? undefined : 'true'}
     >
@@ -141,7 +141,7 @@ export function Hand() {
           />
         )
       })}
-      {hero.hand.length === 0 && <div className="flex-1 py-4 text-center text-xs text-zinc-600">Hand is empty</div>}
+      {hero.hand.length === 0 && <div className="flex-1 py-4 text-center text-xs text-steel-600">Hand is empty</div>}
     </div>
   )
 }

@@ -6,7 +6,7 @@ import { selectState, useWorkbench } from '@/store/workbench'
 // and its colour, nothing else. What the phase means lives behind a hold on
 // the Round track.
 const PHASE_COPY: Record<Phase, { title: string; tone: string }> = {
-  loadout: { title: 'Loadout', tone: 'wb-face-steel wb-acc-none text-zinc-100' },
+  loadout: { title: 'Loadout', tone: 'wb-face-steel wb-acc-none text-ceramic-200' },
   instant: { title: 'Boss Instant', tone: 'wb-face-steel wb-acc-ember text-ember-100' },
   quick: { title: 'Quick Window', tone: 'wb-face-steel wb-acc-glass text-glass-100' },
   incoming: { title: 'Boss Incoming', tone: 'wb-face-steel wb-acc-ember text-ember-100' },

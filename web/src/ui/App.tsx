@@ -125,9 +125,9 @@ export default function App() {
   // line and the Hand clear the notch and the home indicator under
   // viewport-fit=cover. The rail still stacks below, one scroll away.
   return (
-    <div className="flex min-h-dvh flex-wrap content-start items-start justify-center bg-zinc-950 font-sans text-zinc-100 sm:gap-6 sm:p-6">
+    <div className="flex min-h-dvh flex-wrap content-start items-start justify-center bg-navy-950 font-sans text-ceramic-200 sm:gap-6 sm:p-6">
       <main
-        className={`relative flex ${FRAME_HEIGHT_CLASS} w-full max-w-full shrink-0 touch-manipulation flex-col overflow-clip bg-zinc-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-2xl select-none sm:w-[420px] sm:rounded-3xl sm:border sm:border-zinc-700`}
+        className={`relative flex ${FRAME_HEIGHT_CLASS} w-full max-w-full shrink-0 touch-manipulation flex-col overflow-clip bg-steel-950 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-2xl select-none sm:w-[420px] sm:rounded-3xl sm:border sm:border-steel-700`}
         data-testid="play-surface"
       >
         <ProgramStrip />

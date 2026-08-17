@@ -33,7 +33,7 @@ function BeatChip({ beat, track, active }: { beat: BossBeat; track: 'instant' | 
       // plates with neutral text. No pulse: the resolving beat is a state
       // that lasts a whole moment, and the plate face already carries it.
       className={`wb-plate wb-plate-xs wb-acc-none py-0.5 text-[11px] transition-colors ${
-        playing ? 'wb-face-coral font-bold text-coral-950' : active ? 'wb-face-dim text-coral-200' : 'wb-face-dim text-zinc-400'
+        playing ? 'wb-face-coral font-bold text-coral-950' : active ? 'wb-face-dim text-coral-200' : 'wb-face-dim text-steel-400'
       }`}
     >
       {beat.title}
@@ -55,7 +55,7 @@ export function ProgramStrip() {
     return null
   }
   return (
-    <div className="border-b border-zinc-800 bg-zinc-900/60 px-4 py-1" data-testid="program-strip" data-expanded={expanded}>
+    <div className="border-b border-steel-800 bg-steel-950/60 px-4 py-1" data-testid="program-strip" data-expanded={expanded}>
       <button
         type="button"
         {...headerHold.holdProps}
@@ -66,7 +66,7 @@ export function ProgramStrip() {
         }}
         aria-expanded={expanded}
         aria-label={`${program.title}: hold for the full boss program`}
-        className={`flex min-h-11 w-full items-center justify-between text-[10px] tracking-widest text-zinc-500 uppercase ${FOCUS_RING_CLASS}`}
+        className={`flex min-h-11 w-full items-center justify-between text-[10px] tracking-widest text-steel-500 uppercase ${FOCUS_RING_CLASS}`}
       >
         <span>{program.title}</span>
         <span aria-hidden="true">{expanded ? '▾' : '▸'}</span>
@@ -85,7 +85,7 @@ function Track({ program, track, label, active }: { program: BossProgram; track:
   const beats = track === 'instant' ? program.instant_beats : program.incoming_beats
   return (
     <div className="flex items-center gap-2 pb-1">
-      <span className={`w-16 shrink-0 text-[11px] font-semibold ${active ? 'text-coral-400' : 'text-zinc-500'}`}>{label}</span>
+      <span className={`w-16 shrink-0 text-[11px] font-semibold ${active ? 'text-coral-400' : 'text-steel-500'}`}>{label}</span>
       <div className="flex flex-wrap gap-1">
         {beats.map((beat, index) => (
           <BeatChip key={`${beat.id}-${index}`} beat={beat} track={track} active={active} />
