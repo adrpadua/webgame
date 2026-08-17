@@ -91,7 +91,11 @@ export function resolveBossBeat(
       break
   }
   draft.lastPattern = [...patternHexes]
-  if (impactedHexes.length > 0 || beat.kind === 'targeted_hit') {
+  // Only a Beat that actually connected rewrites the remembered impact, so a
+  // Cinder Breath the Hero stepped clear of leaves the previous hit's hex
+  // standing for `scorch_last_pattern` to burn. A miss is not an impact of
+  // zero hexes; it is no impact at all, and Ash Trail still has its target.
+  if (impactedHexes.length > 0) {
     draft.previousImpactedHexes = [...impactedHexes]
   }
   const actions: EncounterActionInput[] = []
