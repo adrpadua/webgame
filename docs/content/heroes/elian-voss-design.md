@@ -163,7 +163,7 @@ The former `10x Steady Strike` / `10x Iron Guard` baseline remains historical ev
 
 **Precise rule:** Gain 3 Armor. Gain 1 additional Armor for each charged `Guard` card.
 
-**Affected content:** Existing `iron_guard.tres`, the default Shield Wall deck, `guard` Keyword, and its Charge Modifier.
+**Affected content:** Existing `data/cards/iron_guard.json`, the default Shield Wall deck, `guard` Keyword, and its Charge Modifier.
 
 **Edge cases:** Armor may exceed the next hit and does not carry into the next Round. Non-Guard charged cards add Charge but do not improve Armor.
 
@@ -175,7 +175,7 @@ The former `10x Steady Strike` / `10x Iron Guard` baseline remains historical ev
 
 **Precise rule:** Deal 2 damage to one selected adjacent Minion after the Slot has at least one Charge.
 
-**Affected content:** Existing `sweeping_blow.tres`, Whelp content, default Shield Wall deck, Minion targeting affordance.
+**Affected content:** Existing `data/cards/sweeping_blow.json`, Whelp content, default Shield Wall deck, Minion targeting affordance.
 
 **Edge cases:** The card can be prepared with no Minion in range but cannot fire without a legal selected Minion. It cannot target the Boss.
 
@@ -187,7 +187,7 @@ The former `10x Steady Strike` / `10x Iron Guard` baseline remains historical ev
 
 **Precise rule:** Gain 6 Armor during Slow after the Slot has at least one Charge.
 
-**Affected content:** Existing `fortify.tres` and the default Shield Wall deck.
+**Affected content:** Existing `data/cards/fortify.json` and the default Shield Wall deck.
 
 **Edge cases:** It cannot repair an Incoming hit that has already resolved. Its Armor expires at next Round start. Full-charge cleanup remains standard.
 
@@ -199,7 +199,7 @@ The former `10x Steady Strike` / `10x Iron Guard` baseline remains historical ev
 
 **Precise rule:** When a Boss Tank Hit resolves against Elian while they occupy the Guarded Front and causes `0` Health loss, grant one Riposte Ready if they do not already have it. Riposte Ready never stacks or refreshes. It expires at the end of the first Quick Window after the qualifying hit. The first card that deals Boss damage while it is active consumes it: a legal Shield Slam gains `2` additional Boss damage, and any other Boss-damage card gains `1`. Consumption records the consuming card and its distinct lifecycle reason (`matching_card_fired` for Shield Slam, `boss_damage_card_fired` otherwise).
 
-**Affected content:** Elian Voss Status Effect content, Tank Hit authored identity on the relevant Boss Beat, `shield_slam.tres`, the Shield Wall HUD state, and Encounter Record facts for grant, expiry, and consumption.
+**Affected content:** Elian Voss Status Effect content, Tank Hit authored identity on the relevant Boss Beat, `data/cards/shield_slam.json`, the Shield Wall HUD state, and Encounter Record facts for grant, expiry, and consumption.
 
 **Edge cases:** Hazards, Minions, incidental Boss damage, and a non-Tank-Hit Boss Beat never grant Riposte Ready. A qualifying hit while Riposte Ready already exists does not add a second effect or extend its expiry. A rejected activation does not consume it. Cards that deal only Minion damage (`Sweeping Blow`) or no damage (`Iron Guard`, `Fortify`) never consume it, so defensive play inside the window is free. Firing a non-Slam Boss-damage card while it is active consumes it for the smaller `+1` — spend-order is a real decision, not a trap to be patched. A qualifying Incoming-Row hit leaves Riposte Ready available through the next Round's Quick Window.
 
@@ -211,7 +211,7 @@ The former `10x Steady Strike` / `10x Iron Guard` baseline remains historical ev
 
 **Precise rule:** Select one ally within the authored range. Until the next one damage event to that ally or Round end, redirect the full event to Elian Voss. Apply Armor and any Guardian mitigation after redirection.
 
-**Affected content:** `intercept.tres`, player-card target schema, Status Effect behavior, Target Selector display, and party UI.
+**Affected content:** `data/cards/intercept.json`, player-card target schema, Status Effect behavior, Target Selector display, and party UI.
 
 **Edge cases:** Raid-wide damage produces a separate event per Hero. Intercept only redirects the selected ally's event. A Downed, defeated, absent, or out-of-range ally cannot be selected. If the Guardian is Downed before the event, the effect expires rather than redirecting to an invalid target.
 

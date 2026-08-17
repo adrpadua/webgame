@@ -1,5 +1,7 @@
 # Spikes and Probes Harness
 
+> **Frozen (ADR 0019, reaffirmed as D-018).** The Godot codebase and this probe suite are frozen reference material; no new probes are added and no new work runs through Godot. New rules and content work is verified by the web Encounter Engine gates: `npm test`, `npm run evaluate`, and the Scenario generator. `scripts/debug/setup_headless_godot.sh` remains only for re-running the frozen suite against the reference copy.
+
 The harness keeps the **Encounter** rules and player-facing presentation independently verifiable while the prototype evolves. It is a runner over existing Godot headless scripts, not a competing test framework.
 
 Registration lives in one manifest — `scripts/debug/probes.manifest` (`lane|name|script|marker`, ADR 0018) — read by two adapters:

@@ -197,7 +197,7 @@ The result is shown in the top bar and board feedback. Encounter history remains
 
 ## Current Tank Starter Deck
 
-The live/default tank deck is the approved five-identity Shield Wall list, carried by `resources/encounters/embermaw_prototype.tres`:
+The live/default tank deck is the approved five-identity Shield Wall list, carried by `data/encounters/embermaw_prototype.json` (ADR 0020):
 
 - `Steady Strike` (8 copies): deal `2` boss damage, plus `1` per charged card.
 - `Iron Guard` (6 copies): gain `3` Armor, plus `1` per charged `Guard` card.

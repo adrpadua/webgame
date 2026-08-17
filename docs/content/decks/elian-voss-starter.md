@@ -1,6 +1,6 @@
 # Elian Voss Starter Deck
 
-This is the approved live/default Elian Voss deck specification. The runnable prototype resource `resources/encounters/embermaw_prototype.tres` now uses this exact list. The first-pass Shield Wall kit proves the Action Bar and Charge Stack loop while giving the tank a defensive payoff, an adjacent-Minion answer, and a Slow commitment.
+This is the approved live/default Elian Voss deck specification. The runnable encounter definition `data/encounters/embermaw_prototype.json` (ADR 0020) now uses this exact list. The first-pass Shield Wall kit proves the Action Bar and Charge Stack loop while giving the tank a defensive payoff, an adjacent-Minion answer, and a Slow commitment.
 
 Role:
 
@@ -62,6 +62,6 @@ Any card can charge either Top Card. `Steady Strike` rewards total Charge, while
 
 ## Source Resources
 
-The underlying card resources live in [resources/cards/tank](../../../resources/cards/tank).
+The underlying card definitions live in [data/cards](../../../data/cards) (ADR 0020).
 
 Player-card wording and presentation follow [Player Card Authoring Rules](../../rules/player-card-authoring.md).

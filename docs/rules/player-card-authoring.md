@@ -15,7 +15,7 @@ Every player card has these authored fields:
 | `max_charge` | The Top Card's Charge Value: the maximum number of tucked cards it can hold. The engine default is `2`; the foundation cards `Steady Strike` and `Iron Guard` use `3`. |
 | `target_type` and `range_tiles` | Define what must be selected and where it is legal to use the card. Never imply a target in text that the data model does not enforce. |
 | Effect fields | State the base effect in the corresponding data field: Boss damage, Armor, healing, Presence, or targeted Minion damage. |
-| `tags` | Registered Keyword IDs from `resources/keywords/`. |
+| `tags` | Registered Keyword IDs from `data/keywords/` (ADR 0020). |
 | `charge_modifiers` | Explicit Charge Modifier Resources; never imply a bonus that is absent from data. |
 
 ## Rules Text
@@ -64,7 +64,7 @@ Examples:
 - `Deal 2 damage to the boss. Gain +1 damage for each charged card.`
 - `Gain 3 Armor. Gain +1 Armor for each charged Guard card.`
 
-A Keyword named in a charge sentence must exist in `resources/keywords/`; do not author a modifier against an unregistered Keyword.
+A Keyword named in a charge sentence must exist in `data/keywords/`; do not author a modifier against an unregistered Keyword.
 
 `Charged card` means a card tucked under the same Top Card's Charge Stack. A charged card does not resolve as its own effect. A card may have multiple Keywords; it counts once for each explicit matching check on the Top Card.
 

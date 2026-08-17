@@ -4,7 +4,7 @@ Status: accepted first-pass Design source of truth. Use this to compare early pr
 
 ## Goal
 
-Evaluate whether a player **Starting Deck** is both effective and fun in the current Godot boss-raid prototype. The evaluation produces two top-level outputs:
+Evaluate whether a player **Starting Deck** is both effective and fun in the current boss-raid prototype (the web Encounter Workbench, per ADR 0019). The evaluation produces two top-level outputs:
 
 - **Viability score**: can the deck survive, stabilize, and make progress against a seeded Encounter without requiring unsupported rules?
 - **Play-feel score**: does the deck create clear, satisfying decisions that express the Hero's Archetype without becoming repetitive?

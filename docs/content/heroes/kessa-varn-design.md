@@ -131,7 +131,7 @@ Deck identity notes:
 - `Rolling Brace` at base 2 Armor against Iron Guard's 3 is the signature weakness printed on the foundation card: a motionless Kessa cannot armor through a 4-damage Tank Hit the way Elian can, and the deck offers no Riposte to fish for.
 - Momentum-scaling on both the attack and the defense means every point of tempo is a genuine tradeoff: spend it on `Turning Slam` and both scalers get worse. There must be no dominant line between turning, striking, and bracing — this is the Slot-tension test for this deck.
 - `Drive Anchor` makes the Slow Window the one sanctioned way to hold ground, converting the Warden's default posture into a deliberate, card-priced exception.
-- All five identities depend on at least one missing engine seam. Do not author `.tres`/`.json` resources for this list until the seams land; a degraded proxy deck built from existing effect fields would not express the fantasy and would poison play-feel evidence (the Kled lesson).
+- All five identities depend on at least one missing engine seam. Do not author `data/` card definitions for this list until the seams land; a degraded proxy deck built from existing effect fields would not express the fantasy and would poison play-feel evidence (the Kled lesson).
 
 ## Content Rules
 

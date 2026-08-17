@@ -32,4 +32,4 @@ Status labels: `Now` means content/design work can begin after its stated proof;
 
 ## Probe Policy
 
-The existing nine-probe suite remains required for every batch. Each new mechanic gets one focused headless probe and, where it changes player comprehension, one scene/mobile parity check. A content description alone is never a substitute for an executable probe.
+Per ADR 0019, the web Encounter Engine is the rules source of truth and the Godot probe suite is frozen. Every new mechanic gets focused Vitest coverage in `web/src/engine`, and every encounter or balance change re-runs the evaluation sweep (`npm run evaluate`) and the Scenario generator (which exits red-flag on any solo victory, D-016). A content description alone is never a substitute for an executable test.
