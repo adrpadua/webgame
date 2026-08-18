@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { loadCatalog } from '@/content'
 import { cardSchema } from './content/schemas'
+// Not part of the engine's public surface: the Round-end step is called by
+// `advancePhase`, and a guard on what it prices is sharper when it can ask
+// directly instead of inferring the answer from a whole Round's facts.
+import { escalationActionsForRoundEnd } from './escalation'
 import {
   advancePhase,
   buildCatalog,
@@ -10,10 +14,12 @@ import {
   fireTargeting,
   hexDistance,
   hexKey,
+  isGuardedFront,
   legality,
   minionIntents,
   replayRecord,
   ESCALATION_MAX,
+  escalationModifiers,
   escalationStartRound,
   forecast,
   highestTier,
@@ -532,6 +538,33 @@ describe('Ash Trail displacement (D-039)', () => {
     // never nothing.
     expect(Object.keys(after.board.hazards).length).toBeGreaterThan(0)
   })
+
+  it('does not count a hit absorbed away from the Guarded Front as absorbed', () => {
+    // The displacement is what holding the front buys. Armor alone must not buy
+    // it, or the Tank can stand anywhere, soak the unguarded bonus, and still
+    // move the Trail — which is the reward without the position that earns it.
+    // The predicate is zero Health loss *there*; both halves are load-bearing.
+    //
+    // The other three tests in this suite all keep the Hero on the front, so
+    // dropping the `guardedFront` half of the predicate left every one of them
+    // passing. This is the case that separates the halves.
+    const state = start()
+    state.board.entities[state.bossId].coords = { q: 2, r: -2 }
+    state.board.entities[state.primaryHeroId].coords = { q: -1, r: 1 }
+    // More than the claw plus its unguarded bonus, so Health never moves.
+    state.heroes[state.primaryHeroId].armor = 20
+    const after = throughInstant(state)
+    const heroCoords = after.board.entities[after.primaryHeroId].coords
+    expect(hero(after).health).toBe(hero(after).maxHealth)
+    // Hunt closes the gap before it claws, so assert the position the Beat
+    // actually resolved against rather than the one it was set up with.
+    expect(isGuardedFront(after.board, after.bossId, after.primaryHeroId)).toBe(false)
+    // Burnt under them, not spilled behind them — and there is somewhere to
+    // spill to, so this discriminates rather than falling back to the rim case.
+    // Asserted on the Hazard rather than on the key: a key with nothing under
+    // it would satisfy `toContain` while the ground stayed clear.
+    expect(after.board.hazards[hexKey(heroCoords)] ?? []).not.toHaveLength(0)
+  })
 })
 
 // D-041. Escalation acceleration is only legitimate if the Timeline showed the
@@ -585,6 +618,35 @@ describe('Demand disclosure (D-041)', () => {
       state = result.state
     }
     expect(charged).toBe(true)
+  })
+
+  it('reads the proximity demand as adjacency, and nothing looser', () => {
+    // The distance the demand asks for is a bare `1` in the engine, and every
+    // other test here camps at the rim — far enough that loosening it to 2, or
+    // to 3, would have changed no result. That makes the boundary the thing
+    // worth asserting: one hex out is answered, two hexes out is not.
+    const state = start()
+    state.currentProgramId = 'embermaw_brood'
+    expect(
+      [...catalog.programs.embermaw_brood.instant_beats, ...catalog.programs.embermaw_brood.incoming_beats].some(
+        (beat) => beat.kind === 'demand_proximity',
+      ),
+    ).toBe(true)
+
+    const bossCoords = boss(state).coords
+    function reasonsStandingAt(coords: { q: number; r: number }): string[] {
+      state.board.entities[state.primaryHeroId].coords = { ...coords }
+      return escalationActionsForRoundEnd(catalog, state)
+        .filter((action) => action.kind === 'gain_escalation')
+        .map((action) => action.reason)
+    }
+
+    const adjacent = { q: 0, r: 0 }
+    const twoOut = { q: -1, r: 1 }
+    expect(hexDistance(adjacent, bossCoords)).toBe(1)
+    expect(hexDistance(twoOut, bossCoords)).toBe(2)
+    expect(reasonsStandingAt(adjacent)).not.toContain('unanswered_proximity')
+    expect(reasonsStandingAt(twoOut)).toContain('unanswered_proximity')
   })
 })
 
@@ -642,8 +704,15 @@ describe('Own-side Hazard immunity (D-042)', () => {
   it('records the side that laid every Hazard the Encounter creates', () => {
     // Embermaw's own Beats and its structural Thresholds both act for the Boss,
     // so nothing it puts on the board should be missing a side.
+    //
+    // Escalation is left to climb on its own rather than assigned. Assigning it
+    // skips the crossing that lays structural Scorch, and structural Scorch is
+    // the only Hazard whose side comes from the fallback: it rides
+    // `ENCOUNTER_SOURCE`, which is not a board entity, so `?? 'enemy'` decides
+    // it. Pre-setting the value meant this test never once reached that branch,
+    // and flipping the fallback to 'party' — which would hand the party the run
+    // of a closing arena and start the Boss burning in it — left it passing.
     let state = immortalHero(start())
-    state.escalation = 4
     let guard = 0
     while (state.active && guard < 40) {
       guard += 1
@@ -652,6 +721,23 @@ describe('Own-side Hazard immunity (D-042)', () => {
         for (const hazard of hazards) {
           expect(hazard.sourceTeam).toBe('enemy')
         }
+      }
+    }
+
+    // Proof the structural path ran at all, rather than the loop having only
+    // ever seen Beat-laid ground: D-031's authored hexes have to be on the
+    // board, and enemy-sided, by the time the clock has run out. Every
+    // scorch-bearing Threshold is checked, not the first one found — automatic
+    // ticks alone cross all of them, so picking one would leave the rest as
+    // unexamined as they were before.
+    const authored = catalog.encounters.embermaw_prototype.escalation_thresholds.filter(
+      (threshold) => threshold.scorch_hexes.length > 0,
+    )
+    expect(authored.length).toBeGreaterThan(0)
+    for (const threshold of authored) {
+      for (const coords of threshold.scorch_hexes) {
+        const laid = (state.board.hazards[hexKey(coords)] ?? []).find((hazard) => hazard.permanent === true)
+        expect(laid?.sourceTeam, `Threshold ${threshold.value} never laid Scorch at ${hexKey(coords)}`).toBe('enemy')
       }
     }
   })
@@ -1470,6 +1556,34 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     state.escalationThresholds = [{ value: 1, title: 'Test Band', rules_text: '', boss_damage_bonus: 2, extra_spawn_count: 0, minion_damage_bonus: 0, scorch_hexes: [] }]
     const hit = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
     expect(hit.facts.find((fact) => fact.kind === 'damage')?.resolutionFact).toMatchObject({ requested: 6, escalation_bonus: 2 })
+  })
+
+  it('keeps every threshold at or below the value live, not only the current band', () => {
+    // Cumulative is what lets a Boss raise the same axis twice at different
+    // bands, and it is the reason a threshold can be authored as a step up
+    // rather than as a replacement. Reading only the exact band is the quiet
+    // failure: nothing errors, the widened Brood Call simply stops happening
+    // from Escalation 3 upward, and every other Escalation test still passes
+    // because each one pins a single band.
+    const state = start()
+    for (let value = 0; value <= ESCALATION_MAX; value += 1) {
+      state.escalation = value
+      const live = state.escalationThresholds.filter((threshold) => threshold.value <= value)
+      expect(escalationModifiers(state), `Escalation ${value}`).toEqual({
+        bossDamageBonus: live.reduce((sum, threshold) => sum + threshold.boss_damage_bonus, 0),
+        extraSpawnCount: live.reduce((sum, threshold) => sum + threshold.extra_spawn_count, 0),
+        minionDamageBonus: live.reduce((sum, threshold) => sum + threshold.minion_damage_bonus, 0),
+      })
+    }
+
+    // The loop above mirrors the implementation's own arithmetic, so it cannot
+    // be the whole guard. This is the authored consequence stated on its own
+    // terms: Embermaw widens the Brood Call at 2 and sharpens Whelp bites at 3,
+    // on different axes, so at 3 both have to be live at once.
+    state.escalation = 3
+    const atThree = escalationModifiers(state)
+    expect(atThree.extraSpawnCount).toBeGreaterThan(0)
+    expect(atThree.minionDamageBonus).toBeGreaterThan(0)
   })
 
   it('raises Whelp bite damage at threshold 3', () => {
