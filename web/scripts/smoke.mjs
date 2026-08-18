@@ -418,8 +418,21 @@ try {
   await page.waitForTimeout(400)
   const beatPopoverId = await page.locator('[data-testid="hold-popover"]').getAttribute('data-hold-id')
   assert(beatPopoverId?.startsWith('beat:'), `hovering a boss beat explains that beat (${beatPopoverId})`)
-  const beatPopoverText = await page.locator('[data-testid="hold-popover"]').innerText()
-  assert(beatPopoverText.includes('Damage'), `the beat popup carries the beat's numbers (${beatPopoverText.split('\n').join(' / ')})`)
+  // Not every Beat carries numbers — a Boss advance or a demand has none — so
+  // walk the chips for one that does rather than pinning an index that content
+  // reorders.
+  let numbered = ''
+  const chipCount = await page.locator('[data-testid="beat-chip"]').count()
+  for (let index = 0; index < chipCount; index += 1) {
+    await page.locator('[data-testid="beat-chip"]').nth(index).hover()
+    await page.waitForTimeout(400)
+    const text = await page.locator('[data-testid="hold-popover"]').innerText()
+    if (text.includes('Damage')) {
+      numbered = text
+      break
+    }
+  }
+  assert(numbered !== '', `some beat popup carries its numbers (checked ${chipCount} chips)`)
   await page.locator('[data-testid="hand"]').hover()
   await page.waitForSelector('[data-testid="hold-popover"]', { state: 'detached' })
   assert((await page.locator('[data-testid="hold-popover"]').count()) === 0, 'moving the pointer away dismisses the popup')

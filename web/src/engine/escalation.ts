@@ -1,6 +1,7 @@
 import type { ContentCatalog } from './content/catalog'
 import type { EncounterActionInput } from './actions'
 import { ENCOUNTER_SOURCE } from './actions'
+import { hexDistance } from './hex'
 import type { EncounterState } from './types'
 
 // Escalation is the encounter's only clock (ADR 0027): one fixed 0–5 scale on
@@ -39,21 +40,49 @@ export function escalationModifiers(state: EncounterState): EscalationModifiers 
   return modifiers
 }
 
-// The authored penalty for leaving the living-Minion demand standing, taken
-// from the Beats that create it. One demand kind is supported deliberately: a
-// general unanswered-demand predicate is the second Boss's problem, the same
-// restraint ADR 0021 exercised for the unguarded bonus.
-function unansweredMinionPenalty(catalog: ContentCatalog, state: EncounterState): { amount: number; beatId: string } {
-  // A Minion that arrived this Round is not an unanswered demand: it spawns in
-  // the Incoming Row, so no player window could reach it before this step.
-  // Only one that survived a full Round counts, which is what makes
-  // acceleration earned rather than a second automatic tick.
-  const alive = Object.values(state.board.entities).some(
-    (entity) => entity.kind === 'minion' && (entity.spawnedRound ?? state.round) < state.round,
-  )
-  if (!alive) {
-    return { amount: 0, beatId: '' }
-  }
+// The demands a Beat can leave standing at a Round end, and how to tell.
+// ADR 0027 shipped with one kind and called a general predicate "the second
+// Boss's problem"; the second demand arrived first (D-041), so the shape is
+// generalised rather than special-cased. Each entry pairs a Beat kind with the
+// question its demand asks, and the price is always authored on the Beat.
+const DEMANDS: { kind: string; reason: string; standing: (state: EncounterState) => boolean }[] = [
+  {
+    kind: 'spawn_minions',
+    reason: 'unanswered_minions',
+    // A Minion that arrived this Round is not an unanswered demand: it spawns
+    // in the Incoming Row, so no player window could reach it before this step.
+    // Only one that survived a full Round counts, which is what makes
+    // acceleration earned rather than a second automatic tick.
+    standing: (state) =>
+      Object.values(state.board.entities).some(
+        (entity) => entity.kind === 'minion' && (entity.spawnedRound ?? state.round) < state.round,
+      ),
+  },
+  {
+    kind: 'demand_proximity',
+    reason: 'unanswered_proximity',
+    // Range camping, closed structurally rather than numerically. Standing out
+    // of reach used to be a complete answer to everything except the Tank Hit,
+    // because the only distance-punished Beat was a range-2 cone and the
+    // Guarded Front's bonus made being close *safer*. Boss movement cannot fix
+    // that — chasing a camper only pushes them onto the front. A demand that
+    // being far *is* the failure of cannot be dodged by being far.
+    standing: (state) => {
+      const boss = state.board.entities[state.bossId]
+      if (!boss) {
+        return false
+      }
+      return !Object.keys(state.heroes).some((heroId) => {
+        const piece = state.board.entities[heroId]
+        return piece !== undefined && hexDistance(piece.coords, boss.coords) <= 1
+      })
+    },
+  },
+]
+
+// The authored price for one demand kind, taken from the Beats that create it
+// anywhere in this Boss's pool.
+function demandPrice(catalog: ContentCatalog, state: EncounterState, kind: string): { amount: number; beatId: string } {
   let amount = 0
   let beatId = ''
   for (const programId of state.programIds) {
@@ -62,7 +91,7 @@ function unansweredMinionPenalty(catalog: ContentCatalog, state: EncounterState)
       continue
     }
     for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
-      if (beat.kind === 'spawn_minions' && beat.escalation_if_unanswered > amount) {
+      if (beat.kind === kind && beat.escalation_if_unanswered > amount) {
         amount = beat.escalation_if_unanswered
         beatId = beat.id
       }
@@ -79,9 +108,14 @@ export function escalationActionsForRoundEnd(catalog: ContentCatalog, state: Enc
   if (state.round >= state.escalationStartRound) {
     actions.push({ kind: 'gain_escalation', sourceId: ENCOUNTER_SOURCE, amount: 1, reason: 'automatic_tick', beatId: '' })
   }
-  const penalty = unansweredMinionPenalty(catalog, state)
-  if (penalty.amount > 0) {
-    actions.push({ kind: 'gain_escalation', sourceId: ENCOUNTER_SOURCE, amount: penalty.amount, reason: 'unanswered_minions', beatId: penalty.beatId })
+  for (const demand of DEMANDS) {
+    if (!demand.standing(state)) {
+      continue
+    }
+    const price = demandPrice(catalog, state, demand.kind)
+    if (price.amount > 0) {
+      actions.push({ kind: 'gain_escalation', sourceId: ENCOUNTER_SOURCE, amount: price.amount, reason: demand.reason, beatId: price.beatId })
+    }
   }
   return actions
 }

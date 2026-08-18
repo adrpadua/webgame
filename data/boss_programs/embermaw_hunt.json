@@ -1,7 +1,7 @@
 {
   "id": "embermaw_hunt",
   "title": "Hunt Pattern",
-  "rules_text": "Hold Embermaw's front, then leave the marked breath cone.",
+  "rules_text": "Embermaw closes. Hold its front, then leave the marked breath cone.",
   "instant_beats": [
     {
       "id": "turn_to_tank",
@@ -12,6 +12,17 @@
         "Position"
       ],
       "consequence_tier": "chip"
+    },
+    {
+      "id": "close_the_gap",
+      "title": "Close the Gap",
+      "rules_text": "Embermaw advances one hex toward the guardian. Distance is not an answer for long.",
+      "kind": "advance_toward_player",
+      "counter_tags": [
+        "Position"
+      ],
+      "consequence_tier": "chip",
+      "move_tiles": 1
     },
     {
       "id": "raking_claw",

@@ -69,6 +69,7 @@ export function resolveBossBeat(
   let scorchedDurationRounds = 0
   let spawnHexes: Axial[] = []
   let unguardedBonusApplied = 0
+  let advanceTiles = 0
   // Escalation Thresholds apply at read time (ADR 0027), so they need no
   // separate mutation and take effect from the Round after the value rose.
   const escalated = escalationModifiers(draft)
@@ -77,6 +78,14 @@ export function resolveBossBeat(
       if (boss) {
         boss.facing = facingToward(bossCoords, playerCoords, bossFacing)
       }
+      break
+    // The answer to standing out of reach: distance stops being a decision the
+    // Hero makes once and becomes one they have to keep re-making. Emitted as a
+    // displacement so ADR 0029's geometry, occupancy, edge handling and Hazard
+    // entry all apply unchanged — occupancy is also what stops the Boss cleanly
+    // when it reaches the Hero, with no special melee case.
+    case 'advance_toward_player':
+      advanceTiles = beat.move_tiles
       break
     case 'targeted_hit':
       patternHexes = frontArc(draft.board.hexes, bossCoords, bossFacing)
@@ -120,6 +129,9 @@ export function resolveBossBeat(
         spawnHexes = firstEmptyHexes(draft.spawnCandidates, emptyHexes(draft.board), beat.count + escalated.extraSpawnCount)
       }
       break
+    // Resolves to nothing: its whole effect is the demand it leaves standing at
+    // the Round end, which `escalationActionsForRoundEnd` prices.
+    case 'demand_proximity':
     case 'warning':
       break
   }
@@ -136,6 +148,16 @@ export function resolveBossBeat(
     draft.previousImpactAbsorbed = false
   }
   const actions: EncounterActionInput[] = []
+  if (advanceTiles > 0) {
+    actions.push({
+      kind: 'displace_piece',
+      sourceId: draft.primaryHeroId,
+      targetId: bossId,
+      distance: advanceTiles,
+      movement: 'advance',
+      reasonText: beat.title,
+    })
+  }
   let escalationBonusApplied = 0
   if (playerDamage > 0 && escalated.bossDamageBonus > 0) {
     escalationBonusApplied = escalated.bossDamageBonus

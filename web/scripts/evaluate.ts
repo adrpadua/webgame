@@ -422,7 +422,9 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
   for (const fact of facts) {
     if (fact.kind === 'gain_escalation' && fact.succeeded) {
       const rf = fact.resolutionFact as Record<string, unknown> | undefined
-      if (rf?.escalation_reason === 'unanswered_minions') {
+      // Any reason but the automatic tick. Naming one demand kind here quietly
+      // under-reported the moment a second one existed (D-041).
+      if (rf?.escalation_reason !== undefined && rf.escalation_reason !== 'automatic_tick') {
         escalationFromDemands += 1
       }
     }

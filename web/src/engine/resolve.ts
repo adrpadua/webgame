@@ -550,9 +550,9 @@ function resolveDisplacement(
   let stopReason: 'complete' | 'edge' | 'occupied' = 'complete'
   for (let step = 0; step < requestedDistance; step += 1) {
     const direction =
-      action.movement === 'pull'
-        ? facingToward(target.coords, source.coords, target.facing)
-        : facingToward(source.coords, target.coords, target.facing)
+      action.movement === 'push'
+        ? facingToward(source.coords, target.coords, target.facing)
+        : facingToward(target.coords, source.coords, target.facing)
     const destination = axialAdd(target.coords, axialDeltaFor(direction))
     if (!isOnBoard(draft.board, destination)) {
       stopReason = 'edge'
@@ -781,8 +781,10 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: `Fire Slot ${action.slotIndex + 1}`, detail }
     case 'move_hero':
       return { title: `Move to (${action.destination.q}, ${action.destination.r})`, detail }
-    case 'displace_piece':
-      return { title: `${action.movement === 'push' ? 'Push' : 'Pull'} ${action.targetId} ${action.distance}`, detail }
+    case 'displace_piece': {
+      const verb = action.movement === 'push' ? 'Push' : action.movement === 'advance' ? 'Advance' : 'Pull'
+      return { title: `${verb} ${action.targetId} ${action.distance}`, detail }
+    }
     case 'resolve_boss':
       return { title: `Boss Beat: ${action.beat.title}`, detail: { beatId: action.beat.id, beatTitle: action.beat.title, track: action.track } }
     case 'apply_hazard':

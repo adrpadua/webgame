@@ -100,6 +100,7 @@ describe('content catalog', () => {
     )
     expect(catalog.programs.embermaw_hunt.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',
+      'advance_toward_player',
       'targeted_hit',
       'hazard_last_impact',
     ])
@@ -727,7 +728,7 @@ describe('phase cycle', () => {
     state = instant.state
     expect(state.phase).toBe('instant')
     const beatFacts = instant.facts.filter((fact) => fact.kind === 'resolve_boss')
-    expect(beatFacts.map((fact) => fact.detail.beatId)).toEqual(['turn_to_tank', 'raking_claw', 'claw_scorch'])
+    expect(beatFacts.map((fact) => fact.detail.beatId)).toEqual(['turn_to_tank', 'close_the_gap', 'raking_claw', 'claw_scorch'])
     expect(beatFacts.every((fact) => fact.phase === 'instant')).toBe(true)
     expect(hero(state).health).toBe(30)
     const clawFact = instant.facts.find((fact) => fact.kind === 'damage')
@@ -1101,14 +1102,14 @@ describe('Consequence Tier ladder (D-021, ADR 0026)', () => {
     }
   })
 
-  it('rates Brood Call severe on the Escalation clause, not on its damage', () => {
+  it('rates every Escalation-adding Beat severe, and nothing else', () => {
     // Content earned the tier, which the previous version of this test invited:
     // Brood Call is now priced (D-036), and a Beat that can add Escalation is
     // severe by definition because a Threshold crossing is one of D-025's
     // run-ending outcomes. Every severe Beat here is severe for that reason —
     // Embermaw still has no single hit that downs a Hero from full health.
     const severe = everyBeat.filter(({ beat }) => beat.consequence_tier === 'severe')
-    expect(severe.map(({ beat }) => beat.id).sort()).toEqual(['brood_call', 'brood_call'])
+    expect(severe.map(({ beat }) => beat.id).sort()).toEqual(['brood_call', 'brood_call', 'within_reach', 'within_reach', 'within_reach'])
     expect(severe.every(({ beat }) => beat.escalation_if_unanswered > 0)).toBe(true)
     const worst = Math.max(...everyBeat.map(({ beat }) => beat.damage + beat.unguarded_bonus))
     expect(worst).toBeLessThan(catalog.encounters.embermaw_prototype.player_health)
