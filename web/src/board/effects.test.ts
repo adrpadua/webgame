@@ -66,6 +66,40 @@ describe('board effects', () => {
     expect(strike?.delay).toBeGreaterThan(0)
   })
 
+  it('puts the Boss out when the blow that ends the Encounter lands', () => {
+    // The Boss is the one piece a killing blow leaves standing — the rules end
+    // the Encounter and the body stays on its hex — so without this the board
+    // would say nothing about the fight ending that it had not already said
+    // for four points of chip damage.
+    let state = openedRound()
+    const boss = state.board.entities[state.bossId]
+    state = {
+      ...state,
+      board: { ...state.board, entities: { ...state.board.entities, [state.bossId]: { ...boss, health: 1 } } },
+    }
+    state = advance(state).state
+    state = advance(state).state
+    const hero = state.heroes[state.primaryHeroId]
+    state = apply(state, { kind: 'charge_slot', sourceId: hero.id, slotIndex: 0, cardInstanceId: hero.hand[0].instanceId }).state
+    const { state: after, effects } = apply(state, { kind: 'fire_slot', sourceId: hero.id, slotIndex: 0 })
+    expect(after.outcome).toBe('victory')
+    const goingOut = effects.find((effect) => effect.kind === 'boss_defeat')
+    expect(goingOut?.entityId).toBe(state.bossId)
+    expect(goingOut?.tone).toBe('boss')
+    // It rides the blow that caused it: the body goes out as the hit lands,
+    // not as a separate beat afterwards.
+    const hit = effects.find((effect) => effect.kind === 'hit' && effect.entityId === state.bossId)
+    expect(goingOut?.delay ?? 0).toBe(hit?.delay ?? 0)
+  })
+
+  it('says nothing about a Boss that survived the blow', () => {
+    // Every hit that does not end it is an ordinary hit, or the board would
+    // put the fire out once a Round.
+    const state = openedRound()
+    const { effects } = advance(state)
+    expect(effects.some((effect) => effect.kind === 'boss_defeat')).toBe(false)
+  })
+
   it('gives back the ground a temporary Hazard held, and only that ground', () => {
     // Walk Round 1 to its boundary. Cinder Breath's ash lasts one Round and
     // Ash Trail's is permanent, so the Round that rolls has to hand back the

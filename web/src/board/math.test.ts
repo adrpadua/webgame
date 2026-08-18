@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { easeOutCubic, hexNoise } from './math'
+import { easeOutCubic, hexNoise, hexNoiseFor } from './math'
 
 describe('board shaping math', () => {
   it('eases out of the gate and settles on its end', () => {
@@ -22,6 +22,40 @@ describe('board shaping math', () => {
     // Salts separate the consumers: the floor's shade and the fire standing on
     // it read the same hex and must not read the same number.
     expect(hexNoise({ q: 0, r: 0 }, 0)).not.toBe(hexNoise({ q: 0, r: 0 }, 1))
+  })
+
+  it('gives every named draw on a hex its own number', () => {
+    // The names every effect actually asks with. Two of them landing on the
+    // same value would tie a flame's height to an ember's position on that
+    // hex for the life of the board, and nothing would look wrong enough to
+    // notice — which is why it is asserted rather than argued.
+    const names = [
+      'floor:jitter',
+      'burn:tongue-jitter',
+      'burn:tongue-phase',
+      'burn:tongue-reach',
+      'burn:tongue-width',
+      'burn:ember-x',
+      'burn:ember-y',
+      'burn:ember-death',
+      'spawn:shard-angle',
+      'spawn:shard-reach',
+      'spawn:shard-size',
+      'boss-defeat:vent-open',
+      'boss-defeat:vent-angle',
+      'boss-defeat:vent-length',
+    ]
+    const hex = { q: 2, r: -3 }
+    const drawn = names.flatMap((name) => [0, 1, 2, 3, 4, 5].map((index) => hexNoiseFor(hex, name, index)))
+    expect(new Set(drawn).size).toBe(drawn.length)
+    // And a name means the same thing every time it is asked, on the hex that
+    // asked it and nowhere else.
+    expect(hexNoiseFor(hex, 'burn:ember-x', 2)).toBe(hexNoiseFor(hex, 'burn:ember-x', 2))
+    expect(hexNoiseFor(hex, 'burn:ember-x', 2)).not.toBe(hexNoiseFor({ q: 3, r: -3 }, 'burn:ember-x', 2))
+    for (const value of drawn) {
+      expect(value).toBeGreaterThanOrEqual(0)
+      expect(value).toBeLessThan(1)
+    }
   })
 
   it('stays inside [0, 1) wherever it is read', () => {

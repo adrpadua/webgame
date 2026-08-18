@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { BEAT_STAGGER_MS, EFFECT_SETTLE_MS, type PlayoutScript } from '@/board/effects'
+import { BEAT_STAGGER_MS, EFFECT_SETTLE_MS, OUTCOME_REVEAL_MS, type PlayoutScript } from '@/board/effects'
 import { usePlayout } from './playout'
 
 // A three-beat Boss Row, stripped to what the director reads: the titles and
@@ -118,7 +118,9 @@ describe('playout director', () => {
     expect(usePlayout.getState().awaitingContinue).toBe(false)
     expect(usePlayout.getState().momentSeq).toBe(before + 1)
     expect(usePlayout.getState().outcomeHeld).toBe(true)
-    // ...and the outcome reveal still waits for that moment to finish.
+    // ...and the outcome reveal waits for that moment to finish. This batch
+    // shows no Boss going out — it is any other ending, a Hero falling or the
+    // clock running out — so it waits the ordinary settle and no longer.
     vi.advanceTimersByTime(EFFECT_SETTLE_MS)
     expect(usePlayout.getState().outcomeHeld).toBe(false)
   })
@@ -138,6 +140,32 @@ describe('playout director', () => {
       usePlayout.getState().continuePlayout()
       vi.advanceTimersByTime(EFFECT_SETTLE_MS)
     }
+    expect(usePlayout.getState().outcomeHeld).toBe(false)
+  })
+
+  it('holds the reveal for a Boss going out, and only for that', () => {
+    // The banner is about one event, and only one batch in the game draws it
+    // at length: the Boss going out. A party that loses has no body to watch
+    // cool, and holding the Defeat plate back for it would be sitting on a
+    // finished screen — so the wait is keyed to the effect, not to the fact
+    // that something ended.
+    const kill: PlayoutScript = {
+      initial: {},
+      endsEncounter: true,
+      moments: [
+        {
+          beatId: null,
+          beatTitle: null,
+          effects: [{ kind: 'boss_defeat', entityId: 'embermaw', at: { q: 1, r: -1 }, tone: 'boss' }],
+          gauges: {},
+        },
+      ],
+    }
+    usePlayout.getState().begin(kill, false)
+    expect(usePlayout.getState().outcomeHeld).toBe(true)
+    vi.advanceTimersByTime(EFFECT_SETTLE_MS)
+    expect(usePlayout.getState().outcomeHeld).toBe(true)
+    vi.advanceTimersByTime(OUTCOME_REVEAL_MS - EFFECT_SETTLE_MS)
     expect(usePlayout.getState().outcomeHeld).toBe(false)
   })
 
