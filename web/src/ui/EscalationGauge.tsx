@@ -62,13 +62,20 @@ export function nextEscalationPip(pips: EscalationPip[]): EscalationPip | null {
 // claim, filling as the start Round approaches, in the same washed coral the
 // wipe band already uses for a band that is real but not yet reached. It
 // carries no number the rules do not have — it is Rounds elapsed toward the
-// first tick — and it lands exactly on the first band boundary at the moment
-// the tick does, so the clock takes over from the fuse rather than restarting
-// behind it.
+// first tick — and it never claims a band, because the wash is the colour
+// this gauge already uses for ground the clock has not covered.
 //
-// Returned as a fraction of the whole track, 0 once the ticks have begun.
+// The dormant stretch runs THROUGH the start Round, not up to it: the tick
+// fires at that Round's END, so the fuse is full — exactly one band — for the
+// whole of the Round whose ending lands it. Cutting it off at the start Round
+// instead emptied the track for that entire Round and then jumped, which is
+// the defect this fuse exists to fix, arriving at the worst moment.
+//
+// Returned as a fraction of the whole track, 0 once the ticks have begun. It
+// needs no guard against acceleration: any Escalation at all fills a whole
+// band, and the fill draws over the fuse.
 export function escalationFuseFraction(round: number, startRound: number): number {
-  if (round >= startRound) {
+  if (round > startRound) {
     return 0
   }
   return round / startRound / ESCALATION_MAX
@@ -196,8 +203,10 @@ export function EscalationGauge({ state, enrageText }: { state: EncounterState; 
         <span className="absolute inset-y-0 right-0 w-1/5 bg-coral-900/70" />
         {/* The fuse burning through the first band while the ticks are still
             dormant — under the fill, so acceleration from an unanswered
-            demand simply covers it. */}
-        {fuse > 0 && <span className="absolute inset-y-0 left-0 bg-coral-900/70 transition-[width] duration-300" style={{ width: `${fuse * 100}%` }} />}
+            demand simply covers it. It stays mounted at width 0 once it has
+            burned down, so the handoff to the fill is two widths crossing
+            rather than one element disappearing out from under the other. */}
+        <span className="absolute inset-y-0 left-0 bg-coral-900/70 transition-[width] duration-300" style={{ width: `${fuse * 100}%` }} />
         <span
           className="absolute inset-y-0 left-0 bg-coral-500 transition-[width] duration-300"
           style={{ width: `${(state.escalation / ESCALATION_MAX) * 100}%` }}
