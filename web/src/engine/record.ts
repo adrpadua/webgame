@@ -1,6 +1,6 @@
 import { canonicalStringify, sha256Hex } from './canonical'
 import { runScenario } from './scenario'
-import type { ContentCatalog } from './content/catalog'
+import { reachableEncounterContent, type ContentCatalog } from './content/catalog'
 import type { Scenario, ScenarioStep } from './content/schemas'
 import type { EncounterState, ResolvedActionFact } from './types'
 import type { RngChoice } from './rng'
@@ -74,48 +74,7 @@ export interface RecordInput {
 // reachable from it, keyed by stable IDs. The fingerprint hashes the
 // canonical definitions, so any content change starts a new evidence cohort.
 export async function contentIdentity(catalog: ContentCatalog, encounterId: string): Promise<ContentIdentity> {
-  const encounter = catalog.encounters[encounterId]
-  if (!encounter) {
-    throw new Error(`Unknown encounter: ${encounterId}`)
-  }
-  const reachable = new Map<string, unknown>()
-  const add = (kind: string, id: string, definition: unknown): void => {
-    if (definition !== undefined) {
-      reachable.set(`${kind}:${id}`, definition)
-    }
-  }
-  const addKeyword = (id: string) => add('keyword', id, catalog.keywords[id])
-  const addCard = (id: string): void => {
-    const card = catalog.cards[id]
-    if (!card) {
-      return
-    }
-    add('card', id, card)
-    card.tags.forEach(addKeyword)
-    for (const modifierId of card.charge_modifiers) {
-      const modifier = catalog.chargeModifiers[modifierId]
-      add('charge_modifier', modifierId, modifier)
-      if (modifier && modifier.keyword_id !== '') {
-        addKeyword(modifier.keyword_id)
-      }
-    }
-  }
-  add('encounter', encounterId, encounter)
-  for (const entry of encounter.player_deck) {
-    addCard(entry.card)
-  }
-  for (const programId of encounter.boss_programs) {
-    const program = catalog.programs[programId]
-    add('boss_program', programId, program)
-    for (const beat of [...(program?.instant_beats ?? []), ...(program?.incoming_beats ?? [])]) {
-      if (beat.hazard) {
-        add('hazard', beat.hazard, catalog.hazards[beat.hazard])
-      }
-      if (beat.minion) {
-        add('minion', beat.minion, catalog.minions[beat.minion])
-      }
-    }
-  }
+  const reachable = reachableEncounterContent(catalog, encounterId)
   const ids = [...reachable.keys()].sort()
   const definitions = ids.map((id) => ({ id, definition: reachable.get(id) }))
   return { encounter: encounterId, ids, fingerprint: await sha256Hex(canonicalStringify(definitions)) }

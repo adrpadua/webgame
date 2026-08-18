@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { facingName, hexKey, parseHexKey, type Axial, type EncounterState, type HexKey } from '@/engine'
+import { facingName, hexKey, parseHexKey, type Axial, type EncounterState } from '@/engine'
 import { axialToPixel, hexCorners, pixelToAxial, BOARD_CENTER_X, BOARD_CENTER_Y, BOARD_HEIGHT, BOARD_WIDTH, HEX_SIZE } from './layout'
 import { BACKDROP_DEPTH, BACKDROPS, backdropFor } from './backdrop'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
@@ -18,7 +18,12 @@ const LABEL_DEPTH = 2
 // what it is handed and reports hex-level intents upward (ADR 0019).
 export interface BoardSnapshot {
   state: EncounterState
-  targeting: boolean
+  // Rules-derived target centers and the burst footprint for the center
+  // currently under the pointer. The scene paints these but never decides
+  // which hexes an action may name (ADR 0019).
+  targetableHexKeys: string[]
+  targetPreviewHexKeys: string[]
+  targetPreviewCenterKey: string | null
   legalMoveKeys: string[]
   // Hexes the scripted first turn is pointing the player at.
   guidedMoveKeys: string[]
@@ -40,9 +45,6 @@ export interface BoardSceneCallbacks {
   onHexClicked: (coords: Axial) => void
   // Pressing and holding the Hero previews legal routes; release ends it.
   onHeroPressChange: (pressed: boolean) => void
-  // Which hex the pointer is over, by key, or null once it is off the grid.
-  // The scene reports it and holds no opinion about what it means.
-  onHexHoverChange: (key: HexKey | null) => void
   // A press that began on the Hero and released on another hex: the third
   // way to ask for a move, beside dragging a hand card and the tap path.
   // The scene reports the destination only — what a move costs is a rules
@@ -250,13 +252,6 @@ export class BoardScene extends Phaser.Scene {
     this.input.on('pointerupoutside', () => this.endHeroPress(null))
     this.input.on('gameout', () => {
       this.endHeroPress(null)
-      this.callbacks.onHexHoverChange(null)
-    })
-    // A hex only counts as hovered if it is a hex: the canvas is a hexagon's
-    // bounding box, so its corners are off the grid entirely.
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      const key = hexKey(pixelToAxial(pointer.x, pointer.y))
-      this.callbacks.onHexHoverChange(this.snapshot?.state.board.hexes[key] === undefined ? null : key)
     })
     this.renderSnapshot()
   }
@@ -538,6 +533,8 @@ export class BoardScene extends Phaser.Scene {
     }
     const legalMoves = new Set(snapshot.legalMoveKeys)
     const guidedMoves = new Set(snapshot.guidedMoveKeys)
+    const targetableHexes = new Set(snapshot.targetableHexKeys)
+    const targetPreviewHexes = new Set(snapshot.targetPreviewHexKeys)
     // The snapshot is the batch's final state, but a staggered playout means
     // some of it has not "happened" on screen yet: ground scorched by a
     // later moment stays clean and a Whelp a later moment spawns stays
@@ -556,12 +553,6 @@ export class BoardScene extends Phaser.Scene {
         pendingSpawns.add(effect.entityId)
       }
     }
-    const minionKeys = new Set(
-      Object.values(state.board.entities)
-        .filter((entity) => entity.kind === 'minion')
-        .map((entity) => hexKey(entity.coords)),
-    )
-
     const tiles = Object.keys(state.board.hexes).map((key) => {
       const coords = parseHexKey(key)
       const { x, y } = axialToPixel(coords)
@@ -610,9 +601,16 @@ export class BoardScene extends Phaser.Scene {
         graphics.lineStyle(3, GUIDED_STROKE, pulse)
         this.strokeHex(graphics, hexCorners(x, y, HEX_SIZE - 7))
       }
-      if (snapshot.targeting && minionKeys.has(key)) {
+      if (targetPreviewHexes.has(key)) {
+        this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), TARGET_STROKE, 0.2)
+      }
+      if (targetableHexes.has(key)) {
         graphics.lineStyle(3, TARGET_STROKE, 1)
         this.strokeHex(graphics, hexCorners(x, y, HEX_SIZE - 4))
+      }
+      if (snapshot.targetPreviewCenterKey === key) {
+        graphics.lineStyle(5, TARGET_STROKE, 1)
+        this.strokeHex(graphics, hexCorners(x, y, HEX_SIZE - 7))
       }
       if (snapshot.showCoordinates && rebuildLabels) {
         this.labels.push(

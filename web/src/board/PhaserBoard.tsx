@@ -1,6 +1,14 @@
-import { useEffect, useRef, type DragEvent } from 'react'
+import { useEffect, useRef, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import Phaser from 'phaser'
-import { hexKey, isLegalMove, neighbors, type EncounterState } from '@/engine'
+import {
+  fireTargeting,
+  hexKey,
+  isLegalMove,
+  neighbors,
+  parseHexKey,
+  type ContentCatalog,
+  type EncounterState,
+} from '@/engine'
 import { currentFirstTurnStep } from '@/ui/useFirstTurn'
 import { useOnboarding } from '@/store/onboarding'
 import { usePlayout } from '@/store/playout'
@@ -10,8 +18,10 @@ import { deriveBoardEffects, derivePlayoutScript, type BoardEffect } from './eff
 import { BOARD_HEIGHT, BOARD_WIDTH, pixelToAxial } from './layout'
 
 function buildSnapshot(
+  catalog: ContentCatalog,
   state: EncounterState,
-  targeting: boolean,
+  targetingSlotIndex: number | null,
+  hoveredHexKey: string | null,
   previewingRoutes: boolean,
   showCoordinates: boolean,
   guidedMoveKeys: string[],
@@ -30,10 +40,31 @@ function buildSnapshot(
       }
     }
   }
+  const targeting =
+    targetingSlotIndex === null
+      ? null
+      : fireTargeting(
+          catalog,
+          state,
+          state.primaryHeroId,
+          targetingSlotIndex,
+          hoveredHexKey === null ? undefined : parseHexKey(hoveredHexKey),
+        )
+  const targetableHexKeys =
+    targeting?.mode === 'hex'
+      ? targeting.legalHexes.map(hexKey)
+      : targeting?.mode === 'piece'
+        ? targeting.legalTargetIds
+            .map((targetId) => state.board.entities[targetId])
+            .filter((entity) => entity !== undefined)
+            .map((entity) => hexKey(entity.coords))
+        : []
   const playout = usePlayout.getState()
   return {
     state,
-    targeting,
+    targetableHexKeys,
+    targetPreviewHexKeys: targeting?.previewHexes.map(hexKey) ?? [],
+    targetPreviewCenterKey: targeting?.previewHexes.length ? hoveredHexKey : null,
     legalMoveKeys,
     guidedMoveKeys,
     pendingMoveKey,
@@ -47,7 +78,7 @@ function buildSnapshot(
 // Where a drag event sits in board space. Measure the canvas, not the
 // container: the scaled canvas is letterboxed inside it, so a pointer read
 // against the container lands on the wrong hex.
-function eventCoords(event: DragEvent<HTMLDivElement>) {
+function eventCoords(event: DragEvent<HTMLDivElement> | ReactPointerEvent<HTMLDivElement>) {
   const canvas = event.currentTarget.querySelector('canvas')
   const bounds = (canvas ?? event.currentTarget).getBoundingClientRect()
   const scale = bounds.width / BOARD_WIDTH
@@ -61,7 +92,6 @@ export function PhaserBoard() {
     const scene = new BoardScene({
       onHexClicked: (coords) => useWorkbench.getState().hexClicked(coords),
       onHeroPressChange: (pressed) => useWorkbench.getState().setHeroRoutePreview(pressed),
-      onHexHoverChange: (key) => useWorkbench.getState().setHoveredHex(key),
       onHeroDraggedTo: (destination) => useWorkbench.getState().heroDraggedToHex(destination),
     })
     const game = new Phaser.Game({
@@ -122,8 +152,10 @@ export function PhaserBoard() {
       }
       scene.updateSnapshot(
         buildSnapshot(
+          store.catalog,
           selectState(store),
-          store.targetingSlotIndex !== null,
+          store.targetingSlotIndex,
+          store.hoveredHexKey,
           // A move waiting on its card keeps the routes lit too: the board
           // holds the offer open while the player reads their Hand.
           store.draggingCardId !== null || store.selectedCardId !== null || store.heroRoutePreview || store.pendingMove !== null,
@@ -168,6 +200,16 @@ export function PhaserBoard() {
       // touch-action none keeps hex taps and Hero route-preview presses from
       // scrolling the page on touch devices.
       style={{ touchAction: 'none' }}
+      // Phaser owns board clicks; the React wrapper owns hover and drag-over
+      // through one canvas-relative mapping. Both therefore stay correct
+      // while the fitted canvas catches up to a changing HUD layout.
+      onPointerMove={(event) => {
+        const coords = eventCoords(event)
+        const key = hexKey(coords)
+        const onBoard = selectState(useWorkbench.getState()).board.hexes[key] !== undefined
+        useWorkbench.getState().setHoveredHex(onBoard ? key : null)
+      }}
+      onPointerLeave={() => useWorkbench.getState().setHoveredHex(null)}
       onDragOver={(event) => {
         event.preventDefault()
         event.dataTransfer.dropEffect = 'move'

@@ -1,6 +1,6 @@
-import { addEntity, addHazard, advanceBoardRound, damageEntity, getHazards, isGuardedFront, moveEntity } from './board'
-import { axialSubtract } from './hex'
-import { directionForAxialDelta, FACING_NW } from './facing'
+import { addEntity, addHazard, advanceBoardRound, damageEntity, facingToward, getHazards, isGuardedFront, isOccupied, isOnBoard, moveEntity } from './board'
+import { axialAdd, axialSubtract, hexDistance, hexesWithinRadius, type Axial } from './hex'
+import { axialDeltaFor, directionForAxialDelta, FACING_NW } from './facing'
 import type { ContentCatalog } from './content/catalog'
 import type { Card } from './content/schemas'
 import { resolveFire } from './cardResolver'
@@ -42,6 +42,7 @@ export function applyAction(
   action: EncounterActionInput,
   facts: ResolvedActionFact[],
   depth: number,
+  deferTerminalCheck = false,
 ): void {
   const generated: EncounterActionInput[] = []
   const presentation = factPresentation(action)
@@ -59,10 +60,17 @@ export function applyAction(
   }
   resolveOne(catalog, draft, action, fact, generated)
   facts.push(fact)
+  // A fired Card is one authored consequence batch. Its ordered generated
+  // actions all resolve before victory or defeat closes global legality, so a
+  // lethal hit can be recorded before later Status and draw consequences
+  // without suppressing them. Minion defeat remains immediate inside damage.
+  const deferGeneratedTerminalCheck = deferTerminalCheck || action.kind === 'fire_slot'
   for (const followup of generated) {
-    applyAction(catalog, draft, followup, facts, depth + 1)
+    applyAction(catalog, draft, followup, facts, depth + 1, deferGeneratedTerminalCheck)
   }
-  checkResolution(draft)
+  if (!deferTerminalCheck) {
+    checkResolution(draft)
+  }
 }
 
 export function checkResolution(draft: EncounterState): void {
@@ -144,12 +152,25 @@ function resolveOne(
       const card = catalog.cards[topCard.cardId]
       const effects = resolveFire(catalog, card, slot.charges.map((charge) => catalog.cards[charge.cardId]))
       const baseBossDamage = effects.bossDamage
+      const burstCenter = effects.burstRadius > 0 ? (action.targetHex as Axial) : null
+      const burstHexes = burstCenter === null ? [] : hexesWithinRadius(draft.board.hexes, burstCenter, effects.burstRadius)
+      const burstEnemyIds =
+        burstCenter === null
+          ? []
+          : Object.values(draft.board.entities)
+              .filter((entity) => entity.team === 'enemy' && hexDistance(entity.coords, burstCenter) <= effects.burstRadius)
+              .map((entity) => entity.id)
+              .sort()
+      const burstIncludesBoss = burstEnemyIds.includes(draft.bossId)
+      if (burstCenter !== null) {
+        fact.detail.burstCenter = { ...burstCenter }
+        fact.detail.burstHexes = burstHexes
+      }
       hero.armor += effects.armor
       hero.health = Math.min(hero.maxHealth, hero.health + effects.healing)
       slot.activatedWindow = draft.phase
       syncHeroEntity(draft, action.sourceId)
-      const consumed = consumeStatusesForSlot(draft, action.sourceId, card, effects.bossDamage > 0)
-      effects.bossDamage += consumed.bonusBossDamage
+      const consumed = consumeStatusesForSlot(draft, action.sourceId, card, baseBossDamage > 0 || burstIncludesBoss)
       if (consumed.events.length > 0) {
         fact.resolutionFact = { status_event: consumed.events[0] }
       }
@@ -178,35 +199,83 @@ function resolveOne(
         }
       }
       succeed(fact)
-      if (effects.bossDamage > 0) {
+      if (burstCenter !== null) {
+        // Every non-Boss Enemy resolves first. The Boss receives one combined
+        // ordinary damage action for Burst damage, any direct Boss damage,
+        // and the one-shot Riposte bonus. Keeping the Boss last guarantees a
+        // lethal hit cannot suppress sibling Burst consequences.
+        for (const targetId of burstEnemyIds.filter((enemyId) => enemyId !== draft.bossId)) {
+          generated.push({
+            kind: 'damage',
+            sourceId: action.sourceId,
+            targetId,
+            amount: effects.targetDamage,
+            reasonText: card.title,
+          })
+        }
+        const bossBaseAmount = baseBossDamage + (burstIncludesBoss ? effects.targetDamage : 0)
+        const bossAmount = bossBaseAmount + consumed.bonusBossDamage
         let factContext: Record<string, unknown> | undefined
         if (consumed.bonusBossDamage > 0) {
           factContext = {
-            base_amount: baseBossDamage,
+            base_amount: bossBaseAmount,
             status_bonus: consumed.bonusBossDamage,
             status_id: (consumed.events[0] as { status_id: string }).status_id,
             payoff_card_id: card.id,
           }
         }
-        generated.push({
-          kind: 'damage',
-          sourceId: action.sourceId,
-          targetId: draft.bossId,
-          amount: effects.bossDamage,
-          reasonText: card.title,
-          factContext,
-        })
+        if (bossAmount > 0) {
+          generated.push({
+            kind: 'damage',
+            sourceId: action.sourceId,
+            targetId: draft.bossId,
+            amount: bossAmount,
+            reasonText: card.title,
+            factContext,
+          })
+        }
+      } else {
+        if (baseBossDamage + consumed.bonusBossDamage > 0) {
+          let factContext: Record<string, unknown> | undefined
+          if (consumed.bonusBossDamage > 0) {
+            factContext = {
+              base_amount: baseBossDamage,
+              status_bonus: consumed.bonusBossDamage,
+              status_id: (consumed.events[0] as { status_id: string }).status_id,
+              payoff_card_id: card.id,
+            }
+          }
+          generated.push({
+            kind: 'damage',
+            sourceId: action.sourceId,
+            targetId: draft.bossId,
+            amount: baseBossDamage + consumed.bonusBossDamage,
+            reasonText: card.title,
+            factContext,
+          })
+        }
+        if (effects.targetDamage > 0) {
+          generated.push({
+            kind: 'damage',
+            sourceId: action.sourceId,
+            targetId: action.targetId ?? '',
+            amount: effects.targetDamage,
+            reasonText: card.title,
+          })
+        }
       }
-      if (effects.targetDamage > 0) {
+      if (effects.pushTiles > 0 || effects.pullTiles > 0) {
         generated.push({
-          kind: 'damage',
+          kind: 'displace_piece',
           sourceId: action.sourceId,
           targetId: action.targetId ?? '',
-          amount: effects.targetDamage,
+          distance: effects.pushTiles > 0 ? effects.pushTiles : effects.pullTiles,
+          movement: effects.pushTiles > 0 ? 'push' : 'pull',
           reasonText: card.title,
         })
       }
       generated.push(...slotFiredStatusActions(draft, action.sourceId))
+      generated.push(...cardDrawActions(hero, action.sourceId, effects.drawCount))
       break
     }
     case 'move_hero': {
@@ -217,17 +286,11 @@ function resolveOne(
       moveEntity(draft.board, action.sourceId, action.destination)
       draft.board.entities[action.sourceId].facing = directionForAxialDelta(axialSubtract(action.destination, fromCoords))
       succeed(fact)
-      for (const hazard of getHazards(draft.board, action.destination)) {
-        if (hazard.enterDamage > 0) {
-          generated.push({
-            kind: 'damage',
-            sourceId: 'hazard',
-            targetId: action.sourceId,
-            amount: hazard.enterDamage,
-            reasonText: hazard.id,
-          })
-        }
-      }
+      generated.push(...hazardEntryActions(draft, action.sourceId, action.destination))
+      break
+    }
+    case 'displace_piece': {
+      resolveDisplacement(draft, action, fact, generated)
       break
     }
     case 'resolve_boss': {
@@ -378,12 +441,18 @@ function resolveOne(
     }
     case 'draw_card': {
       const hero = draft.heroes[action.sourceId]
-      if (!hero || hero.deck.length === 0) {
-        fail(fact, 'The deck has no card to draw.')
+      if (!hero) {
+        fail(fact, 'The drawing Hero is unavailable.')
+        break
+      }
+      if (hero.deck.length === 0) {
+        fact.detail.drawn = false
+        succeed(fact)
         break
       }
       const card = hero.deck.pop() as CardInstance
       hero.hand.push(card)
+      fact.detail.drawn = true
       fact.detail.cardId = card.cardId
       fact.detail.cardInstanceId = card.instanceId
       succeed(fact)
@@ -441,6 +510,85 @@ function resolveOne(
       break
     }
   }
+}
+
+// Explicit Card draws use the same first-class draw and shuffle actions as
+// Round refill (ADR 0015). Plan the sequence from pile sizes without mutating
+// them; the generated actions perform every state change in recorded order.
+function cardDrawActions(hero: HeroState, sourceId: string, drawCount: number): EncounterActionInput[] {
+  const actions: EncounterActionInput[] = []
+  let deckCount = hero.deck.length
+  let discardCount = hero.discard.length
+  for (let draw = 0; draw < drawCount; draw += 1) {
+    if (deckCount === 0 && discardCount > 0) {
+      actions.push({ kind: 'shuffle_deck', sourceId, label: 'discard_shuffle' })
+      deckCount = discardCount
+      discardCount = 0
+    }
+    actions.push({ kind: 'draw_card', sourceId })
+    deckCount = Math.max(deckCount - 1, 0)
+  }
+  return actions
+}
+
+function resolveDisplacement(
+  draft: EncounterState,
+  action: Extract<EncounterActionInput, { kind: 'displace_piece' }>,
+  fact: ResolvedActionFact,
+  generated: EncounterActionInput[],
+): void {
+  const source = draft.board.entities[action.sourceId]
+  const target = draft.board.entities[action.targetId]
+  if (!source || !target) {
+    fail(fact, 'The displacement target is unavailable.')
+    return
+  }
+
+  const from = { ...target.coords }
+  const entered: Axial[] = []
+  const requestedDistance = Math.max(Math.floor(action.distance), 0)
+  let stopReason: 'complete' | 'edge' | 'occupied' = 'complete'
+  for (let step = 0; step < requestedDistance; step += 1) {
+    const direction =
+      action.movement === 'pull'
+        ? facingToward(target.coords, source.coords, target.facing)
+        : facingToward(source.coords, target.coords, target.facing)
+    const destination = axialAdd(target.coords, axialDeltaFor(direction))
+    if (!isOnBoard(draft.board, destination)) {
+      stopReason = 'edge'
+      break
+    }
+    if (isOccupied(draft.board, destination, action.targetId)) {
+      stopReason = 'occupied'
+      break
+    }
+    moveEntity(draft.board, action.targetId, destination)
+    entered.push({ ...destination })
+  }
+
+  fact.resolutionFact = {
+    from,
+    to: { ...target.coords },
+    requested_distance: requestedDistance,
+    actual_distance: entered.length,
+    stop_reason: stopReason,
+  }
+  succeed(fact)
+  for (const coords of entered) {
+    generated.push(...hazardEntryActions(draft, action.targetId, coords))
+  }
+}
+
+function hazardEntryActions(draft: EncounterState, targetId: string, coords: Axial): EncounterActionInput[] {
+  return getHazards(draft.board, coords)
+    .filter((hazard) => hazard.enterDamage > 0)
+    .map((hazard) => ({
+      kind: 'damage' as const,
+      sourceId: 'hazard',
+      targetId,
+      amount: hazard.enterDamage,
+      reasonText: hazard.id,
+    }))
 }
 
 function succeed(fact: ResolvedActionFact): void {
@@ -628,6 +776,8 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: `Fire Slot ${action.slotIndex + 1}`, detail }
     case 'move_hero':
       return { title: `Move to (${action.destination.q}, ${action.destination.r})`, detail }
+    case 'displace_piece':
+      return { title: `${action.movement === 'push' ? 'Push' : 'Pull'} ${action.targetId} ${action.distance}`, detail }
     case 'resolve_boss':
       return { title: `Boss Beat: ${action.beat.title}`, detail: { beatId: action.beat.id, beatTitle: action.beat.title, track: action.track } }
     case 'apply_hazard':
