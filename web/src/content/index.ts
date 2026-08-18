@@ -16,10 +16,14 @@ const modules = import.meta.glob('../../../data/{cards,keywords,charge_modifiers
   import: 'default',
 }) as Record<string, unknown>
 
+// Each payload keeps the repo-relative path it was authored in, so a schema
+// failure names the file rather than a line inside the parser. The glob keys
+// are relative to this module; everything from `data/` on is the path a
+// designer would type.
 function group(directory: string): unknown[] {
   return Object.entries(modules)
     .filter(([path]) => path.includes(`/data/${directory}/`))
-    .map(([, payload]) => payload)
+    .map(([path, payload]) => ({ source: path.slice(path.indexOf('/data/') + 1), payload }))
 }
 
 let cachedCatalog: ContentCatalog | null = null

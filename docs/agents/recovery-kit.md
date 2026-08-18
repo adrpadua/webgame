@@ -17,7 +17,7 @@ Read these sources before recreating work. Treat repository files as authoritati
 | Durable assignment, acknowledgment, and completion packet evidence | [handoff-packets.md](../artifacts/handoff-packets.md) and `docs/artifacts/handoff-packets/<handoff-id>/` |
 | Product proposals and approval state | [product backlog](../../.scratch/product-backlog/) and [issue workflow](issue-tracker.md) |
 | Feature delivery state | `.scratch/<feature>/spec.md` and `issues/` for each active effort |
-| Game content and supported authoring surface | [content documentation](../content/), [design-team handoff](../content/design-team-handoff.md), and relevant `resources/` files |
+| Game content and supported authoring surface | [content documentation](../content/), [design-team handoff](../content/design-team-handoff.md), and relevant `data/` JSON files (`resources/` is the frozen Godot reference) |
 | UI behavior and accessibility | [interface direction](../content/oathcraft-interface-direction.md) (the vertical-slice contract is Godot-era history) and [accessibility](../artifacts/accessibility.md) |
 | Test and probe contract | [probe harness](../artifacts/probe-harness.md) |
 | Independent hands-on player evidence | [playtesting.md](playtesting.md) |

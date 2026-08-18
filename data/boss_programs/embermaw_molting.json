@@ -17,7 +17,7 @@
       "id": "raking_claw",
       "title": "Raking Claw",
       "rules_text": "Target: Tank. Deal 6 damage. Movement does not evade this hit. An unheld Guarded Front suffers +5.",
-      "kind": "raking_claw",
+      "kind": "targeted_hit",
       "counter_tags": [
         "Mitigate",
         "Position"
@@ -34,7 +34,7 @@
       "id": "brood_call",
       "title": "Brood Call",
       "rules_text": "Whelps emerge at the marked edge hexes. Any Whelp still standing at the next Round end raises Escalation by 1.",
-      "kind": "brood_call",
+      "kind": "spawn_minions",
       "counter_tags": [
         "Kill Adds"
       ],

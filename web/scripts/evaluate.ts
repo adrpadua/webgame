@@ -301,7 +301,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
           }
         } else if (knobs.position === 'dodge') {
           const heroKey = hexKey(entity.coords)
-          if (state.telegraphs[heroKey] === 'breath') {
+          if (state.telegraphs[heroKey] === 'cone') {
             const destination = neighbors(state.board.hexes, entity.coords).find(
               (coords: Axial) => state.telegraphs[hexKey(coords)] === undefined && isLegalMove(state.board, heroId, coords),
             )

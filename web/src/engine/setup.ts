@@ -49,7 +49,7 @@ export function createEncounterState(catalog: ContentCatalog, encounterId: strin
     phaseTwoProgramIds: [...encounter.phase_two_programs],
     phaseTwoSequence: [],
     phaseBreakText: encounter.phase_break_text,
-    broodSpawnCandidates: encounter.brood_spawn_candidates.map((coords) => ({ ...coords })),
+    spawnCandidates: encounter.minion_spawn_candidates.map((coords) => ({ ...coords })),
     telegraphedSpawnHexes: [],
     telegraphs: {},
     previousImpactedHexes: [],

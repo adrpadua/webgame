@@ -142,8 +142,14 @@ the fallback, not the plan.
 5. Save the accepted image to `assets/art/characters/<slug>/idle-contact-sheet.png` and build it:
 
 ```bash
-python3 tools/build_sprite_sheet.py assets/art/characters/<slug>/idle-contact-sheet.png web/src/assets/<slug>-idle.png
+python3 tools/build_sprite_sheet.py assets/art/characters/<slug>/idle-contact-sheet.png web/src/assets/<slug>-idle.png \\
+  --rows NE,E,SE --mirror W=E,NW=NE,SW=SE
 ```
+
+The sheet carries three facings and the builder mirrors them into six. Sheets \
+generated before that change hold all six rows; rebuild those with \
+`--rows NW,NE,E,SE,SW,W` and the same `--mirror`, which reads the east rows and \
+discards the west ones.
 """
 
 

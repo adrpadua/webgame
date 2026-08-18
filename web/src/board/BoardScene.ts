@@ -77,8 +77,8 @@ const {
   tileStroke: TILE_STROKE,
   heroFill: HERO_FILL,
   moveOverlay: MOVE_OVERLAY,
-  breathOverlay: BREATH_OVERLAY,
-  broodOverlay: BROOD_OVERLAY,
+  coneOverlay: CONE_OVERLAY,
+  spawnOverlay: SPAWN_OVERLAY,
   bossFill: BOSS_FILL,
   minionFill: MINION_FILL,
   scorchedFill: SCORCHED_FILL,
@@ -587,10 +587,10 @@ export class BoardScene extends Phaser.Scene {
       const { key, coords, x, y, corners } = tile
       this.fillHex(graphics, corners, tile.fill, 1, TILE_STROKE)
       const telegraph = state.telegraphs[key]
-      if (telegraph === 'breath') {
-        this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), BREATH_OVERLAY, 0.28)
-      } else if (telegraph === 'brood') {
-        this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), BROOD_OVERLAY, 0.32)
+      if (telegraph === 'cone') {
+        this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), CONE_OVERLAY, 0.28)
+      } else if (telegraph === 'spawn') {
+        this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), SPAWN_OVERLAY, 0.32)
       }
       if (legalMoves.has(key)) {
         this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), MOVE_OVERLAY, 0.35)
