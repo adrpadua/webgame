@@ -12,6 +12,7 @@
     "mutate": "node scripts/mutate.mjs",
     "lint": "eslint .",
     "headless": "vite-node scripts/runHeadless.ts --",
+    "film": "node scripts/film.mjs",
     "evaluate": "vite-node scripts/evaluate.ts --"
   },
   "dependencies": {
