@@ -62,6 +62,11 @@ export interface HazardInstance {
   // A permanent Hazard never expires at a Round boundary. Structural
   // Escalation Thresholds use this to close the arena for good (D-031).
   permanent?: boolean
+  // Which side laid this Hazard. An Enemy is immune to its own side's Hazards
+  // (D-042), so a Boss can advance across its own Ash Trail and a Whelp does
+  // not burn in its master's fire. Recorded per Hazard rather than assumed of
+  // Enemies in general, because a Hero-placed damage zone has to keep working.
+  sourceTeam?: Team
 }
 
 export interface BoardState {
