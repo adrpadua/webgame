@@ -16,9 +16,11 @@ import { FOCUS_RING_CLASS } from './theme'
 // The gauge carries no label. A word costs more room than the reading it
 // buys, and the reading is in the shape: a bar filling left to right in the
 // Boss's coral as the fight escalates, with the last band — the one that
-// ends it — already washed in at the far end. What each band DOES is the
-// popup's job, and the popup teaches it as a ladder rather than telling it
-// as a list.
+// ends it — already washed in at the far end, and a fuse burning through the
+// first band while the automatic ticks are still dormant so a clock that
+// cannot move yet does not read as one that has stopped. What each band DOES
+// is the popup's job, and the popup teaches it as a ladder rather than
+// telling it as a list.
 
 export interface EscalationPip {
   value: number
@@ -48,6 +50,50 @@ export function escalationPips(escalation: number, thresholds: EscalationThresho
 // The next band the party is walking into — the actionable half of the gauge.
 export function nextEscalationPip(pips: EscalationPip[]): EscalationPip | null {
   return pips.find((pip) => !pip.crossed) ?? null
+}
+
+// Automatic ticks begin late by derivation (ADR 0027), so on Embermaw the
+// value is still 0 at the end of Round 3 and the gauge draws the same empty
+// track three Rounds running. That reads as a broken clock rather than a
+// dormant one: the one thing a player checks a clock for is whether it moved,
+// and this one cannot move yet.
+//
+// So the dormant Rounds get a fuse: the stretch of track the first tick will
+// claim, filling as the start Round approaches, in the same washed coral the
+// wipe band already uses for a band that is real but not yet reached. It
+// carries no number the rules do not have — it is Rounds elapsed toward the
+// first tick — and it never claims a band, because the wash is the colour
+// this gauge already uses for ground the clock has not covered.
+//
+// The dormant stretch runs THROUGH the start Round, not up to it: the tick
+// fires at that Round's END, so the fuse is full — exactly one band — for the
+// whole of the Round whose ending lands it. Cutting it off at the start Round
+// instead emptied the track for that entire Round and then jumped, which is
+// the defect this fuse exists to fix, arriving at the worst moment.
+//
+// Returned as a fraction of the whole track, 0 once the ticks have begun. It
+// needs no guard against acceleration: any Escalation at all fills a whole
+// band, and the fill draws over the fuse.
+export function escalationFuseFraction(round: number, startRound: number): number {
+  if (round > startRound) {
+    return 0
+  }
+  return round / startRound / ESCALATION_MAX
+}
+
+// What the gauge announces. The dormant schedule belongs here and not only in
+// the popup: `Next: Ashen Verge` on its own tells a screen reader the band is
+// imminent, when it can be three Rounds away.
+export function escalationGaugeLabel(state: EncounterState): string {
+  const next = nextEscalationPip(escalationPips(state.escalation, state.escalationThresholds))
+  const dormant = state.round < state.escalationStartRound
+  return [
+    `Escalation ${state.escalation} of ${ESCALATION_MAX}.`,
+    dormant ? `Automatic ticks begin at the end of Round ${state.escalationStartRound}.` : '',
+    next === null ? '' : `Next: ${next.title}.`,
+  ]
+    .filter((part) => part !== '')
+    .join(' ')
 }
 
 // What a band is called on the ladder. The wipe has no authored threshold to
@@ -126,18 +172,19 @@ export function escalationDetail(state: EncounterState, enrageText: string): Hol
 
 export function EscalationGauge({ state, enrageText }: { state: EncounterState; enrageText: string }) {
   const pips = escalationPips(state.escalation, state.escalationThresholds)
-  const next = nextEscalationPip(pips)
   const hold = useHold(escalationDetail(state, enrageText))
+  const fuse = escalationFuseFraction(state.round, state.escalationStartRound)
   return (
     <span
       {...hold.holdProps}
       data-testid="escalation-gauge"
       data-escalation={state.escalation}
+      data-fuse={fuse > 0}
       role="meter"
       aria-valuenow={state.escalation}
       aria-valuemin={0}
       aria-valuemax={ESCALATION_MAX}
-      aria-label={`Escalation ${state.escalation} of ${ESCALATION_MAX}.${next === null ? '' : ` Next: ${next.title}.`}`}
+      aria-label={escalationGaugeLabel(state)}
       tabIndex={0}
       // The bar is 8px tall, but the gauge is operable — held for its detail, and
       // reachable by keyboard — so it takes the same 44px target every other
@@ -154,6 +201,12 @@ export function EscalationGauge({ state, enrageText }: { state: EncounterState; 
         {/* The last band ends the fight, so its stretch of the track is
             washed in the Boss's own colour before the clock ever reaches it. */}
         <span className="absolute inset-y-0 right-0 w-1/5 bg-coral-900/70" />
+        {/* The fuse burning through the first band while the ticks are still
+            dormant — under the fill, so acceleration from an unanswered
+            demand simply covers it. It stays mounted at width 0 once it has
+            burned down, so the handoff to the fill is two widths crossing
+            rather than one element disappearing out from under the other. */}
+        <span className="absolute inset-y-0 left-0 bg-coral-900/70 transition-[width] duration-300" style={{ width: `${fuse * 100}%` }} />
         <span
           className="absolute inset-y-0 left-0 bg-coral-500 transition-[width] duration-300"
           style={{ width: `${(state.escalation / ESCALATION_MAX) * 100}%` }}

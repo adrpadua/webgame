@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { loadCatalog } from '@/content'
 import { createEncounterState, ESCALATION_MAX, type EncounterState } from '@/engine'
-import { escalationBandLabel, escalationDetail, escalationPips, nextEscalationPip } from './EscalationGauge'
+import {
+  escalationBandLabel,
+  escalationDetail,
+  escalationFuseFraction,
+  escalationGaugeLabel,
+  escalationPips,
+  nextEscalationPip,
+} from './EscalationGauge'
 
 const catalog = loadCatalog()
 const start = (): EncounterState => createEncounterState(catalog, 'embermaw_prototype')
@@ -47,6 +54,54 @@ describe('Escalation gauge', () => {
     const detail = escalationDetail(ticking, ticking.enrageText)
     expect(detail.hint).toBe(`Next: ${thresholds.find((t) => t.value === 2)!.title}.`)
     expect(detail.badge).toBe(`1 of ${ESCALATION_MAX}`)
+  })
+
+  it('burns a fuse through the first band while the ticks are dormant', () => {
+    const state = start()
+    const startRound = state.escalationStartRound
+    const band = 1 / ESCALATION_MAX
+
+    // Something moves every dormant Round: an empty track that reads the same
+    // in Round 1 and Round 3 reads as a broken clock.
+    const dormant = Array.from({ length: startRound }, (_, index) => escalationFuseFraction(index + 1, startRound))
+    expect(dormant.length).toBeGreaterThan(1)
+    for (const [index, fraction] of dormant.entries()) {
+      expect(fraction).toBeGreaterThan(index === 0 ? 0 : dormant[index - 1])
+      // And it never leaves the first band, so the fuse cannot be misread as a
+      // band the clock has actually crossed.
+      expect(fraction).toBeLessThanOrEqual(band)
+    }
+
+    // The dormant stretch runs THROUGH the start Round, because the tick fires
+    // at that Round's END. Cutting it off a Round early emptied the track for
+    // the whole of Round 4 and then jumped — the defect the fuse exists to
+    // fix, arriving at the worst moment.
+    expect(escalationFuseFraction(startRound, startRound)).toBeCloseTo(band)
+    expect(escalationFuseFraction(startRound - 1, startRound)).toBeLessThan(band)
+
+    // And it is gone the moment the clock has a value of its own to draw.
+    expect(escalationFuseFraction(startRound + 1, startRound)).toBe(0)
+    expect(escalationFuseFraction(startRound + 3, startRound)).toBe(0)
+
+    // An Encounter short enough to tick from Round 1 spends that whole Round
+    // one Round-end away from its first tick, so the fuse opens full.
+    expect(escalationFuseFraction(1, 1)).toBeCloseTo(band)
+    expect(escalationFuseFraction(2, 1)).toBe(0)
+  })
+
+  it('announces the dormant schedule rather than an imminent band', () => {
+    const state = start()
+    // `Next: Ashen Verge` alone tells a screen reader the band is imminent
+    // when it can be three Rounds away.
+    expect(escalationGaugeLabel(state)).toBe(
+      `Escalation 0 of ${ESCALATION_MAX}. Automatic ticks begin at the end of Round ${state.escalationStartRound}. Next: ${thresholds.find((t) => t.value === 1)!.title}.`,
+    )
+
+    const ticking = { ...state, round: state.escalationStartRound, escalation: 1 }
+    expect(escalationGaugeLabel(ticking)).toBe(`Escalation 1 of ${ESCALATION_MAX}. Next: ${thresholds.find((t) => t.value === 2)!.title}.`)
+
+    const wiped = { ...state, round: state.escalationStartRound, escalation: ESCALATION_MAX }
+    expect(escalationGaugeLabel(wiped)).toBe(`Escalation ${ESCALATION_MAX} of ${ESCALATION_MAX}.`)
   })
 
   it('names every band on the ladder, and quotes the enrage line for the wipe', () => {
