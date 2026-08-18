@@ -146,9 +146,15 @@ export function PhaserBoard() {
         }
       } else if (timelineMoved) {
         // Time travel, restart, or a replayed Scenario: nothing resolved,
-        // so every gauge shows the authoritative state immediately. UI-only
-        // store changes (a drag, a selection) leave a running playout alone.
+        // so every gauge shows the authoritative state immediately, and
+        // feedback still in flight is taken down with them. A blow landing
+        // on a board that has jumped out from under it is feedback for a
+        // moment that is no longer on screen — and a burn or an expiry left
+        // running would go on painting the ground for a Hazard this state
+        // does not have. UI-only store changes (a drag, a selection) leave a
+        // running playout alone.
         usePlayout.getState().clear()
+        scene.clearEffects()
       }
       scene.updateSnapshot(
         buildSnapshot(

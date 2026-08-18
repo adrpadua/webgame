@@ -26,6 +26,12 @@ import { easeOutCubic, hexNoise } from './math'
 //   ash      — scorched coral takes the tile, at a coverage this module states
 //              and the scene composites (palette.ts owns that arithmetic)
 //
+// And a fourth, which is the same event running backwards: a temporary Hazard
+// expires at a Round boundary and the ground comes back. Both halves live here
+// because they are one choreography — the second one undoes exactly what the
+// first one did, on the same tile, out of the same hash — and splitting them
+// would put the two ends of one crossfade in two files.
+//
 // Everything is flat-filled with hard edges: the interface direction bans
 // blur and gradient ramps, and a flame drawn as a soft glow would be the one
 // thing on the board rendered in a different model. A tongue is a solid
@@ -39,6 +45,15 @@ import { easeOutCubic, hexNoise } from './math'
 // says exactly one thing — this hex is on fire, right now.
 
 export const BURN_MS = 900
+
+// And how long the ground takes to give it back. A Hazard that expires is the
+// opposite kind of event from one that lands: nothing is happening to the hex,
+// something has stopped happening to it, and the board direction puts ground
+// that has already been paid for at the bottom of the warm order. So the
+// expiry is shorter than the burn and quieter than it — but it is not nothing,
+// because a hex the party has spent a Round routing around becoming standing
+// room again is a fact they have to notice to use.
+export const COOL_MS = 640
 
 // Stage boundaries as fractions of the burn: ignition through ~150ms, flames
 // at full height from ~200ms to ~520ms, collapsed by ~810ms, and the last
@@ -75,6 +90,20 @@ const SWAY_MS = 290
 const FLICKER_DEPTH = 0.18
 const SWAY_REACH = 0.12
 
+// The last heat leaving a hex: a few embers scattered on the face, going dark
+// one after another. Four, because the point is that they go out separately —
+// two reads as a pair blinking and eight reads as a fire that came back.
+const EMBER_COUNT = 4
+const EMBER_SPREAD = 0.5
+const EMBER_SIZE = 0.075
+// The window their deaths fall in. None goes out on the first frame, and the
+// last goes out as the ash finishes lifting — by 0.9 the tile is already
+// within a hair of clean ground, so no ember is ever left glowing on a hex
+// that has finished cooling, and none winks out while the ash is still plainly
+// there.
+const EMBER_FIRST_DEATH = 0.3
+const EMBER_LAST_DEATH = 0.9
+
 export interface Point {
   x: number
   y: number
@@ -88,6 +117,15 @@ export interface FlameTongue {
   alpha: number
 }
 
+// One ember still alight on a cooling hex, as a filled shape relative to that
+// hex's centre. `heat` is 1 the moment it is exposed and 0 as it goes out; the
+// scene spends it as a value between the ember material and the ash it lies
+// on, so an ember cools into the ground rather than vanishing off it.
+export interface Ember {
+  points: Point[]
+  heat: number
+}
+
 // Salts 1 and up, so no draw here collides with the floor's own shade at
 // salt 0: the height of the first flame on a tile and how dark that tile is
 // are unrelated facts.
@@ -95,6 +133,9 @@ const HEIGHT_SALT = 1
 const PHASE_SALT = HEIGHT_SALT + TONGUE_COUNT
 const REACH_SALT = PHASE_SALT + TONGUE_COUNT
 const WIDTH_SALT = REACH_SALT + TONGUE_COUNT
+const EMBER_X_SALT = WIDTH_SALT + TONGUE_COUNT
+const EMBER_Y_SALT = EMBER_X_SALT + EMBER_COUNT
+const EMBER_DEATH_SALT = EMBER_Y_SALT + EMBER_COUNT
 
 function clamp01(value: number): number {
   return value < 0 ? 0 : value > 1 ? 1 : value
@@ -197,6 +238,58 @@ export function flameTongues(coords: Axial, t: number, nowMs: number, reducedMot
     })
   }
   return tongues
+}
+
+// How much ash the ground still shows while a Hazard's expiry plays, from 1
+// the moment it expires to 0 when the hex is ordinary ground again. The mirror
+// of charProgress, and monotonic for the same reason in the other direction:
+// ground being given back never darkens on its way to clean.
+//
+// It eases out rather than in, which is the honest shape — the heat goes out
+// of a surface fastest when it is hottest, and a linear fade reads as a
+// dissolve rather than as something cooling.
+export function coolProgress(t: number): number {
+  return 1 - easeOutCubic(clamp01(t))
+}
+
+// The embers left on a cooling hex, in pixels relative to its centre. Each is
+// a small flat diamond that cools where it lies and then goes out; they die at
+// staggered moments, so the hex darkens by losing its last points of heat one
+// at a time rather than by dimming as a whole.
+//
+// No ember travels — none drifts, none pulses, and where each one lies is
+// fixed for the life of the effect. What does change is size, and that is what
+// reduced motion takes: there the embers hold one size and simply go out, so
+// the setting removes the animation without removing the event.
+export function dyingEmbers(coords: Axial, t: number, reducedMotion: boolean): Ember[] {
+  if (t < 0 || t >= EMBER_LAST_DEATH) {
+    return []
+  }
+  const embers: Ember[] = []
+  for (let index = 0; index < EMBER_COUNT; index += 1) {
+    const death = EMBER_FIRST_DEATH + (EMBER_LAST_DEATH - EMBER_FIRST_DEATH) * hexNoise(coords, EMBER_DEATH_SALT + index)
+    if (t >= death) {
+      continue
+    }
+    // Spread over the face, and never on the tile's rim: an ember on the edge
+    // reads as belonging to the boundary between two hexes.
+    const x = (hexNoise(coords, EMBER_X_SALT + index) - 0.5) * 2 * EMBER_SPREAD * HEX_SIZE
+    const y = (hexNoise(coords, EMBER_Y_SALT + index) - 0.5) * 2 * EMBER_SPREAD * HEX_SIZE * 0.72
+    // It closes down toward its own death rather than fading out: a flat shape
+    // going translucent is a dissolve, and this palette has no dissolve in it.
+    const heat = 1 - t / death
+    const radius = EMBER_SIZE * HEX_SIZE * (reducedMotion ? 1 : 0.45 + 0.55 * heat)
+    embers.push({
+      points: [
+        { x, y: y - radius },
+        { x: x + radius * 0.7, y },
+        { x, y: y + radius },
+        { x: x - radius * 0.7, y },
+      ],
+      heat,
+    })
+  }
+  return embers
 }
 
 // One flame's silhouette: it leaves the ground at its full width, keeps that

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BURN_MS, charProgress, emberAlpha, flameEnvelope, flameTongues, flareRing, type FlameTongue, type Point } from './burn'
+import { BURN_MS, charProgress, coolProgress, dyingEmbers, emberAlpha, flameEnvelope, flameTongues, flareRing, type FlameTongue, type Point } from './burn'
 import { composite } from './palette'
 import { HEX_SIZE } from './layout'
 
@@ -129,6 +129,84 @@ describe('hex burn', () => {
     // What is left is the whole event there: the tile lights, then chars.
     expect(emberAlpha(0.1)).toBeGreaterThan(0)
     expect(charProgress(0.9)).toBe(1)
+  })
+
+  it('gives the ground back without ever darkening it on the way', () => {
+    expect(coolProgress(0)).toBe(1)
+    expect(coolProgress(1)).toBe(0)
+    // Most of the ash is gone early: heat leaves a surface fastest when it is
+    // hottest, and an even fade reads as a dissolve instead.
+    expect(coolProgress(0.5)).toBeLessThan(0.2)
+    let previous = 2
+    for (const t of frames()) {
+      const remaining = coolProgress(t)
+      expect(remaining).toBeLessThanOrEqual(previous)
+      previous = remaining
+    }
+  })
+
+  it('puts out the embers one at a time, and all of them', () => {
+    const alight = (t: number) => dyingEmbers(HEX, t, false).length
+    expect(alight(0)).toBe(4)
+    expect(alight(1)).toBe(0)
+    // They go out separately rather than together — the hex loses its last
+    // points of heat one by one instead of dimming as a whole.
+    const counts = frames(24).map(alight)
+    expect(new Set(counts).size).toBeGreaterThan(2)
+    let previous = Infinity
+    for (const count of counts) {
+      expect(count).toBeLessThanOrEqual(previous)
+      previous = count
+    }
+  })
+
+  it('scatters the embers inside the hex, and the same way every time', () => {
+    const halfWidth = (HEX_SIZE * Math.sqrt(3)) / 2
+    expect(dyingEmbers(HEX, 0.2, false)).toEqual(dyingEmbers(HEX, 0.2, false))
+    expect(dyingEmbers(HEX, 0.2, false)).not.toEqual(dyingEmbers({ q: 1, r: 0 }, 0.2, false))
+    for (const coords of [HEX, { q: 2, r: -1 }, { q: -3, r: 4 }]) {
+      for (const t of frames(20)) {
+        for (const ember of dyingEmbers(coords, t, false)) {
+          for (const point of ember.points) {
+            expect(Math.abs(point.x)).toBeLessThan(halfWidth)
+            expect(Math.abs(point.y)).toBeLessThan(HEX_SIZE)
+          }
+        }
+      }
+    }
+  })
+
+  it('cools every ember toward the ash it lies on', () => {
+    // Heat is what the scene spends between the two authored materials, so an
+    // ember that never cooled would go out at full value — a dot winking off
+    // rather than a point of heat sinking into the ground.
+    for (const ember of dyingEmbers(HEX, 0.05, false)) {
+      expect(ember.heat).toBeGreaterThan(0.8)
+    }
+    for (const ember of dyingEmbers(HEX, 0.55, false)) {
+      expect(ember.heat).toBeLessThan(0.6)
+    }
+    for (const t of frames()) {
+      for (const ember of dyingEmbers(HEX, t, false)) {
+        expect(ember.heat).toBeGreaterThan(0)
+        expect(ember.heat).toBeLessThanOrEqual(1)
+      }
+    }
+  })
+
+  it('holds the embers at one size under reduced motion, and still puts them out', () => {
+    // Where each ember lies never changes; its size does, and that is the one
+    // thing in the expiry that setting has to take. What it must not take is
+    // the event — the hex still cools, and the embers still go out.
+    const sizes = frames(12).map((t) => dyingEmbers(HEX, t, true).map((ember) => spanY(ember.points)))
+    const steady = sizes.flat()
+    expect(steady.length).toBeGreaterThan(0)
+    expect(new Set(steady.map((size) => size.toFixed(6))).size).toBe(1)
+    expect(dyingEmbers(HEX, 0, true).length).toBe(4)
+    expect(dyingEmbers(HEX, 1, true)).toEqual([])
+    // Live, the same embers close down as they die.
+    const shrinking = frames(12).flatMap((t) => dyingEmbers(HEX, t, false).map((ember) => spanY(ember.points)))
+    expect(new Set(shrinking.map((size) => size.toFixed(6))).size).toBeGreaterThan(1)
   })
 
   it('lands the charring on the two materials it runs between', () => {

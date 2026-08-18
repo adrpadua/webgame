@@ -7,7 +7,7 @@ import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type
 
 export type EffectTone = 'hero' | 'boss' | 'guard' | 'heal' | 'hazard'
 
-export type BoardEffectKind = 'strike' | 'cast' | 'hit' | 'block' | 'move' | 'spawn' | 'defeat' | 'blast' | 'scorch' | 'turn'
+export type BoardEffectKind = 'strike' | 'cast' | 'hit' | 'block' | 'move' | 'spawn' | 'defeat' | 'blast' | 'scorch' | 'cool' | 'turn'
 
 // How far apart consecutive Boss Beats start. The rules resolve a whole
 // track in one batch; the board replays that batch one beat at a time so
@@ -20,12 +20,13 @@ export const BEAT_STAGGER_MS = 700
 // EFFECT_DURATION.blast — change them together), so no claim the HUD is
 // making is reclaimed mid-animation.
 //
-// Feedback that claims nothing may outlast it, and one does: a burn runs
-// 900ms (EFFECT_DURATION.scorch). It overrides no gauge and reads the
-// authoritative board every frame, so settling underneath it takes nothing
-// back — the ground is simply still cooling while the board moves on. Timing
-// this to the fire instead would hold every Continue prompt in the game
-// behind the longest animation on it.
+// Feedback that claims nothing may outlast it, and the ground does at both
+// ends: a burn runs 900ms and an expiry 640 (EFFECT_DURATION.scorch and
+// .cool). Neither overrides a gauge, and both read the authoritative board
+// every frame, so settling underneath them takes nothing back — the ground is
+// simply still changing while the board moves on. Timing this to the fire
+// instead would hold every Continue prompt in the game behind the longest
+// animation on it.
 export const EFFECT_SETTLE_MS = 560
 
 export interface BoardEffect {
@@ -234,6 +235,28 @@ export function deriveBoardEffects(
         const coords = detailAxial(fact, 'coords')
         if (coords) {
           add({ kind: 'scorch', entityId: '', at: coords, tone: 'hazard' })
+        }
+        break
+      }
+
+      case 'round_start': {
+        // The Round boundary is where temporary Hazards run out — the engine
+        // ages them inside this action — and a hex losing its last one is
+        // ground the party may stand on again.
+        //
+        // There is no detail field to read, so this compares the batch's two
+        // states. That is sound rather than convenient: `advanceBoardRound` is
+        // the only code in the rules that removes a Hazard, so a hex that had
+        // one before the batch and has none after can only have lost it here.
+        // Give a Beat the power to quench ground and this stops being true,
+        // and the expiry will need a fact of its own to hang on.
+        //
+        // A hex that still holds a Hazard — a permanent one, or a second with
+        // Rounds left on it — says nothing.
+        for (const [key, hazards] of Object.entries(before.board.hazards)) {
+          if (hazards.length > 0 && (after.board.hazards[key] ?? []).length === 0) {
+            add({ kind: 'cool', entityId: '', at: parseHexKey(key), tone: 'hazard' })
+          }
         }
         break
       }
