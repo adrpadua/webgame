@@ -8,22 +8,22 @@
       "title": "Stalk the Guardian",
       "rules_text": "Embermaw turns to the guardian.",
       "kind": "turn_toward_player",
-      "counter_tags": [
+      "consequence_tier": "chip",
+      "answer_tags": [
         "position"
-      ],
-      "consequence_tier": "chip"
+      ]
     },
     {
       "id": "ember_scar",
       "title": "Ember Scar",
       "rules_text": "The ground under the last pattern stays Scorched.",
       "kind": "hazard_last_impact",
-      "counter_tags": [
-        "move"
-      ],
       "consequence_tier": "structural",
       "duration_rounds": 1,
-      "hazard": "scorched"
+      "hazard": "scorched",
+      "answer_tags": [
+        "move"
+      ]
     }
   ],
   "incoming_beats": [
@@ -32,25 +32,25 @@
       "title": "Cinder Breath",
       "rules_text": "Forward cone, range 1-2. Deal 13 damage.",
       "kind": "forward_cone",
-      "counter_tags": [
-        "move",
-        "interrupt"
-      ],
       "consequence_tier": "structural",
       "range_tiles": 2,
       "damage": 13,
       "duration_rounds": 1,
-      "hazard": "scorched"
+      "hazard": "scorched",
+      "answer_tags": [
+        "move",
+        "interrupt"
+      ]
     },
     {
       "id": "ash_warning",
       "title": "Keep a Safe Hex",
       "rules_text": "Scorched ground blocks voluntary movement. Leave yourself somewhere to stand.",
       "kind": "warning",
-      "counter_tags": [
+      "consequence_tier": "chip",
+      "answer_tags": [
         "move"
-      ],
-      "consequence_tier": "chip"
+      ]
     }
   ]
 }

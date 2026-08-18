@@ -1,5 +1,7 @@
 import { hexKey, type Axial } from './hex'
-import type { CounterDefinition } from './content/schemas'
+import type { ContentCatalog } from './content/catalog'
+import type { Card, CardReader, CounterDefinition } from './content/schemas'
+import type { EncounterActionInput } from './actions'
 import type { CounterInstance, EncounterState, Phase } from './types'
 
 export const RIPOSTE_READY = 'riposte_ready'
@@ -11,6 +13,19 @@ export const SHIELD_SLAM = 'shield_slam'
 // Ready's graded consumption (D-015) is read by code the vocabulary cannot
 // express, which is exactly why D-033 left it there.
 export const ENGINE_COUNTERS = [FORTIFIED, RIPOSTE_READY]
+
+// The `when`/`effect` pairs the rules actually read. The schema's two enums
+// multiply out to sixteen combinations and `readerSum` is called with four of
+// them, so the other twelve validate cleanly and do nothing — which is exactly
+// the `on_enter_hex` trap D-047 was written to close, re-created one level up.
+// Authoring one is now a load error rather than a Reader that silently never
+// fires. Adding a pair here means teaching the rules to read it.
+export const READABLE_READER_PAIRS = [
+  { when: 'round_start', effect: 'armor' },
+  { when: 'host_takes_damage', effect: 'target_damage' },
+  { when: 'host_deals_damage', effect: 'target_damage' },
+  { when: 'slot_fired', effect: 'boss_damage' },
+] as const
 
 // Where a Counter lives, as one tagged string (D-048). Counters were keyed by
 // entity id while combatants were the only host; the moment ground and
@@ -36,30 +51,57 @@ export function slotRef(heroId: string, slotIndex: number): CounterRef {
   return `slot:${heroId}:${slotIndex}` as CounterRef
 }
 
-// Parses a ref back to the entity it names, or '' when it names something
-// else. Only presentation and fact-logging need this; the rules never do.
+// The entity a ref names, or '' when it names something else. Only
+// presentation and fact-logging need this; the rules never do.
 export function refEntityId(ref: CounterRef): string {
-  const [kind, ...rest] = (ref as string).split(':')
-  return kind === 'combatant' ? rest.join(':') : ''
+  const parsed = parseRef(ref)
+  return parsed.host === 'combatant' ? parsed.entityId : ''
 }
 
-// Whether the thing a ref names is still there. A Counter never outlives its
-// host: a Minion's mark dies with the Minion (D-045), ground that burned away
-// takes its Counters with it, and a Slot's Counters go when its Top Card does.
-function hostIsLive(state: EncounterState, ref: CounterRef): boolean {
-  const [kind, ...rest] = ref.split(':')
+// A ref read back apart. Every question anyone asks of a ref goes through
+// here, so the tagged string is parsed in one place rather than re-split at
+// each call site.
+type ParsedRef =
+  | { host: 'combatant'; entityId: string }
+  | { host: 'hex'; hexKey: string }
+  | { host: 'slot'; heroId: string; slotIndex: number }
+  | { host: 'unknown' }
+
+function parseRef(ref: CounterRef): ParsedRef {
+  const [kind, ...rest] = (ref as string).split(':')
   const body = rest.join(':')
   if (kind === 'combatant') {
-    return state.board.entities[body] !== undefined || state.heroes[body] !== undefined
+    return { host: 'combatant', entityId: body }
   }
   if (kind === 'hex') {
-    return state.board.hexes[body] !== undefined
+    return { host: 'hex', hexKey: body }
   }
   if (kind === 'slot') {
     const [heroId, index] = body.split(':')
-    return state.heroes[heroId]?.actionBar[Number(index)]?.topCard != null
+    return { host: 'slot', heroId, slotIndex: Number(index) }
   }
-  return false
+  return { host: 'unknown' }
+}
+
+// Whether the thing a ref names is still there. A Counter never outlives its
+// host: a Minion's mark dies with the Minion (D-045), a Slot's Counters go
+// when its Top Card does, and ground that left the board takes its Counters
+// with it. Note that a *Scorched* hex has not left the board — a structural
+// Threshold lays a permanent Hazard on it (D-031) rather than removing it —
+// so Counters on burnt ground survive today. Whether they should is an open
+// design question, not something this predicate decides quietly.
+function hostIsLive(state: EncounterState, ref: CounterRef): boolean {
+  const parsed = parseRef(ref)
+  switch (parsed.host) {
+    case 'combatant':
+      return state.board.entities[parsed.entityId] !== undefined || state.heroes[parsed.entityId] !== undefined
+    case 'hex':
+      return state.board.hexes[parsed.hexKey] !== undefined
+    case 'slot':
+      return state.heroes[parsed.heroId]?.actionBar[parsed.slotIndex]?.topCard != null
+    default:
+      return false
+  }
 }
 
 export function getCounters(state: EncounterState, ref: CounterRef): CounterInstance[] {
@@ -315,4 +357,68 @@ export function createRiposteReady(sourceId: string, sourceBeatId: string, round
     triggerRound: round,
     triggerPhase: phase,
   }
+}
+
+// Where a Card puts the Counter it places: the Counter's own `host`, resolved
+// through whatever the Card targeted (D-048). `null` means the Card cannot
+// supply that host, which the catalog already refuses at load — it is a
+// belt-and-braces return, not a runtime path content can reach.
+export function counterHostRef(
+  host: CounterDefinition['host'],
+  action: Extract<EncounterActionInput, { kind: 'fire_slot' }>,
+  targetType: Card['target_type'],
+): CounterRef | null {
+  if (host === 'hex') {
+    return action.targetHex === undefined ? null : hexCounterRef(action.targetHex)
+  }
+  if (host === 'slot') {
+    return action.targetSlotIndex === undefined ? null : slotRef(action.sourceId, action.targetSlotIndex)
+  }
+  return combatantRef(targetType === 'piece' ? (action.targetId ?? '') : action.sourceId)
+}
+
+// Which host a Card's Reader is talking about. A closed set of two subjects,
+// not a path expression: the firing Hero, or whatever the Card chose — which
+// since D-048 may be a piece, a hex, or a prepared Slot, decided by the Card's
+// own `target_type` rather than by a third subject name.
+export function readerSubject(
+  action: Extract<EncounterActionInput, { kind: 'fire_slot' }>,
+  targetType: Card['target_type'],
+  on: CardReader['on'],
+): CounterRef | null {
+  if (on === 'self') {
+    return combatantRef(action.sourceId)
+  }
+  if (targetType === 'hex') {
+    return action.targetHex === undefined ? null : hexCounterRef(action.targetHex)
+  }
+  if (targetType === 'board_slot') {
+    return action.targetSlotIndex === undefined ? null : slotRef(action.sourceId, action.targetSlotIndex)
+  }
+  return action.targetId ? combatantRef(action.targetId) : null
+}
+
+export function readerCount(catalog: ContentCatalog, draft: EncounterState, reader: CardReader, ref: CounterRef | null): number {
+  if (ref === null) {
+    return 0
+  }
+  return reader.counter !== ''
+    ? counterCount(draft, ref, reader.counter)
+    : counterCountByKeyword(catalog, draft, ref, reader.counter_keyword)
+}
+
+// Whether every `gate` on a Card is satisfied right now. Multiple gates AND;
+// there is no `or` and there is not going to be one.
+export function cardGatesPass(
+  catalog: ContentCatalog,
+  state: EncounterState,
+  card: Card,
+  action: Extract<EncounterActionInput, { kind: 'fire_slot' }>,
+): boolean {
+  return card.reads.every((reader) => {
+    if (reader.verb !== 'gate') {
+      return true
+    }
+    return readerCount(catalog, state, reader, readerSubject(action, card.target_type, reader.on)) >= reader.at_least
+  })
 }

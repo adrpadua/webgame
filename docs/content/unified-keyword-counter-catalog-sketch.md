@@ -282,7 +282,7 @@ Beyond the existing "unknown id" checks:
 ## 8. Migration order
 
 **Phase 0 — shipped (D-046).** `damage_classification`, `target_selector`, and
-`counter_tags` are keyword references validated by id and by kind; `raid_hit` is authored in
+`counter_tags` (since renamed `answer_tags`, because "counter" now names the marker) are keyword references validated by id and by kind; `raid_hit` is authored in
 `data/keywords/`; `role_marker` is gone, derived from `kind === 'role'`; `ENGINE_KEYWORDS`
 asserts at load that every Keyword the rules name by id exists as the right kind. Gameplay
 bit-identical — the smoke's replay fingerprint is unchanged.
@@ -294,12 +294,20 @@ plus a `reads` list. Fortified went too — its banked Armor is the count, so D-
 stacking is addition. Riposte Ready stays engine-built. Gameplay identical: the 36-policy
 evaluation sweep is byte-identical to the pre-change run across every metric.
 
-Two things the sketch got wrong, found by building it:
+Four things the sketch got wrong, found by building it:
 
 - **`per` has to be signed.** §5 proposed `min(1)`. Weakened is `-1`; a debuff needs it.
 - **`spend` cannot take a `counter_keyword`.** "Remove 3 of any fire Counter" makes the rules
   choose which, and a rule that chooses for the player cannot be planned against. `gate` and
   `scale` still match by Keyword; only `spend` is restricted.
+- **`on` shipped with two subjects, not four.** §5 proposed `self | source | target |
+  encounter`. `source` and `target` are the same combatant for every card a Hero fires, and
+  `encounter` has no Counter host to name (see the §1 correction), so both would have been
+  vocabulary nothing could reach.
+- **`timing` defaults to `cost`, not `resolution`.** §5 said the reverse. Paying before the
+  effect resolves is the ordinary reading of a cost, and it is the safer default: a card that
+  scales off what it spends reads as "spend, then use what's left" rather than double-dipping
+  by omission.
 
 And one the sketch was right about but overstated: §7's reachability lint ships **read-side
 only**. A Counter nothing reads fails the build. A Counter nothing *places* does not, because

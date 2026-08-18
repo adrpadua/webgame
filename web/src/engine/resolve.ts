@@ -9,8 +9,6 @@ import { resolveBossBeat, advanceProgram, applyPhaseBreak, phaseBreakDue } from 
 import { ESCALATION_MAX } from './escalation'
 import { shuffle } from './rng'
 import {
-  counterCount,
-  counterCountByKeyword,
   counterEvent,
   createFortified,
   createFromDefinition,
@@ -23,15 +21,17 @@ import {
   roundUpkeep,
   readerSum,
   spendCounter,
+  counterHostRef,
+  readerCount,
+  readerSubject,
   combatantRef,
-  hexCounterRef,
   slotRef,
   clearCounters,
   type CounterRef,
 } from './counters'
 import { TANK_HIT } from './keywords'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
-import type { CardReader, CounterDefinition } from './content/schemas'
+import type { CardReader } from './content/schemas'
 import type { CardInstance, EncounterState, HazardInstance, HeroState, Phase, ResolveResult, ResolvedActionFact } from './types'
 
 // The reducer seam (ADR 0019): resolve(state, action) returns the next
@@ -207,10 +207,10 @@ function resolveOne(
           fact.resolutionFact = { counter_event: counterEvent({ ...fortified, count: banked }, 'placed', fortified.triggerReason) }
         }
       }
-      // An authored Counter. `target_type` decides where it lands: the chosen
-      // piece when the card targets one, the firing Hero otherwise (D-033,
-      // kept by D-047). `board_slot` — an ally's Top Card — is canon but
-      // unbuilt (D-035) and rejected at load.
+      // An authored Counter. Where it lands is the Counter's `host` read
+      // through what the card targeted (D-033, kept by D-047, widened by
+      // D-048). `board_slot` reaches a prepared Slot; solo that is one of the
+      // firing Hero's own, since there is no ally to attach to yet.
       if (card.places_counter !== '') {
         const definition = catalog.counters[card.places_counter]
         if (definition) {
@@ -258,17 +258,7 @@ function resolveOne(
         }
         const bossBaseAmount = baseBossDamage + (burstIncludesBoss ? effects.targetDamage : 0)
         const bossAmount = bossBaseAmount + consumed.bonusBossDamage
-        const factContext = cardDamageContext(
-          card,
-          consumed.bonusBossDamage > 0
-            ? {
-                base_amount: bossBaseAmount,
-                counter_bonus: consumed.bonusBossDamage,
-                counter_id: (consumed.events[0] as { counter_id: string }).counter_id,
-                payoff_card_id: card.id,
-              }
-            : undefined,
-        )
+        const factContext = cardDamageContext(card, payoffContext(card, consumed, bossBaseAmount))
         if (bossAmount > 0) {
           generated.push({
             kind: 'damage',
@@ -281,17 +271,7 @@ function resolveOne(
         }
       } else {
         if (baseBossDamage + consumed.bonusBossDamage > 0) {
-          const factContext = cardDamageContext(
-            card,
-            consumed.bonusBossDamage > 0
-              ? {
-                  base_amount: baseBossDamage,
-                  counter_bonus: consumed.bonusBossDamage,
-                  counter_id: (consumed.events[0] as { counter_id: string }).counter_id,
-                  payoff_card_id: card.id,
-                }
-              : undefined,
-          )
+          const factContext = cardDamageContext(card, payoffContext(card, consumed, baseBossDamage))
           generated.push({
             kind: 'damage',
             sourceId: action.sourceId,
@@ -419,7 +399,7 @@ function resolveOne(
         break
       }
       fact.detail.dealt = resolutionFact.health_loss
-      evaluateDamageStatus(draft, action, resolutionFact)
+      evaluateRiposteGrant(draft, action, resolutionFact)
       fact.resolutionFact = resolutionFact
       succeed(fact)
       break
@@ -695,7 +675,7 @@ function clearWindowFlags(draft: EncounterState, window: Phase): void {
   }
 }
 
-interface ConsumedStatuses {
+interface ConsumedCounters {
   bonusBossDamage: number
   events: Record<string, unknown>[]
 }
@@ -705,8 +685,8 @@ interface ConsumedStatuses {
 // other Boss-damage card takes the smaller off-payoff bonus. Cards that deal
 // no Boss damage never consume it. Graded consumption is engine-only (D-015,
 // D-033) — it is exactly what the Reader vocabulary models badly.
-function consumeCountersForSlot(draft: EncounterState, entityId: string, card: Card, dealsBossDamage: boolean): ConsumedStatuses {
-  const result: ConsumedStatuses = { bonusBossDamage: 0, events: [] }
+function consumeCountersForSlot(draft: EncounterState, entityId: string, card: Card, dealsBossDamage: boolean): ConsumedCounters {
+  const result: ConsumedCounters = { bonusBossDamage: 0, events: [] }
   const remaining = []
   const ref = combatantRef(entityId)
   for (const counter of getCounters(draft, ref)) {
@@ -736,6 +716,20 @@ function slotFiredCounterActions(draft: EncounterState, entityId: string): Encou
   return [{ kind: 'damage', sourceId: entityId, targetId: draft.bossId, amount: bonus, reasonText: 'counter_reader' }]
 }
 
+// The consumed-Counter half of a Boss-damage fact context, which the burst
+// and non-burst branches both need to say the same way.
+function payoffContext(card: Card, consumed: ConsumedCounters, baseAmount: number): Record<string, unknown> | undefined {
+  if (consumed.bonusBossDamage <= 0) {
+    return undefined
+  }
+  return {
+    base_amount: baseAmount,
+    counter_bonus: consumed.bonusBossDamage,
+    counter_id: (consumed.events[0] as { counter_id: string }).counter_id,
+    payoff_card_id: card.id,
+  }
+}
+
 // The fact context every blow a Card deals carries. The Card's own damage
 // Keywords ride it so a Counter can answer what the party throws, not just
 // what the Boss does (D-049) — the party's damage was unkeyworded while only
@@ -747,70 +741,6 @@ function cardDamageContext(card: Card, extra?: Record<string, unknown>): Record<
     return undefined
   }
   return { ...keywords, ...extra }
-}
-
-// Where a Card puts the Counter it places: the Counter's own `host`, resolved
-// through whatever the Card targeted (D-048). `null` means the Card cannot
-// supply that host, which the catalog already refuses at load — it is a
-// belt-and-braces return, not a runtime path content can reach.
-function counterHostRef(
-  host: CounterDefinition['host'],
-  action: Extract<EncounterActionInput, { kind: 'fire_slot' }>,
-  targetType: Card['target_type'],
-): CounterRef | null {
-  if (host === 'hex') {
-    return action.targetHex === undefined ? null : hexCounterRef(action.targetHex)
-  }
-  if (host === 'slot') {
-    return action.targetSlotIndex === undefined ? null : slotRef(action.sourceId, action.targetSlotIndex)
-  }
-  return combatantRef(targetType === 'piece' ? (action.targetId ?? '') : action.sourceId)
-}
-
-// Which host a Card's Reader is talking about. A closed set of two subjects,
-// not a path expression: the firing Hero, or whatever the Card chose — which
-// since D-048 may be a piece, a hex, or a prepared Slot, decided by the Card's
-// own `target_type` rather than by a third subject name.
-function readerSubject(
-  action: Extract<EncounterActionInput, { kind: 'fire_slot' }>,
-  targetType: Card['target_type'],
-  on: CardReader['on'],
-): CounterRef | null {
-  if (on === 'self') {
-    return combatantRef(action.sourceId)
-  }
-  if (targetType === 'hex') {
-    return action.targetHex === undefined ? null : hexCounterRef(action.targetHex)
-  }
-  if (targetType === 'board_slot') {
-    return action.targetSlotIndex === undefined ? null : slotRef(action.sourceId, action.targetSlotIndex)
-  }
-  return action.targetId ? combatantRef(action.targetId) : null
-}
-
-function readerCount(catalog: ContentCatalog, draft: EncounterState, reader: CardReader, ref: CounterRef | null): number {
-  if (ref === null) {
-    return 0
-  }
-  return reader.counter !== ''
-    ? counterCount(draft, ref, reader.counter)
-    : counterCountByKeyword(catalog, draft, ref, reader.counter_keyword)
-}
-
-// Whether every `gate` on a Card is satisfied right now. Multiple gates AND;
-// there is no `or` and there is not going to be one.
-export function cardGatesPass(
-  catalog: ContentCatalog,
-  state: EncounterState,
-  card: Card,
-  action: Extract<EncounterActionInput, { kind: 'fire_slot' }>,
-): boolean {
-  return card.reads.every((reader) => {
-    if (reader.verb !== 'gate') {
-      return true
-    }
-    return readerCount(catalog, state, reader, readerSubject(action, card.target_type, reader.on)) >= reader.at_least
-  })
 }
 
 // `spend` at one timing. Records what actually came off rather than what was
@@ -883,14 +813,13 @@ function applyDamage(
   const dealtDelta = sourceId === '' ? 0 : readerSum(draft, combatantRef(sourceId), 'host_deals_damage', 'target_damage', damageKeywords)
   const takenDelta = readerSum(draft, combatantRef(targetId), 'host_takes_damage', 'target_damage', damageKeywords)
   const requested = Math.max(amount + dealtDelta + takenDelta, 0)
-  // Armor is the only mitigation there has ever been: the old per-status
+  // Armor is the only mitigation there has ever been: the old per-Counter
   // `damageReduction` field was never set by anything and left with D-047.
-  const adjusted = requested
   const hero = draft.heroes[targetId]
   if (hero) {
-    const armorBlocked = Math.min(hero.armor, adjusted)
+    const armorBlocked = Math.min(hero.armor, requested)
     hero.armor -= armorBlocked
-    const remaining = adjusted - armorBlocked
+    const remaining = requested - armorBlocked
     const dealt = Math.min(remaining, hero.health)
     hero.health = Math.max(hero.health - dealt, 0)
     syncHeroEntity(draft, targetId)
@@ -898,7 +827,7 @@ function applyDamage(
   }
   const target = draft.board.entities[targetId]
   const healthBefore = target?.health ?? 0
-  const dealt = damageEntity(draft.board, targetId, adjusted)
+  const dealt = damageEntity(draft.board, targetId, requested)
   if (healthBefore <= 0) {
     return { requested, prevented: 0, health_loss: 0, target_available: false }
   }
@@ -915,7 +844,7 @@ function applyDamage(
 
 // Riposte Ready: a qualifying Tank Hit against the Guarded Front with zero
 // Health loss grants the status; the evaluation is always recorded.
-function evaluateDamageStatus(
+function evaluateRiposteGrant(
   draft: EncounterState,
   action: Extract<EncounterActionInput, { kind: 'damage' }>,
   resolutionFact: Record<string, unknown>,

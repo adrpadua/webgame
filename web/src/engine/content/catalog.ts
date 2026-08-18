@@ -22,7 +22,7 @@ import {
   type CounterDefinition,
 } from './schemas'
 import { ENGINE_KEYWORDS, KEYWORD_REFERENCES, type KeywordKind } from '../keywords'
-import { ENGINE_COUNTERS } from '../counters'
+import { ENGINE_COUNTERS, READABLE_READER_PAIRS } from '../counters'
 import { hexDistance } from '../hex'
 
 // The Beat kinds that ask a distance question, and therefore must author one.
@@ -298,6 +298,11 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       requireKeyword(catalog, keywordId, KEYWORD_REFERENCES.counterKeyword, `Counter ${counter.id}`, 'keywords')
     }
     for (const reader of counter.readers) {
+      if (!READABLE_READER_PAIRS.some((pair) => pair.when === reader.when && pair.effect === reader.effect)) {
+        throw new Error(
+          `Counter ${counter.id} authors a ${reader.when}/${reader.effect} reader, which nothing reads; the readable pairs are ${READABLE_READER_PAIRS.map((pair) => `${pair.when}/${pair.effect}`).join(', ')}`,
+        )
+      }
       if (reader.per === 0) {
         throw new Error(`Counter ${counter.id} has a ${reader.when} reader with per 0, which does nothing`)
       }
@@ -348,7 +353,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       // The three Beat fields that were free text until now. All three are
       // joins into the Keyword namespace, and `damage_keywords` is the
       // one that mattered: the rules compare it against `tank_hit` to grant
-      // Riposte Ready, so an unchecked typo here disabled a Status Effect
+      // Riposte Ready, so an unchecked typo here disabled a Counter grant
       // silently, at load, with every test still green.
       for (const keywordId of beat.damage_keywords) {
         requireKeyword(catalog, keywordId, KEYWORD_REFERENCES.damageKeywords, `Boss Beat ${beat.id}`, 'damage_keywords')
@@ -356,8 +361,8 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       if (beat.target_selector !== '') {
         requireKeyword(catalog, beat.target_selector, KEYWORD_REFERENCES.targetSelector, `Boss Beat ${beat.id}`, 'target_selector')
       }
-      for (const tag of beat.counter_tags) {
-        requireKeyword(catalog, tag, KEYWORD_REFERENCES.counterTag, `Boss Beat ${beat.id}`, 'counter_tags')
+      for (const tag of beat.answer_tags) {
+        requireKeyword(catalog, tag, KEYWORD_REFERENCES.answerTag, `Boss Beat ${beat.id}`, 'answer_tags')
       }
       // Reach is authored, and a Beat kind that asks a distance question has to
       // answer it. Left to the schema default a cone would collapse to nothing
@@ -499,7 +504,7 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
       if (beat.target_selector) {
         addKeyword(beat.target_selector)
       }
-      beat.counter_tags.forEach(addKeyword)
+      beat.answer_tags.forEach(addKeyword)
     }
   }
 
@@ -509,6 +514,14 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
     addProgram(programId)
   }
   return reachable
+}
+
+// Whether firing this card needs a chosen piece — because it puts a Counter
+// on one, or reads Counters there. One predicate, because legality and the
+// targeting projection the board draws from have to agree about which pieces
+// are offerable; two copies of it is how they come to disagree.
+export function cardNeedsPieceTarget(card: Card): boolean {
+  return card.target_type === 'piece' && (card.places_counter !== '' || card.reads.some((reader) => reader.on === 'target'))
 }
 
 // The Top Card alone determines activation timing; legacy "fast" reads as quick.

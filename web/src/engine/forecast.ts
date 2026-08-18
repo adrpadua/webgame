@@ -24,10 +24,10 @@ export function highestTier(program: BossProgram): ConsequenceTier {
 // titles, so the Forecast Row keeps reading `Position · Mitigate · Kill Adds`
 // while the content underneath is a validated reference rather than a display
 // string a designer had to spell identically in five program files.
-export function programCounterTags(catalog: ContentCatalog, program: BossProgram): string[] {
+export function programAnswerTags(catalog: ContentCatalog, program: BossProgram): string[] {
   const titles: string[] = []
   for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
-    for (const tag of beat.counter_tags) {
+    for (const tag of beat.answer_tags) {
       const title = keywordTitle(catalog, tag)
       if (!titles.includes(title)) {
         titles.push(title)
@@ -53,7 +53,7 @@ export interface Forecast {
   // Family level only: what kind of problem is developing, never its
   // parameters. Targets, magnitudes, and hexes belong to the Incoming and
   // Instant rows (ADR 0026).
-  counterTags: string[]
+  answerTags: string[]
   tier: ConsequenceTier
   rulesText: string
 }
@@ -82,7 +82,7 @@ export function forecast(catalog: ContentCatalog, state: EncounterState): Foreca
   return {
     programId,
     title: program.title,
-    counterTags: programCounterTags(catalog, program),
+    answerTags: programAnswerTags(catalog, program),
     tier: highestTier(program),
     rulesText: program.rules_text,
   }

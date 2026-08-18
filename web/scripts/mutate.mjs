@@ -162,6 +162,48 @@ const MUTATIONS = [
     from: 'export const ESCALATION_MAX = 5',
     to: 'export const ESCALATION_MAX = 6',
   },
+  {
+    name: 'Round upkeep skips every host but the Party',
+    guards: 'D-045: the duration tick is every combatant\'s, not the Heroes\' alone',
+    file: 'counters.ts',
+    from: '      if (counterExpiresOnRoundAdvance(counter)) {',
+    to: '      if (counterExpiresOnRoundAdvance(counter) && state.heroes[refEntityId(ref)] !== undefined) {',
+  },
+  {
+    name: 'a Counter outlives the host that left',
+    guards: 'D-045 / D-048: a Counter never outlives its host, whichever kind of host it is',
+    file: 'counters.ts',
+    from: '    if (!hostIsLive(state, ref)) {\n      delete state.counters[ref]',
+    to: '    if (false) {\n      delete state.counters[ref]',
+  },
+  {
+    name: 'placement ignores the authored cap',
+    guards: 'D-047: `max` is the stacking rule, and `max: 1` is what refuses a second copy',
+    file: 'counters.ts',
+    from: '    const placed = Math.min(amount, existing.max - existing.count)',
+    to: '    const placed = amount',
+  },
+  {
+    name: 'a Reader answers blows it does not name',
+    guards: 'D-049: a Reader naming an event_keyword answers only blows carrying it',
+    file: 'counters.ts',
+    from: '      if (reader.event_keyword && !eventKeywords.includes(reader.event_keyword)) {',
+    to: '      if (false) {',
+  },
+  {
+    name: 'a gate stops gating',
+    guards: 'D-047: every `gate` a Card declares has to pass before it may fire',
+    file: 'legality.ts',
+    from: '      if (!cardGatesPass(catalog, state, card, action)) {',
+    to: '      if (false) {',
+  },
+  {
+    name: 'a cost spend is never paid before the Card resolves',
+    guards: 'D-047: a `cost` spend is paid before the Card\'s effects are computed',
+    file: 'resolve.ts',
+    from: "const spentEarly = spendCardReaders(draft, card, action, 'cost')",
+    to: "const spentEarly = spendCardReaders(draft, card, action, 'resolution')",
+  },
 ]
 
 const filter = process.argv[2] ?? ''

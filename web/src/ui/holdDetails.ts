@@ -163,7 +163,7 @@ export function forecastDetail(ahead: Forecast): HoldDetail {
     tone: 'boss',
     stats: [{ label: 'Severity', value: TIER_COPY[ahead.tier] }],
     text: `${ahead.rulesText} Exact targets and hexes arrive when it reaches Incoming — plan for the kind of problem, not the numbers.`,
-    tags: ahead.counterTags,
+    tags: ahead.answerTags,
   }
 }
 
@@ -190,7 +190,7 @@ export function beatDetail(beat: BossBeat, track: 'instant' | 'incoming'): HoldD
     tone: 'boss',
     stats,
     text: beat.rules_text,
-    tags: beat.counter_tags,
+    tags: beat.answer_tags,
   }
 }
 

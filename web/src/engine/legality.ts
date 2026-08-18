@@ -1,8 +1,7 @@
-import { cardChargeCap, cardWindowSpeed, type ContentCatalog } from './content/catalog'
+import { cardChargeCap, cardNeedsPieceTarget, cardWindowSpeed, type ContentCatalog } from './content/catalog'
 import { hexDistance, hexKey } from './hex'
 import { isLegalMove } from './board'
-import { getCounter, type CounterRef } from './counters'
-import { cardGatesPass } from './resolve'
+import { cardGatesPass, getCounter, type CounterRef } from './counters'
 import type { EncounterActionInput } from './actions'
 import type { CardInstance, EncounterState, HeroState, LegalityVerdict } from './types'
 
@@ -149,9 +148,7 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       // Enemy, and each kind keeps the targeting rule it already had (D-034,
       // kept by D-047): a Minion must be in range, the Boss needs none —
       // requiring one would contradict the positionless `boss_damage` ruling.
-      const needsEnemyPiece =
-        card.target_type === 'piece' && (card.places_counter !== '' || card.reads.some((reader) => reader.on === 'target'))
-      if (needsEnemyPiece) {
+      if (cardNeedsPieceTarget(card)) {
         const targetId = action.targetId ?? ''
         const target = state.board.entities[targetId]
         if (!target || target.team !== 'enemy') {

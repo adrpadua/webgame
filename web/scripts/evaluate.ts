@@ -202,7 +202,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
       return true
     }
     const ahead = forecast(catalog, state)
-    if (ahead !== null && ahead.counterTags.includes('Mitigate')) {
+    if (ahead !== null && ahead.answerTags.includes('Mitigate')) {
       shovesHeld += 1
       return false
     }

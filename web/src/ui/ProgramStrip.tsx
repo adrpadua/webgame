@@ -151,7 +151,7 @@ function ForecastRow({ ahead }: { ahead: Forecast }) {
         {...hold.holdProps}
         data-testid="forecast-chip"
         data-tier={ahead.tier}
-        aria-label={`Next Round: ${ahead.title}. Answers wanted: ${ahead.counterTags.join(', ')}.`}
+        aria-label={`Next Round: ${ahead.title}. Answers wanted: ${ahead.answerTags.join(', ')}.`}
         className="flex min-w-0 flex-wrap items-baseline gap-x-2"
       >
         <span
@@ -163,7 +163,7 @@ function ForecastRow({ ahead }: { ahead: Forecast }) {
         >
           {ahead.title}
         </span>
-        {ahead.counterTags.length > 0 && <span className="text-[10px] text-steel-500">{ahead.counterTags.join(' · ')}</span>}
+        {ahead.answerTags.length > 0 && <span className="text-[10px] text-steel-500">{ahead.answerTags.join(' · ')}</span>}
       </div>
     </div>
   )

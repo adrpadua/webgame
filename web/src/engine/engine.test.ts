@@ -26,7 +26,7 @@ import {
   escalationStartRound,
   forecast,
   highestTier,
-  programCounterTags,
+  programAnswerTags,
   programPredictability,
   resolve,
   runScenario,
@@ -290,8 +290,8 @@ describe('content catalog', () => {
     })
 
     it('rejects an unauthored counter tag and an unauthored target selector', () => {
-      expect(() => buildCatalog({ ...empty, programs: [beatProgram({ counter_tags: ['Kill Adds'] })] })).toThrow(
-        'Boss Beat probe_beat references unknown keyword Kill Adds in counter_tags',
+      expect(() => buildCatalog({ ...empty, programs: [beatProgram({ answer_tags: ['Kill Adds'] })] })).toThrow(
+        'Boss Beat probe_beat references unknown keyword Kill Adds in answer_tags',
       )
       expect(() => buildCatalog({ ...empty, programs: [beatProgram({ target_selector: 'tank' })] })).toThrow(
         'Boss Beat probe_beat references unknown keyword tank in target_selector',
@@ -395,6 +395,19 @@ describe('content catalog', () => {
       }
       expect(() => buildCatalog({ ...empty, counters: [bad] })).toThrow(
         'is hosted on a hex but declares readers, and every reader event is a combatant\'s',
+      )
+    })
+
+    it('rejects a Reader whose when/effect pair nothing reads', () => {
+      // The `on_enter_hex` trap one level up: the two enums multiply out to
+      // sixteen pairs and the rules read four, so the other twelve would
+      // validate cleanly and never fire.
+      const bad = {
+        source: 'data/counters/idle.json',
+        payload: { id: 'idle', title: 'Idle', readers: [{ when: 'slot_fired', effect: 'armor', per: 1 }] },
+      }
+      expect(() => buildCatalog({ ...empty, counters: [bad] })).toThrow(
+        'authors a slot_fired/armor reader, which nothing reads',
       )
     })
 
@@ -1046,7 +1059,7 @@ describe('Own-side Hazard immunity (D-042)', () => {
 
 describe('Program identity (D-036)', () => {
   it('gives each Phase I program a distinct set of demands', () => {
-    const tags = (id: string) => programCounterTags(catalog, catalog.programs[id]).sort().join(',')
+    const tags = (id: string) => programAnswerTags(catalog, catalog.programs[id]).sort().join(',')
     const hunt = tags('embermaw_hunt')
     const embers = tags('embermaw_embers')
     const brood = tags('embermaw_brood')
@@ -1054,10 +1067,10 @@ describe('Program identity (D-036)', () => {
     // Named explicitly, because "they differ" is weaker than "they differ in
     // the way the design intends": Armor answers Hunt, footwork answers Ember,
     // and only Brood asks anyone to kill something.
-    expect(programCounterTags(catalog, catalog.programs.embermaw_brood)).toContain('Kill Adds')
-    expect(programCounterTags(catalog, catalog.programs.embermaw_embers)).not.toContain('Mitigate')
-    expect(programCounterTags(catalog, catalog.programs.embermaw_embers)).not.toContain('Kill Adds')
-    expect(programCounterTags(catalog, catalog.programs.embermaw_hunt)).not.toContain('Kill Adds')
+    expect(programAnswerTags(catalog, catalog.programs.embermaw_brood)).toContain('Kill Adds')
+    expect(programAnswerTags(catalog, catalog.programs.embermaw_embers)).not.toContain('Mitigate')
+    expect(programAnswerTags(catalog, catalog.programs.embermaw_embers)).not.toContain('Kill Adds')
+    expect(programAnswerTags(catalog, catalog.programs.embermaw_hunt)).not.toContain('Kill Adds')
   })
 
   it('keeps the first program of every phase free of severe Beats', () => {
@@ -1941,10 +1954,14 @@ describe('Counter hosts — ground and prepared cards (D-048)', () => {
     expect(verdict.reason).toContain('prepared Slot')
   })
 
-  it('drops ground Counters when the ground itself burns away', () => {
-    // A structural Escalation Threshold takes hexes off the board for good
-    // (D-031). Whatever was marked on them goes too — the upkeep asks whether
-    // the host is still there, not what kind of host it was.
+  it('drops ground Counters when the hex leaves the board', () => {
+    // The upkeep asks whether the host is still there, not what kind of host
+    // it was. Note what this does *not* prove: no live mechanic removes a hex.
+    // A structural Escalation Threshold lays a permanent Hazard on ground
+    // (D-031) rather than taking it off the board, so a Counter on Scorched
+    // ground survives today. This deletes the hex directly to reach the
+    // liveness rule; whether Scorch should also drop Counters is a design
+    // question nobody has answered.
     const variant = withHosts(
       { embers: { host: 'hex', max: 3 } },
       { scatter: { target_type: 'hex', range_tiles: 2, burst_radius: 0, places_counter: 'embers' } },
@@ -2104,7 +2121,7 @@ describe('Forecast Row (D-021, ADR 0026)', () => {
       title: catalog.programs.embermaw_brood.title,
       tier: 'severe',
     })
-    expect(ahead.counterTags).toEqual(['Position', 'Mitigate', 'Kill Adds'])
+    expect(ahead.answerTags).toEqual(['Position', 'Mitigate', 'Kill Adds'])
     expect(Object.keys(ahead)).not.toContain('damage')
   })
 

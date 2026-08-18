@@ -29,7 +29,7 @@ export const KEYWORD_REFERENCES = {
   chargeModifierMatch: ['trait', 'role'] as KeywordKind[],
   damageKeywords: ['damage_type'] as KeywordKind[],
   targetSelector: ['role'] as KeywordKind[],
-  counterTag: ['answer'] as KeywordKind[],
+  answerTag: ['answer'] as KeywordKind[],
   // A Counter is tagged with what sort of thing it is, so a card can read
   // "every fire Counter" without naming each one.
   counterKeyword: ['trait'] as KeywordKind[],

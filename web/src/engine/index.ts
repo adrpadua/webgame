@@ -45,5 +45,5 @@ export { combatantRef, counterCount, counterCountByKeyword, getCounters, hexCoun
 export { getEntityIdAt, isLegalMove, neighbors, isGuardedFront } from './board'
 export { minionIntent, minionIntents, type MinionIntent } from './minions'
 export { ESCALATION_MAX, escalationModifiers, escalationStartRound, type EscalationModifiers } from './escalation'
-export { forecast, highestTier, nextProgramId, programCounterTags, type ConsequenceTier, type Forecast } from './forecast'
+export { forecast, highestTier, nextProgramId, programAnswerTags, type ConsequenceTier, type Forecast } from './forecast'
 export { programPredictability, type ProgramPredictability, type RoundPredictability } from './predictability'

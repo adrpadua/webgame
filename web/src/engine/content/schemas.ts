@@ -66,9 +66,10 @@ export const counterReaderSchema = z.object({
 })
 
 // A Counter: identity, host, bounds, and what reads it. Counters replace the
-// Status Effect definition (D-047). The two named payload fields D-034 chose
-// are gone — an Enemy-facing Counter is one whose Readers happen to fire on
-// an Enemy's events, not a separate kind of thing with its own schema.
+// Status Effect definition entirely (D-047). The two named payload fields
+// D-034 chose are gone — an Enemy-facing Counter is one whose Readers happen
+// to fire on an Enemy's events, not a separate kind of thing with its own
+// schema.
 export const counterSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -140,8 +141,9 @@ export const cardSchema = z.object({
   charge_modifiers: z.array(z.string()).default([]),
   // The Counter this card places, if any. Where it lands comes from
   // `target_type`, which D-033 made load-bearing and D-047 leaves alone:
-  // `none` places on the firing Hero, `piece` on a selected Enemy,
-  // `board_slot` on an ally's Top Card (canon, unbuilt — D-035).
+  // `none` places on the firing Hero, `piece` on a selected piece,
+  // `board_slot` on a prepared Slot — solo, one of the firing Hero's own,
+  // since D-035's ally has no seat at the table yet.
   places_counter: z.string().default(''),
   counter_amount: z.number().int().min(1).default(1),
   // What this card's damage is made of, so a Counter can answer it (D-049).
@@ -190,7 +192,7 @@ export const bossBeatSchema = z.object({
     'spawn_minions',
     'warning',
   ]),
-  counter_tags: z.array(z.string()).default([]),
+  answer_tags: z.array(z.string()).default([]),
   // Consequence Tier (ADR 0026): sets the earliest horizon this Beat may
   // appear in. `chip` anywhere, `structural` no later than Incoming, `severe`
   // in the Forecast Row first. Authored rather than derived, and validated —
