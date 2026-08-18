@@ -26,6 +26,46 @@ describe('playout director', () => {
     vi.useRealTimers()
   })
 
+  it('holds every unplayed spawn back from the state it opens with', () => {
+    // Not "by the time it settles" — from the first state it publishes. Each
+    // set here notifies the board, and a single frame in which nothing was
+    // pending is a frame with the Whelps of an unplayed Brood Call standing
+    // on their hexes. That frame is also where their sprites get made, so the
+    // board then carries them through the whole Row that was still working up
+    // to calling them.
+    const spawning: PlayoutScript = {
+      initial: {},
+      endsEncounter: false,
+      moments: [
+        { beatId: 'within_reach', beatTitle: 'Within Reach', effects: [], gauges: {} },
+        {
+          beatId: 'brood_call',
+          beatTitle: 'Brood Call',
+          effects: [
+            { kind: 'spawn', entityId: 'whelp_1', at: { q: -2, r: 1 }, tone: 'boss' },
+            { kind: 'spawn', entityId: 'whelp_2', at: { q: 2, r: -1 }, tone: 'boss' },
+          ],
+          gauges: {},
+        },
+      ],
+    }
+    const seen: string[][] = []
+    const unsubscribe = usePlayout.subscribe((store) => seen.push([...store.pendingSpawnIds]))
+    usePlayout.getState().begin(spawning, false)
+    unsubscribe()
+    expect(seen.length).toBeGreaterThan(0)
+    for (const published of seen) {
+      expect([...published].sort()).toEqual(['whelp_1', 'whelp_2'])
+    }
+    // The beat before theirs plays and they are still held: it is their own
+    // beat that puts them on the board, not the Row starting.
+    usePlayout.getState().continuePlayout()
+    expect(usePlayout.getState().pendingSpawnIds).toEqual(['whelp_1', 'whelp_2'])
+    vi.advanceTimersByTime(EFFECT_SETTLE_MS)
+    usePlayout.getState().continuePlayout()
+    expect(usePlayout.getState().pendingSpawnIds).toEqual([])
+  })
+
   it('gives every beat its own press, the opening one included', () => {
     // momentSeq is the board's channel and counts across the session, so
     // what a batch fires is read as a delta, never an absolute.

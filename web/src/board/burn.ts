@@ -1,6 +1,6 @@
 import type { Axial } from '@/engine'
 import { HEX_SIZE, type Point } from './layout'
-import { easeOutCubic, hexNoise } from './math'
+import { clamp01, easeOutCubic, hexNoise } from './math'
 
 // What a hex looks like while it catches fire.
 //
@@ -131,10 +131,11 @@ const WIDTH_SALT = REACH_SALT + TONGUE_COUNT
 const EMBER_X_SALT = WIDTH_SALT + TONGUE_COUNT
 const EMBER_Y_SALT = EMBER_X_SALT + EMBER_COUNT
 const EMBER_DEATH_SALT = EMBER_Y_SALT + EMBER_COUNT
-
-function clamp01(value: number): number {
-  return value < 0 ? 0 : value > 1 ? 1 : value
-}
+// Where this module's draws stop. Exported because the hash space of a hex is
+// shared: the next effect to read that hex starts here rather than at a number
+// somebody read off this file once and wrote into a comment, which is a
+// collision waiting for whoever raises TONGUE_COUNT.
+export const BURN_SALTS_END = EMBER_DEATH_SALT + EMBER_COUNT
 
 // How tall the fire stands at `t`: up fast, held, then collapsing back into
 // the ground it has finished eating. Zero once there is nothing left.

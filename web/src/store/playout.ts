@@ -133,7 +133,19 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
       // first: -1 is what continuePlayout counts from and what pendingAfter
       // reads to hold every moment's hazards, spawns and turns back.
       momentIndex = -1
-      set({ ...IDLE, overrides: { ...script.initial }, outcomeHeld: script.endsEncounter, paced: !autoAdvance })
+      // The hold-back goes in with the opening state, not after it. Every set
+      // here notifies subscribers, and the board is one of them: leaving it
+      // out of this one published a frame in which nothing was pending, which
+      // is a frame with every Whelp of an unplayed Brood Call standing on the
+      // board. That frame is also where their sprites got made, so they then
+      // stood there for the rest of the Row.
+      set({
+        ...IDLE,
+        ...pendingAfter(-1),
+        overrides: { ...script.initial },
+        outcomeHeld: script.endsEncounter,
+        paced: !autoAdvance,
+      })
       const opening = moments[0]
       if (opening === undefined) {
         // derivePlayoutScript never scripts an empty batch, and firing a
@@ -151,7 +163,7 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
         fireMoment(0)
         return
       }
-      set({ awaitingContinue: true, nextBeatTitle: opening.beatTitle, ...pendingAfter(-1) })
+      set({ awaitingContinue: true, nextBeatTitle: opening.beatTitle })
     },
     continuePlayout: () => {
       if (!get().awaitingContinue || momentIndex + 1 >= moments.length) {

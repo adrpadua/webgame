@@ -1,5 +1,6 @@
 import type { Axial } from '@/engine'
-import { HEX_SIZE, type Point } from './layout'
+import { HEX_SIZE, TELEGRAPH_RADIUS, type Point } from './layout'
+import { BURN_SALTS_END } from './burn'
 import { easeOutCubic, hexNoise } from './math'
 
 // What a hex looks like while a Minion comes out of it.
@@ -16,13 +17,14 @@ import { easeOutCubic, hexNoise } from './math'
 // furnace sparks" — a piece of the furnace, not a creature that walked on. So
 // the hex breaks and gives one up. Three stages:
 //
-//   break  — the mark on the hex closes to a point and shards are thrown off it
+//   break  — the mark on the hex closes down onto the piece, and splinters of
+//            the furnace come up with it
 //   emerge — the piece swells past its own size and settles back onto it
 //   settle — the heat left in the ground goes out
 //
 // The spawn telegraph has been sitting on this hex for a Round announcing
-// exactly this, and the break is that mark being spent: the ring runs inward,
-// from the tile's edge to the point the Whelp comes through, where the burn's
+// exactly this, and the break is that mark being spent: the ring starts on the
+// telegraph's own radius and runs inward onto the piece, where the burn's
 // ignition flare runs outward to take the whole tile. One is a hex being
 // claimed and the other is a hex delivering, and they should never be mistaken
 // for one another at a glance.
@@ -43,30 +45,32 @@ const OVERSHOOT = 0.14
 // drawn rather than as being pushed out of the ground.
 const ARRIVAL_FLOOR = 0.35
 
-// Shards of the tile the Whelp came through. Six is enough to read as a break
-// and few enough that two spawns in one moment do not fill the board with
-// debris.
+// What comes up with the Whelp. Not chips of oathsteel — the bible calls a
+// Whelp "splintered furnace sparks", so what the hex gives up is the furnace
+// itself, and these are ember coral all the way down: hot where they leave
+// the break, and the Minion's own step by the time they land. Six is enough
+// to read as a break and few enough that two spawns in one moment do not fill
+// the board with debris.
 const SHARD_COUNT = 6
 const SHARD_REACH = 0.46
 const SHARD_SIZE = 0.1
 
-// Salts for this module's own draws. The floor takes 0 and the burn's flames
-// and embers sit below 40, so a hex's fire and the spawn that lands on it are
-// never the same set of numbers.
-const SHARD_ANGLE_SALT = 40
+// Salts for this module's own draws, starting where the burn's stop. Taken
+// from that module rather than from a number copied out of it, so raising the
+// count of anything over there cannot silently land a spawn on the same draws
+// as the fire that hex has already had.
+const SHARD_ANGLE_SALT = BURN_SALTS_END
 const SHARD_REACH_SALT = SHARD_ANGLE_SALT + SHARD_COUNT
 const SHARD_SIZE_SALT = SHARD_REACH_SALT + SHARD_COUNT
 
-// One piece of the broken tile, in pixels relative to the hex's centre. `heat`
-// is 1 as it leaves the ground and 0 as it lands, and the scene spends it
-// between the material of the beat and the material of the piece that arrived.
+// One splinter of the furnace, in pixels relative to the hex's centre. `heat`
+// is 1 as it leaves the break and 0 as it lands, and the scene spends it
+// between the hot value of the beat and the Minion's own step of the same
+// material — the thing that arrived and the pieces that came up with it are
+// made of each other.
 export interface Shard {
   points: Point[]
   heat: number
-}
-
-function clamp01(value: number): number {
-  return value < 0 ? 0 : value > 1 ? 1 : value
 }
 
 // The size the arriving piece draws at, as a multiple of its own. It comes up
@@ -91,16 +95,22 @@ export function arrivalScale(t: number, reducedMotion: boolean): number {
   return 1 + OVERSHOOT * (1 - easeOutCubic((t - RISE_END) / (SETTLE_END - RISE_END)))
 }
 
-// The break: a hex-shaped ring closing from the tile's edge onto the point the
-// piece comes through. Returns the radius to stroke and the alpha to stroke it
-// at; alpha is gone before the piece has finished arriving, so the mark is
-// spent on the way in rather than hanging around the finished Minion.
+// The break: a hex-shaped ring closing from the mark the telegraph has been
+// holding down onto the piece coming through. It starts on that mark rather
+// than on the tile's border — the point of the gesture is that the warning
+// this hex has been wearing for a Round is what gets spent — and it closes to
+// roughly the width of the piece rather than to nothing, because what it is
+// handing over is standing there.
+//
+// Returns the radius to stroke and the alpha to stroke it at; alpha is gone
+// before the piece has finished arriving, so nothing rings a Minion that has
+// finished coming up.
 export function breakRing(t: number): { radius: number; alpha: number } {
   if (t < 0 || t >= BREAK_END) {
     return { radius: 0, alpha: 0 }
   }
   const progress = easeOutCubic(t / BREAK_END)
-  return { radius: HEX_SIZE * (1 - 0.78 * progress), alpha: 0.9 * (1 - progress) }
+  return { radius: TELEGRAPH_RADIUS * (1 - 0.7 * progress), alpha: 0.9 * (1 - progress) }
 }
 
 // The heat left in the ground the piece came out of, as an alpha for the
@@ -115,12 +125,13 @@ export function groundHeat(t: number): number {
   return 0.45 * ramp * (1 - t)
 }
 
-// The shards thrown off the break, in pixels relative to the hex's centre.
+// The splinters coming up with the piece, in pixels relative to the hex's
+// centre.
 //
-// They leave the centre fast and stop early, because they are tile rather than
-// spark: something heavy enough to be thrown a short way and land. Their
-// spread is the hex's own, so one hex always breaks the same way and two hexes
-// breaking together never throw the same pattern.
+// They leave the centre fast and stop early: this is a break, not a shower, and
+// what comes out of it lands. Their spread is the hex's own, so one hex always
+// breaks the same way and two hexes breaking together never throw the same
+// pattern.
 //
 // Nothing is thrown under reduced motion. What that setting keeps is the break
 // ring and the heat in the ground, which say the same thing without moving.
@@ -129,7 +140,7 @@ export function spawnShards(coords: Axial, t: number, reducedMotion: boolean): S
     return []
   }
   const flight = easeOutCubic(t / BREAK_END)
-  const heat = 1 - clamp01(t / BREAK_END)
+  const heat = 1 - t / BREAK_END
   const shards: Shard[] = []
   for (let index = 0; index < SHARD_COUNT; index += 1) {
     // Around the hex rather than at random: six shards clustered on one side

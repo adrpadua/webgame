@@ -130,6 +130,29 @@ export const TELEGRAPH_ALPHA = { cone: 0.7, spawn: 0.58 } as const
 // top of the ranking.
 export const BOSS_SPRITE_WARM_MEDIAN = 0.1036
 
+// Scales a 0xRRGGBB colour's channels toward black (factor < 1) or white
+// (factor > 1), so one authored colour yields its own shadow and highlight
+// instead of needing a second constant per tone. Above 1 the channels run into
+// their ceiling red first, which is why a hot value rides up toward white
+// rather than sideways into a hue nobody authored.
+export function shade(color: number, factor: number): number {
+  const r = Math.min(255, Math.round(((color >> 16) & 0xff) * factor))
+  const g = Math.min(255, Math.round(((color >> 8) & 0xff) * factor))
+  const b = Math.min(255, Math.round((color & 0xff) * factor))
+  return (r << 16) | (g << 8) | b
+}
+
+// The two places the board draws something hotter than the material it is made
+// of: the core of a flame, and the break a Minion comes up through.
+//
+// Both are beats resolving now, which the board direction puts at the top of
+// the warm order — above the telegraph that announced them. Ash usually lands
+// inside the Cinder Breath cone, and a spawn always lands on the mark that
+// warned about it, so if either of these failed to clear its own telegraph the
+// event would read as part of its own warning. palette.test.ts holds them to
+// that, because a ranking nobody asserts is a ranking that drifts.
+export const HOT_SHADE = { flameCore: 1.7, spawnBreak: 1.45 } as const
+
 // A tint over a tile, as the player sees it. Straight source-over compositing,
 // which is what Phaser's fillStyle alpha does.
 export function composite(tint: number, alpha: number, over: number): number {

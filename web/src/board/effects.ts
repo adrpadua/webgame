@@ -16,9 +16,11 @@ export const BEAT_STAGGER_MS = 700
 
 // How long after the last beat starts before staggered presentation (the
 // HUD's gauge overrides) settles back onto the authoritative state: the
-// longest effect that holds presentation state (BoardScene's
-// EFFECT_DURATION.blast — change them together), so no claim the HUD is
-// making is reclaimed mid-animation.
+// longest effect that holds presentation state, which is the blast and now
+// the spawn alongside it — a spawn holds a Minion off the board until its own
+// beat plays, and it is exactly this long (BoardScene's EFFECT_DURATION for
+// both; change them together). No claim the board or the HUD is making is
+// reclaimed mid-animation.
 //
 // Feedback that claims nothing may outlast it, and the ground does at both
 // ends: a burn runs 900ms and an expiry 640 (EFFECT_DURATION.scorch and

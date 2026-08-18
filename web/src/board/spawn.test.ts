@@ -70,9 +70,18 @@ describe('minion spawn', () => {
     }
   })
 
-  it('throws the shards around the hex and lands them inside it', () => {
-    const halfWidth = (HEX_SIZE * Math.sqrt(3)) / 2
+  it('throws the splinters around the hex and lands them inside it', () => {
+    // Inside the hex, not inside the box around it. A pointy-top hex narrows
+    // toward its points, so a splinter can sit within half a width of the
+    // centre and still be standing on the neighbour; the bound has to follow
+    // the edge the tile is actually drawn with.
+    const insideHex = (point: { x: number; y: number }) =>
+      Math.abs(point.x) <= (HEX_SIZE * Math.sqrt(3)) / 2 && Math.abs(point.y) <= HEX_SIZE - Math.abs(point.x) / Math.sqrt(3)
     expect(spawnShards(HEX, 0.05, false)).toHaveLength(6)
+    // The predicate has to actually exclude the corners of the box, or it is
+    // the box test again under a longer name.
+    expect(insideHex({ x: 30, y: 30 })).toBe(false)
+    expect(insideHex({ x: 0, y: 30 })).toBe(true)
     let sawLeft = false
     let sawRight = false
     let sawAbove = false
@@ -81,10 +90,9 @@ describe('minion spawn', () => {
       for (const t of frames(30)) {
         for (const shard of spawnShards(coords, t, false)) {
           for (const point of shard.points) {
-            // Debris that crossed the border would say the neighbouring hex
-            // was part of what happened.
-            expect(Math.abs(point.x)).toBeLessThan(halfWidth)
-            expect(Math.abs(point.y)).toBeLessThan(HEX_SIZE)
+            // Anything past the border would say the neighbouring hex was
+            // part of what happened.
+            expect(insideHex(point)).toBe(true)
             sawLeft ||= point.x < -2
             sawRight ||= point.x > 2
             sawAbove ||= point.y < -2
@@ -93,12 +101,12 @@ describe('minion spawn', () => {
         }
       }
     }
-    // Thrown around the hex rather than off one side: six shards clustered
-    // together read as a piece sliding out, not as a tile breaking open.
+    // Thrown around the hex rather than off one side: six splinters clustered
+    // together read as a piece sliding out, not as a hex breaking open.
     expect([sawLeft, sawRight, sawAbove, sawBelow]).toEqual([true, true, true, true])
   })
 
-  it('cools every shard as it lands, and clears them before the piece settles', () => {
+  it('cools every splinter as it lands, and clears them before the piece settles', () => {
     // Heat is what the scene spends between the material of the beat and the
     // material of the piece that arrived, so a shard that never cooled would
     // land as bright as it left.
