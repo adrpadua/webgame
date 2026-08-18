@@ -109,6 +109,22 @@ describe('content catalog', () => {
       'hazard_last_impact',
     ])
     expect(catalog.encounters.embermaw_prototype.boss_programs).toEqual(['embermaw_hunt', 'embermaw_embers', 'embermaw_brood'])
+    // The live Shield Wall list, named rather than counted (D-040). A total of
+    // twenty says nothing about which twenty, and this deck has now been
+    // restated twice — `10x/10x`, then proposal 04's `8/6/2/2/2`, now this —
+    // with prose in three documents claiming to be current each time. Changing
+    // it here is the reminder to change `elian-voss-design.md` and the decision
+    // log with it.
+    expect(
+      Object.fromEntries(catalog.encounters.embermaw_prototype.player_deck.map((entry) => [entry.card, entry.copies])),
+    ).toEqual({
+      steady_strike: 6,
+      iron_guard: 6,
+      sweeping_blow: 2,
+      fortify: 2,
+      shield_slam: 2,
+      drive_back: 2,
+    })
     expect(catalog.encounters.embermaw_prototype.player_deck.reduce((total, entry) => total + entry.copies, 0)).toBe(20)
     expect(catalog.decks.aegis_controlled_test_deck.encounter).toBe('embermaw_prototype')
     expect(catalog.cards.steady_strike.draw_count).toBe(0)
