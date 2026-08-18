@@ -13,6 +13,22 @@ python3 tools/build_sprite_sheet.py assets/art/characters/<slug>/idle-contact-sh
   --rows NE,E,SE --mirror W=E,NW=NE,SW=SE
 ```
 
+### A Piece May Need Grading After The Build
+
+A sheet is art, and nothing at runtime governs how warm it reads — no token moves a sprite. So a piece can arrive correct in every other way and still sit in the wrong place in the board's warm ranking, which is what happened to the Whelp: it shipped at `L=0.152` against Embermaw's `L=0.103`, brighter than the Boss it is supposed to rank under.
+
+```bash
+python3 tools/tone_sprite.py <built>.png web/src/assets/<slug>-idle.png --warm-median 0.085
+```
+
+Two things about that step are deliberate.
+
+**It runs after the build, not before.** Grading the contact sheet first was the obvious order and it fails: darkening the image moves the background the builder keys against, and the row detector found seven pose rows in a six-row sheet.
+
+**It scales uniformly rather than applying a ceiling.** A ceiling compresses the brightest pixels hardest, and on a Whelp those are the too-bright core that is its board read. A flat scale lowers the piece and leaves the core where it stood relative to its shards.
+
+Because the contact sheet stays ungraded, a plain rebuild reintroduces the inversion. The smoke suite holds the Boss above the Minion in both warm energy and warm median, so that failure is loud rather than silent.
+
 ## What The Pipeline Already Handles
 
 Do not spend prompt words on these. The builder keys the background out by flood fill from the border, trims each pose, and re-centres it on a shared baseline, so:
