@@ -70,6 +70,7 @@ function buildSnapshot(
     pendingMoveKey,
     showCoordinates,
     pendingScorchKeys: playout.pendingScorchKeys,
+    pendingCoolKeys: playout.pendingCoolKeys,
     pendingSpawnIds: playout.pendingSpawnIds,
     pendingFacings: playout.pendingFacings,
   }

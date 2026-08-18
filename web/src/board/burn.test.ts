@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BURN_MS, charProgress, emberAlpha, flameEnvelope, flameTongues, flareRing, type FlameTongue, type Point } from './burn'
+import { BURN_MS, charProgress, coolProgress, dyingEmbers, emberAlpha, flameEnvelope, flameTongues, flareRing, type FlameTongue, type Point } from './burn'
 import { composite } from './palette'
 import { HEX_SIZE } from './layout'
 
@@ -129,6 +129,51 @@ describe('hex burn', () => {
     // What is left is the whole event there: the tile lights, then chars.
     expect(emberAlpha(0.1)).toBeGreaterThan(0)
     expect(charProgress(0.9)).toBe(1)
+  })
+
+  it('gives the ground back without ever darkening it on the way', () => {
+    expect(coolProgress(0)).toBe(1)
+    expect(coolProgress(1)).toBe(0)
+    // Most of the ash is gone early: heat leaves a surface fastest when it is
+    // hottest, and an even fade reads as a dissolve instead.
+    expect(coolProgress(0.5)).toBeLessThan(0.2)
+    let previous = 2
+    for (const t of frames()) {
+      const remaining = coolProgress(t)
+      expect(remaining).toBeLessThanOrEqual(previous)
+      previous = remaining
+    }
+  })
+
+  it('puts out the embers one at a time, and all of them', () => {
+    const alight = (t: number) => dyingEmbers(HEX, t).length
+    expect(alight(0)).toBe(4)
+    expect(alight(1)).toBe(0)
+    // They go out separately rather than together — the hex loses its last
+    // points of heat one by one instead of dimming as a whole.
+    const counts = frames(24).map(alight)
+    expect(new Set(counts).size).toBeGreaterThan(2)
+    let previous = Infinity
+    for (const count of counts) {
+      expect(count).toBeLessThanOrEqual(previous)
+      previous = count
+    }
+  })
+
+  it('scatters the embers inside the hex, and the same way every time', () => {
+    const halfWidth = (HEX_SIZE * Math.sqrt(3)) / 2
+    expect(dyingEmbers(HEX, 0.2)).toEqual(dyingEmbers(HEX, 0.2))
+    expect(dyingEmbers(HEX, 0.2)).not.toEqual(dyingEmbers({ q: 1, r: 0 }, 0.2))
+    for (const coords of [HEX, { q: 2, r: -1 }, { q: -3, r: 4 }]) {
+      for (const t of frames(20)) {
+        for (const ember of dyingEmbers(coords, t)) {
+          for (const point of ember.points) {
+            expect(Math.abs(point.x)).toBeLessThan(halfWidth)
+            expect(Math.abs(point.y)).toBeLessThan(HEX_SIZE)
+          }
+        }
+      }
+    }
   })
 
   it('lands the charring on the two materials it runs between', () => {

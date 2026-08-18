@@ -7,7 +7,7 @@ import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type
 
 export type EffectTone = 'hero' | 'boss' | 'guard' | 'heal' | 'hazard'
 
-export type BoardEffectKind = 'strike' | 'cast' | 'hit' | 'block' | 'move' | 'spawn' | 'defeat' | 'blast' | 'scorch' | 'turn'
+export type BoardEffectKind = 'strike' | 'cast' | 'hit' | 'block' | 'move' | 'spawn' | 'defeat' | 'blast' | 'scorch' | 'cool' | 'turn'
 
 // How far apart consecutive Boss Beats start. The rules resolve a whole
 // track in one batch; the board replays that batch one beat at a time so
@@ -234,6 +234,22 @@ export function deriveBoardEffects(
         const coords = detailAxial(fact, 'coords')
         if (coords) {
           add({ kind: 'scorch', entityId: '', at: coords, tone: 'hazard' })
+        }
+        break
+      }
+
+      case 'round_start': {
+        // The Round boundary is where temporary Hazards run out (the engine
+        // ages them inside this action), and a hex losing its last one is
+        // ground the party may stand on again. Read from the two states
+        // rather than from a detail field: expiry is a consequence of the
+        // Round advancing, so the fact that advanced it is what says which
+        // hexes it took the fire off. A hex that still holds a Hazard — a
+        // permanent one, or a second that has rounds left — says nothing.
+        for (const [key, hazards] of Object.entries(before.board.hazards)) {
+          if (hazards.length > 0 && (after.board.hazards[key] ?? []).length === 0) {
+            add({ kind: 'cool', entityId: '', at: parseHexKey(key), tone: 'hazard' })
+          }
         }
         break
       }

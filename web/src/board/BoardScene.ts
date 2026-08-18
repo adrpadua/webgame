@@ -4,7 +4,7 @@ import { axialToPixel, hexCorners, pixelToAxial, BOARD_CENTER_X, BOARD_CENTER_Y,
 import { BACKDROP_DEPTH, BACKDROPS, backdropFor } from './backdrop'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 import { idleBobOffset } from './ambience'
-import { BURN_MS, charProgress, emberAlpha, flameTongues, flareRing } from './burn'
+import { BURN_MS, COOL_MS, charProgress, coolProgress, dyingEmbers, emberAlpha, flameTongues, flareRing } from './burn'
 import { easeOutCubic, hexNoise } from './math'
 import { boardPalette, composite, TELEGRAPH_ALPHA, toneColors } from './palette'
 import { idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
@@ -45,6 +45,9 @@ export interface BoardSnapshot {
   // back: these hazards stay undrawn, these pieces stay unseen, and these
   // pieces keep their old facing.
   pendingScorchKeys: string[]
+  // Ground an unplayed moment gives back. It stays burnt until that moment
+  // plays, for the same reason scorched ground stays clean until its own.
+  pendingCoolKeys: string[]
   pendingSpawnIds: string[]
   pendingFacings: Record<string, number>
 }
@@ -160,6 +163,7 @@ const EFFECT_DURATION: Record<BoardEffect['kind'], number> = {
   defeat: 460,
   blast: 560,
   scorch: BURN_MS,
+  cool: COOL_MS,
   turn: 480,
 }
 
@@ -501,6 +505,25 @@ export class BoardScene extends Phaser.Scene {
           }
           break
         }
+        case 'cool': {
+          // A Hazard running out. The ash lifting off the tile is drawn with
+          // the floor; what is left here is the heat that was in it, as a
+          // handful of embers going dark one after another.
+          //
+          // They stay on the ground layer, under the pieces: a Hero standing
+          // on a hex that has just been given back is standing on ordinary
+          // ground, and embers over their feet would say the fire was still
+          // something to be in.
+          const { x, y } = axialToPixel(effect.at)
+          graphics.fillStyle(color, 0.85)
+          for (const ember of dyingEmbers(effect.at, t)) {
+            this.fillPath(
+              graphics,
+              ember.points.map((point) => ({ x: x + point.x, y: y + point.y })),
+            )
+          }
+          break
+        }
         case 'cast':
         case 'hit':
         case 'block':
@@ -597,19 +620,25 @@ export class BoardScene extends Phaser.Scene {
       holdBack(key)
     }
     const pendingSpawns = new Set<string>(snapshot.pendingSpawnIds)
-    // How far the fire currently on a hex has charred it, for the hexes that
-    // have one. Filled in the same pass, since both readings are questions
-    // about the same live effects.
+    const pendingCool = new Set<string>(snapshot.pendingCoolKeys)
+    // How far the fire currently on a hex has charred it, and how much ash a
+    // hex whose Hazard just expired still shows. Filled in the same pass,
+    // since every one of these is a question about the same live effects.
     const burning = new Map<string, number>()
+    const cooling = new Map<string, number>()
     for (const effect of this.active) {
       if (effect.elapsed < 0) {
         if (effect.kind === 'scorch') {
           holdBack(hexKey(effect.at))
+        } else if (effect.kind === 'cool') {
+          pendingCool.add(hexKey(effect.at))
         } else if (effect.kind === 'spawn') {
           pendingSpawns.add(effect.entityId)
         }
       } else if (effect.kind === 'scorch') {
         burning.set(hexKey(effect.at), charProgress(Math.min(effect.elapsed / effect.duration, 1)))
+      } else if (effect.kind === 'cool') {
+        cooling.set(hexKey(effect.at), coolProgress(Math.min(effect.elapsed / effect.duration, 1)))
       }
     }
     const tiles = Object.keys(state.board.hexes).map((key) => {
@@ -633,7 +662,11 @@ export class BoardScene extends Phaser.Scene {
       // at zero char, and following it would flick the tile back to clean
       // oathsteel before darkening it again. Ground that has paid for a Hazard
       // already stays black, and the new fire burns on top of it.
-      const char = played <= 0 ? 0 : played > 1 || burn === undefined ? 1 : burn
+      //
+      // With no Hazard left to hold the ground, the tile is either giving it
+      // back right now, still owing that on a moment nobody has played, or
+      // plain ground that was never burnt.
+      const char = played > 0 ? (played > 1 || burn === undefined ? 1 : burn) : (cooling.get(key) ?? (pendingCool.has(key) ? 1 : 0))
       // A flat fill repeated across every hex reads as vector art. Nudging
       // each hex's value a little breaks that up without introducing a
       // second authored colour.

@@ -40,6 +40,15 @@ import { easeOutCubic, hexNoise } from './math'
 
 export const BURN_MS = 900
 
+// And how long the ground takes to give it back. A Hazard that expires is the
+// opposite kind of event from one that lands: nothing is happening to the hex,
+// something has stopped happening to it, and the board direction puts ground
+// that has already been paid for at the bottom of the warm order. So the
+// expiry is shorter than the burn and quieter than it — but it is not nothing,
+// because a hex the party has spent a Round routing around becoming standing
+// room again is a fact they have to notice to use.
+export const COOL_MS = 640
+
 // Stage boundaries as fractions of the burn: ignition through ~150ms, flames
 // at full height from ~200ms to ~520ms, collapsed by ~810ms, and the last
 // stretch is ground with nothing left to burn.
@@ -75,6 +84,17 @@ const SWAY_MS = 290
 const FLICKER_DEPTH = 0.18
 const SWAY_REACH = 0.12
 
+// The last heat leaving a hex: a few embers scattered on the face, going dark
+// one after another. Four, because the point is that they go out separately —
+// two reads as a pair blinking and eight reads as a fire that came back.
+const EMBER_COUNT = 4
+const EMBER_SPREAD = 0.5
+const EMBER_SIZE = 0.075
+// The window their deaths fall in. None survives the fade, and none goes out
+// on the first frame, so the tile is never bare while it is still cooling.
+const EMBER_FIRST_DEATH = 0.3
+const EMBER_LAST_DEATH = 0.9
+
 export interface Point {
   x: number
   y: number
@@ -88,6 +108,12 @@ export interface FlameTongue {
   alpha: number
 }
 
+// One ember still alight on a cooling hex, as a filled shape relative to that
+// hex's centre.
+export interface Ember {
+  points: Point[]
+}
+
 // Salts 1 and up, so no draw here collides with the floor's own shade at
 // salt 0: the height of the first flame on a tile and how dark that tile is
 // are unrelated facts.
@@ -95,6 +121,9 @@ const HEIGHT_SALT = 1
 const PHASE_SALT = HEIGHT_SALT + TONGUE_COUNT
 const REACH_SALT = PHASE_SALT + TONGUE_COUNT
 const WIDTH_SALT = REACH_SALT + TONGUE_COUNT
+const EMBER_X_SALT = WIDTH_SALT + TONGUE_COUNT
+const EMBER_Y_SALT = EMBER_X_SALT + EMBER_COUNT
+const EMBER_DEATH_SALT = EMBER_Y_SALT + EMBER_COUNT
 
 function clamp01(value: number): number {
   return value < 0 ? 0 : value > 1 ? 1 : value
@@ -197,6 +226,56 @@ export function flameTongues(coords: Axial, t: number, nowMs: number, reducedMot
     })
   }
   return tongues
+}
+
+// How much ash the ground still shows while a Hazard's expiry plays, from 1
+// the moment it expires to 0 when the hex is ordinary ground again. The mirror
+// of charProgress, and monotonic for the same reason in the other direction:
+// ground being given back never darkens on its way to clean.
+//
+// It eases out rather than in, which is the honest shape — the heat goes out
+// of a surface fastest when it is hottest, and a linear fade reads as a
+// dissolve rather than as something cooling.
+export function coolProgress(t: number): number {
+  return 1 - easeOutCubic(clamp01(t))
+}
+
+// The embers left on a cooling hex, in pixels relative to its centre. Each is
+// a small flat diamond that holds its value and then goes out; they die at
+// staggered moments, so the hex darkens by losing its last points of heat one
+// at a time rather than by dimming as a whole.
+//
+// Nothing here moves — an ember neither drifts nor pulses — so unlike the
+// flames these are not what reduced motion turns off. What that setting gets
+// is the same hex, cooling, with the embers holding still until they go.
+export function dyingEmbers(coords: Axial, t: number): Ember[] {
+  if (t < 0 || t >= EMBER_LAST_DEATH) {
+    return []
+  }
+  const embers: Ember[] = []
+  for (let index = 0; index < EMBER_COUNT; index += 1) {
+    const death = EMBER_FIRST_DEATH + (EMBER_LAST_DEATH - EMBER_FIRST_DEATH) * hexNoise(coords, EMBER_DEATH_SALT + index)
+    if (t >= death) {
+      continue
+    }
+    // Spread over the face, and never on the tile's rim: an ember on the edge
+    // reads as belonging to the boundary between two hexes.
+    const x = (hexNoise(coords, EMBER_X_SALT + index) - 0.5) * 2 * EMBER_SPREAD * HEX_SIZE
+    const y = (hexNoise(coords, EMBER_Y_SALT + index) - 0.5) * 2 * EMBER_SPREAD * HEX_SIZE * 0.72
+    // It shrinks as its own death approaches rather than fading: a flat shape
+    // going translucent is a dissolve, and this palette has no dissolve in it.
+    const life = 1 - t / death
+    const radius = EMBER_SIZE * HEX_SIZE * (0.45 + 0.55 * life)
+    embers.push({
+      points: [
+        { x, y: y - radius },
+        { x: x + radius * 0.7, y },
+        { x, y: y + radius },
+        { x: x - radius * 0.7, y },
+      ],
+    })
+  }
+  return embers
 }
 
 // One flame's silhouette: it leaves the ground at its full width, keeps that

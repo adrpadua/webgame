@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
-import { advancePhase, createEncounterState, resolve, type EncounterActionInput, type EncounterState } from '@/engine'
+import { advancePhase, createEncounterState, hexKey, resolve, type EncounterActionInput, type EncounterState } from '@/engine'
 import { BEAT_STAGGER_MS, deriveBoardEffects, deriveHealthPlayout, derivePlayoutScript, freeFloaterLane, type BoardEffect } from './effects'
 
 // Board feedback is derived from Resolution Facts, never from intent: if the
@@ -64,6 +64,36 @@ describe('board effects', () => {
     const hit = effects.find((effect) => effect.kind === 'hit')
     expect(hit?.delay).toBe(strike?.delay)
     expect(strike?.delay).toBeGreaterThan(0)
+  })
+
+  it('gives back the ground a temporary Hazard held, and only that ground', () => {
+    // Walk Round 1 to its boundary. Cinder Breath's ash lasts one Round and
+    // Ash Trail's is permanent, so the Round that rolls has to hand back the
+    // cone's hexes and keep the claw's.
+    let state = openedRound()
+    let burnt: string[] = []
+    for (let step = 0; step < 4; step += 1) {
+      state = advance(state).state
+      burnt = Object.keys(state.board.hazards)
+    }
+    expect(burnt.length).toBeGreaterThan(0)
+    const permanent = burnt.filter((key) => state.board.hazards[key].some((hazard) => hazard.permanent === true))
+    const temporary = burnt.filter((key) => !state.board.hazards[key].some((hazard) => hazard.permanent === true))
+    expect(temporary.length).toBeGreaterThan(0)
+
+    const { state: rolled, effects } = advance(state)
+    const cooled = effects.filter((effect) => effect.kind === 'cool').map((effect) => hexKey(effect.at))
+    expect([...cooled].sort()).toEqual([...temporary].sort())
+    // What the board is told and what the rules did are the same list: every
+    // hex handed back is a hex the state no longer holds a Hazard for, and
+    // ground the Boss burnt for good is never handed back at all.
+    for (const key of cooled) {
+      expect(rolled.board.hazards[key] ?? []).toEqual([])
+    }
+    for (const key of permanent) {
+      expect(cooled).not.toContain(key)
+      expect((rolled.board.hazards[key] ?? []).length).toBeGreaterThan(0)
+    }
   })
 
   it('swings the Boss facing when a turn beat actually turned it', () => {
