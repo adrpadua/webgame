@@ -18,6 +18,7 @@ import {
   forecast,
   highestTier,
   programCounterTags,
+  programPredictability,
   resolve,
   runScenario,
   type EncounterState,
@@ -99,6 +100,7 @@ describe('content catalog', () => {
     )
     expect(catalog.programs.embermaw_hunt.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',
+      'advance_toward_player',
       'targeted_hit',
       'hazard_last_impact',
     ])
@@ -407,6 +409,169 @@ describe('Boss Program order (D-037)', () => {
 // The substance of the differentiation pass: three programs that were the same
 // six Beats under three names now ask for three different answers, which is
 // what gives the Forecast Row something to disclose.
+// The instrument that turns "is this countable?" from an argument into a number
+// (D-038). It assumes nothing about how the order is generated — it groups real
+// sequences by observed prefix and asks what the modal continuation is worth —
+// so it cannot be satisfied by a generator that only looks random.
+describe('Boss Program predictability (D-038)', () => {
+  const SEEDS = 800
+
+  it('measures the order as neither fixed nor uniform', () => {
+    const measured = programPredictability(catalog, 'embermaw_prototype', SEEDS)
+    // Round 1 is pinned to the authored opener, so naming it is recall rather
+    // than prediction and it is excluded from the estimate.
+    expect(measured.perRound[0].round).toBe(2)
+    expect(measured.meanAccuracy).toBeLessThan(1)
+    expect(measured.meanAccuracy).toBeGreaterThan(measured.uniformBaseline)
+    expect(measured.reliable).toBe(true)
+  })
+
+  it('keeps every Round that is not a cycle end near a coin flip', () => {
+    // This bound is what caught a real defect in the bag. The no-repeat rule
+    // used to swap a colliding program into slot 1, a fixed position, which
+    // concentrated the distribution enough to measure: Round 5 read 68% where a
+    // shuffle should give about 50%. Displacing to a uniformly chosen later slot
+    // fixed it. A generator that leaks position information fails here.
+    const measured = programPredictability(catalog, 'embermaw_prototype', SEEDS)
+    const uncertain = measured.perRound.filter((entry) => entry.accuracy < 1)
+    expect(uncertain.length).toBeGreaterThan(0)
+    for (const entry of uncertain) {
+      expect(entry.accuracy, `Round ${entry.round} is ${(100 * entry.accuracy).toFixed(0)}% predictable`).toBeLessThan(0.6)
+    }
+  })
+
+  it('records the ceiling a full-bag deal imposes', () => {
+    // Not a defect — a consequence, recorded so it is not rediscovered. Dealing
+    // every program exactly once per cycle is what keeps total fight pressure
+    // seed-invariant, and it necessarily makes the last slot in a cycle
+    // deducible. This is the ceiling on how unpredictable program order alone
+    // can be, and the standing argument for varying content *inside* a program
+    // (the Module Slot, D-024).
+    const measured = programPredictability(catalog, 'embermaw_prototype', SEEDS)
+    expect(measured.certainRounds).toBeGreaterThan(0)
+    expect(measured.certainRounds).toBeLessThan(measured.perRound.length)
+  })
+})
+
+// D-039. Mitigation used to protect only Health, which the sweep showed was
+// never the binding constraint — runs end at Escalation with Health to spare,
+// so Armor bought nothing that reached the ending. It now protects standing
+// room. The rule that keeps it honest is Tank Principle 1 generalised: perfect
+// play may change the *shape* of the loss, never the total.
+describe('Ash Trail displacement (D-039)', () => {
+  // Round 1 is Hunt Pattern on every seed, and Hunt is the program that pairs a
+  // targeted hit with `hazard_last_impact`.
+  function throughInstant(state: EncounterState): EncounterState {
+    return advancePhase(catalog, state).state
+  }
+
+  it('burns the hex the Tank stood on when the hit drew blood', () => {
+    const state = throughInstant(start())
+    const heroKey = hexKey({ q: 0, r: 0 })
+    expect(hero(state).health).toBeLessThan(hero(state).maxHealth)
+    expect(state.board.hazards[heroKey]?.[0]?.permanent).toBe(true)
+  })
+
+  it('spills behind the Tank when the hit was fully absorbed', () => {
+    // Enough Armor to eat the claw whole while holding the Guarded Front.
+    const armored = start()
+    armored.heroes[armored.primaryHeroId].armor = 20
+    const state = throughInstant(armored)
+    expect(hero(state).health).toBe(hero(state).maxHealth)
+
+    const heroCoords = state.board.entities[state.primaryHeroId].coords
+    const bossCoords = state.board.entities[state.bossId].coords
+    const burnt = Object.keys(state.board.hazards)
+    expect(burnt).not.toContain(hexKey(heroCoords))
+    expect(burnt).toHaveLength(1)
+    // Behind means further from the Boss, which is the whole point: the ground
+    // the Tank has to keep standing on to keep absorbing survives longer.
+    const [q, r] = burnt[0].split(',').map(Number)
+    expect(hexDistance({ q, r }, bossCoords)).toBeGreaterThan(hexDistance(heroCoords, bossCoords))
+  })
+
+  it('costs the same number of hexes either way', () => {
+    // The invariant that keeps this honest against Tank Principle 1. If a clean
+    // absorb ever burnt fewer hexes than a sloppy one, perfect play would stop
+    // the bleed rather than slow it, and the arena would stop closing for a
+    // good Tank — sustain creep in a new denomination.
+    const sloppy = throughInstant(start())
+    const clean = start()
+    clean.heroes[clean.primaryHeroId].armor = 20
+    const absorbed = throughInstant(clean)
+    expect(Object.keys(absorbed.board.hazards)).toHaveLength(Object.keys(sloppy.board.hazards).length)
+  })
+
+  it('burns under the Tank anyway with nowhere left to spill', () => {
+    // Backed against the rim, absorbing cleanly buys nothing. The bleed refuses
+    // to stop even for perfect play, which is the rule stated as geometry.
+    const state = start()
+    const heroId = state.primaryHeroId
+    const rim = { q: -2, r: 2 }
+    state.board.entities[heroId].coords = { ...rim }
+    state.heroes[heroId].armor = 20
+    const after = throughInstant(state)
+    expect(hero(after).health).toBe(hero(after).maxHealth)
+    // Either it spilled to a real hex further out, or it burnt the rim itself —
+    // never nothing.
+    expect(Object.keys(after.board.hazards).length).toBeGreaterThan(0)
+  })
+})
+
+// D-041. Escalation acceleration is only legitimate if the Timeline showed the
+// demand: ADR 0027 requires a Beat that can add Escalation to disclose it. A
+// demand priced from the whole pool violates that on any Round whose program
+// does not carry the Beat.
+describe('Demand disclosure (D-041)', () => {
+  function chargedReasons(result: { facts: ResolvedActionFact[] }): string[] {
+    return result.facts
+      .filter((fact) => fact.kind === 'gain_escalation' && fact.succeeded)
+      .map((fact) => (fact.resolutionFact as Record<string, unknown>)?.escalation_reason as string)
+  }
+
+  it('never charges proximity on a Round whose program does not demand it', () => {
+    // Camp out of reach for the whole fight and check every charge against the
+    // program that actually ran. Round 1 is Hunt Pattern, which carries no
+    // proximity demand, and used to be billed anyway.
+    let state = immortalHero(start(1))
+    state.board.entities[state.primaryHeroId].coords = { q: -2, r: 2 }
+    let guard = 0
+    while (state.active && guard < 40) {
+      guard += 1
+      const program = catalog.programs[state.currentProgramId ?? '']
+      const result = advancePhase(catalog, state)
+      if (chargedReasons(result).includes('unanswered_proximity')) {
+        const demands = [...program.instant_beats, ...program.incoming_beats].some((beat) => beat.kind === 'demand_proximity')
+        expect(demands, `Round ${state.round} charged proximity but ${state.currentProgramId} never showed the Beat`).toBe(true)
+      }
+      state = result.state
+    }
+  })
+
+  it('still charges a standing Minion whichever program is up', () => {
+    // The other scope, and the reason it is not one rule: a Minion is on the
+    // board regardless of which program runs, so its demand outlives the Beat
+    // that spawned it and any priced Beat in the pool sets its cost.
+    let state = immortalHero(startBroodSecond())
+    let charged = false
+    let guard = 0
+    while (state.active && guard < 40) {
+      guard += 1
+      const program = catalog.programs[state.currentProgramId ?? '']
+      const result = advancePhase(catalog, state)
+      if (chargedReasons(result).includes('unanswered_minions')) {
+        charged = true
+        if (![...program.instant_beats, ...program.incoming_beats].some((beat) => beat.kind === 'spawn_minions')) {
+          // Exactly the case pool scope exists for.
+          expect(Object.values(result.state.board.entities).some((entity) => entity.kind === 'minion')).toBe(true)
+        }
+      }
+      state = result.state
+    }
+    expect(charged).toBe(true)
+  })
+})
+
 describe('Program identity (D-036)', () => {
   it('gives each Phase I program a distinct set of demands', () => {
     const tags = (id: string) => programCounterTags(catalog.programs[id]).sort().join(',')
@@ -617,7 +782,7 @@ describe('phase cycle', () => {
     state = instant.state
     expect(state.phase).toBe('instant')
     const beatFacts = instant.facts.filter((fact) => fact.kind === 'resolve_boss')
-    expect(beatFacts.map((fact) => fact.detail.beatId)).toEqual(['turn_to_tank', 'raking_claw', 'claw_scorch'])
+    expect(beatFacts.map((fact) => fact.detail.beatId)).toEqual(['turn_to_tank', 'close_the_gap', 'raking_claw', 'claw_scorch'])
     expect(beatFacts.every((fact) => fact.phase === 'instant')).toBe(true)
     expect(hero(state).health).toBe(30)
     const clawFact = instant.facts.find((fact) => fact.kind === 'damage')
@@ -651,7 +816,11 @@ describe('phase cycle', () => {
     expect(state.phase).toBe('loadout')
     expect(state.round).toBe(2)
     expect(hero(state).hand).toHaveLength(4)
-    expect(Object.keys(state.board.hazards)).toHaveLength(0)
+    // The cone's Scorch expires with the Round; the Ash Trail does not. The
+    // Hero took the claw on the chin here, so the ash burnt the hex they were
+    // standing on, permanently (D-039).
+    expect(Object.keys(state.board.hazards)).toEqual([hexKey({ q: 0, r: 0 })])
+    expect(state.board.hazards[hexKey({ q: 0, r: 0 })][0].permanent).toBe(true)
     expect(wrap.facts.some((fact) => fact.kind === 'round_start')).toBe(true)
   })
 
@@ -987,14 +1156,14 @@ describe('Consequence Tier ladder (D-021, ADR 0026)', () => {
     }
   })
 
-  it('rates Brood Call severe on the Escalation clause, not on its damage', () => {
+  it('rates every Escalation-adding Beat severe, and nothing else', () => {
     // Content earned the tier, which the previous version of this test invited:
     // Brood Call is now priced (D-036), and a Beat that can add Escalation is
     // severe by definition because a Threshold crossing is one of D-025's
     // run-ending outcomes. Every severe Beat here is severe for that reason —
     // Embermaw still has no single hit that downs a Hero from full health.
     const severe = everyBeat.filter(({ beat }) => beat.consequence_tier === 'severe')
-    expect(severe.map(({ beat }) => beat.id).sort()).toEqual(['brood_call', 'brood_call'])
+    expect(severe.map(({ beat }) => beat.id).sort()).toEqual(['brood_call', 'brood_call', 'within_reach', 'within_reach', 'within_reach'])
     expect(severe.every(({ beat }) => beat.escalation_if_unanswered > 0)).toBe(true)
     const worst = Math.max(...everyBeat.map(({ beat }) => beat.damage + beat.unguarded_bonus))
     expect(worst).toBeLessThan(catalog.encounters.embermaw_prototype.player_health)

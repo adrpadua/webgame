@@ -27,7 +27,7 @@ One full cycle of boss resolution and player response. A round adds exactly one 
 _Avoid_: Turn, tick
 
 **Escalation**:
-A counted Boss value on one fixed scale from `0` to `5`, identical on every Boss so the party reads it without arithmetic. It gains `1` automatically at the end of each Round once automatic escalation begins, which is derived so that automatic ticks alone reach the top threshold exactly at the Encounter Clock. It gains more, from Round `1` onward, from authored Beat penalties when a demand goes unanswered — so ignoring a demand pulls the collapse forward. It is the encounter's only clock: the Boss has no separate round-limit timer. Boss identity lives in the effects at each threshold, never in the length of the scale; a Boss may name it something else in its own rules text, but Escalation is the only mechanical name for it (ADR 0027).
+A counted Boss value on one fixed scale from `0` to `5`, identical on every Boss so the party reads it without arithmetic. It gains `1` automatically at the end of each Round once automatic escalation begins, which is derived so that automatic ticks alone reach the top threshold exactly at the Encounter Clock. It gains more, from Round `1` onward, from authored Beat penalties when a demand goes unanswered — so ignoring a demand pulls the collapse forward. Two demands are supported: a Minion that survived a full Round, and no Hero standing within reach of the Boss at the Round end (D-041). The second is how range camping is closed, and it has to be a demand rather than a chase: on a small board being close is *safer* than being far, so a Boss that pursues a camper only rewards them. It is the encounter's only clock: the Boss has no separate round-limit timer. Boss identity lives in the effects at each threshold, never in the length of the scale; a Boss may name it something else in its own rules text, but Escalation is the only mechanical name for it (ADR 0027).
 _Avoid_: Enrage timer, dread meter, per-boss scale
 
 **Escalation Threshold**:
@@ -104,6 +104,8 @@ _Avoid_: Passive, invisible buff, Enemy Status
 
 **Riposte Ready**:
 A non-stacking, non-refreshing Elian Voss Status Effect. When a Boss Tank Hit resolves against Captain Elian Voss while they occupy the Guarded Front and causes `0` Health loss, grant Riposte Ready if they do not already have it. It expires at the end of the first Quick Window after that qualifying hit, whether the hit occurred in an Instant Row or an Incoming Row. The first card that deals Boss damage while it is active consumes it: a legal Shield Slam gains `2` additional Boss damage, and any other Boss-damage card gains `1` (D-015). Cards that deal no Boss damage never consume it. The effect must show its qualifying trigger, expiry, and consumption; it is not a general posture category or a resource meter.
+
+The same qualifying hit also decides where that Beat's Hazard falls (D-039): absorbed cleanly, the ash spills to a hex further from the Boss instead of underfoot. One predicate, two rewards — throughput for a Party that can spend it, standing room for a line that cannot. Neither reward ever reduces what the Beat costs; they only change where the cost lands.
 _Avoid_: Awakening, stacking buff, generic stance
 
 **Fortified**:
@@ -111,7 +113,7 @@ An Elian Voss Status Effect created by firing Fortify in the Slow Window (D-019)
 _Avoid_: Delayed buff, second Armor pool
 
 **Hazard**:
-A board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex. Most Hazards are temporary and expire at a Round boundary; a Hazard placed by a structural Escalation Threshold is permanent, because the arena does not recover from it.
+A board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex. Most Hazards are temporary and expire at a Round boundary; a Hazard a Beat marks permanent survives it, because the arena does not recover from it. Permanence has two authors — a structural Escalation Threshold, which burns hexes nobody chose, and a Beat whose Hazard the party's own play placed (D-039). Only the first is banned from the ground next to the Boss: a hex the Tank burnt by standing there is a consequence, not a trap.
 _Avoid_: Surprise damage, ambient effect
 
 **Forced Movement**:

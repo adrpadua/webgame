@@ -1,0 +1,14 @@
+{
+  "id": "drive_back",
+  "title": "Drive Back",
+  "rules_text": "Push a piece 2 hexes directly away from you.",
+  "speed": "quick",
+  "max_charge": 2,
+  "target_type": "piece",
+  "range_tiles": 1,
+  "push_tiles": 2,
+  "tags": [
+    "tank",
+    "board"
+  ]
+}

@@ -24,7 +24,7 @@
   "player_deck": [
     {
       "card": "steady_strike",
-      "copies": 8
+      "copies": 6
     },
     {
       "card": "iron_guard",
@@ -41,6 +41,10 @@
     {
       "card": "shield_slam",
       "copies": 2
+    },
+    {
+      "card": "drive_back",
+      "copies": 2
     }
   ],
   "boss_programs": [
@@ -48,8 +52,14 @@
     "embermaw_embers",
     "embermaw_brood"
   ],
-  "phase_trigger": { "boss_health_at_or_below": 18, "round_at_or_after": 5 },
-  "phase_two_programs": ["embermaw_ashfall", "embermaw_molting"],
+  "phase_trigger": {
+    "boss_health_at_or_below": 18,
+    "round_at_or_after": 5
+  },
+  "phase_two_programs": [
+    "embermaw_ashfall",
+    "embermaw_molting"
+  ],
   "phase_break_text": "Molting Roar: Embermaw sheds its brittle scales and turns. The Whelps and the Scorched ground remain.",
   "loop_boss_programs": true,
   "random_seed": 1337,

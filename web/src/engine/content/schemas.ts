@@ -105,7 +105,16 @@ export const bossBeatSchema = z.object({
   // Embermaw's version of the mechanic was duplicating a field it could not
   // keep in sync: nothing stopped a frost Boss authoring `hazard: "frozen"` on
   // a Beat kind called `cinder_breath`.
-  kind: z.enum(['turn_toward_player', 'targeted_hit', 'hazard_last_impact', 'forward_cone', 'spawn_minions', 'warning']),
+  kind: z.enum([
+    'turn_toward_player',
+    'advance_toward_player',
+    'demand_proximity',
+    'targeted_hit',
+    'hazard_last_impact',
+    'forward_cone',
+    'spawn_minions',
+    'warning',
+  ]),
   counter_tags: z.array(z.string()).default([]),
   // Consequence Tier (ADR 0026): sets the earliest horizon this Beat may
   // appear in. `chip` anywhere, `structural` no later than Incoming, `severe`
@@ -120,7 +129,16 @@ export const bossBeatSchema = z.object({
   // demand standing at a Round end. Only the living-Minion demand is
   // supported, so today this rides `spawn_minions`.
   escalation_if_unanswered: z.number().int().min(0).default(0),
+  // How far an `advance_toward_player` Beat closes. Distance is authored because
+  // it is the Boss's counter-pressure against standing out of reach, and how
+  // hard that pressure bites is a per-Boss identity question (D-041).
+  move_tiles: z.number().int().min(0).default(0),
   duration_rounds: z.number().int().min(1).default(1),
+  // A permanent Hazard survives the Round boundary (D-039). This is how a Beat
+  // writes to the arena for good, which is what makes mitigation protect
+  // standing room instead of only Health — the currency that was never the
+  // binding one. `duration_rounds` is ignored when this is set.
+  permanent: z.boolean().default(false),
   hazard: z.string().optional(),
   minion: z.string().optional(),
   count: z.number().int().min(1).max(12).default(2),

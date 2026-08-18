@@ -53,7 +53,7 @@
     "embermaw_brood"
   ],
   "loop_boss_programs": true,
-  "random_seed": 23,
+  "random_seed": 24,
   "minion_spawn_candidates": [
     {
       "q": -2,

@@ -12,7 +12,10 @@ export type EncounterActionInput =
   | { kind: 'charge_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
   | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string; targetHex?: Axial }
   | { kind: 'move_hero'; sourceId: string; destination: Axial; cardInstanceId: string }
-  | { kind: 'displace_piece'; sourceId: string; targetId: string; distance: number; movement: 'push' | 'pull'; reasonText: string }
+  // `advance` shares `pull`'s geometry — move the target toward the source — but
+  // names a Boss closing distance under its own power rather than a Hero card
+  // hauling it (ADR 0029 owns the geometry; this only owns who is acting).
+  | { kind: 'displace_piece'; sourceId: string; targetId: string; distance: number; movement: 'push' | 'pull' | 'advance'; reasonText: string }
   | { kind: 'resolve_boss'; sourceId: string; beat: BossBeat; track: 'instant' | 'incoming' }
   | { kind: 'apply_hazard'; sourceId: string; coords: Axial; hazardId: string | null; fallbackDurationRounds: number; permanent?: boolean }
   | { kind: 'spawn_minion'; sourceId: string; minionId: string; coords: Axial; minionContentId?: string }

@@ -31,6 +31,17 @@
   ],
   "incoming_beats": [
     {
+      "id": "within_reach",
+      "title": "Within Reach",
+      "rules_text": "If no hero stands adjacent to Embermaw at the end of this Round, Escalation rises by 1.",
+      "kind": "demand_proximity",
+      "counter_tags": [
+        "Position"
+      ],
+      "consequence_tier": "severe",
+      "escalation_if_unanswered": 1
+    },
+    {
       "id": "brood_call",
       "title": "Brood Call",
       "rules_text": "Whelps emerge at the marked edge hexes. Any Whelp still standing at the next Round end raises Escalation by 1.",

@@ -7,6 +7,12 @@ import { blocksTarget, firstTurnStep, type FirstTurnStep } from './firstTurnScri
 // its opening Hand and its opening Boss Program must let a new player load,
 // charge, fire Quick, dodge the telegraph, and fire Slow inside Round 1. If
 // the content drifts, this fails before a player meets it.
+//
+// Known fragility: the promise currently rests on the Encounter's `random_seed`
+// dealing a suitable opening Hand, so *any* change to the rng stream can break
+// it from a distance — D-038's no-repeat fix did, and the repair was to pick a
+// new seed rather than to change the tutorial. The robust fix is an authored
+// opening Hand for the scripted Encounter, which nothing needs yet.
 
 const catalog = loadCatalog()
 

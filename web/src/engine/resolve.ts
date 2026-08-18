@@ -550,9 +550,9 @@ function resolveDisplacement(
   let stopReason: 'complete' | 'edge' | 'occupied' = 'complete'
   for (let step = 0; step < requestedDistance; step += 1) {
     const direction =
-      action.movement === 'pull'
-        ? facingToward(target.coords, source.coords, target.facing)
-        : facingToward(source.coords, target.coords, target.facing)
+      action.movement === 'push'
+        ? facingToward(source.coords, target.coords, target.facing)
+        : facingToward(target.coords, source.coords, target.facing)
     const destination = axialAdd(target.coords, axialDeltaFor(direction))
     if (!isOnBoard(draft.board, destination)) {
       stopReason = 'edge'
@@ -744,6 +744,11 @@ function evaluateDamageStatus(
   }
   const guardedFront = isGuardedFront(draft.board, draft.bossId, draft.primaryHeroId)
   resolutionFact.guarded_front = guardedFront
+  // One predicate, two rewards (D-039). Absorbing a Tank Hit on the Guarded
+  // Front for zero Health loss grants Riposte Ready *and* decides where the
+  // Beat's ash falls — the throughput payoff for a party, the standing-room
+  // payoff for a line that cannot win. It never reduces the ash.
+  draft.previousImpactAbsorbed = (resolutionFact.health_loss as number) === 0 && guardedFront
   const evaluation: Record<string, unknown> = { status_id: RIPOSTE_READY, result: 'not_granted', reason: '' }
   if ((resolutionFact.health_loss as number) > 0) {
     evaluation.reason = 'health_lost'
@@ -776,8 +781,10 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: `Fire Slot ${action.slotIndex + 1}`, detail }
     case 'move_hero':
       return { title: `Move to (${action.destination.q}, ${action.destination.r})`, detail }
-    case 'displace_piece':
-      return { title: `${action.movement === 'push' ? 'Push' : 'Pull'} ${action.targetId} ${action.distance}`, detail }
+    case 'displace_piece': {
+      const verb = action.movement === 'push' ? 'Push' : action.movement === 'advance' ? 'Advance' : 'Pull'
+      return { title: `${verb} ${action.targetId} ${action.distance}`, detail }
+    }
     case 'resolve_boss':
       return { title: `Boss Beat: ${action.beat.title}`, detail: { beatId: action.beat.id, beatTitle: action.beat.title, track: action.track } }
     case 'apply_hazard':

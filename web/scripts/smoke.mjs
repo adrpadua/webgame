@@ -402,7 +402,11 @@ try {
 
   // Detail popups are where the words went. A mouse gets them by hovering,
   // one element at a time: a Compact Card explains the card...
-  const firstCard = page.locator('[data-testid="hand-card"]').first()
+  // The scripted first turn disables pointer events on every card except the one
+  // it is asking for, so "the first card in the Hand" is only hoverable by luck
+  // of the shuffle — a seed change elsewhere silently broke this. Target the
+  // scripted card, which the script guarantees is interactive.
+  const firstCard = page.locator('[data-testid="hand-card"][data-scripted="true"]').first()
   await firstCard.hover()
   await page.waitForSelector('[data-testid="hold-popover"]')
   assert(
@@ -414,8 +418,21 @@ try {
   await page.waitForTimeout(400)
   const beatPopoverId = await page.locator('[data-testid="hold-popover"]').getAttribute('data-hold-id')
   assert(beatPopoverId?.startsWith('beat:'), `hovering a boss beat explains that beat (${beatPopoverId})`)
-  const beatPopoverText = await page.locator('[data-testid="hold-popover"]').innerText()
-  assert(beatPopoverText.includes('Damage'), `the beat popup carries the beat's numbers (${beatPopoverText.split('\n').join(' / ')})`)
+  // Not every Beat carries numbers — a Boss advance or a demand has none — so
+  // walk the chips for one that does rather than pinning an index that content
+  // reorders.
+  let numbered = ''
+  const chipCount = await page.locator('[data-testid="beat-chip"]').count()
+  for (let index = 0; index < chipCount; index += 1) {
+    await page.locator('[data-testid="beat-chip"]').nth(index).hover()
+    await page.waitForTimeout(400)
+    const text = await page.locator('[data-testid="hold-popover"]').innerText()
+    if (text.includes('Damage')) {
+      numbered = text
+      break
+    }
+  }
+  assert(numbered !== '', `some beat popup carries its numbers (checked ${chipCount} chips)`)
   await page.locator('[data-testid="hand"]').hover()
   await page.waitForSelector('[data-testid="hold-popover"]', { state: 'detached' })
   assert((await page.locator('[data-testid="hold-popover"]').count()) === 0, 'moving the pointer away dismisses the popup')

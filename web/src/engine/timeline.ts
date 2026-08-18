@@ -1,8 +1,8 @@
-import { emptyHexes, facingToward, firstEmptyHexes, forwardCone, frontArc, isGuardedFront } from './board'
+import { emptyHexes, facingToward, firstEmptyHexes, forwardCone, frontArc, isGuardedFront, neighbors } from './board'
 import { escalationModifiers } from './escalation'
 import { normalizeFacing } from './facing'
-import { containsHex, hexKey, type Axial } from './hex'
-import { shuffle, type RngState } from './rng'
+import { containsHex, hexDistance, hexKey, type Axial } from './hex'
+import { randiRange, shuffle, type RngState } from './rng'
 import type { BossBeat, BossProgram } from './content/schemas'
 import type { ContentCatalog } from './content/catalog'
 import type { EncounterActionInput } from './actions'
@@ -32,6 +32,24 @@ function nextMinionId(draft: EncounterState, minionContentId: string | undefined
   return `${minionContentId ?? 'minion'}_${draft.minionSequence}`
 }
 
+// Where a fully absorbed hit's ash falls: a neighbouring hex strictly further
+// from the Boss, preferring ground that is not already burnt so the spill costs
+// a real hex rather than being wasted on one already gone.
+//
+// At the board edge there is no such hex, and the ash lands under the Tank
+// after all. That is deliberate: backed against the rim, absorbing cleanly no
+// longer buys anything, which is the bleed refusing to stop.
+function spillAwayFrom(draft: EncounterState, from: Axial, bossCoords: Axial): Axial {
+  const away = neighbors(draft.board.hexes, from).filter(
+    (coords) => hexDistance(coords, bossCoords) > hexDistance(from, bossCoords),
+  )
+  if (away.length === 0) {
+    return from
+  }
+  const clean = away.filter((coords) => (draft.board.hazards[hexKey(coords)] ?? []).length === 0)
+  return (clean.length > 0 ? clean : away)[0]
+}
+
 // Authored Boss Beat resolution (ADR 0016 carried over): the spatial rule for
 // each Beat kind and its conversion into generated actions live together here.
 export function resolveBossBeat(
@@ -51,6 +69,7 @@ export function resolveBossBeat(
   let scorchedDurationRounds = 0
   let spawnHexes: Axial[] = []
   let unguardedBonusApplied = 0
+  let advanceTiles = 0
   // Escalation Thresholds apply at read time (ADR 0027), so they need no
   // separate mutation and take effect from the Round after the value rose.
   const escalated = escalationModifiers(draft)
@@ -59,6 +78,14 @@ export function resolveBossBeat(
       if (boss) {
         boss.facing = facingToward(bossCoords, playerCoords, bossFacing)
       }
+      break
+    // The answer to standing out of reach: distance stops being a decision the
+    // Hero makes once and becomes one they have to keep re-making. Emitted as a
+    // displacement so ADR 0029's geometry, occupancy, edge handling and Hazard
+    // entry all apply unchanged — occupancy is also what stops the Boss cleanly
+    // when it reaches the Hero, with no special melee case.
+    case 'advance_toward_player':
+      advanceTiles = beat.move_tiles
       break
     case 'targeted_hit':
       patternHexes = frontArc(draft.board.hexes, bossCoords, bossFacing)
@@ -76,7 +103,15 @@ export function resolveBossBeat(
     // `previousImpactedHexes`, where a Beat connected. The two differ exactly
     // when a pattern misses, which is the case the guard below exists for.
     case 'hazard_last_impact':
-      scorchedHexes = [...draft.previousImpactedHexes]
+      // Displace, never prevent (D-039). A hit the Tank absorbed cleanly still
+      // spills — the arena loses the same number of hexes however well the
+      // Tank plays — but it spills behind them instead of under them, so the
+      // ground they have to stand on to keep absorbing survives longer. That
+      // is Tank Principle 1 applied to standing room rather than Health:
+      // perfect play changes the shape of the loss, never the total.
+      scorchedHexes = draft.previousImpactAbsorbed
+        ? draft.previousImpactedHexes.map((coords) => spillAwayFrom(draft, coords, bossCoords))
+        : [...draft.previousImpactedHexes]
       scorchedDurationRounds = beat.duration_rounds
       break
     case 'forward_cone':
@@ -94,6 +129,9 @@ export function resolveBossBeat(
         spawnHexes = firstEmptyHexes(draft.spawnCandidates, emptyHexes(draft.board), beat.count + escalated.extraSpawnCount)
       }
       break
+    // Resolves to nothing: its whole effect is the demand it leaves standing at
+    // the Round end, which `escalationActionsForRoundEnd` prices.
+    case 'demand_proximity':
     case 'warning':
       break
   }
@@ -104,8 +142,22 @@ export function resolveBossBeat(
   // zero hexes; it is no impact at all, and Ash Trail still has its target.
   if (impactedHexes.length > 0) {
     draft.previousImpactedHexes = [...impactedHexes]
+    // Assume it hurt. The damage this Beat generates has not resolved yet, so
+    // Armor cannot have spoken; the flag flips only if the hit is later fully
+    // absorbed, which happens before the next Beat reads it.
+    draft.previousImpactAbsorbed = false
   }
   const actions: EncounterActionInput[] = []
+  if (advanceTiles > 0) {
+    actions.push({
+      kind: 'displace_piece',
+      sourceId: draft.primaryHeroId,
+      targetId: bossId,
+      distance: advanceTiles,
+      movement: 'advance',
+      reasonText: beat.title,
+    })
+  }
   let escalationBonusApplied = 0
   if (playerDamage > 0 && escalated.bossDamageBonus > 0) {
     escalationBonusApplied = escalated.bossDamageBonus
@@ -144,6 +196,7 @@ export function resolveBossBeat(
       coords,
       hazardId: beat.hazard ?? null,
       fallbackDurationRounds: scorchedDurationRounds,
+      permanent: beat.permanent,
     })
   }
   for (const coords of spawnHexes) {
@@ -248,9 +301,15 @@ export function buildProgramSequence(rng: RngState, pool: string[], length: numb
     // safeguard, it forces strict alternation and removes the variance this
     // function exists to add.
     if (pool.length > 2 && bag[0] === sequence[sequence.length - 1]) {
-      const swapped = bag[1]
-      bag[1] = bag[0]
-      bag[0] = swapped
+      // Send the collision to a uniformly chosen later slot rather than always
+      // to slot 1. Swapping with a fixed position leaks information: it puts the
+      // displaced program somewhere a counter can name, which concentrated the
+      // distribution enough to measure — `programPredictability` read 68% on
+      // Round 5 where the shuffle should have given 50%.
+      const target = randiRange(rng, 1, bag.length - 1, `${label}_no_repeat`)
+      const displaced = bag[target]
+      bag[target] = bag[0]
+      bag[0] = displaced
     }
     for (const programId of bag) {
       if (sequence.length >= length) {
