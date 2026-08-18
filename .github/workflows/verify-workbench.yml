@@ -1,27 +1,15 @@
 name: Verify Encounter Workbench
 
-# The pre-merge gate for web/. Runs the Vitest suite, the lint pass (which
+# The pre-merge gate for the repository. Runs the Vitest suite, the lint pass (which
 # includes the engine-purity boundary rule), and the browser smoke suite —
 # the only coverage for the 390x844 portrait contract, the 44px target
 # contract, and deterministic record replay through a real browser.
 #
-# The smoke suite lives here rather than in deploy-workbench.yml because that
-# workflow runs only after a merge to main; a portrait regression caught there
-# is already on the default branch.
+# Automatic validation runs only for pull requests. Merges to main are assumed
+# to have passed this gate, so deploy-workbench.yml does not repeat the suite.
 
 on:
   pull_request:
-    paths:
-      - 'web/**'
-      - 'data/**'
-      - '.github/workflows/verify-workbench.yml'
-  push:
-    branches:
-      - main
-    paths:
-      - 'web/**'
-      - 'data/**'
-      - '.github/workflows/verify-workbench.yml'
   workflow_dispatch:
 
 permissions:

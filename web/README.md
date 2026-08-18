@@ -25,9 +25,10 @@ npm run headless -- --replay <record.json>             # verify a v2 record
 ## Play on an iPad (or any device)
 
 The Workbench is a fully static build, so it deploys to GitHub Pages via
-`.github/workflows/deploy-workbench.yml` on every push to `main` (or the
-active workbench branch) that touches `web/`, `data/`, or the workflow file
-itself.
+`.github/workflows/deploy-workbench.yml` after every merge to `main`. Pull
+requests run the full test, lint, build, and browser-smoke validation suite;
+the post-merge deployment only installs dependencies, creates the Pages build,
+and publishes it.
 
 Pages is enabled for this repository (Settings → Pages → Source: "GitHub
 Actions"), so every deploy lands at `https://adrpadua.github.io/webgame/` —
