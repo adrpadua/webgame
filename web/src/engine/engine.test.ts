@@ -98,11 +98,11 @@ describe('content catalog', () => {
     expect(catalog.programs.embermaw_hunt.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',
       'targeted_hit',
-      'scorch_last_pattern',
+      'hazard_last_impact',
     ])
     expect(catalog.programs.embermaw_embers.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',
-      'scorch_last_pattern',
+      'hazard_last_impact',
     ])
     expect(catalog.encounters.embermaw_prototype.boss_programs).toEqual(['embermaw_hunt', 'embermaw_embers', 'embermaw_brood'])
     expect(catalog.encounters.embermaw_prototype.player_deck.reduce((total, entry) => total + entry.copies, 0)).toBe(20)
@@ -401,20 +401,20 @@ describe('encounter setup', () => {
 
   it('telegraphs the Incoming Row at start', () => {
     const state = start()
-    expect(state.telegraphs[hexKey({ q: 0, r: 1 })]).toBe('breath')
-    expect(state.telegraphs[hexKey({ q: -1, r: 1 })]).toBe('breath')
+    expect(state.telegraphs[hexKey({ q: 0, r: 1 })]).toBe('cone')
+    expect(state.telegraphs[hexKey({ q: -1, r: 1 })]).toBe('cone')
     // Hunt Pattern calls no Whelps, so the opening Round telegraphs no spawns.
     // Round 1 asks the Tank to hold and then step out of the cone, nothing else
     // (D-036).
     expect(state.telegraphedSpawnHexes).toEqual([])
-    expect(Object.values(state.telegraphs)).not.toContain('brood')
+    expect(Object.values(state.telegraphs)).not.toContain('spawn')
   })
 
   it('telegraphs the spawn hexes on the Round that actually calls Whelps', () => {
     const state = stepPhases(immortalHero(startBroodSecond()), 5).state
     expect(state.currentProgramId).toBe('embermaw_brood')
     expect(state.telegraphedSpawnHexes.length).toBeGreaterThan(0)
-    expect(Object.values(state.telegraphs)).toContain('brood')
+    expect(Object.values(state.telegraphs)).toContain('spawn')
   })
 
   it('is deterministic for a fixed seed', () => {
@@ -897,7 +897,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     const priced = structuredClone(catalog)
     for (const program of Object.values(priced.programs)) {
       for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
-        if (beat.kind === 'brood_call') {
+        if (beat.kind === 'spawn_minions') {
           beat.escalation_if_unanswered = 1
         }
       }
@@ -924,7 +924,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     const encounter = catalog.encounters.embermaw_prototype
     const priced = Object.values(catalog.programs)
       .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
-      .filter((beat) => beat.kind === 'brood_call' && beat.escalation_if_unanswered > 0)
+      .filter((beat) => beat.kind === 'spawn_minions' && beat.escalation_if_unanswered > 0)
     expect(priced.length).toBeGreaterThan(0)
     const whelpHealth = catalog.minions.whelp.max_health
     const answers = encounter.player_deck.filter((entry) => {
@@ -1097,8 +1097,8 @@ describe('Raking Claw counter-pressure (D-017)', () => {
 })
 
 describe('impact memory across a missed Beat', () => {
-  it('leaves the last connected hit standing for scorch_last_pattern when a cone misses', () => {
-    // `scorch_last_pattern` burns wherever the Boss last actually connected,
+  it('leaves the last connected hit standing for hazard_last_impact when a cone misses', () => {
+    // `hazard_last_impact` burns wherever the Boss last actually connected,
     // so the memory only moves when a Beat impacts something. A miss is not an
     // impact of zero hexes; it is no impact, and Ash Trail keeps its target.
     // Without that distinction a dodged Cinder Breath would silently disarm
@@ -1106,8 +1106,8 @@ describe('impact memory across a missed Beat', () => {
     // twice.
     const hunt = catalog.programs.embermaw_hunt
     const claw = hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
-    const trail = hunt.instant_beats.find((beat) => beat.kind === 'scorch_last_pattern')!
-    const breath = hunt.incoming_beats.find((beat) => beat.kind === 'cinder_breath')!
+    const trail = hunt.instant_beats.find((beat) => beat.kind === 'hazard_last_impact')!
+    const breath = hunt.incoming_beats.find((beat) => beat.kind === 'forward_cone')!
 
     let state = start()
     const struck = { ...state.board.entities[state.primaryHeroId].coords }

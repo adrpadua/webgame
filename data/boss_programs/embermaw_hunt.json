@@ -32,7 +32,7 @@
       "id": "claw_scorch",
       "title": "Ash Trail",
       "rules_text": "The struck front arc becomes Scorched.",
-      "kind": "scorch_last_pattern",
+      "kind": "hazard_last_impact",
       "counter_tags": [
         "Move"
       ],
@@ -46,7 +46,7 @@
       "id": "cinder_breath",
       "title": "Cinder Breath",
       "rules_text": "Forward cone, range 1-2.",
-      "kind": "cinder_breath",
+      "kind": "forward_cone",
       "counter_tags": [
         "Move",
         "Interrupt"

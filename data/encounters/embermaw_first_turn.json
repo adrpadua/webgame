@@ -54,7 +54,7 @@
   ],
   "loop_boss_programs": true,
   "random_seed": 23,
-  "brood_spawn_candidates": [
+  "minion_spawn_candidates": [
     {
       "q": -2,
       "r": 1

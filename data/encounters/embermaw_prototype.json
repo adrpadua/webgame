@@ -53,7 +53,7 @@
   "phase_break_text": "Molting Roar: Embermaw sheds its brittle scales and turns. The Whelps and the Scorched ground remain.",
   "loop_boss_programs": true,
   "random_seed": 1337,
-  "brood_spawn_candidates": [
+  "minion_spawn_candidates": [
     {
       "q": -2,
       "r": 1

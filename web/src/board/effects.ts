@@ -58,11 +58,11 @@ function detailAxial(fact: ResolvedActionFact, key: string): Axial | null {
   return value && typeof value.q === 'number' && typeof value.r === 'number' ? { q: value.q, r: value.r } : null
 }
 
-// The hexes the Boss had already marked before this batch resolved: the
-// breath cone the player was given a window to leave.
-function telegraphedBreath(state: EncounterState): Axial[] {
+// The hexes the Boss had already marked before this batch resolved: the cone
+// the player was given a window to leave.
+function telegraphedCone(state: EncounterState): Axial[] {
   return Object.entries(state.telegraphs)
-    .filter(([, kind]) => kind === 'breath')
+    .filter(([, kind]) => kind === 'cone')
     .map(([key]) => parseHexKey(key))
 }
 
@@ -156,8 +156,8 @@ export function deriveBoardEffects(
           }
         } else if (beat?.kind === 'targeted_hit') {
           add({ kind: 'strike', entityId: before.bossId, at: bossCoords, toward: heroCoords ?? undefined, tone: 'boss' })
-        } else if (beat?.kind === 'cinder_breath') {
-          const hexes = telegraphedBreath(before)
+        } else if (beat?.kind === 'forward_cone') {
+          const hexes = telegraphedCone(before)
           if (hexes.length > 0) {
             add({ kind: 'blast', entityId: before.bossId, at: bossCoords, hexes, tone: 'hazard' })
           }

@@ -62,7 +62,7 @@ function unansweredMinionPenalty(catalog: ContentCatalog, state: EncounterState)
       continue
     }
     for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
-      if (beat.kind === 'brood_call' && beat.escalation_if_unanswered > amount) {
+      if (beat.kind === 'spawn_minions' && beat.escalation_if_unanswered > amount) {
         amount = beat.escalation_if_unanswered
         beatId = beat.id
       }

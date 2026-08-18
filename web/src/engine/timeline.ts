@@ -24,9 +24,12 @@ export function actionsForTrack(catalog: ContentCatalog, state: EncounterState, 
   return beats.map((beat) => ({ kind: 'resolve_boss', sourceId: state.bossId, beat, track }))
 }
 
-function nextMinionId(draft: EncounterState): string {
+// Entity ids are derived from the authored Minion rather than hardcoded, so a
+// second Minion type does not spawn as `whelp_3`. Embermaw's Whelp is content
+// id `whelp`, so today this produces exactly the ids it always did.
+function nextMinionId(draft: EncounterState, minionContentId: string | undefined): string {
   draft.minionSequence += 1
-  return `whelp_${draft.minionSequence}`
+  return `${minionContentId ?? 'minion'}_${draft.minionSequence}`
 }
 
 // Authored Boss Beat resolution (ADR 0016 carried over): the spatial rule for
@@ -68,11 +71,15 @@ export function resolveBossBeat(
       }
       impactedHexes.push(playerCoords)
       break
-    case 'scorch_last_pattern':
+    // Named for the field it actually reads. `scorch_last_pattern` claimed
+    // `lastPattern` — the telegraphed shape — when it has always used
+    // `previousImpactedHexes`, where a Beat connected. The two differ exactly
+    // when a pattern misses, which is the case the guard below exists for.
+    case 'hazard_last_impact':
       scorchedHexes = [...draft.previousImpactedHexes]
       scorchedDurationRounds = beat.duration_rounds
       break
-    case 'cinder_breath':
+    case 'forward_cone':
       patternHexes = forwardCone(draft.board.hexes, bossCoords, bossFacing)
       if (containsHex(patternHexes, playerCoords)) {
         playerDamage = beat.damage
@@ -81,10 +88,10 @@ export function resolveBossBeat(
       scorchedHexes = [...patternHexes]
       scorchedDurationRounds = beat.duration_rounds
       break
-    case 'brood_call':
+    case 'spawn_minions':
       spawnHexes = [...draft.telegraphedSpawnHexes]
       if (spawnHexes.length === 0) {
-        spawnHexes = firstEmptyHexes(draft.broodSpawnCandidates, emptyHexes(draft.board), beat.count + escalated.extraSpawnCount)
+        spawnHexes = firstEmptyHexes(draft.spawnCandidates, emptyHexes(draft.board), beat.count + escalated.extraSpawnCount)
       }
       break
     case 'warning':
@@ -93,7 +100,7 @@ export function resolveBossBeat(
   draft.lastPattern = [...patternHexes]
   // Only a Beat that actually connected rewrites the remembered impact, so a
   // Cinder Breath the Hero stepped clear of leaves the previous hit's hex
-  // standing for `scorch_last_pattern` to burn. A miss is not an impact of
+  // standing for `hazard_last_impact` to burn. A miss is not an impact of
   // zero hexes; it is no impact at all, and Ash Trail still has its target.
   if (impactedHexes.length > 0) {
     draft.previousImpactedHexes = [...impactedHexes]
@@ -143,7 +150,7 @@ export function resolveBossBeat(
     actions.push({
       kind: 'spawn_minion',
       sourceId: bossId,
-      minionId: nextMinionId(draft),
+      minionId: nextMinionId(draft, beat.minion),
       coords,
       minionContentId: beat.minion,
     })
@@ -163,22 +170,22 @@ export function refreshTelegraphs(catalog: ContentCatalog, draft: EncounterState
   }
   for (const beat of program.incoming_beats) {
     switch (beat.kind) {
-      case 'cinder_breath':
+      case 'forward_cone':
         for (const coords of forwardCone(draft.board.hexes, boss.coords, boss.facing, 2)) {
-          draft.telegraphs[hexKey(coords)] = 'breath'
+          draft.telegraphs[hexKey(coords)] = 'cone'
         }
         break
-      case 'brood_call': {
+      case 'spawn_minions': {
         // The telegraph must not lie: it previews the escalated count.
         const count = beat.count + escalationModifiers(draft).extraSpawnCount
-        for (const coords of draft.broodSpawnCandidates) {
+        for (const coords of draft.spawnCandidates) {
           if (draft.telegraphedSpawnHexes.length >= count) {
             break
           }
           const key = hexKey(coords)
           if (draft.board.hexes[key] && !Object.values(draft.board.entities).some((entity) => hexKey(entity.coords) === key)) {
             draft.telegraphedSpawnHexes.push(coords)
-            draft.telegraphs[key] = 'brood'
+            draft.telegraphs[key] = 'spawn'
           }
         }
         break
