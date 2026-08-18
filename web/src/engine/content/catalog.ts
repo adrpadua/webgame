@@ -9,6 +9,7 @@ import {
   minionSchema,
   scenarioSchema,
   statusSchema,
+  type BossBeat,
   type BossProgram,
   type Card,
   type ChargeModifier,
@@ -27,7 +28,13 @@ import { hexDistance } from '../hex'
 // being complete, not about how a Beat resolves — and because the validation
 // below has to be able to state both halves: these kinds need a reach, and
 // every other kind must not have one.
-const RANGED_BEAT_KINDS = new Set(['forward_cone', 'demand_proximity'])
+//
+// Typed against the Beat-kind enum rather than left as loose strings. This file
+// is the one that renamed every Beat kind once already, and a stale entry here
+// would not fail — it would simply stop matching, and the validation below
+// would go quiet on the rule it exists to enforce. The annotation turns that
+// into a compile error at the moment of the rename.
+const RANGED_BEAT_KINDS = new Set<BossBeat['kind']>(['forward_cone', 'demand_proximity'])
 
 export interface ContentCatalog {
   cards: Record<string, Card>

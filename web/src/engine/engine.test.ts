@@ -657,7 +657,6 @@ describe('Demand disclosure (D-041)', () => {
 describe('Authored Beat reach', () => {
   // Round 1 is Hunt Pattern on every seed, and Hunt's Incoming Row is a cone.
   const TO_QUICK = 2
-  const coneBeat = catalog.programs.embermaw_hunt.incoming_beats.find((beat) => beat.kind === 'forward_cone')!
 
   // Round-trip a built catalog back through the loader, so a content rule can
   // be tested by editing content rather than by hand-assembling payloads.
@@ -764,7 +763,6 @@ describe('Authored Beat reach', () => {
     const claw = ranged.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'targeted_hit')!
     claw.range_tiles = 2
     expect(() => rebuild(ranged)).toThrow(/must not author range_tiles/)
-    expect(coneBeat.range_tiles).toBeGreaterThan(0)
   })
 })
 
