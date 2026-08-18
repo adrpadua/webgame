@@ -145,9 +145,9 @@ The vocabulary is fixed and the pricing is per card, deliberately. A single stan
 
 ## Commitments
 
-A card whose job is to answer a *named future* Boss Beat should be authored as a **Commitment** rather than as a Status Effect (D-028, see the [Encounter Design Bible](encounter-design-bible.md)). **No card is one yet.** Fortify was originally reclassified as the first Commitment and that was retracted: it prepares for whatever next Round opens with rather than for a named Beat, and next Round's Instant Row is visible only as a Forecast entry, which a Commitment may not bind to. Fortify is a Status Effect with delayed onset — which is the honest reading of a card that buffs its own Hero.
+A card whose job is to answer a *named future* Boss Beat should be authored as a **Commitment** rather than as a Status Effect (D-028, see the [Encounter Design Bible](encounter-design-bible.md)). **No card is one yet.** Fortify was originally reclassified as the first Commitment and that was retracted: it prepares for whatever next Round opens with rather than for a named Beat, and since ADR 0031 nothing shows next Round at all, so there is no entry it could bind to. Fortify is a Status Effect with delayed onset — which is the honest reading of a card that buffs its own Hero.
 
-Two authoring consequences. A Commitment may only bind to a Beat whose parameters are disclosed, so a card cannot promise preparation against something the party can only see at family level; a card that wants to prepare for a *kind* of problem is a Status Effect, not a Commitment. And a Commitment prepares — it never redirects a Beat's target or changes what the Beat is. That ban is effect-level: it binds any mechanism that could produce the same effect, including a status applied to the Boss.
+Two authoring consequences. A Commitment may only bind to a Beat whose parameters are disclosed, which since ADR 0031 means a Beat on this Round's Timeline; a card that wants to prepare for a *kind* of problem, or for a Round the player can only guess at, is a Status Effect, not a Commitment. And a Commitment prepares — it never redirects a Beat's target or changes what the Beat is. That ban is effect-level: it binds any mechanism that could produce the same effect, including a status applied to the Boss.
 
 ## Authored Statuses
 

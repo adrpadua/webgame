@@ -95,13 +95,17 @@ Three columns read it: `reachedR8%` (did the run last to the Encounter Clock), `
 
 The structural protection that the fixed baseline was standing in for is a test, not a percentage: automatic ticks begin at `roundLimit - 4`, asserted directly, so no Escalation tuning can reach into Rounds 1 through 3 by that route. Acceleration can and does reach them — a Brood Call answered late costs Escalation from Round 1 onward — and that is deliberate.
 
-## Forecast Row Readability
+## Schedule Readability — the instrument that retired its own subject
 
-Nothing in the sweep read the Forecast Row until D-038, which made ADR 0026's third horizon unfalsifiable: a fixed policy cannot benefit from information it never consults, so no result could have argued either way. The instrument is a matched pair — `forecast_reader` and `forecast_blind`, identical except that the reader consults `forecast()` before spending its Slow Window on Fortify. Fortify is the only card whose payoff lands next Round (D-019), so the Forecast Row is the only surface that can price the spend, which makes the pair a direct test rather than a proxy.
+Nothing in the sweep read the Forecast Row until D-038, which made ADR 0026's third horizon unfalsifiable: a fixed policy cannot benefit from information it never consults, so no result could have argued either way. The instrument was a matched pair — `forecast_reader` and `forecast_blind`, identical except that the reader consulted `forecast()` before spending its Slow Window on Fortify or holding a shove. Fortify is the only card whose payoff lands next Round (D-019), so the Forecast Row was the only surface that could price the spend, which made the pair a direct test rather than a proxy.
 
-Read it as a differential and nothing else: same seeds, same positions, and the only question is whether the reader outlives its twin. It currently does not — identical outcomes at `far` and `dodge`, and worse at `stay` — for two reasons recorded in ADR 0026's amendment. The `slowHeld` column shows the reader is genuinely behaving differently, so a null result is a null result rather than a policy that failed to act.
+**It returned a verdict and the subject was removed.** Across 200 seeds per position the reader and the blind twin finished in the same Round to two decimal places at `far` and `stay`, and the checkpoint clear rates were identical to the percentage point in all three positions. ADR 0026 had shipped the row against exactly this gate — "whether the row is actionable information or decorative UI" — and ADR 0031 deleted the row on the answer. The pair collapsed into a single `shover` policy, since with nothing to read the two were the same script.
 
-This is the sweep's answer to the question a human playtest would answer better. When real Parties play, D-021's Timeline conversion rate supersedes it.
+This is the clearest case so far of a measurement earning its cost: the row survived a design review, a rewrite of the program order meant to fix it, and eight months of documentation, and no amount of argument moved it. One differential did.
+
+What replaces it is `programPredictability`, which was built to justify the row and outlived it. With no forecast the number *is* the learning curve — `1` means the order is a fixed rotation and a second attempt teaches nothing, the uniform floor means experience buys nothing either, and the design wants the middle. It currently reads 66% against a 33% floor.
+
+One honest limit, recorded rather than solved: no fixed policy can learn, so the sweep now measures the *floor* of every decision whose payoff depends on knowing what comes next — Fortify's banked Armor most of all — and never its best play. The instrument for that is a human playtest.
 
 ## Decision-Concentration Proxy
 
