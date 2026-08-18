@@ -396,12 +396,12 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
       continue
     }
     const rf = fact.resolutionFact as Record<string, unknown> | undefined
-    const statusEvent = rf?.status_event as Record<string, unknown> | undefined
-    if (statusEvent?.status_id === 'riposte_ready' && statusEvent.event === 'granted') {
+    const counterEvent = rf?.counter_event as Record<string, unknown> | undefined
+    if (counterEvent?.counter_id === 'riposte_ready' && counterEvent.event === 'placed') {
       riposteGranted += 1
     }
-    if (statusEvent?.status_id === 'riposte_ready' && statusEvent.event === 'consumed') {
-      if (statusEvent.reason === 'matching_card_fired') {
+    if (counterEvent?.counter_id === 'riposte_ready' && counterEvent.event === 'consumed') {
+      if (counterEvent.reason === 'matching_card_fired') {
         riposteFull += 1
       } else {
         riposteEarly += 1

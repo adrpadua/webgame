@@ -44,6 +44,74 @@ export const chargeModifierSchema = z.object({
   amount_per_match: z.number().int().min(1),
 })
 
+// What a Counter does while it is held, and when it does it (D-045). A
+// Counter is inert on its own — a named, counted marker — and a Reader is the
+// only thing that turns a count into an effect. The payload lives here rather
+// than on the marker, so what a Counter *means* is decided by what reads it.
+// That is the whole reason a marker is worth having: three cards may place
+// Ash, and the cards that read Ash decide what Ash is worth.
+export const counterReaderSchema = z.object({
+  when: z.enum(['round_start', 'host_takes_damage', 'host_deals_damage', 'slot_fired']),
+  effect: z.enum(['armor', 'healing', 'boss_damage', 'target_damage']),
+  // Signed, and applied once per Counter held: Sundered raises what its host
+  // takes at `1`, Weakened lowers what its host deals at `-1`, and Fortified
+  // banks Armor at `1` per Counter so the count *is* the stored Armor. Zero is
+  // refused by the catalog rather than allowed as a Reader that does nothing.
+  per: z.number().int().default(1),
+})
+
+// A Counter: identity, host, bounds, and what reads it. Counters replace the
+// Status Effect definition (D-045). The two named payload fields D-034 chose
+// are gone — an Enemy-facing Counter is one whose Readers happen to fire on
+// an Enemy's events, not a separate kind of thing with its own schema.
+export const counterSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  rules_text: z.string().default(''),
+  keywords: z.array(z.string()).default([]),
+  // Phase 1 hosts Counters on combatants only. `hex`, `slot`, and `encounter`
+  // are sketched and unbuilt, so authoring them would be a promise the rules
+  // do not keep.
+  host: z.literal('combatant').default('combatant'),
+  // The stacking rule, as a number. `1` is the old non-stacking behaviour: a
+  // second placement is refused rather than refreshing. Anything higher
+  // accumulates, which is how Fortified's additive stacking (D-019) survives
+  // without a `stacking` flag.
+  max: z.number().int().min(1).default(1),
+  // `0` means no clock — the Counter sits until something spends it. That is
+  // the axis a duration cannot express, and the more interesting one.
+  duration_rounds: z.number().int().min(0).default(0),
+  readers: z.array(counterReaderSchema).default([]),
+})
+
+// What a Card does with Counters when it fires. Three verbs, and no way to
+// combine them with boolean logic: every `gate` has to pass, and that is the
+// entire grammar. The moment this wants `or`, what is being written is an
+// interpreter, and the mechanic belongs in engine code instead — the escape
+// hatch a Beat kind already provides.
+export const cardReaderSchema = z.object({
+  // gate:  refuse the fire unless the count qualifies.
+  // scale: add `per` to an effect for each Counter held.
+  // spend: remove Counters.
+  verb: z.enum(['gate', 'scale', 'spend']),
+  // Exactly one of these names what is read. `counter_keyword` matches every
+  // Counter carrying that Keyword, which is the Charge Modifier's
+  // match-by-keyword generalised off the Charge Stack.
+  counter: z.string().default(''),
+  counter_keyword: z.string().default(''),
+  // A closed set of subjects, never a path expression. Phase 1 reads the
+  // firing Hero or the Card's chosen target and nothing else.
+  on: z.enum(['self', 'target']).default('target'),
+  effect: z.enum(['armor', 'healing', 'boss_damage', 'target_damage']).default('target_damage'),
+  at_least: z.number().int().min(1).default(0),
+  per: z.number().int().default(0),
+  amount: z.number().int().min(1).default(0),
+  // A cost is paid before the Card's effects are computed and is not refunded
+  // if they come to nothing; a resolution spend happens after. The difference
+  // is visible whenever a Card both scales off a Counter and spends it.
+  timing: z.enum(['cost', 'resolution']).default('cost'),
+})
+
 export const cardSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -63,11 +131,14 @@ export const cardSchema = z.object({
   pull_tiles: z.number().int().min(0).default(0),
   tags: z.array(z.string()).default([]),
   charge_modifiers: z.array(z.string()).default([]),
-  // The status this card applies, if any (D-033). Where it lands comes from
-  // `target_type`, which this finally makes load-bearing: `none` applies to
-  // the firing Hero, `piece` to a selected Enemy, `board_slot` to an ally's
-  // Top Card.
-  applies_status: z.string().default(''),
+  // The Counter this card places, if any. Where it lands comes from
+  // `target_type`, which D-033 made load-bearing and D-045 leaves alone:
+  // `none` places on the firing Hero, `piece` on a selected Enemy,
+  // `board_slot` on an ally's Top Card (canon, unbuilt — D-035).
+  places_counter: z.string().default(''),
+  counter_amount: z.number().int().min(1).default(1),
+  // What this card reads before and while it resolves (D-045).
+  reads: z.array(cardReaderSchema).default([]),
 })
 
 export const hazardSchema = z.object({
@@ -85,28 +156,6 @@ export const minionSchema = z.object({
   rules_text: z.string().default(''),
   max_health: z.number().int().min(1),
   attack_damage: z.number().int().min(0).default(0),
-})
-
-// A Status Effect definition (D-033). Statuses were engine-only until now:
-// Riposte Ready and Fortified were constructed in code at hardcoded moments.
-// Authoring them here makes them shared vocabulary — one Sundered, with one
-// title, one rules text, and one answer to whether it stacks.
-export const statusSchema = z.object({
-  id: z.string().min(1),
-  title: z.string().min(1),
-  rules_text: z.string().default(''),
-  // Which side of the fight the payload is written for. The mechanism is the
-  // same for both; only the fields that matter differ (D-032).
-  applies_to: z.enum(['hero', 'enemy']),
-  triggers: z.array(z.enum(['on_round_start', 'on_enter_hex', 'on_damage_taken', 'on_slot_fired'])).default([]),
-  // Per-status rather than one global rule, because canon already holds both
-  // behaviours: Riposte Ready never stacks, Fortified stacks additively.
-  stacking: z.boolean().default(false),
-  duration_rounds: z.number().int().min(1).default(1),
-  // Enemy-facing payload (D-034). Two named fields rather than a general
-  // effect list, following the ADR 0021 precedent.
-  damage_taken_bonus: z.number().int().min(0).default(0),
-  damage_dealt_penalty: z.number().int().min(0).default(0),
 })
 
 export const bossBeatSchema = z.object({
@@ -276,7 +325,9 @@ export type ChargeModifier = z.infer<typeof chargeModifierSchema>
 export type Card = z.infer<typeof cardSchema>
 export type Hazard = z.infer<typeof hazardSchema>
 export type Minion = z.infer<typeof minionSchema>
-export type StatusDefinition = z.infer<typeof statusSchema>
+export type CounterDefinition = z.infer<typeof counterSchema>
+export type CounterReader = z.infer<typeof counterReaderSchema>
+export type CardReader = z.infer<typeof cardReaderSchema>
 export type EscalationThreshold = z.infer<typeof escalationThresholdSchema>
 export type BossBeat = z.infer<typeof bossBeatSchema>
 export type BossProgram = z.infer<typeof bossProgramSchema>

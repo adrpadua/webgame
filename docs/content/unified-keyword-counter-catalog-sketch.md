@@ -1,10 +1,12 @@
 # Unified Keyword & Counter Catalog — Sketch
 
-**Status: Phase 0 shipped (D-044); Phases 1–3 are sketch, not adopted.** Phases 1 onward
-propose reversing part of D-034, so adopting any of them owes their own decision entry.
+**Status: Phases 0 and 1 shipped (D-044, D-045); Phases 2–3 are sketch, not adopted.**
 
-Phase 0 — one validated Keyword namespace with a `kind` discriminator — is live. Sections 3
-and 7 describe what was built; §4–6 remain a proposal.
+Live: one validated Keyword namespace with a `kind` discriminator (§3, §7), and Counters
+with `gate`/`scale`/`spend` Readers on `host: combatant` (§4–6). Still a proposal: other
+hosts (§8 Phase 2) and event Keywords read off the fact stream (§8 Phase 3).
+
+Where the shipped code differs from what a section first proposed, the section says so.
 
 The goal: keywords become one validated namespace that everything joins on, and counters
 become a general primitive that content reads — the SoTM model, where a passive says
@@ -265,8 +267,24 @@ Beyond the existing "unknown id" checks:
 asserts at load that every Keyword the rules name by id exists as the right kind. Gameplay
 bit-identical — the smoke's replay fingerprint is unchanged.
 
-**Phase 1.** Counters + `gate`/`scale`/`spend`, `host: combatant` only. Port `sundered` and
-`weakened` off named fields onto readers. Reversal of D-034 — owes a decision entry.
+**Phase 1 — shipped (D-045).** Counters replace Status Effects outright: `data/statuses/`
+is now `data/counters/`, D-034's `damage_taken_bonus`/`damage_dealt_penalty` and the
+`applies_to`/`stacking` fields are gone, and cards carry `places_counter`/`counter_amount`
+plus a `reads` list. Fortified went too — its banked Armor is the count, so D-019's additive
+stacking is addition. Riposte Ready stays engine-built. Gameplay identical: the 36-policy
+evaluation sweep is byte-identical to the pre-change run across every metric.
+
+Two things the sketch got wrong, found by building it:
+
+- **`per` has to be signed.** §5 proposed `min(1)`. Weakened is `-1`; a debuff needs it.
+- **`spend` cannot take a `counter_keyword`.** "Remove 3 of any fire Counter" makes the rules
+  choose which, and a rule that chooses for the player cannot be planned against. `gate` and
+  `scale` still match by Keyword; only `spend` is restricted.
+
+And one the sketch was right about but overstated: §7's reachability lint ships **read-side
+only**. A Counter nothing reads fails the build. A Counter nothing *places* does not, because
+Sundered and Weakened are exactly that while they wait on the deck-evaluation gate (backlog
+item 10) — enforcing it would delete authored content to satisfy a lint.
 
 **Phase 2.** Other hosts. Escalation becomes a counter with threshold readers; D-035's
 `board_slot` attachment becomes reachable.

@@ -1,7 +1,8 @@
 import { cardChargeCap, cardWindowSpeed, type ContentCatalog } from './content/catalog'
 import { hexDistance, hexKey } from './hex'
 import { isLegalMove } from './board'
-import { getStatus } from './statuses'
+import { getCounter } from './counters'
+import { cardGatesPass } from './resolve'
 import type { EncounterActionInput } from './actions'
 import type { CardInstance, EncounterState, HeroState, LegalityVerdict } from './types'
 
@@ -131,26 +132,30 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
         }
         targetVerdict = verdict
       }
-      // A card applying an enemy-facing status needs an Enemy, and each kind
-      // keeps the targeting rule it already had (D-034): a Minion must be in
-      // range, the Boss needs none — requiring one would contradict the
-      // positionless `boss_damage` ruling.
-      const appliedStatus = card.applies_status === '' ? undefined : catalog.statuses[card.applies_status]
-      if (appliedStatus?.applies_to === 'enemy') {
+      // A card that places a Counter on a piece, or reads one there, needs an
+      // Enemy, and each kind keeps the targeting rule it already had (D-034,
+      // kept by D-045): a Minion must be in range, the Boss needs none —
+      // requiring one would contradict the positionless `boss_damage` ruling.
+      const needsEnemyPiece =
+        card.target_type === 'piece' && (card.places_counter !== '' || card.reads.some((reader) => reader.on === 'target'))
+      if (needsEnemyPiece) {
         const targetId = action.targetId ?? ''
         const target = state.board.entities[targetId]
         if (!target || target.team !== 'enemy') {
           return illegal('The Top Card needs an Enemy target.')
         }
-        if (target.kind === 'boss') {
-          return targetVerdict ?? legal()
-        }
-        if (targetVerdict === undefined) {
+        if (target.kind !== 'boss' && targetVerdict === undefined) {
           targetVerdict = rangeVerdict(state, action.sourceId, targetId, card.range_tiles, "The chosen Enemy is outside the Top Card's range.")
           if (!targetVerdict.legal) {
             return targetVerdict
           }
         }
+      }
+      // Every `gate` the Card declares has to pass, and they AND together.
+      // Checked here so the Slot simply is not firable, and so the targeting
+      // projection the board draws from never offers an illegal piece.
+      if (!cardGatesPass(catalog, state, card, action.sourceId, action.targetId ?? '')) {
+        return illegal('The Top Card needs more Counters than are there.')
       }
       return targetVerdict ?? legal()
     }
@@ -182,7 +187,7 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       return legal()
     }
     case 'expire_status': {
-      const effect = getStatus(state, action.targetId, action.statusId)
+      const effect = getCounter(state, action.targetId, action.statusId)
       if (!effect || effect.expiresAtWindowEnd !== action.window || state.phase !== action.window) {
         return illegal('The Status Effect is not eligible to expire at this boundary.')
       }

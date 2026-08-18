@@ -41,7 +41,7 @@ export {
   FACING_SE,
 } from './facing'
 export { buildProgramSequence, currentProgram } from './timeline'
-export { getStatuses } from './statuses'
+export { counterCount, counterCountByKeyword, getCounters } from './counters'
 export { getEntityIdAt, isLegalMove, neighbors, isGuardedFront } from './board'
 export { minionIntent, minionIntents, type MinionIntent } from './minions'
 export { ESCALATION_MAX, escalationModifiers, escalationStartRound, type EscalationModifiers } from './escalation'

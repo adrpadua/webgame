@@ -8,7 +8,7 @@ import {
   keywordSchema,
   minionSchema,
   scenarioSchema,
-  statusSchema,
+  counterSchema,
   type BossProgram,
   type Card,
   type ChargeModifier,
@@ -18,9 +18,10 @@ import {
   type Keyword,
   type Minion,
   type Scenario,
-  type StatusDefinition,
+  type CounterDefinition,
 } from './schemas'
 import { ENGINE_KEYWORDS, KEYWORD_REFERENCES, type KeywordKind } from '../keywords'
+import { ENGINE_COUNTERS } from '../counters'
 import { hexDistance } from '../hex'
 
 export interface ContentCatalog {
@@ -29,7 +30,7 @@ export interface ContentCatalog {
   chargeModifiers: Record<string, ChargeModifier>
   hazards: Record<string, Hazard>
   minions: Record<string, Minion>
-  statuses: Record<string, StatusDefinition>
+  counters: Record<string, CounterDefinition>
   programs: Record<string, BossProgram>
   encounters: Record<string, EncounterDefinition>
   decks: Record<string, EvaluationDeck>
@@ -59,7 +60,7 @@ export interface RawContent {
   chargeModifiers: unknown[]
   hazards: unknown[]
   minions: unknown[]
-  statuses?: unknown[]
+  counters?: unknown[]
   programs: unknown[]
   encounters: unknown[]
   decks?: unknown[]
@@ -176,7 +177,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     chargeModifiers: indexById(parseAll(raw.chargeModifiers, chargeModifierSchema, 'charge modifier'), 'charge modifier'),
     hazards: indexById(parseAll(raw.hazards, hazardSchema, 'hazard'), 'hazard'),
     minions: indexById(parseAll(raw.minions, minionSchema, 'minion'), 'minion'),
-    statuses: indexById(parseAll(raw.statuses ?? [], statusSchema, 'status'), 'status'),
+    counters: indexById(parseAll(raw.counters ?? [], counterSchema, 'counter'), 'counter'),
     programs: indexById(parseAll(raw.programs, bossProgramSchema, 'boss program'), 'boss program'),
     encounters: indexById(parsedEncounters, 'encounter'),
     decks: indexById(parseAll(raw.decks ?? [], evaluationDeckSchema, 'deck'), 'deck'),
@@ -208,20 +209,79 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     for (const tag of card.tags) {
       requireKeyword(catalog, tag, KEYWORD_REFERENCES.cardTag, `Card ${card.id}`, 'tag')
     }
-    if (card.applies_status !== '') {
-      const status = catalog.statuses[card.applies_status]
-      if (!status) {
-        throw new Error(`Card ${card.id} references unknown status ${card.applies_status}`)
+    if (card.places_counter !== '') {
+      const counter = catalog.counters[card.places_counter]
+      if (!counter) {
+        throw new Error(`Card ${card.id} references unknown counter ${card.places_counter}`)
       }
-      // Targeting reuses the existing rule per kind (D-034), so the card's
-      // declared target has to match the side the status is written for.
-      const expected = status.applies_to === 'enemy' ? 'piece' : card.target_type
-      if (status.applies_to === 'enemy' && card.target_type !== 'piece') {
-        throw new Error(`Card ${card.id} applies the enemy status ${status.id} but does not target a piece`)
+      // `target_type` is the whole rule for where a Counter lands (D-033,
+      // kept by D-045): `none` places on the firing Hero, `piece` on a
+      // selected piece. D-034's `applies_to` cross-check is gone with the
+      // field, and nothing is lost — "written for an Enemy" stopped being a
+      // property of the Counter the moment its payload became Readers. A
+      // Counter whose Reader fires on `host_takes_damage` does the same thing
+      // to whoever holds it, and a card that Sunders its own Hero is a bad
+      // card rather than an incoherent one.
+      if (card.target_type === 'board_slot') {
+        throw new Error(`Card ${card.id} places ${counter.id} on a board_slot, which is canon but unbuilt (D-035)`)
       }
-      if (status.applies_to === 'hero' && card.target_type !== 'none' && card.target_type !== 'board_slot') {
-        throw new Error(`Card ${card.id} applies the hero status ${status.id} but targets ${expected}`)
+      if (card.counter_amount > counter.max) {
+        throw new Error(`Card ${card.id} places ${card.counter_amount} ${counter.id} but that Counter caps at ${counter.max}`)
       }
+    }
+    for (const reader of card.reads) {
+      const named = [reader.counter, reader.counter_keyword].filter((value) => value !== '')
+      if (named.length !== 1) {
+        throw new Error(`Card ${card.id} has a ${reader.verb} reader naming ${named.length} of counter/counter_keyword; it must name exactly one`)
+      }
+      if (reader.counter !== '' && !catalog.counters[reader.counter]) {
+        throw new Error(`Card ${card.id} reads unknown counter ${reader.counter}`)
+      }
+      if (reader.counter_keyword !== '') {
+        requireKeyword(catalog, reader.counter_keyword, KEYWORD_REFERENCES.counterKeyword, `Card ${card.id}`, 'counter_keyword')
+      }
+      // A verb with none of its own numbers set is a reader that does nothing,
+      // which is the failure this whole vocabulary exists to make loud.
+      if (reader.verb === 'gate' && reader.at_least < 1) {
+        throw new Error(`Card ${card.id} has a gate reader with no at_least`)
+      }
+      if (reader.verb === 'scale' && reader.per === 0) {
+        throw new Error(`Card ${card.id} has a scale reader with no per`)
+      }
+      if (reader.verb === 'spend' && reader.amount < 1) {
+        throw new Error(`Card ${card.id} has a spend reader with no amount`)
+      }
+      // A spend has to name one Counter. "Remove 3 of any fire Counter" would
+      // make the rules pick which, and a rule that picks for the player is a
+      // rule the player cannot plan against.
+      if (reader.verb === 'spend' && reader.counter === '') {
+        throw new Error(`Card ${card.id} spends by keyword; a spend must name one counter`)
+      }
+      if (reader.on === 'target' && card.target_type !== 'piece') {
+        throw new Error(`Card ${card.id} has a ${reader.verb} reader on the target but does not target a piece`)
+      }
+    }
+  }
+  for (const counter of Object.values(catalog.counters)) {
+    for (const keywordId of counter.keywords) {
+      requireKeyword(catalog, keywordId, KEYWORD_REFERENCES.counterKeyword, `Counter ${counter.id}`, 'keywords')
+    }
+    for (const reader of counter.readers) {
+      if (reader.per === 0) {
+        throw new Error(`Counter ${counter.id} has a ${reader.when} reader with per 0, which does nothing`)
+      }
+    }
+    // The reachability half that can be enforced today: a Counter nothing
+    // reads is an unreachable mechanic. The other half — a Counter nothing
+    // places — is deliberately not an error yet, because Sundered and
+    // Weakened are exactly that and are waiting on the deck-evaluation gate
+    // for their first card (backlog item 10). Enforcing it now would delete
+    // authored content to satisfy a lint.
+    const readByCard = Object.values(catalog.cards).some((card) =>
+      card.reads.some((reader) => reader.counter === counter.id || (reader.counter_keyword !== '' && counter.keywords.includes(reader.counter_keyword))),
+    )
+    if (counter.readers.length === 0 && !readByCard && !ENGINE_COUNTERS.includes(counter.id)) {
+      throw new Error(`Counter ${counter.id} has no readers and no card reads it, so nothing can ever make it matter`)
     }
   }
   for (const modifier of Object.values(catalog.chargeModifiers)) {
@@ -352,8 +412,8 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
         addKeyword(modifier.keyword_id)
       }
     }
-    if (card.applies_status !== '') {
-      requireDefinition('status', card.applies_status, catalog.statuses)
+    if (card.places_counter !== '') {
+      requireDefinition('counter', card.places_counter, catalog.counters)
     }
   }
   const visitedPrograms = new Set<string>()

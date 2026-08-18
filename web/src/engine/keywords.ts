@@ -30,6 +30,9 @@ export const KEYWORD_REFERENCES = {
   damageClassification: ['damage_type'] as KeywordKind[],
   targetSelector: ['role'] as KeywordKind[],
   counterTag: ['answer'] as KeywordKind[],
+  // A Counter is tagged with what sort of thing it is, so a card can read
+  // "every fire Counter" without naming each one.
+  counterKeyword: ['trait'] as KeywordKind[],
 }
 
 // Display title for an authored Keyword id. Content stores ids; every surface

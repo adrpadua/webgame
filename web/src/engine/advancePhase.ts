@@ -4,7 +4,7 @@ import { applyAction, checkResolution } from './resolve'
 import { ESCALATION_MAX, escalationActionsForRoundEnd, escalationModifiers } from './escalation'
 import { minionIntent } from './minions'
 import { actionsForTrack, refreshTelegraphs } from './timeline'
-import { getStatuses, statusEvent } from './statuses'
+import { getCounters, counterEvent } from './counters'
 import { RAID_HIT } from './keywords'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
 import type { EncounterState, Phase, ResolveResult, ResolvedActionFact } from './types'
@@ -28,20 +28,20 @@ function cleanupActions(catalog: ContentCatalog, draft: EncounterState, window: 
   return actions
 }
 
-function statusExpiryActions(draft: EncounterState, window: Phase): EncounterActionInput[] {
+function counterExpiryActions(draft: EncounterState, window: Phase): EncounterActionInput[] {
   const actions: EncounterActionInput[] = []
-  for (const entityId of Object.keys(draft.statusEffects)) {
-    for (const effect of getStatuses(draft, entityId)) {
-      if (effect.expiresAtWindowEnd !== window) {
+  for (const entityId of Object.keys(draft.counters)) {
+    for (const counter of getCounters(draft, entityId)) {
+      if (counter.expiresAtWindowEnd !== window) {
         continue
       }
       actions.push({
         kind: 'expire_status',
         sourceId: entityId,
         targetId: entityId,
-        statusId: effect.id,
+        statusId: counter.id,
         window,
-        statusEvent: statusEvent(effect, 'expired', 'expiry_window_ended'),
+        statusEvent: counterEvent(counter, 'expired', 'expiry_window_ended'),
       })
     }
   }
@@ -77,7 +77,7 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
       refreshTelegraphs(catalog, draft)
       break
     case 'quick':
-      for (const action of statusExpiryActions(draft, 'quick')) {
+      for (const action of counterExpiryActions(draft, 'quick')) {
         submit(action)
       }
       for (const action of cleanupActions(catalog, draft, 'quick')) {

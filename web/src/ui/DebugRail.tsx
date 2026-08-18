@@ -18,9 +18,10 @@ function factSummary(fact: FactEntry): string | null {
   if (resolution.target_removed === true) {
     parts.push('target removed')
   }
-  const statusEvent = resolution.status_event as { status_id?: string; event?: string } | undefined
-  if (statusEvent?.status_id) {
-    parts.push(`${statusEvent.status_id}: ${statusEvent.event}`)
+  const counterEvent = resolution.counter_event as { counter_id?: string; event?: string; count?: number } | undefined
+  if (counterEvent?.counter_id) {
+    const count = typeof counterEvent.count === 'number' && counterEvent.count > 1 ? ` ×${counterEvent.count}` : ''
+    parts.push(`${counterEvent.counter_id}: ${counterEvent.event}${count}`)
   }
   return parts.length > 0 ? parts.join(' · ') : null
 }
