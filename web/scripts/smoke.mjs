@@ -222,19 +222,35 @@ try {
     // is a property of the art and takes no scaling.
     return { energy: (summed.total / 6) * scale ** 2, median: summed.median }
   }
-  const boss = await warmEnergy('boss')
+  // Every Boss form, not just the first. A phase sheet is a second piece of
+  // art with its own warm level, and the Whelp is on the board during Phase II
+  // — Brood Call is in both of its programs — so the form that ships hottest
+  // or coldest has to be held against the Minion just as the first one is.
+  const bossKinds = [...sceneSource.matchAll(/^\s{2}(boss\w*): \{ key:/gm)].map((match) => match[1])
+  assert(bossKinds.length > 0, `the scene declares every Boss form it draws (${bossKinds.join(', ') || 'none'})`)
   const minion = await warmEnergy('minion')
+  const bossForms = []
+  for (const kind of bossKinds) {
+    bossForms.push([kind, await warmEnergy(kind)])
+  }
+  const dimmer = bossForms.filter(([, form]) => form === null || minion === null || form.energy <= minion.energy)
   assert(
-    boss !== null && minion !== null && boss.energy > minion.energy,
-    `the Boss commands more warm presence than a Minion (boss ${boss?.energy.toFixed(0)}, minion ${minion?.energy.toFixed(0)})`,
+    dimmer.length === 0,
+    `every Boss form commands more warm presence than a Minion (${
+      bossForms.map(([kind, form]) => `${kind} ${form?.energy.toFixed(0)}`).join(', ')
+    } vs minion ${minion?.energy.toFixed(0)})`,
   )
   // And per pixel, which is the ordering the direction states outright. The
   // Whelp shipped brighter than the Boss until its sheet was graded, and it is
   // built from a contact sheet that is still ungraded — so a rebuild that skips
-  // the grading step reintroduces the inversion, and fails here.
+  // the grading step reintroduces the inversion, and fails here. The Phase II
+  // sheet arrived below the Whelp too and was graded up for the same reason.
+  const paler = bossForms.filter(([, form]) => form === null || minion === null || form.median <= minion.median)
   assert(
-    boss !== null && minion !== null && boss.median > minion.median,
-    `the Boss outranks a Minion per warm pixel too (boss L=${boss?.median.toFixed(4)}, minion L=${minion?.median.toFixed(4)})`,
+    paler.length === 0,
+    `every Boss form outranks a Minion per warm pixel too (${
+      bossForms.map(([kind, form]) => `${kind} L=${form?.median.toFixed(4)}`).join(', ')
+    } vs minion L=${minion?.median.toFixed(4)})`,
   )
 
   const alphas = /TELEGRAPH_ALPHA = \{ cone: ([\d.]+), spawn: ([\d.]+) \}/.exec(paletteSource)

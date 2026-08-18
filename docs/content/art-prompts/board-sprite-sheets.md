@@ -175,7 +175,47 @@ Nothing may leave the body's outline. No drifting embers, falling ash, smoke, sp
 | `SCALE` | `identical to the first sheet — low and wide, filling most of its cell, about one and a half times the height of a human figure and considerably broader. This form is not larger than the first` |
 | `PHASE_CHANGE` | `the blackened oathsteel plating has been shed. On the first sheet it hung off the body like failing containment; here it is gone, leaving snapped anchor stubs and empty mounts, the coral beneath fully exposed, and the furnace throat unshuttered. It reads as a furnace that has lost its casing — not as a different creature, and not merely as an angrier one` |
 
+**Delivered and wired.** The sheet came back correct on every acceptance check and, against the instinct the prompt spends most of its words fighting, *darker* than the first form — a warm median of `L=0.079` against Phase I's `0.103`. That created the opposite problem: it sat below the Whelp's `0.085`, and Brood Call is in both Phase II programs, so the two are on the board together. It was graded up to `0.092`, which clears the Minion with a real margin at a third less highlight clipping than matching Phase I would have cost.
+
 Composed and ready to send in [embermaw-sprite-prompts.md](embermaw-sprite-prompts.md). Save the accepted sheet as `assets/art/characters/embermaw/idle-contact-sheet-phase-two.png` and build it to `web/src/assets/embermaw-phase-two-idle.png`.
+
+## Acceptance Check
+
+Build the sheet first, then run the checks in the **Sprite Inspector** — the debug rail's "Inspect sheets" button, on any build with the rail (`npm run dev`, or `?debug=1`). It lays every frame out in the engine's facing order with the direction each row is supposed to face, so the checks below are a read rather than an investigation. Its `checker` ground is the one that shows keying damage; its `board size` zoom is the one that answers whether the piece reads at all.
+
+Test the facings before anything else. A beautiful sheet with two rows pointing the same way is a sheet that has to be regenerated or mirrored.
+
+- Do the three drawn rows face genuinely different directions — `NE` showing the back, `E` the flank, `SE` the front? Two alike is a failed sheet.
+- Do `W`, `NW`, and `SW` appear in the Inspector as exact mirrors? They are built, not drawn, so this checks the builder rather than the art.
+- Across the four frames of a row, do the feet or base stay put? A figure that travels loses its motion to the builder's re-centring.
+- Is it the same creature at the same scale in all 12 cells?
+- Held at the height of a coin, is the `BOARD_READ` feature still the thing you see first?
+- Is the Whelp instantly distinguishable from Embermaw by silhouette and size alone, while obviously made of the same material?
+- Any text outside the left label gutter? Reject.
+- Is the background flat near-black with no baked drop shadow? The board casts its own, and a baked one keys into the sprite and doubles.
+
+For a phase variant, after all of the above:
+
+- Open both sheets in the Sprite Inspector and step through them row for row. Does each row face the same direction in both? A mismatch spins the piece at the phase break.
+- Is the variant the same size and the same brightness as the first form? A phase that arrives brighter outranks the telegraph it is about to fire.
+- Is anything outside the body's outline in any cell? One drifting ember is a frame that trims differently from its neighbours.
+- Held at board size, is it still obviously the same creature — and still obviously not a Whelp?
+
+## Wiring A Finished Sheet
+
+[`web/src/board/sheets.ts`](../../../web/src/board/sheets.ts) holds a `SHEETS` table keyed by piece kind — Elian, Embermaw, and the Whelp are the worked examples. A new sheet is one entry carrying its frame size, the height it renders at, and how far below the hex centre its base sits. Two things then cover it for free: the smoke reads that table and checks every sheet's PNG header against it, and the Sprite Inspector enumerates the same table, so a new entry arrives with its own button and needs no view written for it.
+
+Pieces are scaled by height rather than sharing a scale, because each sheet is cropped to its own content and a shared scale would size a piece by however much empty space its contact sheet happened to leave. They are also depth-sorted by where they stand: a wide piece like Embermaw overlaps the hexes in front of it, and the piece nearer the camera has to occlude the one behind.
+
+### A Phase Variant Needs Two More Edits
+
+Both are now made for Embermaw, and both would have shipped silently broken.
+
+**`sheetFor` resolved by kind alone.** A Boss in either phase has the kind `boss`, so the phase had to reach the lookup. `bossSheetKey(bossPhase)` in [sheets.ts](../../../web/src/board/sheets.ts) answers it, and the scene re-reads it on every snapshot rather than swapping once at the Phase Reveal — a one-time swap is right going forward and wrong going back, and stepping through time travel across the Phase Trigger has to restore the first form.
+
+**Sprites are created on first sight and kept.** `placeSprite` built a sprite the first time it saw an entity id and reused it after, so a Boss changing phase mid-Encounter would have held the texture it was born with and the Phase Break would have shown nothing. It now swaps the texture when the resolved sheet changes.
+
+One formatting constraint came out of this too: the smoke parses `SHEETS` with a per-line regex, so a new entry spread across several lines is an entry the header check cannot see. Keep each on one line.
 
 ## Acceptance Check
 
