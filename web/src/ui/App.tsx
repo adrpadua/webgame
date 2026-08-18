@@ -16,6 +16,7 @@ import { Hand } from './Hand'
 import { HoldPopoverLayer } from './HoldPopover'
 import { MovePad } from './MovePad'
 import { MovePaymentCue } from './MovePaymentCue'
+import { NotificationLayer, NotificationZone, Notify } from './NotificationLayer'
 import { PhaseBanner } from './PhaseBanner'
 import { PhaseControl } from './PhaseControl'
 import { ProgramStrip } from './ProgramStrip'
@@ -35,12 +36,18 @@ function RejectionToast() {
   if (lastRejection === null) {
     return null
   }
+  // Docked: the refusal answers a tap on the Action Bar or the Hand, so it
+  // belongs above them rather than at a fixed offset off the bottom of the
+  // frame — which is how it used to land on the Action Bar itself.
   return (
-    <div className="pointer-events-none absolute right-3 bottom-40 left-3 z-10" data-testid="rejection-toast">
-      <div className="wb-plate wb-plate-sm wb-face-steel wb-acc-ember py-2 text-center text-xs font-semibold text-ember-100">
+    <Notify id="rejection">
+      <div
+        className="wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-ember py-2 text-center text-xs font-semibold text-ember-100"
+        data-testid="rejection-toast"
+      >
         {lastRejection}
       </div>
-    </div>
+    </Notify>
   )
 }
 
@@ -60,24 +67,30 @@ function PlayoutContinue() {
   if (!awaiting) {
     return null
   }
+  // Docked rather than floated over the board's top edge: it is a control the
+  // player presses once per beat, so it sits in the thumb's reach above the
+  // Action Bar — and out of the stage banner's way, which is what used to
+  // print "Boss Instant" straight across it.
   return (
-    <button
-      type="button"
-      data-testid="playout-continue"
-      data-next-beat={nextBeatTitle ?? ''}
-      onClick={continuePlayout}
-      className={`wb-slide-up wb-face-pulse pointer-events-auto wb-plate wb-plate-sm wb-face-steel wb-acc-ember flex min-h-12 w-full items-center justify-between gap-2 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
-    >
-      <span className="flex min-w-0 items-center gap-2">
-        {/* "Up next", not "Next": the phase control's Next button is a
-            different move, and the two must not read as the same word. */}
-        <span className="shrink-0 text-[9px] font-semibold tracking-widest text-steel-400 uppercase">Up next</span>
-        <span className="truncate text-xs font-bold text-coral-100">{nextBeatTitle ?? 'Boss beat'}</span>
-      </span>
-      {/* The plate breathes to say "waiting on you"; the label does not, so
-          Continue never dips under its contrast floor while it waits. */}
-      <span className="shrink-0 text-xs font-black tracking-widest text-coral-300 uppercase">Continue ▸</span>
-    </button>
+    <Notify id="playout-continue">
+      <button
+        type="button"
+        data-testid="playout-continue"
+        data-next-beat={nextBeatTitle ?? ''}
+        onClick={continuePlayout}
+        className={`wb-slide-up wb-face-pulse pointer-events-auto wb-plate wb-plate-sm wb-face-steel wb-acc-ember flex min-h-12 w-full items-center justify-between gap-2 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          {/* "Up next", not "Next": the phase control's Next button is a
+              different move, and the two must not read as the same word. */}
+          <span className="shrink-0 text-[9px] font-semibold tracking-widest text-steel-400 uppercase">Up next</span>
+          <span className="truncate text-xs font-bold text-coral-100">{nextBeatTitle ?? 'Boss beat'}</span>
+        </span>
+        {/* The plate breathes to say "waiting on you"; the label does not, so
+            Continue never dips under its contrast floor while it waits. */}
+        <span className="shrink-0 text-xs font-black tracking-widest text-coral-300 uppercase">Continue ▸</span>
+      </button>
+    </Notify>
   )
 }
 
@@ -90,9 +103,15 @@ function TargetingBanner() {
     return null
   }
   const targetMode = fireTargeting(catalog, state, state.primaryHeroId, targetingSlotIndex).mode
+  // Docked. At its old fixed `top-40` this prompt printed across the phase
+  // strip's Next button — the one control the player must not lose while a
+  // Top Card waits for its target.
   return (
-    <div className="absolute top-40 right-3 left-3 z-10" data-testid="targeting-banner">
-      <div className="wb-plate wb-plate-sm wb-face-steel wb-acc-gold flex items-center justify-between py-2 text-xs font-semibold text-gold-100 shadow-lg">
+    <Notify id="targeting">
+      <div
+        className="wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-gold flex items-center justify-between py-2 text-xs font-semibold text-gold-100 shadow-lg"
+        data-testid="targeting-banner"
+      >
         <span>{targetMode === 'hex' ? 'Pick a hex' : 'Pick a piece'}</span>
         <button
           type="button"
@@ -102,7 +121,7 @@ function TargetingBanner() {
           Cancel
         </button>
       </div>
-    </div>
+    </Notify>
   )
 }
 
@@ -115,12 +134,17 @@ function OutcomeBanner() {
     return null
   }
   const victory = state.outcome === 'victory'
+  // The stage's top rank. The Encounter ending outranks any phase word, and
+  // the two never coexist anyway: this needs `state.active` to be false and
+  // the phase banner needs it to be true.
   return (
-    <div className="absolute inset-x-3 top-1/3 z-20" data-testid="outcome-banner" data-outcome={state.outcome}>
+    <Notify id="outcome">
       <div
         className={`wb-pop-in wb-plate wb-plate-xl py-6 text-center ${
           victory ? 'wb-face-steel wb-acc-gold text-gold-100' : 'wb-face-steel wb-acc-ember text-ember-100'
         }`}
+        data-testid="outcome-banner"
+        data-outcome={state.outcome}
       >
         {victory ? (
           <HeroEmblem className="wb-float mx-auto h-12 w-12 text-gold-400" />
@@ -130,7 +154,7 @@ function OutcomeBanner() {
         <div className="mt-2 text-2xl font-black tracking-widest uppercase">{victory ? 'Victory' : 'Defeat'}</div>
         <div className="mt-2 text-sm">{state.outcomeReason}</div>
       </div>
-    </div>
+    </Notify>
   )
 }
 
@@ -159,32 +183,40 @@ export default function App() {
             nothing has to be set aside for it. */}
         <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <PhaserBoard />
-          <MovePad />
-          {/* Transient guidance — the scripted cue, coach tips, the playout's
-              Continue bar — floats over the board's top edge: bars appearing
-              and disappearing must never resize the board mid-Encounter, and
-              the top edge keeps them out of the thumb path between the board
-              and the Hand. pointer-events pass through the stack's empty
-              space so the hexes underneath stay tappable. */}
-          <div className="pointer-events-none absolute inset-x-2 top-2 z-10 flex flex-col gap-1.5">
-            <FirstTurnCue />
-            <CoachMark />
-            <MovePaymentCue />
-            <PlayoutContinue />
-          </div>
-          {/* The tapped piece's Stat Panel floats over the board's lower
-              edge — the persistent Boss and Hero bars left the HUD. */}
-          <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10">
-            <EntityInspect />
-          </div>
+          {/* Every floating surface on the play field lands in one of three
+              zones, and the zones are flex siblings of one column — so no two
+              of them can share a pixel, and a bar appearing or leaving never
+              resizes the board mid-Encounter. Which zone a member belongs to
+              and where it sits inside it are settled in `notifications.ts`,
+              not by the order they are written here; pointer-events pass
+              through the empty space so the hexes stay tappable.
+
+              Guidance floats over the top hexes: teaching the player may
+              ignore. The stage takes the middle for one announcement at a
+              time. The dock hugs the Action Bar with everything that asks for
+              a tap on the controls just below it. */}
+          <NotificationLayer>
+            <NotificationZone zone="guidance">
+              <FirstTurnCue />
+              <CoachMark />
+            </NotificationZone>
+            <NotificationZone zone="stage">
+              <PhaseBanner />
+              <OutcomeBanner />
+            </NotificationZone>
+            <NotificationZone zone="dock">
+              <MovePad />
+              <PlayoutContinue />
+              <TargetingBanner />
+              <MovePaymentCue />
+              <RejectionToast />
+              <EntityInspect />
+            </NotificationZone>
+          </NotificationLayer>
         </div>
         <ActionBar />
         <Hand />
-        <RejectionToast />
-        <TargetingBanner />
-        <PhaseBanner />
         <ReplaceConfirmModal />
-        <OutcomeBanner />
         <GuideModal />
       </main>
       {/* The rail is a design tool, not part of the game. It renders in the

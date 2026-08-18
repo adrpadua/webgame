@@ -12,6 +12,7 @@ import {
   FACING_W,
 } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
+import { Notify } from './NotificationLayer'
 import { useFirstTurnStep } from './useFirstTurn'
 import { FOCUS_RING_CLASS, SPOTLIGHT_CLASS } from './theme'
 
@@ -89,13 +90,17 @@ export function MovePad() {
     </div>
   )
 
+  // The dock's anchor member (rank 1 in `notifications.ts`): a control rather
+  // than a notification, but it shares the lane, so the lane places it. Being
+  // the rank nearest the Action Bar is what holds it in the clear strip below
+  // the bottom hex row while a docked prompt stacks above it.
   return (
-    <div className="pointer-events-none absolute inset-0 z-10" data-testid="move-pad">
-      <div className="pointer-events-auto absolute right-0 bottom-1 left-0 flex justify-center gap-1">
+    <Notify id="move-pad">
+      <div className="pointer-events-auto flex justify-center gap-1" data-testid="move-pad">
         {row(LEFT_ROW)}
         <span aria-hidden="true" className="w-3" />
         {row(RIGHT_ROW)}
       </div>
-    </div>
+    </Notify>
   )
 }

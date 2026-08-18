@@ -487,6 +487,63 @@ try {
     const fails = await contrastFailures(pg)
     assert(fails.length === 0, `text contrast meets WCAG 1.4.3 ${label} (${fails.join(' | ') || 'all pass'})`)
   }
+  // The notification zones (web/src/ui/notifications.ts). Every floating
+  // surface on the play field carries data-notification and lives in one of
+  // three lanes that are flex siblings of a single column, so two of them
+  // sharing a pixel is supposed to be unrepresentable. It was not, when each
+  // placed itself: the targeting prompt sat at a fixed offset that covered
+  // the phase strip's Next button, the phase word at a percentage that
+  // covered whatever the guidance stack had grown to, and the rejection toast
+  // at an offset off the bottom that covered the Action Bar. Measure it in
+  // the states where several are live at once rather than trust the CSS.
+  const notificationLayout = (view) =>
+    view.evaluate(() => {
+      const box = (node) => node.getBoundingClientRect()
+      // 1px of slack: adjacent boxes may share an edge, and a rounded
+      // sub-pixel is not a collision.
+      const overlaps = (a, b) =>
+        Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1
+      const shown = [...document.querySelectorAll('[data-notification]')].filter((node) => !node.hidden && box(node).height > 0)
+      const problems = []
+      for (let left = 0; left < shown.length; left += 1) {
+        for (let right = left + 1; right < shown.length; right += 1) {
+          if (overlaps(box(shown[left]), box(shown[right]))) {
+            problems.push(`${shown[left].dataset.notification} overlaps ${shown[right].dataset.notification}`)
+          }
+        }
+      }
+      // Nothing floating may cover a band that carries the fight's own
+      // controls. Next is the specific casualty worth naming: losing it while
+      // a prompt is up is losing the only way forward.
+      for (const bandId of ['program-strip', 'next-phase', 'action-bar', 'hand']) {
+        const band = document.querySelector(`[data-testid="${bandId}"]`)
+        if (band === null) {
+          continue
+        }
+        for (const node of shown) {
+          if (overlaps(box(node), box(band))) {
+            problems.push(`${node.dataset.notification} covers ${bandId}`)
+          }
+        }
+      }
+      // The dock's contract: it hugs the Action Bar from above, never over it.
+      const bar = document.querySelector('[data-testid="action-bar"]')
+      const docked = shown.filter((node) => node.dataset.zone === 'dock')
+      if (bar !== null) {
+        for (const node of docked) {
+          const gap = box(bar).top - box(node).bottom
+          if (gap < -1 || gap > 200) {
+            problems.push(`${node.dataset.notification} sits ${Math.round(gap)}px from the Action Bar`)
+          }
+        }
+      }
+      return { problems, shown: shown.map((node) => node.dataset.notification) }
+    })
+  const assertNotificationLayout = async (view, label) => {
+    const { problems, shown } = await notificationLayout(view)
+    assert(problems.length === 0, `the notification zones stay out of each other's way ${label} (${problems.join(' | ') || shown.join(', ') || 'none live'})`)
+    return shown
+  }
   // The card the scripted turn is pointing at is the only live card in Hand.
   const scriptedCard = () => page.locator('[data-testid="hand-card"][data-scripted="true"]')
   // Which face the Hand is wearing: the card as itself, its Keywords, or
@@ -629,6 +686,11 @@ try {
     (await page.locator('[data-testid="move-payment-cue"]').getAttribute('data-direction')) === 'W',
     'dragging the Hero west asks for the step west',
   )
+  // Two dock members at once: the step's prompt and whatever stat panel is
+  // open behind it. The panel rides above the prompt rather than under it,
+  // which is the ranking in web/src/ui/notifications.ts doing its job.
+  const payingLive = await assertNotificationLayout(page, 'while a step waits for its card')
+  assert(payingLive.includes('move-payment'), `the step's prompt docks above the Hand it points at (${payingLive.join(', ')})`)
   // The Hand is the prompt: every card is offered, and the offer is a real
   // animation rather than a class name nothing is listening to.
   await page.waitForSelector('[data-testid="hand"][data-paying="true"]')
@@ -757,6 +819,14 @@ try {
   await next()
   await page.waitForSelector('[data-testid="playout-continue"]')
   assert((await phase()) === 'instant', 'Round 2 Next opens Boss Instant and paces its beats')
+  // The busiest guidance-and-dock moment, and the one that used to collide:
+  // the phase word announcing Boss Instant on the stage, the coach mark over
+  // the board's top edge, and the Continue prompt docked above the Action
+  // Bar. All three were placed by hand before, and the banner printed across
+  // whichever of the other two had grown into its percentage.
+  const pacedLive = await assertNotificationLayout(page, 'while a Boss row is paced')
+  assert(pacedLive.includes('playout-continue'), `the Continue prompt docks above the Action Bar during a Boss row (${pacedLive.join(', ')})`)
+  assert(pacedLive.includes('phase-banner'), `the phase word takes the stage while the dock is occupied (${pacedLive.join(', ')})`)
   await assertContrast(page, 'during a paced Boss row')
   await shot(page, 'boss-row-paced')
   // The Row lands announced, not already swinging: no chip is lit yet.
@@ -930,6 +1000,33 @@ try {
       )
   })
   assert(padOverHex.length === 0, `the move pad sits below the bottom hex row without covering a hex (${padOverHex.join(' | ') || 'no overlap'})`)
+  // The pad is the dock's anchor member: a prompt stacking above it must not
+  // push it off the clear strip, and must not land on it either. Load the
+  // lane with a refusal — a drag onto a hex the Hero cannot reach — and
+  // measure the pad against the hexes a second time with the toast up.
+  const phoneHexes = await phone.evaluate(() => window.__workbench.hexRects())
+  const farHex = phoneHexes.find((hex) => hex.key === '2,0') ?? phoneHexes[phoneHexes.length - 1]
+  await phone.mouse.move((farHex.left + farHex.right) / 2, (farHex.top + farHex.bottom) / 2)
+  const phoneBoardCanvas = phone.locator('[data-testid="board"] canvas')
+  await phoneBoardCanvas.dragTo(phoneBoardCanvas, {
+    sourcePosition: await hexPosition(phoneBoardCanvas, 0, 0),
+    targetPosition: await hexPosition(phoneBoardCanvas, 2, 0),
+  })
+  const crowdedLive = await assertNotificationLayout(phone, 'with the move pad out at 390x844')
+  assert(crowdedLive.includes('move-pad'), `the move pad holds the dock's anchor rank (${crowdedLive.join(', ')})`)
+  const padStillClear = await phone.evaluate(() => {
+    const hexes = window.__workbench.hexRects()
+    return [...document.querySelectorAll('[data-testid="move-pad"] button')].flatMap((node) => {
+      const rect = node.getBoundingClientRect()
+      return hexes
+        .filter((hex) => Math.min(rect.right, hex.right) - Math.max(rect.left, hex.left) > 0 && Math.min(rect.bottom, hex.bottom) - Math.max(rect.top, hex.top) > 0)
+        .map((hex) => `${node.dataset.testid} covers hex ${hex.key}`)
+    })
+  })
+  assert(padStillClear.length === 0, `a docked prompt above the pad leaves it on the clear strip (${padStillClear.join(' | ') || 'no overlap'})`)
+  await shot(phone, 'phone-dock-stacked')
+  // Let the refusal retire before the contrast and target sweeps below.
+  await phone.waitForSelector('[data-testid="rejection-toast"]', { state: 'detached', timeout: 6000 })
   const cropped = await phone.evaluate(() => {
     const canvas = document.querySelector('[data-testid="board"] canvas')
     const area = document.querySelector('[data-testid="board"]')
