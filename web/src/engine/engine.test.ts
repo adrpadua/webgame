@@ -650,6 +650,122 @@ describe('Demand disclosure (D-041)', () => {
   })
 })
 
+// Reach is content (ADR 0020). It used to be three engine constants for two
+// Beats: `forwardCone`'s default parameter, a second literal at the telegraph
+// call site, and a bare `1` in the Escalation step. The only place a reader
+// could find the number was inside a `rules_text` string, which nothing checks.
+describe('Authored Beat reach', () => {
+  // Round 1 is Hunt Pattern on every seed, and Hunt's Incoming Row is a cone.
+  const TO_QUICK = 2
+
+  // Round-trip a built catalog back through the loader, so a content rule can
+  // be tested by editing content rather than by hand-assembling payloads.
+  function rebuild(source: typeof catalog) {
+    return buildCatalog({
+      cards: Object.values(source.cards),
+      keywords: Object.values(source.keywords),
+      chargeModifiers: Object.values(source.chargeModifiers),
+      hazards: Object.values(source.hazards),
+      minions: Object.values(source.minions),
+      statuses: Object.values(source.statuses),
+      programs: Object.values(source.programs),
+      encounters: Object.values(source.encounters),
+    })
+  }
+
+  function coneTelegraph(state: EncounterState): string[] {
+    return Object.entries(state.telegraphs)
+      .filter(([, kind]) => kind === 'cone')
+      .map(([key]) => key)
+      .sort()
+  }
+
+  function scorchedByIncoming(state: EncounterState): string[] {
+    return advancePhase(catalog, state)
+      .facts.filter((fact) => fact.kind === 'apply_hazard' && fact.succeeded)
+      .map((fact) => hexKey((fact.detail as { coords: { q: number; r: number } }).coords))
+      .sort()
+  }
+
+  it('draws the telegraph and burns the ground from the same authored number', () => {
+    // The telegraph must not lie. It used to agree with the resolution by
+    // coincidence — two separate literals that happened to both be 2 — so
+    // either could have been edited alone. Both now read `beat.range_tiles`,
+    // and this compares what the party was shown against what landed.
+    const quick = stepPhases(start(), TO_QUICK).state
+    expect(quick.phase).toBe('quick')
+    const shown = coneTelegraph(quick)
+    expect(shown.length).toBeGreaterThan(0)
+    expect(scorchedByIncoming(quick)).toEqual(shown)
+  })
+
+  it('moves both of them together when the authored number changes', () => {
+    // Proof the field is read rather than decorative, and that nothing kept a
+    // private copy: shortening the reach has to shrink the preview and the
+    // footprint alike. Against the old two-literal form this failed.
+    const shortened = structuredClone(catalog)
+    for (const program of Object.values(shortened.programs)) {
+      for (const beat of program.incoming_beats) {
+        if (beat.kind === 'forward_cone') {
+          beat.range_tiles = 1
+        }
+      }
+    }
+    const full = stepPhases(start(), TO_QUICK).state
+    let short = createEncounterState(shortened, 'embermaw_prototype')
+    for (let step = 0; step < TO_QUICK; step += 1) {
+      short = advancePhase(shortened, short).state
+    }
+    expect(coneTelegraph(short).length).toBeLessThan(coneTelegraph(full).length)
+    expect(
+      advancePhase(shortened, short)
+        .facts.filter((fact) => fact.kind === 'apply_hazard' && fact.succeeded).length,
+    ).toBeLessThan(scorchedByIncoming(full).length)
+  })
+
+  it('asks the proximity demand at the authored distance', () => {
+    // The companion to D-041's adjacency guard, which pins what the authored
+    // `1` means. This pins that the number is the one being read: widen the
+    // demand's reach and a Hero two hexes out stops being billed.
+    const widened = structuredClone(catalog)
+    for (const program of Object.values(widened.programs)) {
+      for (const beat of program.incoming_beats) {
+        if (beat.kind === 'demand_proximity') {
+          beat.range_tiles = 2
+        }
+      }
+    }
+    const state = start()
+    state.currentProgramId = 'embermaw_brood'
+    state.board.entities[state.primaryHeroId].coords = { q: -1, r: 1 }
+    expect(hexDistance({ q: -1, r: 1 }, boss(state).coords)).toBe(2)
+    const reasons = (source: typeof catalog) =>
+      escalationActionsForRoundEnd(source, state)
+        .filter((action) => action.kind === 'gain_escalation')
+        .map((action) => action.reason)
+    expect(reasons(catalog)).toContain('unanswered_proximity')
+    expect(reasons(widened)).not.toContain('unanswered_proximity')
+  })
+
+  it('refuses content that asks a distance question without answering it', () => {
+    const missing = structuredClone(catalog)
+    const beat = missing.programs.embermaw_hunt.incoming_beats.find((entry) => entry.kind === 'forward_cone')!
+    beat.range_tiles = 0
+    expect(() => rebuild(missing)).toThrow(/authors no range_tiles/)
+  })
+
+  it('refuses a reach on the hit that footwork cannot answer', () => {
+    // The other half of the rule, and the one worth stating as content rather
+    // than trusting to nobody trying it. Raking Claw is deliberately rangeless
+    // (D-017); giving it a reach would hand a camping Hero a hex to stand
+    // outside of and undo what the proximity demand exists to close.
+    const ranged = structuredClone(catalog)
+    const claw = ranged.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'targeted_hit')!
+    claw.range_tiles = 2
+    expect(() => rebuild(ranged)).toThrow(/must not author range_tiles/)
+  })
+})
+
 // D-042. Recorded as a latent interaction during PR #77's review and ruled on
 // after: an Enemy is immune to its own side's Hazards. The rule is stated per
 // Hazard rather than as "Enemies ignore Hazards", because a Hero-placed damage

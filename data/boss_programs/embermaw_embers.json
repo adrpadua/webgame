@@ -36,6 +36,7 @@
         "Position"
       ],
       "consequence_tier": "severe",
+      "range_tiles": 1,
       "escalation_if_unanswered": 1
     },
     {
@@ -48,6 +49,7 @@
         "Interrupt"
       ],
       "consequence_tier": "structural",
+      "range_tiles": 2,
       "damage": 10,
       "duration_rounds": 1,
       "hazard": "scorched"

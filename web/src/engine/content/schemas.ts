@@ -126,9 +126,22 @@ export const bossBeatSchema = z.object({
   damage: z.number().int().default(0),
   unguarded_bonus: z.number().int().min(0).default(0),
   // Escalation acceleration (ADR 0027): what it costs to leave this Beat's
-  // demand standing at a Round end. Only the living-Minion demand is
-  // supported, so today this rides `spawn_minions`.
+  // demand standing at a Round end. Carried by any Beat kind the Escalation
+  // step knows how to price — `spawn_minions` and `demand_proximity` today.
   escalation_if_unanswered: z.number().int().min(0).default(0),
+  // How far this Beat reaches, in hexes. Authored rather than defaulted,
+  // because reach is the whole difference between a Beat that footwork answers
+  // and one it does not, and ADR 0020 puts that kind of decision in `data/`.
+  //
+  // It arrived late: `forward_cone` carried its reach as a default parameter on
+  // `forwardCone` *and* as a second literal at the telegraph call site, and
+  // `demand_proximity` carried its own as a bare `1` in the Escalation step.
+  // Three constants for two Beats, none of them content, and the only place the
+  // number appeared to a reader was inside a `rules_text` string.
+  //
+  // `targeted_hit` has no reach on purpose and must not gain one here: Raking
+  // Claw's whole job is being the hit footwork cannot answer.
+  range_tiles: z.number().int().min(0).default(0),
   // How far an `advance_toward_player` Beat closes. Distance is authored because
   // it is the Boss's counter-pressure against standing out of reach, and how
   // hard that pressure bites is a per-Boss identity question (D-041).

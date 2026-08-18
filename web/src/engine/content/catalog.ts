@@ -9,6 +9,7 @@ import {
   minionSchema,
   scenarioSchema,
   statusSchema,
+  type BossBeat,
   type BossProgram,
   type Card,
   type ChargeModifier,
@@ -21,6 +22,19 @@ import {
   type StatusDefinition,
 } from './schemas'
 import { hexDistance } from '../hex'
+
+// The Beat kinds that ask a distance question, and therefore must author one.
+// Kept here rather than beside the resolver because it is a rule about content
+// being complete, not about how a Beat resolves — and because the validation
+// below has to be able to state both halves: these kinds need a reach, and
+// every other kind must not have one.
+//
+// Typed against the Beat-kind enum rather than left as loose strings. This file
+// is the one that renamed every Beat kind once already, and a stale entry here
+// would not fail — it would simply stop matching, and the validation below
+// would go quiet on the rule it exists to enforce. The annotation turns that
+// into a compile error at the moment of the rename.
+const RANGED_BEAT_KINDS = new Set<BossBeat['kind']>(['forward_cone', 'demand_proximity'])
 
 export interface ContentCatalog {
   cards: Record<string, Card>
@@ -218,6 +232,19 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       }
       if (beat.minion && !catalog.minions[beat.minion]) {
         throw new Error(`Boss Beat ${beat.id} references unknown minion ${beat.minion}`)
+      }
+      // Reach is authored, and a Beat kind that asks a distance question has to
+      // answer it. Left to the schema default a cone would collapse to nothing
+      // and a proximity demand would be unanswerable from any hex — both silent
+      // failures, both content-shaped, and neither one a type error.
+      if (RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles < 1) {
+        throw new Error(`Boss Beat ${beat.id} is a ${beat.kind} but authors no range_tiles`)
+      }
+      // The other half of the same rule. `targeted_hit` is the hit footwork
+      // cannot answer (D-017); giving it a reach would quietly turn Raking Claw
+      // into something a camping Hero can stand outside of.
+      if (!RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles > 0) {
+        throw new Error(`Boss Beat ${beat.id} is a ${beat.kind} and must not author range_tiles`)
       }
     }
   }
