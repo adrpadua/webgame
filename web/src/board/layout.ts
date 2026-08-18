@@ -3,6 +3,13 @@ import type { Axial } from '@/engine'
 // Shared pointy-top hex layout math. The Phaser scene draws with it and the
 // React drop handlers invert it, so a drop lands on exactly the hex the
 // player sees. Facing E points toward +x.
+// A point in board space. Anything that hands the scene a shape to fill —
+// the flames of a burn, the shards of a spawn — speaks in these.
+export interface Point {
+  x: number
+  y: number
+}
+
 export const HEX_SIZE = 36
 export const BOARD_WIDTH = 380
 export const BOARD_HEIGHT = 400

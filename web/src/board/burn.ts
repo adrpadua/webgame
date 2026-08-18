@@ -1,5 +1,5 @@
 import type { Axial } from '@/engine'
-import { HEX_SIZE } from './layout'
+import { HEX_SIZE, type Point } from './layout'
 import { easeOutCubic, hexNoise } from './math'
 
 // What a hex looks like while it catches fire.
@@ -103,11 +103,6 @@ const EMBER_SIZE = 0.075
 // there.
 const EMBER_FIRST_DEATH = 0.3
 const EMBER_LAST_DEATH = 0.9
-
-export interface Point {
-  x: number
-  y: number
-}
 
 // One flame, in pixels relative to its hex's centre. `body` is the outer
 // silhouette and `core` the brighter one drawn inside it.
