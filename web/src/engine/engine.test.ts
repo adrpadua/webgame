@@ -561,7 +561,9 @@ describe('Ash Trail displacement (D-039)', () => {
     expect(isGuardedFront(after.board, after.bossId, after.primaryHeroId)).toBe(false)
     // Burnt under them, not spilled behind them — and there is somewhere to
     // spill to, so this discriminates rather than falling back to the rim case.
-    expect(Object.keys(after.board.hazards)).toContain(hexKey(heroCoords))
+    // Asserted on the Hazard rather than on the key: a key with nothing under
+    // it would satisfy `toContain` while the ground stayed clear.
+    expect(after.board.hazards[hexKey(heroCoords)] ?? []).not.toHaveLength(0)
   })
 })
 
@@ -724,14 +726,19 @@ describe('Own-side Hazard immunity (D-042)', () => {
 
     // Proof the structural path ran at all, rather than the loop having only
     // ever seen Beat-laid ground: D-031's authored hexes have to be on the
-    // board, and enemy-sided, by the time the clock has run out.
-    const structural = catalog.encounters.embermaw_prototype.escalation_thresholds.find(
+    // board, and enemy-sided, by the time the clock has run out. Every
+    // scorch-bearing Threshold is checked, not the first one found — automatic
+    // ticks alone cross all of them, so picking one would leave the rest as
+    // unexamined as they were before.
+    const authored = catalog.encounters.embermaw_prototype.escalation_thresholds.filter(
       (threshold) => threshold.scorch_hexes.length > 0,
     )
-    expect(structural).toBeDefined()
-    for (const coords of structural!.scorch_hexes) {
-      const laid = (state.board.hazards[hexKey(coords)] ?? []).find((hazard) => hazard.permanent === true)
-      expect(laid?.sourceTeam, `no structural Scorch was ever laid at ${hexKey(coords)}`).toBe('enemy')
+    expect(authored.length).toBeGreaterThan(0)
+    for (const threshold of authored) {
+      for (const coords of threshold.scorch_hexes) {
+        const laid = (state.board.hazards[hexKey(coords)] ?? []).find((hazard) => hazard.permanent === true)
+        expect(laid?.sourceTeam, `Threshold ${threshold.value} never laid Scorch at ${hexKey(coords)}`).toBe('enemy')
+      }
     }
   })
 })
