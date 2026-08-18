@@ -109,6 +109,7 @@ describe('content catalog', () => {
     expect(catalog.encounters.embermaw_prototype.boss_programs).toEqual(['embermaw_hunt', 'embermaw_embers', 'embermaw_brood'])
     expect(catalog.encounters.embermaw_prototype.player_deck.reduce((total, entry) => total + entry.copies, 0)).toBe(20)
     expect(catalog.decks.aegis_controlled_test_deck.encounter).toBe('embermaw_prototype')
+    expect(catalog.cards.steady_strike.draw_count).toBe(0)
   })
 
   // ADR 0022 removed Presence. The schema strips keys it does not declare
@@ -317,6 +318,19 @@ describe('content catalog', () => {
       })
       expect(fired.state.board.entities.data_whelp_a).toBeUndefined()
       expect(fired.state.board.entities.data_whelp_b).toBeUndefined()
+    })
+
+    it('rejects a Card whose authored draw exceeds the hand-economy safety cap', () => {
+      const bad = {
+        source: 'data/cards/greedy_insight.json',
+        payload: {
+          id: 'greedy_insight',
+          title: 'Greedy Insight',
+          speed: 'quick',
+          draw_count: 4,
+        },
+      }
+      expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow(/Invalid card in data\/cards\/greedy_insight\.json — draw_count:/)
     })
   })
 })
@@ -1943,6 +1957,141 @@ describe('area damage cards', () => {
     expect(first.facts.filter((fact) => fact.kind === 'damage' && fact.sourceId === seeded.primaryHeroId).map((fact) => fact.detail.targetId)).toEqual([
       seeded.bossId,
     ])
+  })
+})
+
+describe('card draw effects', () => {
+  function withDrawCard(patch: Record<string, unknown> = {}) {
+    const variant = structuredClone(catalog)
+    variant.cards.draw_test = {
+      ...variant.cards.iron_guard,
+      id: 'draw_test',
+      title: 'Draw Test',
+      rules_text: 'Draw 2 cards.',
+      speed: 'quick',
+      target_type: 'none',
+      armor_delta: 0,
+      armor_next_round: 0,
+      healing: 0,
+      boss_damage: 0,
+      damage: 0,
+      draw_count: 2,
+      burst_radius: 0,
+      push_tiles: 0,
+      pull_tiles: 0,
+      charge_modifiers: [],
+      applies_status: '',
+      ...patch,
+    }
+    return variant
+  }
+
+  function readyDraw(variant: ReturnType<typeof withDrawCard>): EncounterState {
+    const state = createEncounterState(variant, 'embermaw_prototype', 71)
+    state.phase = 'quick'
+    hero(state).actionBar[0] = {
+      topCard: card('draw-top', 'draw_test'),
+      charges: [card('draw-charge', 'iron_guard')],
+      activatedWindow: null,
+      placedThisLoadout: false,
+    }
+    return state
+  }
+
+  it('draws the authored count even when that exceeds the Round refill target', () => {
+    const variant = withDrawCard()
+    const state = readyDraw(variant)
+    const handBefore = hero(state).hand.length
+    const deckBefore = hero(state).deck.length
+    expect(handBefore).toBe(hero(state).refillTarget)
+
+    const fired = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+
+    expect(hero(fired.state).hand).toHaveLength(handBefore + 2)
+    expect(hero(fired.state).deck).toHaveLength(deckBefore - 2)
+    expect(hero(fired.state).hand.length).toBeGreaterThan(hero(fired.state).refillTarget)
+    expect(fired.facts.filter((fact) => fact.kind === 'draw_card')).toHaveLength(2)
+  })
+
+  it('reshuffles the discard when an explicit draw exhausts the deck midway through', () => {
+    const variant = withDrawCard()
+    const state = readyDraw(variant)
+    const [lastInDeck, ...recyclable] = hero(state).deck.slice(0, 3)
+    hero(state).deck = [lastInDeck]
+    hero(state).discard = recyclable
+    const handBefore = hero(state).hand.length
+
+    const fired = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+
+    expect(hero(fired.state).hand).toHaveLength(handBefore + 2)
+    expect(fired.facts.map((fact) => fact.kind)).toEqual(['fire_slot', 'draw_card', 'shuffle_deck', 'draw_card'])
+    expect(fired.state.rng.choices.at(-1)?.label).toBe('discard_shuffle')
+  })
+
+  it('records successful no-op draws when both piles are exhausted', () => {
+    const variant = withDrawCard()
+    const state = readyDraw(variant)
+    hero(state).deck = []
+    hero(state).discard = []
+    const handBefore = [...hero(state).hand]
+
+    const fired = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+    const draws = fired.facts.filter((fact) => fact.kind === 'draw_card')
+
+    expect(fired.facts[0].succeeded).toBe(true)
+    expect(hero(fired.state).hand).toEqual(handBefore)
+    expect(draws).toHaveLength(2)
+    expect(draws.every((fact) => fact.succeeded && fact.detail.drawn === false)).toBe(true)
+  })
+
+  it('emits draws after the Card damage and on-fire Status consequences', () => {
+    const variant = withDrawCard({ boss_damage: 1, draw_count: 1 })
+    const state = readyDraw(variant)
+    state.statusEffects[state.primaryHeroId] = [
+      {
+        id: 'draw_order_status',
+        title: 'Draw Order Status',
+        remainingRounds: 1,
+        triggers: ['on_slot_fired'],
+        armorOnRoundStart: 0,
+        damageReduction: 0,
+        bonusBossDamageOnSlotFired: 1,
+        bonusBossDamageOffPayoff: 0,
+        damageTakenBonus: 0,
+        damageDealtPenalty: 0,
+        stacking: false,
+        triggerReason: 'draw_order_test',
+        expiresAtWindowEnd: '',
+        consumeOnCardId: '',
+        sourceId: 'test',
+        sourceBeatId: '',
+        triggerRound: state.round,
+        triggerPhase: state.phase,
+      },
+    ]
+
+    const fired = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+
+    expect(fired.facts.slice(1).map((fact) => [fact.kind, fact.detail.reasonText ?? ''])).toEqual([
+      ['damage', 'Draw Test'],
+      ['damage', 'draw_order_status'],
+      ['draw_card', ''],
+    ])
+  })
+
+  it('finishes the authored draws after lethal Boss damage resolves first', () => {
+    const variant = withDrawCard({ boss_damage: 1, draw_count: 1 })
+    const state = readyDraw(variant)
+    state.board.entities[state.bossId].health = 1
+    const handBefore = hero(state).hand.length
+
+    const fired = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+
+    expect(fired.facts.map((fact) => fact.kind)).toEqual(['fire_slot', 'damage', 'draw_card'])
+    expect(fired.facts.every((fact) => fact.succeeded)).toBe(true)
+    expect(fired.facts.at(-1)?.detail.drawn).toBe(true)
+    expect(hero(fired.state).hand).toHaveLength(handBefore + 1)
+    expect(fired.state).toMatchObject({ active: false, outcome: 'victory' })
   })
 })
 

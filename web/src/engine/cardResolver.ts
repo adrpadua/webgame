@@ -7,6 +7,7 @@ export interface FireEffects {
   healing: number
   bossDamage: number
   targetDamage: number
+  drawCount: number
   burstRadius: number
   pushTiles: number
   pullTiles: number
@@ -28,6 +29,7 @@ export function resolveFire(catalog: ContentCatalog, card: Card, chargeStack: Ca
     healing: card.healing,
     bossDamage: card.boss_damage,
     targetDamage: card.damage,
+    drawCount: card.draw_count,
     burstRadius: card.burst_radius,
     pushTiles: card.push_tiles,
     pullTiles: card.pull_tiles,

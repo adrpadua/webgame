@@ -42,6 +42,7 @@ export function applyAction(
   action: EncounterActionInput,
   facts: ResolvedActionFact[],
   depth: number,
+  deferTerminalCheck = false,
 ): void {
   const generated: EncounterActionInput[] = []
   const presentation = factPresentation(action)
@@ -59,10 +60,17 @@ export function applyAction(
   }
   resolveOne(catalog, draft, action, fact, generated)
   facts.push(fact)
+  // A fired Card is one authored consequence batch. Its ordered generated
+  // actions all resolve before victory or defeat closes global legality, so a
+  // lethal hit can be recorded before later Status and draw consequences
+  // without suppressing them. Minion defeat remains immediate inside damage.
+  const deferGeneratedTerminalCheck = deferTerminalCheck || action.kind === 'fire_slot'
   for (const followup of generated) {
-    applyAction(catalog, draft, followup, facts, depth + 1)
+    applyAction(catalog, draft, followup, facts, depth + 1, deferGeneratedTerminalCheck)
   }
-  checkResolution(draft)
+  if (!deferTerminalCheck) {
+    checkResolution(draft)
+  }
 }
 
 export function checkResolution(draft: EncounterState): void {
@@ -267,6 +275,7 @@ function resolveOne(
         })
       }
       generated.push(...slotFiredStatusActions(draft, action.sourceId))
+      generated.push(...cardDrawActions(hero, action.sourceId, effects.drawCount))
       break
     }
     case 'move_hero': {
@@ -432,12 +441,18 @@ function resolveOne(
     }
     case 'draw_card': {
       const hero = draft.heroes[action.sourceId]
-      if (!hero || hero.deck.length === 0) {
-        fail(fact, 'The deck has no card to draw.')
+      if (!hero) {
+        fail(fact, 'The drawing Hero is unavailable.')
+        break
+      }
+      if (hero.deck.length === 0) {
+        fact.detail.drawn = false
+        succeed(fact)
         break
       }
       const card = hero.deck.pop() as CardInstance
       hero.hand.push(card)
+      fact.detail.drawn = true
       fact.detail.cardId = card.cardId
       fact.detail.cardInstanceId = card.instanceId
       succeed(fact)
@@ -495,6 +510,25 @@ function resolveOne(
       break
     }
   }
+}
+
+// Explicit Card draws use the same first-class draw and shuffle actions as
+// Round refill (ADR 0015). Plan the sequence from pile sizes without mutating
+// them; the generated actions perform every state change in recorded order.
+function cardDrawActions(hero: HeroState, sourceId: string, drawCount: number): EncounterActionInput[] {
+  const actions: EncounterActionInput[] = []
+  let deckCount = hero.deck.length
+  let discardCount = hero.discard.length
+  for (let draw = 0; draw < drawCount; draw += 1) {
+    if (deckCount === 0 && discardCount > 0) {
+      actions.push({ kind: 'shuffle_deck', sourceId, label: 'discard_shuffle' })
+      deckCount = discardCount
+      discardCount = 0
+    }
+    actions.push({ kind: 'draw_card', sourceId })
+    deckCount = Math.max(deckCount - 1, 0)
+  }
+  return actions
 }
 
 function resolveDisplacement(

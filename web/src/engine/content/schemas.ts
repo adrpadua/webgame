@@ -43,6 +43,7 @@ export const cardSchema = z.object({
   boss_damage: z.number().int().default(0),
   range_tiles: z.number().int().default(0),
   damage: z.number().int().default(0),
+  draw_count: z.number().int().min(0).max(3).default(0),
   burst_radius: z.number().int().min(0).default(0),
   push_tiles: z.number().int().min(0).default(0),
   pull_tiles: z.number().int().min(0).default(0),

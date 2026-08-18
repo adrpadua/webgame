@@ -256,6 +256,32 @@ describe('board effects', () => {
     expect(effects.slice(2).some((effect) => effect.kind === 'hit' && effect.entityId === 'burst_whelp')).toBe(true)
   })
 
+  it('labels a pure-draw cast with the number of cards actually drawn', () => {
+    const variant = structuredClone(catalog)
+    variant.cards.draw_test = {
+      ...variant.cards.iron_guard,
+      id: 'draw_test',
+      title: 'Draw Test',
+      armor_delta: 0,
+      draw_count: 2,
+      charge_modifiers: [],
+    }
+    const state = createEncounterState(variant, FIRST_TURN_ENCOUNTER_ID)
+    state.phase = 'quick'
+    state.heroes[state.primaryHeroId].actionBar[0] = {
+      topCard: { instanceId: 'draw', cardId: 'draw_test' },
+      charges: [{ instanceId: 'charge', cardId: 'iron_guard' }],
+      activatedWindow: null,
+      placedThisLoadout: false,
+    }
+    const result = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+    const effects = deriveBoardEffects(variant, state, result.state, result.facts)
+
+    expect(effects).toEqual([
+      { kind: 'cast', entityId: state.primaryHeroId, at: state.board.entities[state.primaryHeroId].coords, label: '+2 cards', tone: 'guard' },
+    ])
+  })
+
   it('reads a Hero step as a glide from the hex it left', () => {
     let state = openedRound()
     state = advance(state).state

@@ -81,7 +81,10 @@ which is the engineering boundary talking, not a typo. See below.
 
 The seed is explicit everywhere: same seed plus same content equals the same
 fight, every time. When comparing two tunings, hold the seed and change one
-thing.
+thing. A Card with `draw_count` consults the seeded deck mid-turn, so adding one
+to an existing Encounter moves every later draw in that seeded line. Re-export
+affected Scenarios and compare Encounter Records only within their content
+fingerprint; an old record is not tuning evidence for the changed deck.
 
 ### Encounter Evidence
 
@@ -99,7 +102,7 @@ file is the authority when this table and the code disagree.
 
 | Type and home | Required authoring contract |
 | --- | --- |
-| Card: `data/cards/` | `id`, `title`, complete `rules_text`, `speed` (`quick`/`slow`), `max_charge`, `target_type` (`none`/`hex`/`board_slot`/`piece`), `range_tiles` for selected pieces or hexes, effect fields, registered Keyword ids in `tags`, optional `charge_modifiers`, optional `applies_status`. `burst_radius >= 1` deals positive `damage` to every Enemy within that radius of a selected hex, including the Boss; the center may be empty and requires `target_type: "hex"` (ADR 0030). `push_tiles` moves the target away from the firing Hero and `pull_tiles` moves it toward the Hero; either requires a piece target and range of at least 1, and one Card cannot declare both. The Top Card owns timing, target, and Charge Value. |
+| Card: `data/cards/` | `id`, `title`, complete `rules_text`, `speed` (`quick`/`slow`), `max_charge`, `target_type` (`none`/`hex`/`board_slot`/`piece`), `range_tiles` for selected pieces or hexes, effect fields, registered Keyword ids in `tags`, optional `charge_modifiers`, optional `applies_status`. `draw_count` draws `0` to `3` cards for the firing Hero after every other Card consequence; these draws may exceed `hand_refill_target`, because it is a Round-refill floor rather than a hand ceiling. `burst_radius >= 1` deals positive `damage` to every Enemy within that radius of a selected hex, including the Boss; the center may be empty and requires `target_type: "hex"` (ADR 0030). `push_tiles` moves the target away from the firing Hero and `pull_tiles` moves it toward the Hero; either requires a piece target and range of at least 1, and one Card cannot declare both. The Top Card owns timing, target, and Charge Value. |
 | Keyword: `data/keywords/` | Stable `id`, display `title`, one concise mechanical definition. Cards reference the id in `tags`; a card contributes each distinct Keyword once to each matching modifier. Set `role_marker: true` for a Keyword that only says which Role a card belongs to — the HUD leaves those off the glance surfaces. |
 | Charge Modifier: `data/charge_modifiers/` | Stable identity and rules text, optional `keyword_id` (empty counts every charged card), `effect` (`armor`, `healing`, `boss_damage`, `target_damage`), and positive `amount_per_match`. It modifies the Top Card; a tucked card never resolves itself. |
 | Status: `data/statuses/` | Identity, `applies_to` (`hero`/`enemy`), `triggers`, `stacking`, `duration_rounds`, and the enemy payload `damage_taken_bonus` / `damage_dealt_penalty`. A Card lands it through `applies_status`; where it lands comes from that Card's `target_type` — `none` on the firing Hero, `piece` on a selected Enemy, `board_slot` on an ally's Top Card. |
@@ -140,6 +143,9 @@ Encounter ashen_trial_variant (data/encounters/ashen_trial_variant.json) thresho
   empty ground and deals that damage to every Enemy in the footprint. Existing
   `target_damage` modifiers increase each Enemy's damage, not the radius
   (ADR 0030).
+- **Draw from a Card**: a Card with `"draw_count": 2` draws twice after its
+  damage and Status consequences. Each draw is recorded; an empty deck first
+  shuffles its discard, while two empty piles record a successful no-op.
 - **A whole fight**: `data/encounters/embermaw_prototype.json` provides the deck,
   the three-program loop, starts, Whelp edge candidates, the Phase II trigger,
   four Escalation Thresholds, the seed, and the eight-Round Encounter Clock.
@@ -154,9 +160,9 @@ Engineering owns anything that widens the vocabulary, because each of these is a
 closed set the engine switches on:
 
 - **Card effects.** Armor (now and next round), healing, Boss damage, ranged
-  target damage, hex-centered Burst damage, Push, Pull, and applying one authored Status. Anything else —
-  drawing a card, changing a cost, scaling off board state — is new engine
-  code.
+  target damage, hex-centered Burst damage, Push, Pull, drawing up to three
+  cards, and applying one authored Status. Anything else — changing a cost or
+  scaling off board state — is new engine code.
 - **Boss Beat kinds.** `turn_toward_player`, `targeted_hit`,
   `hazard_last_impact`, `forward_cone`, `spawn_minions`, `warning`. A kind
   names the mechanic; the Beat's `title` and `rules_text` carry the Boss's

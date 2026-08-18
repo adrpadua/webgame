@@ -126,8 +126,18 @@ export function deriveBoardEffects(
         // on the Hero, labelled with what the Encounter actually granted.
         const armorGained = (after.heroes[fact.sourceId]?.armor ?? 0) - (before.heroes[fact.sourceId]?.armor ?? 0)
         const healed = (after.heroes[fact.sourceId]?.health ?? 0) - (before.heroes[fact.sourceId]?.health ?? 0)
+        const cardsDrawn = facts.filter(
+          (candidate) => candidate.kind === 'draw_card' && candidate.sourceId === fact.sourceId && candidate.succeeded && candidate.detail.drawn === true,
+        ).length
         const tone: EffectTone = healed > 0 && armorGained <= 0 ? 'heal' : 'guard'
-        const label = healed > 0 && armorGained <= 0 ? `+${healed}` : armorGained > 0 ? `+${armorGained}` : undefined
+        const label =
+          healed > 0 && armorGained <= 0
+            ? `+${healed}`
+            : armorGained > 0
+              ? `+${armorGained}`
+              : card.draw_count > 0
+                ? `+${cardsDrawn} ${cardsDrawn === 1 ? 'card' : 'cards'}`
+                : undefined
         add({ kind: 'cast', entityId: fact.sourceId, at: from, label, tone })
         break
       }
