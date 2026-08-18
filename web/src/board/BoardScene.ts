@@ -4,7 +4,9 @@ import { axialToPixel, hexCorners, pixelToAxial, BOARD_CENTER_X, BOARD_CENTER_Y,
 import { BACKDROP_DEPTH, BACKDROPS, backdropFor } from './backdrop'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 import { idleBobOffset } from './ambience'
-import { boardPalette, TELEGRAPH_ALPHA, toneColors } from './palette'
+import { BURN_MS, charProgress, emberAlpha, flameTongues, flareRing } from './burn'
+import { easeOutCubic, hexNoise } from './math'
+import { boardPalette, composite, TELEGRAPH_ALPHA, toneColors } from './palette'
 import { idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
 
 // The board is three layers: tiles and their tints, then the pieces, then the
@@ -12,6 +14,12 @@ import { idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
 // within a depth, and the graphics layer is built once while labels are
 // rebuilt per frame, so the pieces need saying explicitly.
 const SPRITE_DEPTH = 1
+// Flames are the one thing the board draws over its pieces rather than under
+// them; above that, only the labels. The ground a Hazard takes is usually
+// ground somebody is standing on — Ash Trail burns the hex the claw struck,
+// which is the hex the Tank is holding — and fire behind that piece is fire
+// nobody sees. A piece standing in it is in it.
+const FLAME_DEPTH = 1.5
 const LABEL_DEPTH = 2
 
 // The board snapshot the scene renders. Phaser owns no game state: it draws
@@ -135,8 +143,13 @@ const FLOATER_LANE_PX = 18
 
 // How long each beat of feedback stays on the board. Short enough that a
 // player tapping quickly is never waiting on the animation, long enough to
-// be read: nothing here gates input. The longest entry (blast) is mirrored
-// by EFFECT_SETTLE_MS in effects.ts — change them together.
+// be read: nothing here gates input. The longest entry that changes what the
+// HUD claims (blast) is mirrored by EFFECT_SETTLE_MS in effects.ts — change
+// them together.
+//
+// A burn outlasts that settle and does so deliberately: it claims no gauge
+// and holds no prompt, so its tail is ground still cooling under a board that
+// has already moved on. See burn.ts for what those milliseconds are spent on.
 const EFFECT_DURATION: Record<BoardEffect['kind'], number> = {
   strike: 320,
   hit: 420,
@@ -146,9 +159,21 @@ const EFFECT_DURATION: Record<BoardEffect['kind'], number> = {
   spawn: 460,
   defeat: 460,
   blast: 560,
-  scorch: 320,
+  scorch: BURN_MS,
   turn: 480,
 }
+
+// How much brighter a flame's core is than the hazard tone its body takes.
+// This is the hazard tone lit hotter, derived the same way every piece derives
+// its lit value — a value on the board's one warm material, not a second
+// colour anyone authored. Above 1 the channels run into their ceiling red
+// first, so the hottest part of the fire rides up toward white as fire does.
+//
+// It has to be this bright. The board direction ranks warm by imminence and
+// puts the beat resolving now at the top, and ash usually lands inside the
+// Cinder Breath cone that announced it: a core no hotter than that telegraph
+// would leave the fire reading as part of the warning it is answering.
+const FLAME_CORE_SHADE = 1.7
 
 // An effect whose `delay` has not elapsed yet holds negative `elapsed` and
 // stays invisible; `started` flips once, the moment it crosses zero.
@@ -172,10 +197,6 @@ interface Motion {
 
 const NO_MOTION: Motion = { dx: 0, dy: 0, scale: 1, flash: 0, flashColor: 0 }
 
-function easeOutCubic(t: number): number {
-  return 1 - (1 - t) ** 3
-}
-
 // Scales a 0xRRGGBB colour's channels toward black (factor < 1) or white
 // (factor > 1), so one authored colour yields its own shadow and highlight
 // instead of needing a second constant per tone.
@@ -186,16 +207,15 @@ function shade(color: number, factor: number): number {
   return (r << 16) | (g << 8) | b
 }
 
-// A stable pseudo-random value in [0, 1) for a hex. The same hex always lands
-// on the same shade, so the floor holds still between frames.
-function tileJitter(coords: Axial): number {
-  const h = Math.sin(coords.q * 127.1 + coords.r * 311.7) * 43758.5453
-  return h - Math.floor(h)
-}
+// The floor's own draw from the per-hex hash. The same hex always lands on the
+// same shade, so the floor holds still between frames; salt 0 is the floor's,
+// and every other consumer of a hex — the fire standing on it — takes another.
+const TILE_JITTER_SALT = 0
 
 export class BoardScene extends Phaser.Scene {
   private snapshot: BoardSnapshot | null = null
   private graphicsLayer: Phaser.GameObjects.Graphics | null = null
+  private flameLayer: Phaser.GameObjects.Graphics | null = null
   private backdrop: Phaser.GameObjects.Image | null = null
   private labels: Phaser.GameObjects.Text[] = []
   // What the live labels were built from. Board Ambience redraws the board
@@ -231,6 +251,7 @@ export class BoardScene extends Phaser.Scene {
   create(): void {
     this.placeBackdrop()
     this.graphicsLayer = this.add.graphics()
+    this.flameLayer = this.add.graphics().setDepth(FLAME_DEPTH)
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       const coords = pixelToAxial(pointer.x, pointer.y)
       const heroCoords = this.snapshot ? this.snapshot.state.board.entities[this.snapshot.state.primaryHeroId]?.coords : undefined
@@ -433,7 +454,7 @@ export class BoardScene extends Phaser.Scene {
     return motion
   }
 
-  private drawEffectOverlays(graphics: Phaser.GameObjects.Graphics): void {
+  private drawEffectOverlays(graphics: Phaser.GameObjects.Graphics, flames: Phaser.GameObjects.Graphics): void {
     for (const effect of this.active) {
       if (effect.elapsed < 0) {
         continue
@@ -451,9 +472,33 @@ export class BoardScene extends Phaser.Scene {
           }
           break
         case 'scorch': {
+          // The hex catching fire. The tile's own charring is drawn with the
+          // floor, back in renderSnapshot; everything above the floor is here.
           const { x, y } = axialToPixel(effect.at)
-          graphics.fillStyle(color, 0.4 * (1 - t))
-          this.fillPath(graphics, hexCorners(x, y, HEX_SIZE - 5))
+          const ember = emberAlpha(t)
+          if (ember > 0) {
+            graphics.fillStyle(color, ember)
+            this.fillPath(graphics, hexCorners(x, y, HEX_SIZE - 5))
+          }
+          const flare = flareRing(t)
+          if (flare.alpha > 0) {
+            graphics.lineStyle(3, shade(color, FLAME_CORE_SHADE), flare.alpha)
+            this.strokePath(graphics, hexCorners(x, y, flare.radius))
+          }
+          // The heat on the face is ground and stays under the pieces; the
+          // flames rise onto their own layer above them.
+          for (const tongue of flameTongues(effect.at, t, this.time.now, this.reducedMotion)) {
+            flames.fillStyle(color, tongue.alpha)
+            this.fillPath(
+              flames,
+              tongue.body.map((point) => ({ x: x + point.x, y: y + point.y })),
+            )
+            flames.fillStyle(shade(color, FLAME_CORE_SHADE), tongue.alpha)
+            this.fillPath(
+              flames,
+              tongue.core.map((point) => ({ x: x + point.x, y: y + point.y })),
+            )
+          }
           break
         }
         case 'cast':
@@ -502,11 +547,13 @@ export class BoardScene extends Phaser.Scene {
 
   private renderSnapshot(): void {
     const graphics = this.graphicsLayer
+    const flames = this.flameLayer
     const snapshot = this.snapshot
-    if (!graphics || !snapshot) {
+    if (!graphics || !flames || !snapshot) {
       return
     }
     graphics.clear()
+    flames.clear()
     // Labels survive an idle frame untouched. They are rebuilt when the
     // snapshot behind them changes, while an effect is live and moving them,
     // and once more on the frame the last effect clears, so floaters from that
@@ -541,26 +588,57 @@ export class BoardScene extends Phaser.Scene {
     // unseen until that moment's own effect fires. The playout director
     // reports unplayed moments through the snapshot; still-delayed effects
     // already queued here count too.
-    const pendingScorch = new Set<string>(snapshot.pendingScorchKeys)
+    // Hazards are counted rather than flagged, because they stack: a cone can
+    // land on ground Ash Trail already took, and a hex that ends the batch
+    // with two of them may still be showing its first.
+    const unplayedHazards = new Map<string, number>()
+    const holdBack = (key: string) => unplayedHazards.set(key, (unplayedHazards.get(key) ?? 0) + 1)
+    for (const key of snapshot.pendingScorchKeys) {
+      holdBack(key)
+    }
     const pendingSpawns = new Set<string>(snapshot.pendingSpawnIds)
+    // How far the fire currently on a hex has charred it, for the hexes that
+    // have one. Filled in the same pass, since both readings are questions
+    // about the same live effects.
+    const burning = new Map<string, number>()
     for (const effect of this.active) {
-      if (effect.elapsed >= 0) {
-        continue
-      }
-      if (effect.kind === 'scorch') {
-        pendingScorch.add(hexKey(effect.at))
-      } else if (effect.kind === 'spawn') {
-        pendingSpawns.add(effect.entityId)
+      if (effect.elapsed < 0) {
+        if (effect.kind === 'scorch') {
+          holdBack(hexKey(effect.at))
+        } else if (effect.kind === 'spawn') {
+          pendingSpawns.add(effect.entityId)
+        }
+      } else if (effect.kind === 'scorch') {
+        burning.set(hexKey(effect.at), charProgress(Math.min(effect.elapsed / effect.duration, 1)))
       }
     }
     const tiles = Object.keys(state.board.hexes).map((key) => {
       const coords = parseHexKey(key)
       const { x, y } = axialToPixel(coords)
-      const scorched = (state.board.hazards[key] ?? []).length > 0 && !pendingScorch.has(key)
+      // How much ash the ground shows. The snapshot is the batch's final
+      // state, so what has actually landed on screen is what the state holds
+      // less what the playout has not played yet.
+      const played = (state.board.hazards[key] ?? []).length - (unplayedHazards.get(key) ?? 0)
+      const burn = burning.get(key)
+      // A hex the fire is on right now does not snap to ash: its burn says how
+      // far it has charred, and the scorched material takes the tile across
+      // the whole length of the fire. Two things that would go wrong if the
+      // burn simply owned the tile while it played:
+      //
+      // The rules decide what is burnt ground, never the animation (ADR 0019).
+      // A burn still playing over a board rewound past its Hazard has no
+      // hazard left to count, so it paints nothing.
+      //
+      // And ash does not un-burn. A second fire on ground already taken starts
+      // at zero char, and following it would flick the tile back to clean
+      // oathsteel before darkening it again. Ground that has paid for a Hazard
+      // already stays black, and the new fire burns on top of it.
+      const char = played <= 0 ? 0 : played > 1 || burn === undefined ? 1 : burn
       // A flat fill repeated across every hex reads as vector art. Nudging
       // each hex's value a little breaks that up without introducing a
       // second authored colour.
-      const fill = shade(scorched ? SCORCHED_FILL : TILE_FILL, 1 - TILE_JITTER / 2 + tileJitter(coords) * TILE_JITTER)
+      const ground = composite(SCORCHED_FILL, char, TILE_FILL)
+      const fill = shade(ground, 1 - TILE_JITTER / 2 + hexNoise(coords, TILE_JITTER_SALT) * TILE_JITTER)
       return { key, coords, x, y, fill, corners: hexCorners(x, y, HEX_SIZE - 2) }
     })
 
@@ -698,7 +776,7 @@ export class BoardScene extends Phaser.Scene {
     // stand there after the piece it draws is gone.
     this.reapSprites(new Set(Object.keys(state.board.entities)))
 
-    this.drawEffectOverlays(graphics)
+    this.drawEffectOverlays(graphics, flames)
     if (rebuildLabels) {
       this.drawFloaters()
     }
