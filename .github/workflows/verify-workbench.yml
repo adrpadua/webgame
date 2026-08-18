@@ -49,15 +49,31 @@ jobs:
         working-directory: web
         run: npm run build
 
+      # What is cached is a browser build, and the only thing that decides
+      # which build that is, is Playwright's own version. Keying on the
+      # lockfile hash threw the cache away whenever anything else in it moved
+      # — merging main into a branch was enough — so the branch that had just
+      # done so paid a cold install while main, one commit behind, did not.
+      - name: Resolve Playwright version
+        id: playwright
+        working-directory: web
+        run: echo "version=$(node -p "require('./node_modules/playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Cache Playwright browsers
         id: playwright-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
 
+      # `--with-deps` shells out to apt-get, and on 2026-08-18 that wedged
+      # three runs in a row for 14 to 24 minutes each. A step with no bound of
+      # its own inherits the job's, which is six hours, so a hung install
+      # reads as a slow one until someone gives up waiting. Ten minutes is
+      # several times the cold-install cost and well clear of a cache hit.
       - name: Install Chromium
         working-directory: web
+        timeout-minutes: 10
         run: npx playwright install --with-deps chromium
 
       - name: Smoke
