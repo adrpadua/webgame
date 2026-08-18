@@ -1,20 +1,50 @@
 import { neighbors } from './board'
 import { legality } from './legality'
+import { hexesWithinRadius, parseHexKey, type Axial } from './hex'
 import type { ContentCatalog } from './content/catalog'
 import type { EncounterActionInput } from './actions'
-import type { EncounterState, SlotState } from './types'
+import type { EncounterState } from './types'
 
-function fireTargetCandidates(catalog: ContentCatalog, state: EncounterState, slot: SlotState): string[] {
-  if (slot.topCard === null) {
-    return []
+export interface FireTargeting {
+  mode: 'none' | 'piece' | 'hex'
+  legalTargetIds: string[]
+  legalHexes: Axial[]
+  previewHexes: Axial[]
+}
+
+export function fireTargeting(
+  catalog: ContentCatalog,
+  state: EncounterState,
+  heroId: string,
+  slotIndex: number,
+  hoveredHex?: Axial,
+): FireTargeting {
+  const slot = state.heroes[heroId]?.actionBar[slotIndex]
+  const card = slot?.topCard ? catalog.cards[slot.topCard.cardId] : undefined
+  if (!card) {
+    return { mode: 'none', legalTargetIds: [], legalHexes: [], previewHexes: [] }
   }
-  const card = catalog.cards[slot.topCard.cardId]
-  if (card.damage <= 0) {
-    return ['']
+  if (card.burst_radius > 0) {
+    const legalHexes = Object.keys(state.board.hexes)
+      .map(parseHexKey)
+      .filter((targetHex) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetHex }).legal)
+    const hoveredIsLegal =
+      hoveredHex !== undefined && legalHexes.some((coords) => coords.q === hoveredHex.q && coords.r === hoveredHex.r)
+    return {
+      mode: 'hex',
+      legalTargetIds: [],
+      legalHexes,
+      previewHexes: hoveredIsLegal ? hexesWithinRadius(state.board.hexes, hoveredHex, card.burst_radius) : [],
+    }
   }
-  return Object.values(state.board.entities)
-    .filter((entity) => entity.kind === 'minion')
-    .map((entity) => entity.id)
+  const appliedStatus = card.applies_status === '' ? undefined : catalog.statuses[card.applies_status]
+  if (card.damage > 0 || card.push_tiles > 0 || card.pull_tiles > 0 || appliedStatus?.applies_to === 'enemy') {
+    const legalTargetIds = Object.keys(state.board.entities)
+      .sort()
+      .filter((targetId) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }).legal)
+    return { mode: 'piece', legalTargetIds, legalHexes: [], previewHexes: [] }
+  }
+  return { mode: 'none', legalTargetIds: [], legalHexes: [], previewHexes: [] }
 }
 
 // Enumerates every currently legal player action for a Hero, by asking the
@@ -28,7 +58,7 @@ export function legalActions(catalog: ContentCatalog, state: EncounterState, her
   if (!hero) {
     return actions
   }
-  hero.actionBar.forEach((slot, slotIndex) => {
+  hero.actionBar.forEach((_slot, slotIndex) => {
     for (const card of hero.hand) {
       const loadAction: EncounterActionInput = { kind: 'load_slot', sourceId: heroId, slotIndex, cardInstanceId: card.instanceId }
       if (legality(catalog, state, loadAction).legal) {
@@ -39,8 +69,14 @@ export function legalActions(catalog: ContentCatalog, state: EncounterState, her
         actions.push(chargeAction)
       }
     }
-    for (const targetId of fireTargetCandidates(catalog, state, slot)) {
-      const fireAction: EncounterActionInput = { kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }
+    const targeting = fireTargeting(catalog, state, heroId, slotIndex)
+    const fireActions: EncounterActionInput[] =
+      targeting.mode === 'hex'
+        ? targeting.legalHexes.map((targetHex) => ({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetHex }))
+        : targeting.mode === 'piece'
+          ? targeting.legalTargetIds.map((targetId) => ({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }))
+          : [{ kind: 'fire_slot', sourceId: heroId, slotIndex }]
+    for (const fireAction of fireActions) {
       if (legality(catalog, state, fireAction).legal) {
         actions.push(fireAction)
       }

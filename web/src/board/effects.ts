@@ -54,7 +54,22 @@ function detailString(fact: ResolvedActionFact, key: string): string {
 }
 
 function detailAxial(fact: ResolvedActionFact, key: string): Axial | null {
-  const value = fact.detail[key] as Axial | undefined
+  return axialFrom(fact.detail, key)
+}
+
+function detailAxials(fact: ResolvedActionFact, key: string): Axial[] {
+  const value = fact.detail[key]
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.flatMap((candidate) => {
+    const axial = candidate as Partial<Axial>
+    return typeof axial?.q === 'number' && typeof axial.r === 'number' ? [{ q: axial.q, r: axial.r }] : []
+  })
+}
+
+function axialFrom(source: Record<string, unknown> | undefined, key: string): Axial | null {
+  const value = source?.[key] as Axial | undefined
   return value && typeof value.q === 'number' && typeof value.r === 'number' ? { q: value.q, r: value.r } : null
 }
 
@@ -96,18 +111,33 @@ export function deriveBoardEffects(
         if (!card || !from) {
           break
         }
-        if (card.boss_damage > 0 || card.damage > 0) {
+        if (card.boss_damage > 0 || card.damage > 0 || card.push_tiles > 0 || card.pull_tiles > 0) {
           const targetId = detailString(fact, 'targetId')
-          const toward = (targetId !== '' ? coordsOf(before, targetId) : bossCoords) ?? bossCoords ?? undefined
+          const burstCenter = detailAxial(fact, 'burstCenter')
+          const toward = burstCenter ?? (targetId !== '' ? coordsOf(before, targetId) : bossCoords) ?? bossCoords ?? undefined
           add({ kind: 'strike', entityId: fact.sourceId, at: from, toward: toward ?? undefined, tone: 'hero' })
+          const burstHexes = detailAxials(fact, 'burstHexes')
+          if (burstCenter && burstHexes.length > 0) {
+            add({ kind: 'blast', entityId: fact.sourceId, at: burstCenter, hexes: burstHexes, tone: 'hero' })
+          }
           break
         }
         // A guard or a heal has no target to lunge at: it reads as a pulse
         // on the Hero, labelled with what the Encounter actually granted.
         const armorGained = (after.heroes[fact.sourceId]?.armor ?? 0) - (before.heroes[fact.sourceId]?.armor ?? 0)
         const healed = (after.heroes[fact.sourceId]?.health ?? 0) - (before.heroes[fact.sourceId]?.health ?? 0)
+        const cardsDrawn = facts.filter(
+          (candidate) => candidate.kind === 'draw_card' && candidate.sourceId === fact.sourceId && candidate.succeeded && candidate.detail.drawn === true,
+        ).length
         const tone: EffectTone = healed > 0 && armorGained <= 0 ? 'heal' : 'guard'
-        const label = healed > 0 && armorGained <= 0 ? `+${healed}` : armorGained > 0 ? `+${armorGained}` : undefined
+        const label =
+          healed > 0 && armorGained <= 0
+            ? `+${healed}`
+            : armorGained > 0
+              ? `+${armorGained}`
+              : card.draw_count > 0
+                ? `+${cardsDrawn} ${cardsDrawn === 1 ? 'card' : 'cards'}`
+                : undefined
         add({ kind: 'cast', entityId: fact.sourceId, at: from, label, tone })
         break
       }
@@ -170,6 +200,16 @@ export function deriveBoardEffects(
         const origin = coordsOf(before, fact.sourceId)
         if (destination && origin) {
           add({ kind: 'move', entityId: fact.sourceId, at: destination, from: origin, tone: 'hero' })
+        }
+        break
+      }
+
+      case 'displace_piece': {
+        const from = axialFrom(fact.resolutionFact, 'from')
+        const to = axialFrom(fact.resolutionFact, 'to')
+        const targetId = detailString(fact, 'targetId')
+        if (from && to && targetId !== '' && numberFrom(fact.resolutionFact, 'actual_distance') > 0) {
+          add({ kind: 'move', entityId: targetId, at: to, from, tone: 'hero' })
         }
         break
       }

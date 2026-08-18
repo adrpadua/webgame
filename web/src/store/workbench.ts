@@ -6,9 +6,11 @@ import {
   advancePhase,
   cardWindowSpeed,
   createEncounterState,
+  fireTargeting,
   getEntityIdAt,
   hexKey,
   isLegalMove,
+  legality,
   resolve,
   runScenario,
   type Axial,
@@ -253,13 +255,11 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
       return buildRecordExport(catalog, entries, index, encounterId, sessionStartedAt)
     },
 
-    // Tapping a prepared Slot: a piece-targeting Top Card first needs a Minion
-    // selected on the board; everything else fires immediately.
+    // Targeting mode is an engine query: the Workbench never decides which
+    // Card payloads need a Piece or a hex.
     fireSlot: (slotIndex) => {
       const state = selectState(get())
-      const hero = state.heroes[state.primaryHeroId]
-      const topCard = hero.actionBar[slotIndex]?.topCard
-      if (topCard && catalog.cards[topCard.cardId].damage > 0) {
+      if (fireTargeting(catalog, state, state.primaryHeroId, slotIndex).mode !== 'none') {
         set({ targetingSlotIndex: slotIndex, lastRejection: null })
         return
       }
@@ -277,15 +277,37 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
         return
       }
       if (targetingSlotIndex !== null) {
-        const target = Object.values(state.board.entities).find(
-          (entity) => entity.coords.q === coords.q && entity.coords.r === coords.r && entity.kind === 'minion',
-        )
-        if (!target) {
-          set({ lastRejection: 'The Top Card needs a Minion target.' })
+        const targeting = fireTargeting(catalog, state, state.primaryHeroId, targetingSlotIndex)
+        if (targeting.mode === 'hex') {
+          const action: EncounterActionInput = {
+            kind: 'fire_slot',
+            sourceId: state.primaryHeroId,
+            slotIndex: targetingSlotIndex,
+            targetHex: coords,
+          }
+          const verdict = legality(catalog, state, action)
+          if (!verdict.legal) {
+            set({ lastRejection: verdict.reason })
+            return
+          }
+          set({ targetingSlotIndex: null })
+          get().submit(action)
+          return
+        }
+        const targetId = getEntityIdAt(state.board, coords)
+        const action: EncounterActionInput = {
+          kind: 'fire_slot',
+          sourceId: state.primaryHeroId,
+          slotIndex: targetingSlotIndex,
+          ...(targetId === '' ? {} : { targetId }),
+        }
+        const verdict = legality(catalog, state, action)
+        if (!verdict.legal) {
+          set({ lastRejection: verdict.reason })
           return
         }
         set({ targetingSlotIndex: null })
-        get().submit({ kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: targetingSlotIndex, targetId: target.id })
+        get().submit(action)
         return
       }
       // Tap path for movement: a selected Compact Card discards to move the
