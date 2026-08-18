@@ -1,6 +1,6 @@
 import type { Axial } from '@/engine'
 import { HEX_SIZE, type Point } from './layout'
-import { clamp01, easeOutCubic, hexNoise } from './math'
+import { clamp01, easeOutCubic, hexNoiseFor } from './math'
 
 // What a hex looks like while it catches fire.
 //
@@ -121,22 +121,6 @@ export interface Ember {
   heat: number
 }
 
-// Salts 1 and up, so no draw here collides with the floor's own shade at
-// salt 0: the height of the first flame on a tile and how dark that tile is
-// are unrelated facts.
-const HEIGHT_SALT = 1
-const PHASE_SALT = HEIGHT_SALT + TONGUE_COUNT
-const REACH_SALT = PHASE_SALT + TONGUE_COUNT
-const WIDTH_SALT = REACH_SALT + TONGUE_COUNT
-const EMBER_X_SALT = WIDTH_SALT + TONGUE_COUNT
-const EMBER_Y_SALT = EMBER_X_SALT + EMBER_COUNT
-const EMBER_DEATH_SALT = EMBER_Y_SALT + EMBER_COUNT
-// Where this module's draws stop. Exported because the hash space of a hex is
-// shared: the next effect to read that hex starts here rather than at a number
-// somebody read off this file once and wrote into a comment, which is a
-// collision waiting for whoever raises TONGUE_COUNT.
-export const BURN_SALTS_END = EMBER_DEATH_SALT + EMBER_COUNT
-
 // How tall the fire stands at `t`: up fast, held, then collapsing back into
 // the ground it has finished eating. Zero once there is nothing left.
 export function flameEnvelope(t: number): number {
@@ -214,18 +198,18 @@ export function flameTongues(coords: Axial, t: number, nowMs: number, reducedMot
     // lower than one at the tile's shoulder, and the fire sits *in* the hex
     // instead of on a straight line drawn across it.
     const spread = (index + 0.5) / TONGUE_COUNT - 0.5
-    const jitter = (hexNoise(coords, HEIGHT_SALT + index) - 0.5) * 0.12
+    const jitter = (hexNoiseFor(coords, 'burn:tongue-jitter', index) - 0.5) * 0.12
     const offset = spread + jitter
     const rootX = offset * 2 * ROOT_SPREAD * HEX_SIZE
     const rootY = ROOT_ARC * HEX_SIZE * (1 - Math.abs(offset) * 1.6)
-    const phase = hexNoise(coords, PHASE_SALT + index)
+    const phase = hexNoiseFor(coords, 'burn:tongue-phase', index)
     // Tallest in the middle, so five tongues read as one fire rather than as
     // a picket fence, and never the same height twice on any two hexes.
-    const reach = (0.72 + 0.5 * hexNoise(coords, REACH_SALT + index)) * (1 - Math.abs(offset) * 0.7)
+    const reach = (0.72 + 0.5 * hexNoiseFor(coords, 'burn:tongue-reach', index)) * (1 - Math.abs(offset) * 0.7)
     const flicker = 1 + FLICKER_DEPTH * Math.sin((nowMs / FLICKER_MS + phase) * Math.PI * 2)
     const sway = Math.sin((nowMs / SWAY_MS + phase) * Math.PI * 2) * SWAY_REACH * HEX_SIZE
     const height = TONGUE_HEIGHT * HEX_SIZE * reach * envelope * flicker
-    const width = TONGUE_WIDTH * HEX_SIZE * (0.8 + 0.4 * hexNoise(coords, WIDTH_SALT + index)) * Math.min(1, envelope * 1.4)
+    const width = TONGUE_WIDTH * HEX_SIZE * (0.8 + 0.4 * hexNoiseFor(coords, 'burn:tongue-width', index)) * Math.min(1, envelope * 1.4)
     const body = tonguePath(rootX, rootY, width, height, sway * envelope)
     tongues.push({
       body,
@@ -263,14 +247,14 @@ export function dyingEmbers(coords: Axial, t: number, reducedMotion: boolean): E
   }
   const embers: Ember[] = []
   for (let index = 0; index < EMBER_COUNT; index += 1) {
-    const death = EMBER_FIRST_DEATH + (EMBER_LAST_DEATH - EMBER_FIRST_DEATH) * hexNoise(coords, EMBER_DEATH_SALT + index)
+    const death = EMBER_FIRST_DEATH + (EMBER_LAST_DEATH - EMBER_FIRST_DEATH) * hexNoiseFor(coords, 'burn:ember-death', index)
     if (t >= death) {
       continue
     }
     // Spread over the face, and never on the tile's rim: an ember on the edge
     // reads as belonging to the boundary between two hexes.
-    const x = (hexNoise(coords, EMBER_X_SALT + index) - 0.5) * 2 * EMBER_SPREAD * HEX_SIZE
-    const y = (hexNoise(coords, EMBER_Y_SALT + index) - 0.5) * 2 * EMBER_SPREAD * HEX_SIZE * 0.72
+    const x = (hexNoiseFor(coords, 'burn:ember-x', index) - 0.5) * 2 * EMBER_SPREAD * HEX_SIZE
+    const y = (hexNoiseFor(coords, 'burn:ember-y', index) - 0.5) * 2 * EMBER_SPREAD * HEX_SIZE * 0.72
     // It closes down toward its own death rather than fading out: a flat shape
     // going translucent is a dissolve, and this palette has no dissolve in it.
     const heat = 1 - t / death

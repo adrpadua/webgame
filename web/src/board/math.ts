@@ -24,6 +24,28 @@ export function easeOutCubic(t: number): number {
   return 1 - (1 - t) ** 3
 }
 
+// How far apart two namespaces sit in the salt space. Larger than any one
+// effect's draw count, so a namespace's own indices can never reach into its
+// neighbour's.
+const NAMESPACE_STRIDE = 101
+
+// A stable pseudo-random value in [0, 1) for one hex and one purpose, where
+// the purpose is named rather than numbered.
+//
+// The numbered form below wants every consumer to know where the last one
+// stopped, which made each new effect edit the module before it just to be
+// born, and left the whole scheme one forgotten export from two effects
+// reading a hex the same way. A name needs no such agreement: the floor asks
+// for 'floor', a burn's flames ask for 'burn:flame', and nothing has to be
+// told what anyone else took.
+export function hexNoiseFor(coords: Axial, namespace: string, index = 0): number {
+  let hash = 0
+  for (let at = 0; at < namespace.length; at += 1) {
+    hash = (hash * 31 + namespace.charCodeAt(at)) % 9973
+  }
+  return hexNoise(coords, hash * NAMESPACE_STRIDE + index)
+}
+
 // A stable pseudo-random value in [0, 1) for one hex and one purpose. The same
 // hex always draws the same value, so anything derived from it — the floor's
 // shade, the shape of the fire on it — holds still between frames and comes

@@ -83,13 +83,13 @@ describe('board effects', () => {
     state = apply(state, { kind: 'charge_slot', sourceId: hero.id, slotIndex: 0, cardInstanceId: hero.hand[0].instanceId }).state
     const { state: after, effects } = apply(state, { kind: 'fire_slot', sourceId: hero.id, slotIndex: 0 })
     expect(after.outcome).toBe('victory')
-    const fall = effects.find((effect) => effect.kind === 'fall')
-    expect(fall?.entityId).toBe(state.bossId)
-    expect(fall?.tone).toBe('boss')
+    const goingOut = effects.find((effect) => effect.kind === 'boss_defeat')
+    expect(goingOut?.entityId).toBe(state.bossId)
+    expect(goingOut?.tone).toBe('boss')
     // It rides the blow that caused it: the body goes out as the hit lands,
     // not as a separate beat afterwards.
     const hit = effects.find((effect) => effect.kind === 'hit' && effect.entityId === state.bossId)
-    expect(fall?.delay ?? 0).toBe(hit?.delay ?? 0)
+    expect(goingOut?.delay ?? 0).toBe(hit?.delay ?? 0)
   })
 
   it('says nothing about a Boss that survived the blow', () => {
@@ -97,7 +97,7 @@ describe('board effects', () => {
     // put the fire out once a Round.
     const state = openedRound()
     const { effects } = advance(state)
-    expect(effects.some((effect) => effect.kind === 'fall')).toBe(false)
+    expect(effects.some((effect) => effect.kind === 'boss_defeat')).toBe(false)
   })
 
   it('gives back the ground a temporary Hazard held, and only that ground', () => {

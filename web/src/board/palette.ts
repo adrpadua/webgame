@@ -142,15 +142,18 @@ export function shade(color: number, factor: number): number {
   return (r << 16) | (g << 8) | b
 }
 
-// The two places the board draws something hotter than the material it is made
-// of: the core of a flame, and the break a Minion comes up through.
+// Where the board draws something hotter than the material it is made of: the
+// core of a flame, the break a Minion comes up through, and the light coming
+// out of a Boss as it goes out.
 //
-// Both are beats resolving now, which the board direction puts at the top of
-// the warm order — above the telegraph that announced them. Ash usually lands
-// inside the Cinder Breath cone, and a spawn always lands on the mark that
-// warned about it, so if either of these failed to clear its own telegraph the
-// event would read as part of its own warning. palette.test.ts holds them to
-// that, because a ranking nobody asserts is a ranking that drifts.
+// Each is a beat resolving now, which the board direction puts at the top of
+// the warm order — above the telegraph that announced it. Ash usually lands
+// inside the Cinder Breath cone and a spawn always lands on the mark that
+// warned about it, so a hot value failing to clear its own telegraph would
+// leave the event reading as part of its own warning. palette.test.ts holds
+// the two that land on a telegraph to exactly that, because a ranking nobody
+// asserts is a ranking that drifts. (A Boss going out lands on no telegraph:
+// nothing warns that the fight is about to end.)
 export const HOT_SHADE = { flameCore: 1.7, spawnBreak: 1.45 } as const
 
 // A tint over a tile, as the player sees it. Straight source-over compositing,

@@ -1,7 +1,6 @@
 import type { Axial } from '@/engine'
 import { HEX_SIZE, type Point } from './layout'
-import { clamp01, easeOutCubic, hexNoise } from './math'
-import { SPAWN_SALTS_END } from './spawn'
+import { clamp01, easeOutCubic, hexNoiseFor } from './math'
 
 // What the Boss looks like when it goes out.
 //
@@ -25,7 +24,7 @@ import { SPAWN_SALTS_END } from './spawn'
 // is still standing there, so the scene reads the piece's health rather than
 // this module's clock to keep it dark. What is here is only the going-out.
 
-export const FALL_MS = 880
+export const BOSS_DEFEAT_MS = 880
 
 // Stage boundaries as fractions of the fall: the shudder through ~180ms, the
 // vents open and close between ~90 and ~500ms, and the body is fully out by
@@ -51,13 +50,6 @@ const SETTLE = 0.06
 const VENT_COUNT = 5
 const VENT_LENGTH = 0.85
 const VENT_WIDTH = 0.16
-
-// Salts for this module's draws, starting where the spawn's stop, so the
-// vents of a Boss going out on a hex are never the numbers that hex has
-// already spent on fire or on a Minion coming up through it.
-const VENT_ANGLE_SALT = SPAWN_SALTS_END
-const VENT_LENGTH_SALT = VENT_ANGLE_SALT + VENT_COUNT
-const VENT_OPEN_SALT = VENT_LENGTH_SALT + VENT_COUNT
 
 // One wedge of light leaving the body, in pixels relative to the piece's
 // centre. `heat` is 1 as it opens and 0 as it closes, and the scene spends it
@@ -87,7 +79,7 @@ export function buckleOffset(t: number, reducedMotion: boolean): number {
 // rest a little under it and stays there — the piece is still on the board
 // after the Encounter ends, and a Boss that died and then stood back up to
 // full height would undo the whole thing.
-export function fallScale(t: number): number {
+export function slumpScale(t: number): number {
   return 1 - SETTLE * easeOutCubic(clamp01(t / OUT_END))
 }
 
@@ -99,8 +91,9 @@ export function heatLoss(t: number): number {
   return easeOutCubic(clamp01(t / OUT_END))
 }
 
-// The heat the body dumps into the hex it stood on, as an alpha for the tone
-// of the blow that landed. It peaks while the vents are open and outlasts
+// The heat the body dumps into the hex it stood on, as an alpha for the
+// effect's own tone — the Boss's material, because this is the Boss's heat
+// leaving it rather than anything the blow brought. It peaks while the vents are open and outlasts
 // them, so the last thing on screen is ground still glowing under a piece that
 // has already gone dark.
 export function groundFlare(t: number): number {
@@ -126,7 +119,7 @@ export function ventsOpening(coords: Axial, t: number, reducedMotion: boolean): 
   for (let index = 0; index < VENT_COUNT; index += 1) {
     // Each opens at its own moment inside the window and lives the rest of it,
     // so the body lets go in pieces rather than all at once.
-    const opensAt = VENT_START + (VENT_END - VENT_START) * 0.45 * hexNoise(coords, VENT_OPEN_SALT + index)
+    const opensAt = VENT_START + (VENT_END - VENT_START) * 0.45 * hexNoiseFor(coords, 'boss-defeat:vent-open', index)
     if (t < opensAt) {
       continue
     }
@@ -134,11 +127,11 @@ export function ventsOpening(coords: Axial, t: number, reducedMotion: boolean): 
     // Out fast, then closing: the wedge reaches its length early and is drawn
     // back into the body as the body stops feeding it.
     const reach = easeOutCubic(Math.min(life * 2.2, 1)) * (1 - life ** 2)
-    const spin = hexNoise(coords, VENT_ANGLE_SALT + index) - 0.5
+    const spin = hexNoiseFor(coords, 'boss-defeat:vent-angle', index) - 0.5
     // Spread around the body, and never straight down: light escaping a thing
     // standing on the floor has nowhere to go through the floor.
     const angle = -Math.PI / 2 + ((index + 0.5) / VENT_COUNT - 0.5) * Math.PI * 1.5 + spin * 0.3
-    const length = VENT_LENGTH * HEX_SIZE * (0.6 + 0.7 * hexNoise(coords, VENT_LENGTH_SALT + index)) * reach
+    const length = VENT_LENGTH * HEX_SIZE * (0.6 + 0.7 * hexNoiseFor(coords, 'boss-defeat:vent-length', index)) * reach
     const width = VENT_WIDTH * HEX_SIZE * reach
     vents.push({
       points: [

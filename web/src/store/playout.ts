@@ -63,6 +63,13 @@ function cancelTimers(): void {
   timers = []
 }
 
+// Whether this batch shows the Boss going out. The reveal waits on that one
+// effect rather than on the fact that something ended, because it is the only
+// ending the board draws at length.
+function showsBossDefeat(): boolean {
+  return moments.some((moment) => moment.effects.some((effect) => effect.kind === 'boss_defeat'))
+}
+
 // Everything the moments after `index` will show, summarized for the board.
 function pendingAfter(index: number): Pick<PlayoutStore, 'pendingScorchKeys' | 'pendingSpawnIds' | 'pendingFacings'> {
   const pendingScorchKeys: string[] = []
@@ -111,11 +118,13 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
     }))
     if (index === moments.length - 1) {
       // The last moment settles on its own; there is nothing left to prompt
-      // for, and any held outcome reveals when the feedback has played. A
-      // batch that ended the Encounter waits longer, because what it is
-      // waiting for is longer: the Boss has to finish going out before the
-      // board is allowed to say the fight is over.
-      timers.push(setTimeout(finish, get().outcomeHeld ? OUTCOME_REVEAL_MS : EFFECT_SETTLE_MS))
+      // for, and any held outcome reveals when the feedback has played.
+      //
+      // The longer wait belongs to the Boss going out, not to every ending. A
+      // party that loses has no body to watch cool — the Hero falls, nothing
+      // on the board is still resolving, and holding the Defeat plate back
+      // for it would be sitting on a finished screen.
+      timers.push(setTimeout(finish, showsBossDefeat() ? OUTCOME_REVEAL_MS : EFFECT_SETTLE_MS))
     } else if (autoMode) {
       timers.push(setTimeout(() => fireMoment(index + 1), BEAT_STAGGER_MS))
     } else {

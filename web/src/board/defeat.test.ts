@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FALL_MS, buckleOffset, fallScale, groundFlare, heatLoss, ventsOpening } from './defeat'
+import { BOSS_DEFEAT_MS, buckleOffset, groundFlare, heatLoss, slumpScale, ventsOpening } from './defeat'
 import { EFFECT_SETTLE_MS, OUTCOME_REVEAL_MS } from './effects'
 import { HEX_SIZE } from './layout'
 
@@ -42,15 +42,15 @@ describe('boss defeat', () => {
   })
 
   it('slumps the body a little and leaves it there', () => {
-    expect(fallScale(0)).toBe(1)
+    expect(slumpScale(0)).toBe(1)
     // It settles under its own size — a furnace going cold does not shrink,
     // and a Boss that died and stood back up to full height would undo it.
-    expect(fallScale(1)).toBeLessThan(1)
-    expect(fallScale(1)).toBeGreaterThan(0.9)
+    expect(slumpScale(1)).toBeLessThan(1)
+    expect(slumpScale(1)).toBeGreaterThan(0.9)
     let previous = 2
     for (const t of frames()) {
-      expect(fallScale(t)).toBeLessThanOrEqual(previous)
-      previous = fallScale(t)
+      expect(slumpScale(t)).toBeLessThanOrEqual(previous)
+      previous = slumpScale(t)
     }
   })
 
@@ -70,8 +70,9 @@ describe('boss defeat', () => {
       for (const t of frames(30)) {
         for (const vent of ventsOpening(coords, t, false)) {
           const tip = vent.points[1]
-          // Light escaping a thing standing on the floor has nowhere to go
-          // through the floor, so no wedge reaches below the body's feet.
+          // Light escaping a thing standing on the floor mostly goes up and
+          // out: the wedges fan across the body's upper half and never turn
+          // down into the tile it is standing on.
           expect(tip.y).toBeLessThan(HEX_SIZE * 0.5)
           expect(Math.hypot(tip.x, tip.y)).toBeLessThan(HEX_SIZE * 1.2)
           expect(vent.heat).toBeGreaterThanOrEqual(0)
@@ -109,7 +110,7 @@ describe('boss defeat', () => {
   it('makes the outcome wait for the death rather than the gauges', () => {
     // The banner is about this one event, so it cannot land while the body is
     // still venting. Gauges settle on their own, earlier, as they always did.
-    expect(OUTCOME_REVEAL_MS).toBe(FALL_MS)
+    expect(OUTCOME_REVEAL_MS).toBe(BOSS_DEFEAT_MS)
     expect(OUTCOME_REVEAL_MS).toBeGreaterThan(EFFECT_SETTLE_MS)
   })
 })

@@ -1,7 +1,6 @@
 import type { Axial } from '@/engine'
 import { HEX_SIZE, TELEGRAPH_RADIUS, type Point } from './layout'
-import { BURN_SALTS_END } from './burn'
-import { easeOutCubic, hexNoise } from './math'
+import { easeOutCubic, hexNoiseFor } from './math'
 
 // What a hex looks like while a Minion comes out of it.
 //
@@ -54,18 +53,6 @@ const ARRIVAL_FLOOR = 0.35
 const SHARD_COUNT = 6
 const SHARD_REACH = 0.46
 const SHARD_SIZE = 0.1
-
-// Salts for this module's own draws, starting where the burn's stop. Taken
-// from that module rather than from a number copied out of it, so raising the
-// count of anything over there cannot silently land a spawn on the same draws
-// as the fire that hex has already had.
-const SHARD_ANGLE_SALT = BURN_SALTS_END
-const SHARD_REACH_SALT = SHARD_ANGLE_SALT + SHARD_COUNT
-const SHARD_SIZE_SALT = SHARD_REACH_SALT + SHARD_COUNT
-// Where this module's draws stop, for the next effect to read a hex. Same
-// contract as BURN_SALTS_END: a number taken from the module that owns it,
-// never one copied out of it.
-export const SPAWN_SALTS_END = SHARD_SIZE_SALT + SHARD_COUNT
 
 // One splinter of the furnace, in pixels relative to the hex's centre. `heat`
 // is 1 as it leaves the break and 0 as it lands, and the scene spends it
@@ -149,9 +136,9 @@ export function spawnShards(coords: Axial, t: number, reducedMotion: boolean): S
   for (let index = 0; index < SHARD_COUNT; index += 1) {
     // Around the hex rather than at random: six shards clustered on one side
     // read as a piece sliding out sideways, not as a tile breaking open.
-    const spin = hexNoise(coords, SHARD_ANGLE_SALT + index) - 0.5
+    const spin = hexNoiseFor(coords, 'spawn:shard-angle', index) - 0.5
     const angle = ((index + 0.5) / SHARD_COUNT + spin * 0.12) * Math.PI * 2
-    const reach = SHARD_REACH * HEX_SIZE * (0.6 + 0.7 * hexNoise(coords, SHARD_REACH_SALT + index)) * flight
+    const reach = SHARD_REACH * HEX_SIZE * (0.6 + 0.7 * hexNoiseFor(coords, 'spawn:shard-reach', index)) * flight
     const x = Math.cos(angle) * reach
     // Flattened, because the board is drawn from above and a little in front:
     // debris thrown level with the floor covers less ground vertically than
@@ -159,7 +146,7 @@ export function spawnShards(coords: Axial, t: number, reducedMotion: boolean): S
     const y = Math.sin(angle) * reach * 0.62
     // They close down as they land rather than fading: hard edges all the way
     // out, like everything else the board draws.
-    const size = SHARD_SIZE * HEX_SIZE * (0.7 + 0.6 * hexNoise(coords, SHARD_SIZE_SALT + index)) * (1 - 0.55 * flight)
+    const size = SHARD_SIZE * HEX_SIZE * (0.7 + 0.6 * hexNoiseFor(coords, 'spawn:shard-size', index)) * (1 - 0.55 * flight)
     shards.push({
       points: [
         { x: x + Math.cos(angle) * size, y: y + Math.sin(angle) * size * 0.62 },

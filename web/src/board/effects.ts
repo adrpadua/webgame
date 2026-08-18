@@ -1,5 +1,5 @@
 import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type ResolvedActionFact } from '@/engine'
-import { FALL_MS } from './defeat'
+import { BOSS_DEFEAT_MS } from './defeat'
 
 // Resolution Facts are the only thing the board animates from. Every beat of
 // motion on the board — a lunge, a hit, a step, a spawn — is derived from a
@@ -8,7 +8,22 @@ import { FALL_MS } from './defeat'
 
 export type EffectTone = 'hero' | 'boss' | 'guard' | 'heal' | 'hazard'
 
-export type BoardEffectKind = 'strike' | 'cast' | 'hit' | 'block' | 'move' | 'spawn' | 'defeat' | 'fall' | 'blast' | 'scorch' | 'cool' | 'turn'
+// `defeat` is a Minion's, which removes the piece; `boss_defeat` is the Boss's,
+// which does not — CONTEXT.md settles them as different rules and they are
+// different events on the board too.
+export type BoardEffectKind =
+  | 'strike'
+  | 'cast'
+  | 'hit'
+  | 'block'
+  | 'move'
+  | 'spawn'
+  | 'defeat'
+  | 'boss_defeat'
+  | 'blast'
+  | 'scorch'
+  | 'cool'
+  | 'turn'
 
 // How far apart consecutive Boss Beats start. The rules resolve a whole
 // track in one batch; the board replays that batch one beat at a time so
@@ -37,7 +52,7 @@ export const EFFECT_SETTLE_MS = 560
 // the one thing on the board the banner is *about*, so a Victory plate landing
 // over a body still venting light would be the board announcing an ending it
 // has not finished showing. It waits for the fall.
-export const OUTCOME_REVEAL_MS = Math.max(EFFECT_SETTLE_MS, FALL_MS)
+export const OUTCOME_REVEAL_MS = Math.max(EFFECT_SETTLE_MS, BOSS_DEFEAT_MS)
 
 export interface BoardEffect {
   kind: BoardEffectKind
@@ -190,7 +205,7 @@ export function deriveBoardEffects(
         // the outcome — a Boss at zero is what the rules acted on, and the
         // Encounter can end for reasons that have nothing to do with this hex.
         if (targetId === before.bossId && (after.board.entities[after.bossId]?.health ?? 1) <= 0) {
-          add({ kind: 'fall', entityId: targetId, at, tone: 'boss' })
+          add({ kind: 'boss_defeat', entityId: targetId, at, tone: 'boss' })
         }
         break
       }
