@@ -4,7 +4,7 @@ import { axialToPixel, hexCorners, pixelToAxial, BOARD_CENTER_X, BOARD_CENTER_Y,
 import { BACKDROP_DEPTH, BACKDROPS, backdropFor } from './backdrop'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 import { idleBobOffset } from './ambience'
-import { boardPalette, toneColors } from './palette'
+import { boardPalette, TELEGRAPH_ALPHA, toneColors } from './palette'
 import { idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
 
 // The board is three layers: tiles and their tints, then the pieces, then the
@@ -578,10 +578,16 @@ export class BoardScene extends Phaser.Scene {
       const { key, coords, x, y, corners } = tile
       this.fillHex(graphics, corners, tile.fill, 1, TILE_STROKE)
       const telegraph = state.telegraphs[key]
-      if (telegraph === 'cone') {
-        this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), CONE_OVERLAY, 0.28)
-      } else if (telegraph === 'spawn') {
-        this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), SPAWN_OVERLAY, 0.32)
+      if (telegraph === 'cone' || telegraph === 'spawn') {
+        const warm = telegraph === 'cone' ? CONE_OVERLAY : SPAWN_OVERLAY
+        const alpha = telegraph === 'cone' ? TELEGRAPH_ALPHA.cone : TELEGRAPH_ALPHA.spawn
+        this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), warm, alpha)
+        // The edge carries the colour the fill cannot. A tint composited over
+        // a dark tile loses most of its chroma; a stroke drawn at full alpha
+        // keeps the token's own, and at a 60px hex an edge is what the eye
+        // reads first anyway.
+        graphics.lineStyle(2, warm, 0.9)
+        this.strokeHex(graphics, hexCorners(x, y, HEX_SIZE - 6))
       }
       if (legalMoves.has(key)) {
         this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), MOVE_OVERLAY, 0.35)

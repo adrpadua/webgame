@@ -102,3 +102,51 @@ export function toneColors(): Record<'hero' | 'boss' | 'guard' | 'heal' | 'hazar
     hazard: readToken('coral-400'),
   }
 }
+
+// How strongly a telegraph is painted over the tile, and the reason it is not
+// a number someone liked the look of.
+//
+// A telegraph is a tint, not a fill, so what the player sees is the composite
+// rather than the token. Compositing a saturated coral onto a dark oathsteel
+// tile at low alpha destroys most of its chroma: at the 28% and 32% this once
+// used, coral-300 arrived at C*=8 and coral-400 at C*=15, against the C*=63
+// the token carries. A warning that lands as grey-brown is not a warning, and
+// the two telegraphs were 7.5 dE apart, which is close to indistinguishable.
+//
+// The board direction ranks warm by imminence, and the ranking has to hold in
+// what reaches the screen. Measured, the Boss sprite's warm pixels sit at a
+// median luminance of 0.1036 — it is drawn art and no runtime tint governs it,
+// so the telegraphs are what must be lifted above it. These alphas are solved
+// against that number rather than chosen: they put the cone at L=0.219 and the
+// spawn at L=0.117, both clear of the Boss, 13.7 dE apart, and carrying three
+// to four times the chroma they did.
+export const TELEGRAPH_ALPHA = { cone: 0.7, spawn: 0.58 } as const
+
+// The measured warm median of the Boss sprite, which the telegraphs have to
+// clear. Taken from facing E; the whole sheet reads 0.1033, and the higher
+// figure is kept because it makes the bound the stricter of the two. The smoke
+// suite measures the shipped sheet itself and holds it under both telegraph
+// composites, so a hotter Boss fails there rather than quietly retaking the
+// top of the ranking.
+export const BOSS_SPRITE_WARM_MEDIAN = 0.1036
+
+// A tint over a tile, as the player sees it. Straight source-over compositing,
+// which is what Phaser's fillStyle alpha does.
+export function composite(tint: number, alpha: number, over: number): number {
+  const mix = (shift: number): number => {
+    const top = (tint >> shift) & 0xff
+    const bottom = (over >> shift) & 0xff
+    return Math.round(alpha * top + (1 - alpha) * bottom)
+  }
+  return (mix(16) << 16) | (mix(8) << 8) | mix(0)
+}
+
+// Relative luminance, sRGB. The board's warm ordering is an ordering of what
+// the eye receives, so it is checked in light rather than in hex digits.
+export function relativeLuminance(color: number): number {
+  const channel = (shift: number): number => {
+    const value = ((color >> shift) & 0xff) / 255
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+  }
+  return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0)
+}
