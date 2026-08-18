@@ -151,9 +151,13 @@ The approved live/default Elian Voss starter-deck specification contains these j
 | Defensive payoff | Shield Slam | Quick | Consume a correctly earned Riposte Ready for `+2` Boss damage, or use it as stable progress when no opening exists. |
 | Emergency party save | Intercept | Quick | Redirect one next damage event from a chosen ally. Requires engineering support. |
 
-The approved live/default twenty-card Shield Wall list is exactly `8x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, and `2x Shield Slam`. Intercept remains outside this first executable list until its rule exists in `EncounterEngine`.
+The approved live/default twenty-card Shield Wall list is exactly `6x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, `2x Shield Slam`, and `2x Drive Back`. Intercept remains outside this first executable list until its rule exists in `EncounterEngine`.
 
-The former `10x Steady Strike` / `10x Iron Guard` baseline remains historical evidence for the old mechanics shell. It does not describe the current default deck and must not be rewritten.
+| Repositioning | Drive Back | Quick | Push a piece two hexes away. Moves the Boss rather than the Hero, so the Guarded Front is never abandoned to reposition — and shoving costs adjacency, which `Within Reach` prices. |
+
+Drive Back replaced two Steady Strike under D-040, keeping the deck at twenty. It exists because six of Elian's seven bench cards were `gain Armor` in different amounts and none moved anyone, so a Boss asking three different questions faced a kit that could answer one.
+
+Two earlier lists remain historical evidence and must not be rewritten: the `10x Steady Strike` / `10x Iron Guard` baseline for the old mechanics shell, and proposal 04's `8x/6x/2x/2x/2x` promotion, which was the live default until D-040. Neither describes the current deck.
 
 ## Content Rules
 
