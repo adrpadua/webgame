@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { BURN_MS, charProgress, coolProgress, dyingEmbers, emberAlpha, flameEnvelope, flameTongues, flareRing, type FlameTongue, type Point } from './burn'
+import { BURN_MS, charProgress, coolProgress, dyingEmbers, emberAlpha, flameEnvelope, flameTongues, flareRing, type FlameTongue } from './burn'
 import { composite } from './palette'
-import { HEX_SIZE } from './layout'
+import { HEX_SIZE, type Point } from './layout'
 
 const HEX = { q: 0, r: 0 }
 

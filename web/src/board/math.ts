@@ -10,6 +10,13 @@ import type { Axial } from '@/engine'
 // same way, and the drift is invisible until two effects that were meant to
 // land together stop landing together.
 
+// Holds a value inside [0, 1]. Every curve here and in the effect modules is
+// stated as a fraction of its own length, and this is what keeps one that is
+// handed a `t` past its end from running off the end of its shape.
+export function clamp01(value: number): number {
+  return value < 0 ? 0 : value > 1 ? 1 : value
+}
+
 // Fast out of the gate, settling at the end. Every piece of Board Feedback
 // that eases, eases on this: a step's glide, a spawn's swell, a turn's swing,
 // a burn's rise.

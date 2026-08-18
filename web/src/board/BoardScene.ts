@@ -6,7 +6,8 @@ import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 import { idleBobOffset } from './ambience'
 import { BURN_MS, COOL_MS, charProgress, coolProgress, dyingEmbers, emberAlpha, flameTongues, flareRing } from './burn'
 import { easeOutCubic, hexNoise } from './math'
-import { boardPalette, composite, TELEGRAPH_ALPHA, toneColors } from './palette'
+import { SPAWN_MS, arrivalScale, breakRing, groundHeat, spawnShards } from './spawn'
+import { boardPalette, composite, shade, HOT_SHADE, TELEGRAPH_ALPHA, toneColors } from './palette'
 import { idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
 
 // The board is three layers: tiles and their tints, then the pieces, then the
@@ -157,25 +158,13 @@ const EFFECT_DURATION: Record<BoardEffect['kind'], number> = {
   block: 420,
   cast: 520,
   move: 280,
-  spawn: 460,
+  spawn: SPAWN_MS,
   defeat: 460,
   blast: 560,
   scorch: BURN_MS,
   cool: COOL_MS,
   turn: 480,
 }
-
-// How much brighter a flame's core is than the hazard tone its body takes.
-// This is the hazard tone lit hotter, derived the same way every piece derives
-// its lit value — a value on the board's one warm material, not a second
-// colour anyone authored. Above 1 the channels run into their ceiling red
-// first, so the hottest part of the fire rides up toward white as fire does.
-//
-// It has to be this bright. The board direction ranks warm by imminence and
-// puts the beat resolving now at the top, and ash usually lands inside the
-// Cinder Breath cone that announced it: a core no hotter than that telegraph
-// would leave the fire reading as part of the warning it is answering.
-const FLAME_CORE_SHADE = 1.7
 
 // An effect whose `delay` has not elapsed yet holds negative `elapsed` and
 // stays invisible; `started` flips once, the moment it crosses zero.
@@ -198,16 +187,6 @@ interface Motion {
 }
 
 const NO_MOTION: Motion = { dx: 0, dy: 0, scale: 1, flash: 0, flashColor: 0 }
-
-// Scales a 0xRRGGBB colour's channels toward black (factor < 1) or white
-// (factor > 1), so one authored colour yields its own shadow and highlight
-// instead of needing a second constant per tone.
-function shade(color: number, factor: number): number {
-  const r = Math.min(255, Math.round(((color >> 16) & 0xff) * factor))
-  const g = Math.min(255, Math.round(((color >> 8) & 0xff) * factor))
-  const b = Math.min(255, Math.round((color & 0xff) * factor))
-  return (r << 16) | (g << 8) | b
-}
 
 // The floor's own draw from the per-hex hash. The same hex always lands on the
 // same shade, so the floor holds still between frames; salt 0 is the floor's,
@@ -457,7 +436,7 @@ export class BoardScene extends Phaser.Scene {
           break
         }
         case 'spawn': {
-          motion.scale *= this.reducedMotion ? 1 : Math.min(easeOutCubic(t) * 1.15, 1)
+          motion.scale *= arrivalScale(t, this.reducedMotion)
           break
         }
         default:
@@ -467,7 +446,17 @@ export class BoardScene extends Phaser.Scene {
     return motion
   }
 
-  private drawEffectOverlays(graphics: Phaser.GameObjects.Graphics, flames: Phaser.GameObjects.Graphics): void {
+  // Everything an effect paints on the floor: the footprint of a blast, the
+  // heat and flames of a burn, the embers of an expiry, the break a Minion
+  // comes up through. Drawn between the tiles and the pieces, because all of
+  // it is ground.
+  //
+  // The split is not decoration. Tiles, pieces without an authored sheet, and
+  // effect marks all fill into the same Graphics, where order is the only
+  // depth there is — so a mark drawn in one pass after the pieces sits on top
+  // of every token on the board, and the comments claiming these marks stay
+  // under the pieces were true only for the pieces that happen to have art.
+  private drawGroundEffects(graphics: Phaser.GameObjects.Graphics, flames: Phaser.GameObjects.Graphics): void {
     for (const effect of this.active) {
       if (effect.elapsed < 0) {
         continue
@@ -495,7 +484,7 @@ export class BoardScene extends Phaser.Scene {
           }
           const flare = flareRing(t)
           if (flare.alpha > 0) {
-            graphics.lineStyle(3, shade(color, FLAME_CORE_SHADE), flare.alpha)
+            graphics.lineStyle(3, shade(color, HOT_SHADE.flameCore), flare.alpha)
             this.strokePath(graphics, hexCorners(x, y, flare.radius))
           }
           // The heat on the face is ground and stays under the pieces; the
@@ -506,7 +495,7 @@ export class BoardScene extends Phaser.Scene {
               flames,
               tongue.body.map((point) => ({ x: x + point.x, y: y + point.y })),
             )
-            flames.fillStyle(shade(color, FLAME_CORE_SHADE), tongue.alpha)
+            flames.fillStyle(shade(color, HOT_SHADE.flameCore), tongue.alpha)
             this.fillPath(
               flames,
               tongue.core.map((point) => ({ x: x + point.x, y: y + point.y })),
@@ -541,12 +530,57 @@ export class BoardScene extends Phaser.Scene {
           }
           break
         }
+        case 'spawn': {
+          // The hex breaking open and giving a Whelp up. The mark the spawn
+          // telegraph has been holding on this hex for a Round closes onto the
+          // point the piece comes through, shards of the tile go with it, and
+          // the ground it came out of stays hot after both.
+          //
+          // All of it under the pieces: what arrives has to be the thing the
+          // eye lands on, and debris drawn over a piece that is still swelling
+          // into place would be covering the event with its own noise.
+          const { x, y } = axialToPixel(effect.at)
+          const heat = groundHeat(t)
+          if (heat > 0) {
+            graphics.fillStyle(color, heat)
+            this.fillPath(graphics, hexCorners(x, y, HEX_SIZE - 5))
+          }
+          const opening = breakRing(t)
+          if (opening.alpha > 0) {
+            graphics.lineStyle(3, shade(color, HOT_SHADE.spawnBreak), opening.alpha)
+            this.strokePath(graphics, hexCorners(x, y, opening.radius))
+          }
+          for (const shard of spawnShards(effect.at, t, this.reducedMotion)) {
+            graphics.fillStyle(composite(shade(color, HOT_SHADE.spawnBreak), shard.heat, MINION_FILL), 1)
+            this.fillPath(
+              graphics,
+              shard.points.map((point) => ({ x: x + point.x, y: y + point.y })),
+            )
+          }
+          break
+        }
+        default:
+          break
+      }
+    }
+  }
+
+  // The mark that belongs to a piece rather than to the floor it stands on: a
+  // ring at what was cast, hit, guarded, or killed. Drawn after the pieces,
+  // because it is about them.
+  private drawPieceEffects(graphics: Phaser.GameObjects.Graphics): void {
+    for (const effect of this.active) {
+      if (effect.elapsed < 0) {
+        continue
+      }
+      const t = Math.min(effect.elapsed / effect.duration, 1)
+      switch (effect.kind) {
         case 'cast':
         case 'hit':
         case 'block':
-        case 'defeat':
-        case 'spawn': {
+        case 'defeat': {
           const { x, y } = axialToPixel(effect.at)
+          const color = TONE_COLOR[effect.tone]
           const grow = this.reducedMotion ? 0.6 : easeOutCubic(t)
           const radius = 16 + grow * 26
           graphics.lineStyle(3, color, 1 - t)
@@ -772,10 +806,17 @@ export class BoardScene extends Phaser.Scene {
       }
     }
 
+    this.drawGroundEffects(graphics, flames)
+
+    // What actually got drawn this frame, which is not the same as what the
+    // state holds: a Minion whose spawn has not played yet is in the rules and
+    // not yet on the board.
+    const drawn = new Set<string>()
     for (const entity of Object.values(state.board.entities)) {
       if (pendingSpawns.has(entity.id)) {
         continue
       }
+      drawn.add(entity.id)
       const base = axialToPixel(entity.coords)
       const motion = this.motionFor(entity.id)
       const x = base.x + motion.dx
@@ -835,11 +876,20 @@ export class BoardScene extends Phaser.Scene {
     }
 
     // A defeated Minion or a Hero that left the board keeps no sprite: the
-    // graphics layer is cleared every frame, but a retained object would
-    // stand there after the piece it draws is gone.
-    this.reapSprites(new Set(Object.keys(state.board.entities)))
+    // graphics layer is cleared every frame, but a retained object would stand
+    // there after the piece it draws is gone.
+    //
+    // Reaped against what was drawn rather than against what the state holds,
+    // because the same is true at the other end of a piece's life. Skipping a
+    // pending spawn in the loop above stops it being *re*drawn, and a sprite
+    // is a retained object: one created before its beat came kept standing on
+    // its hex through every frame that skipped it, so a Whelp was on the board
+    // for the whole Boss Row that was still working up to calling it — and its
+    // arrival then played on a piece the player had been looking at for
+    // seconds.
+    this.reapSprites(drawn)
 
-    this.drawEffectOverlays(graphics, flames)
+    this.drawPieceEffects(graphics)
     if (rebuildLabels) {
       this.drawFloaters()
     }
