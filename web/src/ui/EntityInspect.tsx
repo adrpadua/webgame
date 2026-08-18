@@ -102,26 +102,49 @@ function HeroHealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing
   )
 }
 
-function StatusChip({ status }: { status: StatusInstance }) {
+// One chip per live Status Effect, on whichever piece is holding it. A
+// Status Effect wears living gold wherever it sits — the material of every
+// mechanism the player operates — because the party authored it either way:
+// Riposte Ready is the gate catching a blow and turning, and Sundered on a
+// Whelp is the same hand's mark on the other side of the board. Whose piece
+// carries it is already said by the plate underneath.
+function StatusChip({ status, rulesText }: { status: StatusInstance; rulesText: string }) {
   const hold = useHold({
     id: `status:${status.id}`,
     title: status.title,
     badge: 'Status',
     tone: 'guard',
     stats: [{ label: 'Rounds left', value: String(status.remainingRounds) }],
-    text: status.triggerReason,
+    text: rulesText,
   })
   return (
     <button
       type="button"
       {...hold.holdProps}
-      // A Status Effect on the Hero is the Hero's own oathcraft doing something
-      // — Riposte Ready is the gate catching a blow and turning — so it wears
-      // living gold, the material of every mechanism the player operates.
+      data-testid="status-chip"
+      data-status={status.id}
       className={`min-h-11 min-w-11 bg-gold-900 px-1.5 text-[10px] font-semibold text-gold-200 ${FOCUS_RING_CLASS}`}
     >
       {status.title}
     </button>
+  )
+}
+
+// Every Status Effect a piece is holding, Hero or Enemy: the mechanism is
+// two-sided (D-032), so the readout is one component both branches of the
+// panel mount rather than a Hero-only row. The popup quotes the authored
+// rules text when the status came from `data/statuses/`, and falls back to
+// the instance's trigger reason for the ones engine code still builds
+// (Riposte Ready, D-033).
+function StatusChips({ entityId }: { entityId: string }) {
+  const state = useWorkbench(selectState)
+  const catalog = useWorkbench((store) => store.catalog)
+  return (
+    <>
+      {getStatuses(state, entityId).map((status) => (
+        <StatusChip key={status.id} status={status} rulesText={catalog.statuses[status.id]?.rules_text ?? status.triggerReason} />
+      ))}
+    </>
   )
 }
 
@@ -137,7 +160,6 @@ function HeroRows({ heroId }: { heroId: string }) {
     return null
   }
   const shownHero = override ? { ...hero, health: override.health, armor: override.armor ?? hero.armor } : hero
-  const statuses = getStatuses(state, heroId)
   // The deck gauge drains against every card the Hero owns, wherever it sits
   // right now: deck, hand, discard, or prepared into a Slot.
   const preparedCount = hero.actionBar.reduce((count, slot) => count + slot.charges.length + (slot.topCard === null ? 0 : 1), 0)
@@ -145,9 +167,7 @@ function HeroRows({ heroId }: { heroId: string }) {
   return (
     <>
       <HeroHealthBar hero={shownHero} flashing={flashing} flashKey={flashKey} />
-      {statuses.map((status) => (
-        <StatusChip key={status.id} status={status} />
-      ))}
+      <StatusChips entityId={heroId} />
       <StatBar
         detail={{
           ...HERO_STAT_DETAILS.cards,
@@ -250,7 +270,17 @@ export function EntityInspect() {
         )}
         {entity.title}
       </span>
-      {isHero ? <HeroRows heroId={entity.id} /> : <EnemyGauge entity={entity} testId={isBoss ? 'boss-health' : undefined} detail={bossDetail} />}
+      {isHero ? (
+        <HeroRows heroId={entity.id} />
+      ) : (
+        <>
+          <EnemyGauge entity={entity} testId={isBoss ? 'boss-health' : undefined} detail={bossDetail} />
+          {/* A Boss or a Minion carries its afflictions on the same panel the
+              Hero carries its boons on: one Stat Panel, one place to read what
+              is currently true of a piece. */}
+          <StatusChips entityId={entity.id} />
+        </>
+      )}
       <button
         type="button"
         data-testid="inspect-dismiss"

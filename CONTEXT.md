@@ -99,7 +99,7 @@ A player Card effect centered on a selected on-board hex within Range of the fir
 _Avoid_: Piece-targeted area attack, splash estimate, friendly fire
 
 **Status Effect**:
-A temporary rule attached to one combatant — a Hero **or** an Enemy — that responds to an explicit trigger, such as the start of a Round, taking damage, or firing a Slot (D-032). The mechanism is identical on both sides; only which payload fields matter differs, so an Enemy-facing status uses `damageTakenBonus` and `damageDealtPenalty` where a Hero-facing one uses Armor and Boss-damage fields. Status definitions are authored content in `data/statuses/` and each one states whether it stacks (D-033). Every Status Effect is visible to the whole Party. A Status Effect may never redirect a Boss Beat's target or change what that Beat is.
+A temporary rule attached to one combatant — a Hero **or** an Enemy — that responds to an explicit trigger, such as the start of a Round, taking damage, or firing a Slot (D-032). The mechanism is identical on both sides; only which payload fields matter differs, so an Enemy-facing status uses `damageTakenBonus` and `damageDealtPenalty` where a Hero-facing one uses Armor and Boss-damage fields. Status definitions are authored content in `data/statuses/` and each one states whether it stacks (D-033). A status is temporary on every combatant alike: one carrying an authored duration ticks down at each Round start and comes off when it runs out, and one whose host leaves the board leaves with it — the Boss and its Minions keep no status a Hero would have lost (D-043). Every Status Effect is visible to the whole Party, read on the Stat Panel of whichever piece holds it. A Status Effect may never redirect a Boss Beat's target or change what that Beat is.
 _Avoid_: Passive, invisible buff, Enemy Status
 
 **Riposte Ready**:
@@ -251,7 +251,7 @@ The temporary reading surface for any named HUD object — a Compact Card, a Slo
 _Avoid_: Tooltip, card menu, help screen
 
 **Stat Panel**:
-The persistent readout for one piece on the board — the Boss, a Hero, or a Minion — opened by tapping that piece's tile and floated over the board's lower edge. It carries the piece's gauges: health for every piece, plus armor, deck, and Status Effects for a Hero. The panel follows the piece rather than the hex and shows the staggered playout values while a Boss Row replays, so it reads as a live gauge; it closes from its own control, a tap on an empty hex, or a session transition, and stays up through ordinary play. Unlike a Detail Popup it persists instead of dismissing on release. Presentation only: it is never a rules surface.
+The persistent readout for one piece on the board — the Boss, a Hero, or a Minion — opened by tapping that piece's tile and floated over the board's lower edge. It carries the piece's gauges: health and Status Effects for every piece, plus armor and deck for a Hero. The panel follows the piece rather than the hex and shows the staggered playout values while a Boss Row replays, so it reads as a live gauge; it closes from its own control, a tap on an empty hex, or a session transition, and stays up through ordinary play. Unlike a Detail Popup it persists instead of dismissing on release. Presentation only: it is never a rules surface.
 _Avoid_: Tooltip, Detail Popup, HUD gauge, unit frame
 
 **Scripted First Turn**:

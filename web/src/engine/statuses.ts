@@ -56,6 +56,32 @@ export function statusExpiresOnRoundAdvance(effect: StatusInstance): boolean {
   return effect.remainingRounds <= 0
 }
 
+// The Round's upkeep across every combatant holding a status — the Boss and
+// its Minions included. The mechanism was always two-sided (D-032) but the
+// tick ran over Heroes alone, so an authored `duration_rounds` meant nothing
+// on an Enemy: Sundered landed once and never came off. A status held by a
+// piece that has left the board goes with it, so a Minion's affliction cannot
+// outlive the Minion.
+export function roundUpkeep(state: EncounterState): { entityId: string; effect: StatusInstance }[] {
+  const expired: { entityId: string; effect: StatusInstance }[] = []
+  for (const entityId of Object.keys(state.statusEffects)) {
+    if (!state.board.entities[entityId] && !state.heroes[entityId]) {
+      delete state.statusEffects[entityId]
+      continue
+    }
+    const remaining: StatusInstance[] = []
+    for (const effect of getStatuses(state, entityId)) {
+      if (statusExpiresOnRoundAdvance(effect)) {
+        expired.push({ entityId, effect })
+      } else {
+        remaining.push(effect)
+      }
+    }
+    state.statusEffects[entityId] = remaining
+  }
+  return expired
+}
+
 export function statusEvent(effect: StatusInstance, event: string, reason: string): Record<string, unknown> {
   return {
     status_id: effect.id,

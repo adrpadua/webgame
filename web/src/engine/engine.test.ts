@@ -1131,6 +1131,89 @@ describe('Authored Status Effects (D-032 to D-034)', () => {
     expect(fired.facts[0].reason).toContain('Enemy target')
   })
 
+  it('ticks an enemy status down at the Round boundary and takes it off', () => {
+    // The mechanism was two-sided from D-032, but the Round's tick ran over
+    // the Heroes alone: an authored `duration_rounds` meant nothing on an
+    // Enemy, so a single Sunder marked the Boss for the rest of the fight.
+    const variant = withStatusCard('sunder_test', { applies_status: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const opening = start()
+    let state = immortalHero(firedAt(variant, 'sunder_test', opening.bossId).state)
+    expect(state.statusEffects[state.bossId]).toHaveLength(1)
+    expect(state.statusEffects[state.bossId][0].remainingRounds).toBe(1)
+
+    const round = state.round
+    const facts: ResolvedActionFact[] = []
+    for (let index = 0; index < 3; index += 1) {
+      const step = advancePhase(variant, state)
+      state = step.state
+      facts.push(...step.facts)
+    }
+    expect(state.round).toBe(round + 1)
+    expect(state.statusEffects[state.bossId] ?? []).toHaveLength(0)
+
+    // The Round's own fact says what left, so a client never has to diff two
+    // states to narrate an expiry.
+    const roundStart = facts.find((fact) => fact.kind === 'round_start')!
+    expect(roundStart.detail.expiredStatuses).toEqual([
+      expect.objectContaining({ entity_id: state.bossId, status_id: 'sundered', event: 'expired', reason: 'duration_elapsed' }),
+    ])
+
+    // And the Boss takes plain damage again.
+    const hit = resolve(catalog, state, { kind: 'damage', sourceId: state.primaryHeroId, targetId: state.bossId, amount: 3, reasonText: 'test' })
+    expect(hit.facts[0].resolutionFact).toMatchObject({ requested: 3 })
+  })
+
+  it('gives a Minion the same status clock, and lets neither outlive it', () => {
+    // Range is the only thing that differs from the Boss (D-034), so the
+    // card reaches across the board and the subject stays the clock.
+    const variant = withStatusCard('sunder_test', { applies_status: 'sundered', target_type: 'piece', range_tiles: 8 })
+    let state = immortalHero(start())
+    const taken = new Set(Object.values(state.board.entities).map((entity) => hexKey(entity.coords)))
+    const [q, r] = Object.keys(state.board.hexes)
+      .find((key) => !taken.has(key))!
+      .split(',')
+      .map(Number)
+    state = resolve(variant, state, {
+      kind: 'spawn_minion',
+      sourceId: state.bossId,
+      minionId: 'status_whelp',
+      coords: { q, r },
+      minionContentId: 'ember_whelp',
+    }).state
+    state = stepPhases(state, 2).state
+    expect(state.phase).toBe('quick')
+    hero(state).hand = [card('t1', 'sunder_test'), card('t2', 'steady_strike')]
+    state = resolve(variant, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 't1' }).state
+    state = resolve(variant, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 't2' }).state
+    state = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetId: 'status_whelp' }).state
+    expect(state.statusEffects.status_whelp).toHaveLength(1)
+
+    // Sundered raises what the Whelp takes: 1 requested becomes 2, which is
+    // the Whelp's whole Health, so the same hit also proves the cleanup.
+    const killed = resolve(catalog, state, {
+      kind: 'damage',
+      sourceId: state.primaryHeroId,
+      targetId: 'status_whelp',
+      amount: 1,
+      reasonText: 'test',
+    })
+    expect(killed.facts[0].resolutionFact).toMatchObject({ requested: 2, target_removed: true })
+    expect(killed.state.statusEffects.status_whelp).toBeUndefined()
+  })
+
+  it('drops a status held by a piece that has left the board', () => {
+    // Belt and braces on the Round's upkeep: whatever removed the piece, the
+    // Round start must not carry its afflictions forward.
+    const variant = withStatusCard('sunder_test', { applies_status: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const opening = start()
+    let state = immortalHero(firedAt(variant, 'sunder_test', opening.bossId).state)
+    state.statusEffects.ghost_whelp = [...state.statusEffects[state.bossId]]
+    for (let index = 0; index < 3; index += 1) {
+      state = advancePhase(variant, state).state
+    }
+    expect(state.statusEffects.ghost_whelp).toBeUndefined()
+  })
+
   it('still lands Fortified from its authored definition (D-019 unchanged)', () => {
     let state = stepPhases(start(), 4).state
     expect(state.phase).toBe('slow')

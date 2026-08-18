@@ -17,8 +17,8 @@ import {
   hasStatus,
   removeStatus,
   RIPOSTE_READY,
+  roundUpkeep,
   statusEvent,
-  statusExpiresOnRoundAdvance,
   TANK_HIT,
 } from './statuses'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
@@ -412,7 +412,17 @@ function resolveOne(
             hero.armor += effect.armorOnRoundStart
           }
         }
-        draft.statusEffects[heroId] = getStatuses(draft, heroId).filter((effect) => !statusExpiresOnRoundAdvance(effect))
+      }
+      // The Armor wipe is the Party's alone; the duration tick is every
+      // combatant's. Running upkeep after the grant keeps Fortified's D-019
+      // arc — pay out this Round's stored Armor, then expire — and gives an
+      // Enemy-facing status the same honest clock on the Boss and its Minions.
+      const expiredStatuses = roundUpkeep(draft)
+      if (expiredStatuses.length > 0) {
+        fact.detail.expiredStatuses = expiredStatuses.map(({ entityId, effect }) => ({
+          entity_id: entityId,
+          ...statusEvent(effect, 'expired', 'duration_elapsed'),
+        }))
       }
       // The Phase Break replaces this Round's rotation rather than following
       // it: Phase II opens on its own first Program, not on whichever Phase I
