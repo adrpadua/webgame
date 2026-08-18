@@ -769,7 +769,11 @@ try {
   await next()
   assert((await phase()) === 'loadout', 'the Slow Window rolls into the next Round')
   const round = await page.locator('[data-testid="round-display"]').textContent()
-  assert(round?.includes('2/8'), `the Boss Timeline rolled forward (${round?.trim()})`)
+  // The mark is a coordinate, not a countdown: Escalation is the only clock
+  // (ADR 0027), so the Round carries no denominator to promise Rounds the
+  // rules never guaranteed.
+  assert(round?.trim() === 'R2', `the Boss Timeline rolled forward (${round?.trim()})`)
+  assert(!/\d\s*\/\s*\d/.test(round ?? ''), `the Round mark states no round limit (${round?.trim()})`)
   assert((await page.locator('[data-testid="hand-card"]').count()) === 5, 'end-of-Round draw refilled the Hand')
 
   // The script retires itself with the Round it taught, and ordinary
@@ -961,7 +965,7 @@ try {
   await page.waitForTimeout(100)
   assert((await phase()) === 'loadout', 'sliding to step 0 shows the seeded Loadout')
   const roundAtStart = await page.locator('[data-testid="round-display"]').textContent()
-  assert(roundAtStart?.includes('1/8'), 'step 0 is Round 1')
+  assert(roundAtStart?.trim() === 'R1', `step 0 is Round 1 (${roundAtStart?.trim()})`)
 
   await page.screenshot({ path: process.env.SMOKE_SHOT ?? 'smoke.png', fullPage: false })
 

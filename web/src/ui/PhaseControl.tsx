@@ -59,13 +59,26 @@ export function PhaseControl() {
   // with the thing a finger cannot get any other way: every window, in
   // order, with this one marked.
   const hold = useHold(roundTrackDetail(state.phase), { hover: false })
-  // The Encounter Clock, compact: the Boss line left the HUD, so the Round
-  // count rides the phase row and the Encounter's terms are a hold away.
+  // The Round mark. It used to read `2/8`, and the denominator was a rule
+  // that no longer exists: ADR 0027 made Escalation the encounter's only
+  // clock, and nothing in the engine ends an Encounter at `roundLimit` any
+  // more — it survives as the authored budget the tick start derives from.
+  // Worse than retired, it was misleading: since D-036 priced Brood Call, a
+  // line that ignores its adds dies around Round 6, so `2/8` promised six
+  // more Rounds to a party that had three. The clock is the Escalation gauge
+  // on the Boss's own strip, which is the only readout that answers to
+  // acceleration; this is a coordinate — which Round the Forecast, the
+  // program pool, and every fact-log line are talking about.
+  //
+  // The nominal budget keeps its seat in the popup, where a qualifier fits:
+  // `ticks alone` is what makes the number honest, because it says out loud
+  // that nothing here has accelerated.
   const clockHold = useHold({
     ...encounterTerms(catalog, state),
     id: 'clock',
     title: 'Encounter Clock',
-    badge: `Round ${state.round} of ${state.roundLimit}`,
+    badge: `Round ${state.round}`,
+    stats: [{ label: 'Ticks alone reach the wipe', value: `Round ${state.roundLimit}` }],
   })
   return (
     <div className="flex items-center gap-2 border-b border-steel-800 bg-steel-950/60 px-3 py-1.5" data-phase={state.phase}>
@@ -87,10 +100,10 @@ export function PhaseControl() {
         type="button"
         {...clockHold.holdProps}
         data-testid="round-display"
-        aria-label={`Round ${state.round} of ${state.roundLimit}`}
+        aria-label={`Round ${state.round}`}
         className={`min-h-11 min-w-11 shrink-0 text-[11px] font-semibold text-steel-400 ${FOCUS_RING_CLASS}`}
       >
-        {state.round}/{state.roundLimit}
+        R{state.round}
       </button>
     </div>
   )
