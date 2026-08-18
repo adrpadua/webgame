@@ -1,0 +1,259 @@
+#!/usr/bin/env node
+// The mutation audit: reintroduce a defect the engine claims to guard, and see
+// whether the suite notices.
+//
+// This exists because a passing suite says nothing about which rules it guards.
+// The first run of this audit reintroduced fifteen documented rules one at a
+// time and found four of them unasserted — including one whose test *looked*
+// like the guard, walked a whole fight, and never once reached the branch it
+// was written for. Nothing was failing. Nothing would have started failing.
+//
+// Every entry below is a rule someone wrote down, paired with the smallest edit
+// that breaks it. A SURVIVED line means the suite is decorating that rule
+// rather than guarding it, and the fix is a test, never a loosened entry here.
+//
+//   node scripts/mutate.mjs            # audit every rule
+//   node scripts/mutate.mjs proximity  # only entries matching a substring
+//
+// Exit status is the gate: 0 when every mutation is caught, 1 otherwise.
+
+import { execFileSync } from 'node:child_process'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const WEB = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const SRC = join(WEB, 'src', 'engine')
+
+// `from` must appear exactly once in its file. An anchor that matches zero or
+// many times is reported as a broken entry rather than quietly skipped: an
+// audit that silently stops auditing is the failure it exists to catch.
+const MUTATIONS = [
+  {
+    name: 'no-repeat collision goes to a fixed slot',
+    guards: 'ADR 0028 / D-038: the program order leaks no position information',
+    file: 'timeline.ts',
+    from: 'const target = randiRange(rng, 1, bag.length - 1, `${label}_no_repeat`)',
+    to: 'const target = 1',
+  },
+  {
+    name: 'no-repeat rule disabled entirely',
+    guards: 'ADR 0028: no program repeats back to back',
+    file: 'timeline.ts',
+    from: 'if (pool.length > 2 && bag[0] === sequence[sequence.length - 1]) {',
+    to: 'if (false && pool.length > 2 && bag[0] === sequence[sequence.length - 1]) {',
+  },
+  {
+    name: 'Round 1 opener not pinned to the authored program',
+    guards: 'D-037: Round 1 is authored, never rolled',
+    file: 'timeline.ts',
+    from: '  const sequence = [pool[0]]\n  const remainder = pool.slice(1)',
+    to: '  const sequence = [pool[pool.length - 1]]\n  const remainder = pool.slice(0, -1)',
+  },
+  {
+    name: 'proximity demand priced from the pool, not the running program',
+    guards: 'D-041: a demand is billed only on a Round the Timeline showed it',
+    file: 'escalation.ts',
+    from: "    kind: 'demand_proximity',\n    reason: 'unanswered_proximity',\n    scope: 'program',",
+    to: "    kind: 'demand_proximity',\n    reason: 'unanswered_proximity',\n    scope: 'pool',",
+  },
+  {
+    name: 'Minion billed on the Round it arrived',
+    guards: 'ADR 0027: acceleration only for a demand the party could answer',
+    file: 'escalation.ts',
+    from: '(entity.spawnedRound ?? state.round) < state.round,',
+    to: '(entity.spawnedRound ?? state.round) <= state.round,',
+  },
+  {
+    name: 'Escalation clock starts a Round early',
+    guards: 'ADR 0027: automatic ticks alone reach the top exactly at the Clock',
+    file: 'escalation.ts',
+    from: 'return Math.max(1, roundLimit - (ESCALATION_MAX - 1))',
+    to: 'return Math.max(1, roundLimit - ESCALATION_MAX)',
+  },
+  {
+    name: 'Escalation thresholds stop being cumulative',
+    guards: 'ADR 0027: every threshold at or below the value stays live',
+    file: 'escalation.ts',
+    from: 'if (threshold.value > state.escalation) {',
+    to: 'if (threshold.value !== state.escalation) {',
+  },
+  {
+    name: 'demand price never found, so nothing is ever billed',
+    guards: 'ADR 0027: an unanswered demand accelerates the clock',
+    file: 'escalation.ts',
+    from: 'if (beat.kind === kind && beat.escalation_if_unanswered > amount) {',
+    to: 'if (false && beat.kind === kind && beat.escalation_if_unanswered > amount) {',
+  },
+  {
+    name: 'proximity distance hardcoded instead of read from the Beat',
+    guards: 'ADR 0020: reach is content, not an engine constant',
+    file: 'escalation.ts',
+    from: 'return piece !== undefined && hexDistance(piece.coords, boss.coords) <= rangeTiles',
+    to: 'return piece !== undefined && hexDistance(piece.coords, boss.coords) <= 1',
+  },
+  {
+    name: 'cone resolution hardcodes its reach',
+    guards: 'ADR 0020: the cone burns the ground its content says it does',
+    file: 'timeline.ts',
+    from: 'patternHexes = forwardCone(draft.board.hexes, bossCoords, bossFacing, beat.range_tiles)',
+    to: 'patternHexes = forwardCone(draft.board.hexes, bossCoords, bossFacing, 2)',
+  },
+  {
+    name: 'cone telegraph hardcodes its reach',
+    guards: 'ADR 0026: the telegraph must not lie about what is coming',
+    file: 'timeline.ts',
+    from: 'for (const coords of forwardCone(draft.board.hexes, boss.coords, boss.facing, beat.range_tiles)) {',
+    to: 'for (const coords of forwardCone(draft.board.hexes, boss.coords, boss.facing, 2)) {',
+  },
+  {
+    name: 'content may ask a distance question without answering it',
+    guards: 'ADR 0020: a ranged Beat authors its reach',
+    file: 'content/catalog.ts',
+    from: 'if (RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles < 1) {',
+    to: 'if (false && RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles < 1) {',
+  },
+  {
+    name: 'the undodgeable hit may quietly gain a reach',
+    guards: 'D-017: Raking Claw is the hit footwork cannot answer',
+    file: 'content/catalog.ts',
+    from: 'if (!RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles > 0) {',
+    to: 'if (false && !RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles > 0) {',
+  },
+  {
+    name: 'own-side Hazard immunity removed',
+    guards: 'D-042: a combatant does not burn in its own side fire',
+    file: 'resolve.ts',
+    from: '    .filter((hazard) => hazard.sourceTeam === undefined || hazard.sourceTeam !== enteringTeam)\n',
+    to: '',
+  },
+  {
+    name: 'Hazard source side defaults to party',
+    guards: 'D-042: an unattributed Hazard belongs to the Enemy that laid it',
+    file: 'resolve.ts',
+    from: "hazard.sourceTeam = draft.board.entities[action.sourceId]?.team ?? 'enemy'",
+    to: "hazard.sourceTeam = draft.board.entities[action.sourceId]?.team ?? 'party'",
+  },
+  {
+    name: 'absorbed impact no longer displaces the spill',
+    guards: 'D-039: a fully absorbed Tank Hit moves the Trail off the Hero',
+    file: 'timeline.ts',
+    from: '      scorchedHexes = draft.previousImpactAbsorbed\n        ? draft.previousImpactedHexes.map((coords) => spillAwayFrom(draft, coords, bossCoords))\n        : [...draft.previousImpactedHexes]',
+    to: '      scorchedHexes = [...draft.previousImpactedHexes]',
+  },
+  {
+    name: 'absorption ignores the Guarded Front',
+    guards: 'D-039: absorption is zero Health loss ON the front, not any zero',
+    file: 'resolve.ts',
+    from: 'draft.previousImpactAbsorbed = (resolutionFact.health_loss as number) === 0 && guardedFront',
+    to: 'draft.previousImpactAbsorbed = (resolutionFact.health_loss as number) === 0',
+  },
+  {
+    name: 'permanent Hazards expire at the Round boundary',
+    guards: 'D-031: a structural threshold closes the arena for good',
+    file: 'board.ts',
+    from: 'if (hazard.permanent === true) {',
+    to: 'if (false) {',
+  },
+  {
+    name: 'Escalation scale lengthened to 6',
+    guards: 'ADR 0027: one fixed 0-5 scale on every Boss',
+    file: 'escalation.ts',
+    from: 'export const ESCALATION_MAX = 5',
+    to: 'export const ESCALATION_MAX = 6',
+  },
+]
+
+const filter = process.argv[2] ?? ''
+const selected = MUTATIONS.filter(
+  (mutation) => filter === '' || `${mutation.name} ${mutation.guards} ${mutation.file}`.toLowerCase().includes(filter.toLowerCase()),
+)
+if (selected.length === 0) {
+  console.error(`No mutation matches "${filter}".`)
+  process.exit(1)
+}
+
+function runSuite() {
+  try {
+    execFileSync('npx', ['vitest', 'run', '--reporter=dot'], { cwd: WEB, stdio: 'pipe', encoding: 'utf8' })
+    return { caught: false, detail: '' }
+  } catch (error) {
+    const output = `${error.stdout ?? ''}\n${error.stderr ?? ''}`
+    // Vitest prints a "Tests  N failed" summary line; fall back to the raw
+    // failure markers if the format ever moves, so a caught mutation is never
+    // reported as a survivor because a regex missed.
+    const summary = output.match(/Tests\s+(\d+) failed/)
+    const names = [...output.matchAll(/(?:×|✕|FAIL)\s+(.+)/g)].map((match) => match[1].trim())
+    const unique = [...new Set(names)].slice(0, 3)
+    return {
+      caught: true,
+      detail: `${summary ? `${summary[1]} failing` : 'suite failed'}${unique.length > 0 ? `: ${unique.join(' | ')}` : ''}`,
+    }
+  }
+}
+
+const results = []
+const touched = new Map()
+
+// Whatever happens — a thrown error, a Ctrl-C — the tree goes back the way it
+// was found. A mutation left on disk is far worse than a missing report.
+function restoreAll() {
+  for (const [path, original] of touched) {
+    writeFileSync(path, original)
+  }
+  touched.clear()
+}
+process.on('SIGINT', () => {
+  restoreAll()
+  process.exit(130)
+})
+
+try {
+  for (const mutation of selected) {
+    const path = join(SRC, mutation.file)
+    const original = readFileSync(path, 'utf8')
+    const occurrences = original.split(mutation.from).length - 1
+    if (occurrences !== 1) {
+      results.push({ ...mutation, status: 'STALE', detail: `anchor matched ${occurrences} times` })
+      console.log(`STALE     ${mutation.name}`)
+      continue
+    }
+    touched.set(path, original)
+    let outcome
+    try {
+      writeFileSync(path, original.replace(mutation.from, mutation.to))
+      outcome = runSuite()
+    } finally {
+      writeFileSync(path, original)
+      touched.delete(path)
+    }
+    results.push({ ...mutation, status: outcome.caught ? 'CAUGHT' : 'SURVIVED', detail: outcome.detail })
+    // Name the test that caught it, not just the fact that something did. When
+    // this list is maintained a year from now, "which test is load-bearing for
+    // this rule" is the question being asked, and a bare CAUGHT does not answer
+    // it — nor would it reveal a mutation being caught by an unrelated test.
+    console.log(`${outcome.caught ? 'CAUGHT  ' : 'SURVIVED'}  ${mutation.name}${outcome.detail ? `\n            ${outcome.detail}` : ''}`)
+  }
+} finally {
+  restoreAll()
+}
+
+const survivors = results.filter((result) => result.status === 'SURVIVED')
+const stale = results.filter((result) => result.status === 'STALE')
+const caught = results.filter((result) => result.status === 'CAUGHT')
+
+if (survivors.length > 0 || stale.length > 0) {
+  console.log('\n=== NEEDS ATTENTION ===')
+  for (const result of [...survivors, ...stale]) {
+    console.log(`${result.status.padEnd(9)} ${result.name}`)
+    console.log(`          guards: ${result.guards}`)
+    console.log(
+      result.status === 'SURVIVED'
+        ? '          The suite did not notice. Write the test; do not weaken this entry.'
+        : `          ${result.detail} — the code moved under this entry. Re-anchor it.`,
+    )
+  }
+}
+
+console.log(`\n${caught.length}/${results.length} caught, ${survivors.length} survived, ${stale.length} stale`)
+process.exit(survivors.length + stale.length > 0 ? 1 : 0)
