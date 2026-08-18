@@ -10,7 +10,11 @@ export const ENCOUNTER_SOURCE = 'encounter'
 export type EncounterActionInput =
   | { kind: 'load_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
   | { kind: 'charge_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
-  | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string; targetHex?: Axial }
+  // `targetSlotIndex` is the Slot a `board_slot` card chose — D-035's ally
+  // attachment, reachable since D-046. Solo, that is one of the firing Hero's
+  // own Slots; the field is the Slot rather than the card instance because a
+  // re-loaded Slot is a different prepared card and drops what rode the old one.
+  | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string; targetHex?: Axial; targetSlotIndex?: number }
   | { kind: 'move_hero'; sourceId: string; destination: Axial; cardInstanceId: string }
   // `advance` shares `pull`'s geometry — move the target toward the source — but
   // names a Boss closing distance under its own power rather than a Hero card
@@ -22,7 +26,7 @@ export type EncounterActionInput =
   | { kind: 'move_minion'; sourceId: string; destination: Axial }
   | { kind: 'damage'; sourceId: string; targetId: string; amount: number; reasonText: string; factContext?: Record<string, unknown> }
   | { kind: 'discard_for_stamina'; sourceId: string; cardInstanceId: string }
-  | { kind: 'expire_status'; sourceId: string; targetId: string; statusId: string; window: Phase; statusEvent: Record<string, unknown> }
+  | { kind: 'expire_counter'; sourceId: string; hostRef: string; counterId: string; window: Phase; counterEvent: Record<string, unknown> }
   | { kind: 'advance_phase'; sourceId: typeof ENCOUNTER_SOURCE; fromPhase: Phase; toPhase: Phase; round: number }
   | { kind: 'round_start'; sourceId: typeof ENCOUNTER_SOURCE; round: number }
   | { kind: 'full_charge_cleanup'; sourceId: string; slotIndex: number; window: Phase }

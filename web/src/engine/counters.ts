@@ -1,3 +1,4 @@
+import { hexKey, type Axial } from './hex'
 import type { CounterDefinition } from './content/schemas'
 import type { CounterInstance, EncounterState, Phase } from './types'
 
@@ -11,20 +12,70 @@ export const SHIELD_SLAM = 'shield_slam'
 // express, which is exactly why D-033 left it there.
 export const ENGINE_COUNTERS = [FORTIFIED, RIPOSTE_READY]
 
-export function getCounters(state: EncounterState, entityId: string): CounterInstance[] {
-  return state.counters[entityId] ?? []
+// Where a Counter lives, as one tagged string (D-046). Counters were keyed by
+// entity id while combatants were the only host; the moment ground and
+// prepared cards can hold one too, the key has to say *what kind* of thing it
+// names, or the upkeep cannot tell a Minion that died from a hex that is
+// simply empty. One map and one upkeep loop, rather than three parallel
+// structures that drift.
+// Branded, so a bare entity id cannot be passed where a ref is wanted. The
+// ref is a string at runtime and a distinct type at compile time, which is
+// what turns "did every call site get migrated?" from a question into a
+// build error.
+export type CounterRef = string & { readonly __counterRef: unique symbol }
+
+export function combatantRef(entityId: string): CounterRef {
+  return `combatant:${entityId}` as CounterRef
 }
 
-export function getCounter(state: EncounterState, entityId: string, counterId: string): CounterInstance | undefined {
-  return getCounters(state, entityId).find((counter) => counter.id === counterId)
+export function hexCounterRef(coords: Axial): CounterRef {
+  return `hex:${hexKey(coords)}` as CounterRef
 }
 
-export function hasCounter(state: EncounterState, entityId: string, counterId: string): boolean {
-  return getCounter(state, entityId, counterId) !== undefined
+export function slotRef(heroId: string, slotIndex: number): CounterRef {
+  return `slot:${heroId}:${slotIndex}` as CounterRef
 }
 
-export function counterCount(state: EncounterState, entityId: string, counterId: string): number {
-  return getCounter(state, entityId, counterId)?.count ?? 0
+// Parses a ref back to the entity it names, or '' when it names something
+// else. Only presentation and fact-logging need this; the rules never do.
+export function refEntityId(ref: CounterRef): string {
+  const [kind, ...rest] = (ref as string).split(':')
+  return kind === 'combatant' ? rest.join(':') : ''
+}
+
+// Whether the thing a ref names is still there. A Counter never outlives its
+// host: a Minion's mark dies with the Minion (D-043), ground that burned away
+// takes its Counters with it, and a Slot's Counters go when its Top Card does.
+function hostIsLive(state: EncounterState, ref: CounterRef): boolean {
+  const [kind, ...rest] = ref.split(':')
+  const body = rest.join(':')
+  if (kind === 'combatant') {
+    return state.board.entities[body] !== undefined || state.heroes[body] !== undefined
+  }
+  if (kind === 'hex') {
+    return state.board.hexes[body] !== undefined
+  }
+  if (kind === 'slot') {
+    const [heroId, index] = body.split(':')
+    return state.heroes[heroId]?.actionBar[Number(index)]?.topCard != null
+  }
+  return false
+}
+
+export function getCounters(state: EncounterState, ref: CounterRef): CounterInstance[] {
+  return state.counters[ref] ?? []
+}
+
+export function getCounter(state: EncounterState, ref: CounterRef, counterId: string): CounterInstance | undefined {
+  return getCounters(state, ref).find((counter) => counter.id === counterId)
+}
+
+export function hasCounter(state: EncounterState, ref: CounterRef, counterId: string): boolean {
+  return getCounter(state, ref, counterId) !== undefined
+}
+
+export function counterCount(state: EncounterState, ref: CounterRef, counterId: string): number {
+  return getCounter(state, ref, counterId)?.count ?? 0
 }
 
 // Every Counter on a combatant carrying a given Keyword, summed. This is the
@@ -34,11 +85,11 @@ export function counterCount(state: EncounterState, entityId: string, counterId:
 export function counterCountByKeyword(
   catalog: { counters: Record<string, CounterDefinition> },
   state: EncounterState,
-  entityId: string,
+  ref: CounterRef,
   keywordId: string,
 ): number {
   let total = 0
-  for (const counter of getCounters(state, entityId)) {
+  for (const counter of getCounters(state, ref)) {
     if (catalog.counters[counter.id]?.keywords.includes(keywordId)) {
       total += counter.count
     }
@@ -51,11 +102,11 @@ export function counterCountByKeyword(
 // placing 3 on a host holding 1 of a max-2 Counter lands 1, and the fact log
 // can say so. A full host refuses with 0, which is the old non-stacking rule
 // expressed as arithmetic rather than as a flag.
-export function placeCounter(state: EncounterState, entityId: string, counter: CounterInstance, amount = 1): number {
-  if (!state.board.entities[entityId] || amount <= 0) {
+export function placeCounter(state: EncounterState, ref: CounterRef, counter: CounterInstance, amount = 1): number {
+  if (amount <= 0 || !hostIsLive(state, ref)) {
     return 0
   }
-  const existing = getCounter(state, entityId, counter.id)
+  const existing = getCounter(state, ref, counter.id)
   if (existing) {
     const placed = Math.min(amount, existing.max - existing.count)
     existing.count += placed
@@ -67,37 +118,47 @@ export function placeCounter(state: EncounterState, entityId: string, counter: C
     return placed
   }
   const placed = Math.min(amount, counter.max)
-  if (!state.counters[entityId]) {
-    state.counters[entityId] = []
+  if (!state.counters[ref]) {
+    state.counters[ref] = []
   }
-  state.counters[entityId].push({ ...counter, count: placed })
+  state.counters[ref].push({ ...counter, count: placed })
   return placed
 }
 
 // Removes `amount` Counters and returns how many actually came off. A spend
 // that cannot be paid in full pays what it can; whether that is legal at all
 // is a `gate`'s job, upstream of here.
-export function spendCounter(state: EncounterState, entityId: string, counterId: string, amount: number): number {
-  const counter = getCounter(state, entityId, counterId)
+export function spendCounter(state: EncounterState, ref: CounterRef, counterId: string, amount: number): number {
+  const counter = getCounter(state, ref, counterId)
   if (!counter || amount <= 0) {
     return 0
   }
   const spent = Math.min(amount, counter.count)
   counter.count -= spent
   if (counter.count <= 0) {
-    removeCounter(state, entityId, counterId)
+    removeCounter(state, ref, counterId)
   }
   return spent
 }
 
-export function removeCounter(state: EncounterState, entityId: string, counterId: string): boolean {
-  const counters = getCounters(state, entityId)
+export function removeCounter(state: EncounterState, ref: CounterRef, counterId: string): boolean {
+  const counters = getCounters(state, ref)
   const index = counters.findIndex((counter) => counter.id === counterId)
   if (index < 0) {
     return false
   }
   counters.splice(index, 1)
-  state.counters[entityId] = counters
+  state.counters[ref] = counters
+  return true
+}
+
+// Everything a ref holds, dropped at once. A re-loaded Slot is a different
+// prepared card, so whatever was riding the old one does not transfer.
+export function clearCounters(state: EncounterState, ref: CounterRef): boolean {
+  if (state.counters[ref] === undefined) {
+    return false
+  }
+  delete state.counters[ref]
   return true
 }
 
@@ -108,12 +169,12 @@ export function removeCounter(state: EncounterState, entityId: string, counterId
 // an Enemy's events, not a separate kind of thing.
 export function readerSum(
   state: EncounterState,
-  entityId: string,
+  ref: CounterRef,
   when: CounterInstance['readers'][number]['when'],
   effect: CounterInstance['readers'][number]['effect'],
 ): number {
   let total = 0
-  for (const counter of getCounters(state, entityId)) {
+  for (const counter of getCounters(state, ref)) {
     for (const reader of counter.readers) {
       if (reader.when === when && reader.effect === effect) {
         total += reader.per * counter.count
@@ -140,22 +201,22 @@ export function counterExpiresOnRoundAdvance(counter: CounterInstance): boolean 
 // Enemy: Sundered landed once and never came off. A Counter held by a piece
 // that has left the board goes with it, so a Minion's affliction cannot
 // outlive the Minion.
-export function roundUpkeep(state: EncounterState): { entityId: string; counter: CounterInstance }[] {
-  const expired: { entityId: string; counter: CounterInstance }[] = []
-  for (const entityId of Object.keys(state.counters)) {
-    if (!state.board.entities[entityId] && !state.heroes[entityId]) {
-      delete state.counters[entityId]
+export function roundUpkeep(state: EncounterState): { ref: CounterRef; counter: CounterInstance }[] {
+  const expired: { ref: CounterRef; counter: CounterInstance }[] = []
+  for (const ref of Object.keys(state.counters) as CounterRef[]) {
+    if (!hostIsLive(state, ref)) {
+      delete state.counters[ref]
       continue
     }
     const remaining: CounterInstance[] = []
-    for (const counter of getCounters(state, entityId)) {
+    for (const counter of getCounters(state, ref)) {
       if (counterExpiresOnRoundAdvance(counter)) {
-        expired.push({ entityId, counter })
+        expired.push({ ref, counter })
       } else {
         remaining.push(counter)
       }
     }
-    state.counters[entityId] = remaining
+    state.counters[ref] = remaining
   }
   return expired
 }

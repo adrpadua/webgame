@@ -131,6 +131,8 @@ export interface EncounterState {
   enrageText: string
   board: BoardState
   heroes: Record<string, HeroState>
+  // Keyed by Counter host ref (`combatant:<id>`, `hex:<q,r>`, `slot:<hero>:<n>`),
+  // never by bare entity id — see `counters.ts` (D-046).
   counters: Record<string, CounterInstance[]>
   bossId: string
   primaryHeroId: string

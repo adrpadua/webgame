@@ -222,8 +222,19 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       // Counter whose Reader fires on `host_takes_damage` does the same thing
       // to whoever holds it, and a card that Sunders its own Hero is a bad
       // card rather than an incoherent one.
-      if (card.target_type === 'board_slot') {
-        throw new Error(`Card ${card.id} places ${counter.id} on a board_slot, which is canon but unbuilt (D-035)`)
+      // A Counter's host and a card's target have to agree: only a hex target
+      // can supply a hex, only a Slot target a Slot (D-046). Checked here so
+      // resolution never has to ask what to do with a card that targets
+      // nothing and places ground.
+      const HOST_TARGETS: Record<typeof counter.host, string[]> = {
+        combatant: ['none', 'piece'],
+        hex: ['hex'],
+        slot: ['board_slot'],
+      }
+      if (!HOST_TARGETS[counter.host].includes(card.target_type)) {
+        throw new Error(
+          `Card ${card.id} places ${counter.id}, a ${counter.host} Counter, but targets ${card.target_type}; that host needs ${HOST_TARGETS[counter.host].join(' or ')}`,
+        )
       }
       if (card.counter_amount > counter.max) {
         throw new Error(`Card ${card.id} places ${card.counter_amount} ${counter.id} but that Counter caps at ${counter.max}`)
@@ -257,8 +268,8 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       if (reader.verb === 'spend' && reader.counter === '') {
         throw new Error(`Card ${card.id} spends by keyword; a spend must name one counter`)
       }
-      if (reader.on === 'target' && card.target_type !== 'piece') {
-        throw new Error(`Card ${card.id} has a ${reader.verb} reader on the target but does not target a piece`)
+      if (reader.on === 'target' && card.target_type === 'none') {
+        throw new Error(`Card ${card.id} has a ${reader.verb} reader on the target but chooses no target`)
       }
     }
   }
@@ -270,6 +281,14 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       if (reader.per === 0) {
         throw new Error(`Counter ${counter.id} has a ${reader.when} reader with per 0, which does nothing`)
       }
+    }
+    // Every `when` in the Reader vocabulary names something that happens to a
+    // combatant — a Round's Armor grant, taking or dealing damage, firing a
+    // Slot. Ground and prepared cards do none of those, so a Counter hosted
+    // there is a pure marker: it is read by cards, and authoring a Reader on
+    // it would be authoring an effect that can never fire.
+    if (counter.host !== 'combatant' && counter.readers.length > 0) {
+      throw new Error(`Counter ${counter.id} is hosted on a ${counter.host} but declares readers, and every reader event is a combatant's`)
     }
     // The reachability half that can be enforced today: a Counter nothing
     // reads is an unreachable mechanic. The other half — a Counter nothing

@@ -23,10 +23,15 @@ import {
   roundUpkeep,
   readerSum,
   spendCounter,
+  combatantRef,
+  hexCounterRef,
+  slotRef,
+  clearCounters,
+  type CounterRef,
 } from './counters'
 import { TANK_HIT } from './keywords'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
-import type { CardReader } from './content/schemas'
+import type { CardReader, CounterDefinition } from './content/schemas'
 import type { CardInstance, EncounterState, HazardInstance, HeroState, Phase, ResolveResult, ResolvedActionFact } from './types'
 
 // The reducer seam (ADR 0019): resolve(state, action) returns the next
@@ -140,6 +145,12 @@ function resolveOne(
       slot.topCard = card
       slot.charges = []
       slot.activatedWindow = null
+      // A Slot's Counters ride the prepared card, not the Slot's position, so
+      // loading a different card drops them (D-046). Nothing transfers: the
+      // thing they were attached to has left.
+      if (clearCounters(draft, slotRef(action.sourceId, action.slotIndex))) {
+        fact.detail.clearedSlotCounters = true
+      }
       succeed(fact)
       break
     }
@@ -158,9 +169,9 @@ function resolveOne(
       // A cost is paid before the Card's effects are computed, so a Card
       // that both scales off a Counter and spends it as a cost scales off
       // what is left — the ordinary reading of paying for something.
-      const spentEarly = spendCardReaders(draft, card, action.sourceId, action.targetId ?? '', 'cost')
+      const spentEarly = spendCardReaders(draft, card, action, 'cost')
       const effects = resolveFire(catalog, card, slot.charges.map((charge) => catalog.cards[charge.cardId]))
-      applyScaleReaders(catalog, draft, effects, card, action.sourceId, action.targetId ?? '')
+      applyScaleReaders(catalog, draft, effects, card, action)
       if (spentEarly.length > 0) {
         fact.detail.spentCounters = spentEarly
       }
@@ -191,7 +202,7 @@ function resolveOne(
         const fortified = createFortified(catalog, card.id, draft.round, draft.phase)
         // Fortify's stored Armor is the number of Counters placed, so the
         // amount still rides the card and the Counter stays a bare marker.
-        const banked = fortified === null ? 0 : placeCounter(draft, action.sourceId, fortified, effects.armorNextRound)
+        const banked = fortified === null ? 0 : placeCounter(draft, combatantRef(action.sourceId), fortified, effects.armorNextRound)
         if (fortified !== null && consumed.events.length === 0) {
           fact.resolutionFact = { counter_event: counterEvent({ ...fortified, count: banked }, 'placed', fortified.triggerReason) }
         }
@@ -203,11 +214,17 @@ function resolveOne(
       if (card.places_counter !== '') {
         const definition = catalog.counters[card.places_counter]
         if (definition) {
-          const targetId = card.target_type === 'piece' ? (action.targetId ?? '') : action.sourceId
+          // Where a Counter lands is the Counter's `host` read through the
+          // card's chosen target (D-046): a combatant Counter goes on the
+          // selected piece or on the firing Hero, a hex Counter onto the
+          // chosen ground, a slot Counter onto the chosen prepared card. The
+          // catalog already refused any card whose `target_type` cannot
+          // supply the host its Counter needs, so this cannot fall through.
+          const hostRef = counterHostRef(definition.host, action, card.target_type)
           const placing = createFromDefinition(definition, { sourceId: card.id, round: draft.round, phase: draft.phase })
-          const placed = placeCounter(draft, targetId, placing, card.counter_amount)
+          const placed = hostRef === null ? 0 : placeCounter(draft, hostRef, placing, card.counter_amount)
           fact.detail.placedCounter = definition.id
-          fact.detail.placedCounterTarget = targetId
+          fact.detail.placedCounterTarget = hostRef ?? ''
           fact.detail.placedCounterAmount = placed
           if (consumed.events.length === 0) {
             fact.resolutionFact = {
@@ -219,7 +236,7 @@ function resolveOne(
       // A `resolution` spend happens after the card's effects are computed, so
       // a card that both scales off a Counter and spends it sees the full
       // count; a `cost` spend was already paid before `resolveFire` ran.
-      const spentLate = spendCardReaders(draft, card, action.sourceId, action.targetId ?? '', 'resolution')
+      const spentLate = spendCardReaders(draft, card, action, 'resolution')
       if (spentLate.length > 0) {
         fact.detail.spentCounters = [...((fact.detail.spentCounters as unknown[]) ?? []), ...spentLate]
       }
@@ -404,9 +421,9 @@ function resolveOne(
       succeed(fact)
       break
     }
-    case 'expire_status': {
-      removeCounter(draft, action.targetId, action.statusId)
-      fact.resolutionFact = { counter_event: structuredClone(action.statusEvent) }
+    case 'expire_counter': {
+      removeCounter(draft, action.hostRef as CounterRef, action.counterId)
+      fact.resolutionFact = { counter_event: structuredClone(action.counterEvent) }
       succeed(fact)
       break
     }
@@ -435,7 +452,7 @@ function resolveOne(
         // Fortified's banked Armor is its count times its Reader's `per`
         // (D-045), so two Fortify commitments are one stack of Counters and
         // the additive stacking D-019 asked for is just addition.
-        hero.armor += Math.max(readerSum(draft, heroId, 'round_start', 'armor'), 0)
+        hero.armor += Math.max(readerSum(draft, combatantRef(heroId), 'round_start', 'armor'), 0)
       }
       // The Armor wipe is the Party's alone; the duration tick is every
       // combatant's. Running upkeep after the grant keeps Fortified's D-019
@@ -443,8 +460,8 @@ function resolveOne(
       // Enemy-facing status the same honest clock on the Boss and its Minions.
       const expiredCounters = roundUpkeep(draft)
       if (expiredCounters.length > 0) {
-        fact.detail.expiredCounters = expiredCounters.map(({ entityId, counter }) => ({
-          entity_id: entityId,
+        fact.detail.expiredCounters = expiredCounters.map(({ ref, counter }) => ({
+          host: ref,
           ...counterEvent(counter, 'expired', 'duration_elapsed'),
         }))
       }
@@ -681,7 +698,8 @@ interface ConsumedStatuses {
 function consumeCountersForSlot(draft: EncounterState, entityId: string, card: Card, dealsBossDamage: boolean): ConsumedStatuses {
   const result: ConsumedStatuses = { bonusBossDamage: 0, events: [] }
   const remaining = []
-  for (const counter of getCounters(draft, entityId)) {
+  const ref = combatantRef(entityId)
+  for (const counter of getCounters(draft, ref)) {
     if (counter.consumeOnCardId === '' || !dealsBossDamage) {
       remaining.push(counter)
       continue
@@ -694,44 +712,81 @@ function consumeCountersForSlot(draft: EncounterState, entityId: string, card: C
     event.bonus_boss_damage = bonus
     result.events.push(event)
   }
-  draft.counters[entityId] = remaining
+  draft.counters[ref] = remaining
   return result
 }
 
 // Counters that answer a fired Slot with bonus Boss damage through an authored
 // Reader rather than through graded consumption.
 function slotFiredCounterActions(draft: EncounterState, entityId: string): EncounterActionInput[] {
-  const bonus = readerSum(draft, entityId, 'slot_fired', 'boss_damage')
+  const bonus = readerSum(draft, combatantRef(entityId), 'slot_fired', 'boss_damage')
   if (bonus <= 0 || draft.bossId === entityId) {
     return []
   }
   return [{ kind: 'damage', sourceId: entityId, targetId: draft.bossId, amount: bonus, reasonText: 'counter_reader' }]
 }
 
-// Which combatant a Card's Reader is talking about. A closed set of two, not
-// a path expression: the firing Hero, or the piece the Card chose. Widening
-// this is how a reader vocabulary turns into a query language.
-function readerSubject(sourceId: string, targetId: string, on: CardReader['on']): string {
-  return on === 'self' ? sourceId : targetId
+// Where a Card puts the Counter it places: the Counter's own `host`, resolved
+// through whatever the Card targeted (D-046). `null` means the Card cannot
+// supply that host, which the catalog already refuses at load — it is a
+// belt-and-braces return, not a runtime path content can reach.
+function counterHostRef(
+  host: CounterDefinition['host'],
+  action: Extract<EncounterActionInput, { kind: 'fire_slot' }>,
+  targetType: Card['target_type'],
+): CounterRef | null {
+  if (host === 'hex') {
+    return action.targetHex === undefined ? null : hexCounterRef(action.targetHex)
+  }
+  if (host === 'slot') {
+    return action.targetSlotIndex === undefined ? null : slotRef(action.sourceId, action.targetSlotIndex)
+  }
+  return combatantRef(targetType === 'piece' ? (action.targetId ?? '') : action.sourceId)
 }
 
-function readerCount(catalog: ContentCatalog, draft: EncounterState, reader: CardReader, entityId: string): number {
-  if (entityId === '') {
+// Which host a Card's Reader is talking about. A closed set of two subjects,
+// not a path expression: the firing Hero, or whatever the Card chose — which
+// since D-046 may be a piece, a hex, or a prepared Slot, decided by the Card's
+// own `target_type` rather than by a third subject name.
+function readerSubject(
+  action: Extract<EncounterActionInput, { kind: 'fire_slot' }>,
+  targetType: Card['target_type'],
+  on: CardReader['on'],
+): CounterRef | null {
+  if (on === 'self') {
+    return combatantRef(action.sourceId)
+  }
+  if (targetType === 'hex') {
+    return action.targetHex === undefined ? null : hexCounterRef(action.targetHex)
+  }
+  if (targetType === 'board_slot') {
+    return action.targetSlotIndex === undefined ? null : slotRef(action.sourceId, action.targetSlotIndex)
+  }
+  return action.targetId ? combatantRef(action.targetId) : null
+}
+
+function readerCount(catalog: ContentCatalog, draft: EncounterState, reader: CardReader, ref: CounterRef | null): number {
+  if (ref === null) {
     return 0
   }
   return reader.counter !== ''
-    ? counterCount(draft, entityId, reader.counter)
-    : counterCountByKeyword(catalog, draft, entityId, reader.counter_keyword)
+    ? counterCount(draft, ref, reader.counter)
+    : counterCountByKeyword(catalog, draft, ref, reader.counter_keyword)
 }
 
 // Whether every `gate` on a Card is satisfied right now. Multiple gates AND;
 // there is no `or` and there is not going to be one.
-export function cardGatesPass(catalog: ContentCatalog, state: EncounterState, card: Card, sourceId: string, targetId: string): boolean {
+export function cardGatesPass(
+  catalog: ContentCatalog,
+  state: EncounterState,
+  card: Card,
+  action: Extract<EncounterActionInput, { kind: 'fire_slot' }>,
+): boolean {
   return card.reads.every((reader) => {
     if (reader.verb !== 'gate') {
       return true
     }
-    return readerCount(catalog, state, reader, readerSubject(sourceId, targetId, reader.on)) >= reader.at_least
+    return readerCount(catalog, state, reader, readerSubject(action, card.target_type, reader.on)) >= reader.at_least
   })
 }
 
@@ -741,8 +796,7 @@ export function cardGatesPass(catalog: ContentCatalog, state: EncounterState, ca
 function spendCardReaders(
   draft: EncounterState,
   card: Card,
-  sourceId: string,
-  targetId: string,
+  action: Extract<EncounterActionInput, { kind: 'fire_slot' }>,
   timing: CardReader['timing'],
 ): Record<string, unknown>[] {
   const spent: Record<string, unknown>[] = []
@@ -750,10 +804,10 @@ function spendCardReaders(
     if (reader.verb !== 'spend' || reader.timing !== timing) {
       continue
     }
-    const entityId = readerSubject(sourceId, targetId, reader.on)
-    const removed = entityId === '' ? 0 : spendCounter(draft, entityId, reader.counter, reader.amount)
+    const ref = readerSubject(action, card.target_type, reader.on)
+    const removed = ref === null ? 0 : spendCounter(draft, ref, reader.counter, reader.amount)
     if (removed > 0) {
-      spent.push({ counter_id: reader.counter, entity_id: entityId, amount: removed, timing })
+      spent.push({ counter_id: reader.counter, host: ref, amount: removed, timing })
     }
   }
   return spent
@@ -767,14 +821,13 @@ function applyScaleReaders(
   draft: EncounterState,
   effects: FireEffects,
   card: Card,
-  sourceId: string,
-  targetId: string,
+  action: Extract<EncounterActionInput, { kind: 'fire_slot' }>,
 ): void {
   for (const reader of card.reads) {
     if (reader.verb !== 'scale') {
       continue
     }
-    const bonus = reader.per * readerCount(catalog, draft, reader, readerSubject(sourceId, targetId, reader.on))
+    const bonus = reader.per * readerCount(catalog, draft, reader, readerSubject(action, card.target_type, reader.on))
     switch (reader.effect) {
       case 'armor':
         effects.armor += bonus
@@ -798,8 +851,8 @@ function applyDamage(draft: EncounterState, targetId: string, amount: number, so
   // Weakened lowers what it deals at `-1` a Counter, the target's Sundered
   // raises what it takes at `+1`. Both resolve before mitigation, so Armor
   // still answers the number the Party can read.
-  const dealtDelta = sourceId === '' ? 0 : readerSum(draft, sourceId, 'host_deals_damage', 'target_damage')
-  const takenDelta = readerSum(draft, targetId, 'host_takes_damage', 'target_damage')
+  const dealtDelta = sourceId === '' ? 0 : readerSum(draft, combatantRef(sourceId), 'host_deals_damage', 'target_damage')
+  const takenDelta = readerSum(draft, combatantRef(targetId), 'host_takes_damage', 'target_damage')
   const requested = Math.max(amount + dealtDelta + takenDelta, 0)
   // Armor is the only mitigation there has ever been: the old per-status
   // `damageReduction` field was never set by anything and left with D-045.
@@ -825,7 +878,7 @@ function applyDamage(draft: EncounterState, targetId: string, amount: number, so
   // before the damage action completes, and the fact records target_removed.
   if (target?.kind === 'minion' && dealt > 0 && dealt === healthBefore) {
     delete draft.board.entities[targetId]
-    delete draft.counters[targetId]
+    delete draft.counters[combatantRef(targetId)]
     resolutionFact.target_removed = true
   }
   return resolutionFact
@@ -856,11 +909,11 @@ function evaluateDamageStatus(
     evaluation.reason = 'health_lost'
   } else if (!guardedFront) {
     evaluation.reason = 'not_guarded_front'
-  } else if (hasCounter(draft, draft.primaryHeroId, RIPOSTE_READY)) {
+  } else if (hasCounter(draft, combatantRef(draft.primaryHeroId), RIPOSTE_READY)) {
     evaluation.reason = 'already_active'
   } else {
     const counter = createRiposteReady(action.sourceId, (resolutionFact.boss_beat_id as string) ?? '', draft.round, draft.phase)
-    placeCounter(draft, draft.primaryHeroId, counter)
+    placeCounter(draft, combatantRef(draft.primaryHeroId), counter)
     evaluation.result = 'granted'
     evaluation.reason = counter.triggerReason
     resolutionFact.counter_event = counterEvent({ ...counter, count: 1 }, 'placed', counter.triggerReason)
@@ -899,8 +952,8 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: `Damage ${action.amount} to ${action.targetId} (${action.reasonText})`, detail }
     case 'discard_for_stamina':
       return { title: 'Discard for Stamina', detail }
-    case 'expire_status':
-      return { title: `Status expires: ${action.statusId}`, detail }
+    case 'expire_counter':
+      return { title: `Counter expires: ${action.counterId}`, detail }
     case 'advance_phase':
       return { title: `Phase: ${action.fromPhase} to ${action.toPhase}`, detail }
     case 'round_start':

@@ -1,4 +1,4 @@
-import { currentProgram, getCounters, type BoardEntity, type CounterInstance, type HeroState } from '@/engine'
+import { combatantRef, currentProgram, getCounters, type BoardEntity, type CounterInstance, type HeroState } from '@/engine'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { useDamageFlash } from './useDamageFlash'
@@ -149,7 +149,7 @@ function CounterChips({ entityId }: { entityId: string }) {
   const catalog = useWorkbench((store) => store.catalog)
   return (
     <>
-      {getCounters(state, entityId).map((counter) => (
+      {getCounters(state, combatantRef(entityId)).map((counter) => (
         <CounterChip key={counter.id} counter={counter} rulesText={catalog.counters[counter.id]?.rules_text ?? counter.triggerReason} />
       ))}
     </>

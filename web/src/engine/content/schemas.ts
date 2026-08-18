@@ -69,10 +69,12 @@ export const counterSchema = z.object({
   title: z.string().min(1),
   rules_text: z.string().default(''),
   keywords: z.array(z.string()).default([]),
-  // Phase 1 hosts Counters on combatants only. `hex`, `slot`, and `encounter`
-  // are sketched and unbuilt, so authoring them would be a promise the rules
-  // do not keep.
-  host: z.literal('combatant').default('combatant'),
+  // What holds this Counter. A combatant is the Boss, a Hero, or a Minion; a
+  // `hex` is ground, which outlives whoever is standing on it; a `slot` is a
+  // prepared Top Card, which is D-035's ally attachment finally reachable.
+  // `encounter` is deliberately absent — Escalation is the encounter-wide
+  // counter, and its band effects are not `per`-count modifiers (D-046).
+  host: z.enum(['combatant', 'hex', 'slot']).default('combatant'),
   // The stacking rule, as a number. `1` is the old non-stacking behaviour: a
   // second placement is refused rather than refreshing. Anything higher
   // accumulates, which is how Fortified's additive stacking (D-019) survives

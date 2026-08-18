@@ -4,6 +4,9 @@ import { cardSchema } from './content/schemas'
 import {
   advancePhase,
   buildCatalog,
+  combatantRef,
+  hexCounterRef,
+  slotRef,
   buildEncounterRecord,
   contentIdentity,
   createEncounterState,
@@ -362,6 +365,30 @@ describe('content catalog', () => {
       }
       expect(() => buildCatalog({ ...empty, counters: [counterEntry({ max: 2 })], cards: [greedy] })).toThrow(
         'places 4 probe_counter but that Counter caps at 2',
+      )
+    })
+
+    it('rejects a Card whose target cannot supply the host its Counter needs', () => {
+      const hexCounter = { source: 'data/counters/ground.json', payload: { id: 'ground_counter', title: 'Ground', host: 'hex' } }
+      const reader = { source: 'data/cards/reads_ground.json', payload: { id: 'reads_ground', title: 'Reads Ground', speed: 'quick', target_type: 'hex', range_tiles: 1, reads: [{ verb: 'scale', counter: 'ground_counter', on: 'target', per: 1, effect: 'boss_damage' }] } }
+      const wrongTarget = {
+        source: 'data/cards/bad_ground.json',
+        payload: { id: 'bad_ground', title: 'Bad Ground', speed: 'quick', target_type: 'piece', range_tiles: 1, places_counter: 'ground_counter' },
+      }
+      expect(() => buildCatalog({ ...empty, counters: [hexCounter], cards: [reader, wrongTarget] })).toThrow(
+        'places ground_counter, a hex Counter, but targets piece; that host needs hex',
+      )
+    })
+
+    it('rejects Readers on a Counter that is not hosted on a combatant', () => {
+      // Every `when` names a combatant's event. Ground never takes damage and
+      // never starts a Round holding Armor, so a Reader there could not fire.
+      const bad = {
+        source: 'data/counters/ground.json',
+        payload: { id: 'ground_counter', title: 'Ground', host: 'hex', readers: [{ when: 'host_takes_damage', effect: 'target_damage', per: 1 }] },
+      }
+      expect(() => buildCatalog({ ...empty, counters: [bad] })).toThrow(
+        'is hosted on a hex but declares readers, and every reader event is a combatant\'s',
       )
     })
 
@@ -1100,7 +1127,7 @@ describe('Minion end-step intent (D-006)', () => {
     expect(bites.every((fact) => fact.resolutionFact?.damage_classification === 'raid_hit')).toBe(true)
     expect(hero(wrap2.state).health).toBe(round2Health - 2)
     // A Raid Hit from a Minion never grants Riposte Ready.
-    expect((wrap2.state.counters[state.primaryHeroId] ?? []).some((effect) => effect.id === 'riposte_ready')).toBe(false)
+    expect((wrap2.state.counters[combatantRef(state.primaryHeroId)] ?? []).some((effect) => effect.id === 'riposte_ready')).toBe(false)
   })
 
   it('a cleared Whelp takes no end-step action', () => {
@@ -1143,7 +1170,7 @@ describe('Fortify Slow commitment (D-019)', () => {
     state = wrap.state
     expect(state.round).toBe(2)
     expect(hero(state).armor).toBe(6)
-    expect(state.counters[state.primaryHeroId] ?? []).toHaveLength(0)
+    expect(state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
 
     // The banked Armor answers Round 2's INSTANT row (Brood Pattern's Raking
     // Claw): 4 requested, fully blocked, zero Health loss — pressure nothing
@@ -1212,7 +1239,7 @@ describe('Authored Counters (D-032 to D-034, D-045)', () => {
     const state = start()
     const fired = firedAt(variant, 'sunder_test', state.bossId)
     expect(fired.facts[0].succeeded).toBe(true)
-    expect(fired.state.counters[state.bossId]?.[0]).toMatchObject({
+    expect(fired.state.counters[combatantRef(state.bossId)]?.[0]).toMatchObject({
       id: 'sundered',
       count: 1,
       readers: [{ when: 'host_takes_damage', effect: 'target_damage', per: 1 }],
@@ -1274,7 +1301,7 @@ describe('Authored Counters (D-032 to D-034, D-045)', () => {
     // A max-1 Counter refuses the second placement by landing zero of it,
     // which is the old non-stacking flag expressed as arithmetic.
     expect(second.facts[0].detail.placedCounterAmount).toBe(0)
-    expect(second.state.counters[state.bossId] ?? []).toHaveLength(1)
+    expect(second.state.counters[combatantRef(state.bossId)] ?? []).toHaveLength(1)
   })
 
   it('refuses a piece-targeting Counter with no Enemy target', () => {
@@ -1291,8 +1318,8 @@ describe('Authored Counters (D-032 to D-034, D-045)', () => {
     const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
     const opening = start()
     let state = immortalHero(firedAt(variant, 'sunder_test', opening.bossId).state)
-    expect(state.counters[state.bossId]).toHaveLength(1)
-    expect(state.counters[state.bossId][0].remainingRounds).toBe(1)
+    expect(state.counters[combatantRef(state.bossId)]).toHaveLength(1)
+    expect(state.counters[combatantRef(state.bossId)][0].remainingRounds).toBe(1)
 
     const round = state.round
     const facts: ResolvedActionFact[] = []
@@ -1302,13 +1329,13 @@ describe('Authored Counters (D-032 to D-034, D-045)', () => {
       facts.push(...step.facts)
     }
     expect(state.round).toBe(round + 1)
-    expect(state.counters[state.bossId] ?? []).toHaveLength(0)
+    expect(state.counters[combatantRef(state.bossId)] ?? []).toHaveLength(0)
 
     // The Round's own fact says what left, so a client never has to diff two
     // states to narrate an expiry.
     const roundStart = facts.find((fact) => fact.kind === 'round_start')!
     expect(roundStart.detail.expiredCounters).toEqual([
-      expect.objectContaining({ entity_id: state.bossId, counter_id: 'sundered', event: 'expired', reason: 'duration_elapsed' }),
+      expect.objectContaining({ host: combatantRef(state.bossId), counter_id: 'sundered', event: 'expired', reason: 'duration_elapsed' }),
     ])
 
     // And the Boss takes plain damage again.
@@ -1339,7 +1366,7 @@ describe('Authored Counters (D-032 to D-034, D-045)', () => {
     state = resolve(variant, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 't1' }).state
     state = resolve(variant, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 't2' }).state
     state = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetId: 'status_whelp' }).state
-    expect(state.counters.status_whelp).toHaveLength(1)
+    expect(state.counters[combatantRef('status_whelp')]).toHaveLength(1)
 
     // Sundered raises what the Whelp takes: 1 requested becomes 2, which is
     // the Whelp's whole Health, so the same hit also proves the cleanup.
@@ -1351,7 +1378,7 @@ describe('Authored Counters (D-032 to D-034, D-045)', () => {
       reasonText: 'test',
     })
     expect(killed.facts[0].resolutionFact).toMatchObject({ requested: 2, target_removed: true })
-    expect(killed.state.counters.status_whelp).toBeUndefined()
+    expect(killed.state.counters[combatantRef('status_whelp')]).toBeUndefined()
   })
 
   it('drops a Counter held by a piece that has left the board', () => {
@@ -1360,11 +1387,11 @@ describe('Authored Counters (D-032 to D-034, D-045)', () => {
     const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
     const opening = start()
     let state = immortalHero(firedAt(variant, 'sunder_test', opening.bossId).state)
-    state.counters.ghost_whelp = [...state.counters[state.bossId]]
+    state.counters[combatantRef('ghost_whelp')] = [...state.counters[combatantRef(state.bossId)]]
     for (let index = 0; index < 3; index += 1) {
       state = advancePhase(variant, state).state
     }
-    expect(state.counters.ghost_whelp).toBeUndefined()
+    expect(state.counters[combatantRef('ghost_whelp')]).toBeUndefined()
   })
 
   it('still lands Fortified from its authored definition (D-019 unchanged)', () => {
@@ -1374,7 +1401,7 @@ describe('Authored Counters (D-032 to D-034, D-045)', () => {
     state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'f1' }).state
     state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'f2' }).state
     const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
-    const fortified = fired.state.counters[state.primaryHeroId]?.find((counter) => counter.id === 'fortified')
+    const fortified = fired.state.counters[combatantRef(state.primaryHeroId)]?.find((counter) => counter.id === 'fortified')
     // The banked Armor is the count now: six Counters, one Reader paying one
     // Armor each. Same six Armor, arrived at by counting rather than by a
     // dedicated field on the marker.
@@ -1416,7 +1443,7 @@ describe('Counter Readers — gate, scale, spend (D-045)', () => {
   // Puts `count` Ash on a piece directly. Placement has its own tests; these
   // are about what reading them does.
   function withAshOn(variant: ReturnType<typeof withAsh>, state: EncounterState, entityId: string, count: number) {
-    state.counters[entityId] = [
+    state.counters[combatantRef(entityId)] = [
       {
         id: 'ash',
         title: 'Ash',
@@ -1509,8 +1536,8 @@ describe('Counter Readers — gate, scale, spend (D-045)', () => {
     const before = state.board.entities[state.bossId].health
     const fired = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetId: state.bossId })
     expect(before - fired.state.board.entities[state.bossId].health).toBe(3)
-    expect(fired.state.counters[state.bossId][0].count).toBe(1)
-    expect(fired.facts[0].detail.spentCounters).toEqual([{ counter_id: 'ash', entity_id: state.bossId, amount: 2, timing: 'cost' }])
+    expect(fired.state.counters[combatantRef(state.bossId)][0].count).toBe(1)
+    expect(fired.facts[0].detail.spentCounters).toEqual([{ counter_id: 'ash', host: combatantRef(state.bossId), amount: 2, timing: 'cost' }])
   })
 
   it('spends at resolution after scaling, when the Card says so', () => {
@@ -1532,7 +1559,7 @@ describe('Counter Readers — gate, scale, spend (D-045)', () => {
     // Same card, same board, one field different: 3 Ash scale before the
     // spend rather than after.
     expect(before - fired.state.board.entities[state.bossId].health).toBe(9)
-    expect(fired.state.counters[state.bossId][0].count).toBe(1)
+    expect(fired.state.counters[combatantRef(state.bossId)][0].count).toBe(1)
   })
 
   it('reads every Counter carrying a Keyword, not just one named Counter', () => {
@@ -1567,7 +1594,141 @@ describe('Counter Readers — gate, scale, spend (D-045)', () => {
     state.counters = structuredClone(first.state.counters)
     const second = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetId: state.bossId })
     expect(second.facts[0].detail.placedCounterAmount).toBe(1)
-    expect(second.state.counters[state.bossId][0].count).toBe(5)
+    expect(second.state.counters[combatantRef(state.bossId)][0].count).toBe(5)
+  })
+})
+
+describe('Counter hosts — ground and prepared cards (D-046)', () => {
+  function withHosts(counters: Record<string, Record<string, unknown>>, cards: Record<string, Record<string, unknown>>) {
+    const variant = structuredClone(catalog)
+    for (const [id, patch] of Object.entries(counters)) {
+      variant.counters[id] = { id, title: id, rules_text: '', keywords: [], host: 'combatant', max: 5, duration_rounds: 0, readers: [], ...patch }
+    }
+    for (const [cardId, patch] of Object.entries(cards)) {
+      variant.cards[cardId] = { ...variant.cards.steady_strike, id: cardId, title: cardId, boss_damage: 0, damage: 0, charge_modifiers: [], ...patch }
+    }
+    return variant
+  }
+
+  function armed(variant: ReturnType<typeof withHosts>, cardId: string, slotIndex = 0) {
+    let state = immortalHero(start())
+    state = stepPhases(state, 2).state
+    expect(state.phase).toBe('quick')
+    hero(state).hand = [card('t1', cardId), card('t2', 'steady_strike')]
+    state = resolve(variant, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId: 't1' }).state
+    return resolve(variant, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId: 't2' }).state
+  }
+
+  const heroHex = (state: EncounterState) => state.board.entities[state.primaryHeroId].coords
+
+  // stepPhases reads the module catalog; these tests hold variant cards in
+  // Slots, so they need the variant's own advance.
+  function steps(variant: ReturnType<typeof withHosts>, state: EncounterState, count: number): EncounterState {
+    let current = state
+    for (let index = 0; index < count; index += 1) {
+      current = advancePhase(variant, current).state
+    }
+    return current
+  }
+
+  it('puts a Counter on ground, where it outlives whoever was standing there', () => {
+    const variant = withHosts(
+      { embers: { host: 'hex', max: 3 } },
+      {
+        scatter: { target_type: 'hex', range_tiles: 2, burst_radius: 0, places_counter: 'embers', counter_amount: 2 },
+        reap: {
+          target_type: 'hex',
+          range_tiles: 2,
+          burst_radius: 0,
+          boss_damage: 0,
+          reads: [{ verb: 'scale', counter: 'embers', on: 'target', per: 3, effect: 'boss_damage', timing: 'cost', at_least: 0, amount: 0, counter_keyword: '' }],
+        },
+      },
+    )
+    let state = armed(variant, 'scatter')
+    const ground = heroHex(state)
+    const scattered = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetHex: ground })
+    expect(scattered.facts[0].detail.placedCounterAmount).toBe(2)
+    expect(scattered.state.counters[hexCounterRef(ground)][0]).toMatchObject({ id: 'embers', count: 2 })
+    // Ground is not a piece: nothing about the Hero standing on it is
+    // recorded, and moving off changes nothing.
+    expect(scattered.state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
+
+    state = armed(variant, 'reap')
+    state.counters = structuredClone(scattered.state.counters)
+    const before = state.board.entities[state.bossId].health
+    const reaped = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetHex: ground })
+    expect(before - reaped.state.board.entities[state.bossId].health).toBe(6)
+  })
+
+  it('refuses a hex Counter aimed off the board or out of range', () => {
+    const variant = withHosts(
+      { embers: { host: 'hex', max: 3 } },
+      { scatter: { target_type: 'hex', range_tiles: 1, burst_radius: 0, places_counter: 'embers' } },
+    )
+    const state = armed(variant, 'scatter')
+    const fire = (targetHex: { q: number; r: number }) =>
+      legality(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetHex })
+    expect(fire({ q: 99, r: 99 }).legal).toBe(false)
+    const far = { q: heroHex(state).q + 3, r: heroHex(state).r }
+    expect(fire(far).legal).toBe(false)
+    expect(fire(heroHex(state)).legal).toBe(true)
+  })
+
+  it('puts a Counter on a prepared Slot, and drops it when that Slot is re-loaded', () => {
+    // D-035's attachment, reachable at last. The Counter rides the prepared
+    // card rather than the Slot's position, so swapping the card drops it.
+    const variant = withHosts(
+      { oath: { host: 'slot', max: 1 } },
+      { bind: { target_type: 'board_slot', places_counter: 'oath' } },
+    )
+    let state = armed(variant, 'bind', 0)
+    // Slot 1 holds a prepared card for the Counter to ride.
+    hero(state).hand = [card('s1', 'iron_guard')]
+    state = resolve(variant, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 1, cardInstanceId: 's1' }).state
+
+    const bound = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetSlotIndex: 1 })
+    expect(bound.facts[0].succeeded).toBe(true)
+    expect(bound.state.counters[slotRef(state.primaryHeroId, 1)][0]).toMatchObject({ id: 'oath', count: 1 })
+
+    // Replacing a Slot is a Loadout action, so the swap happens next Round.
+    const after = steps(variant, bound.state, 3)
+    expect(after.phase).toBe('loadout')
+    expect(after.counters[slotRef(after.primaryHeroId, 1)]).toHaveLength(1)
+    hero(after).hand = [card('s2', 'iron_guard')]
+    const reloaded = resolve(variant, after, { kind: 'load_slot', sourceId: after.primaryHeroId, slotIndex: 1, cardInstanceId: 's2' })
+    expect(reloaded.facts[0].succeeded).toBe(true)
+    expect(reloaded.facts[0].detail.clearedSlotCounters).toBe(true)
+    expect(reloaded.state.counters[slotRef(after.primaryHeroId, 1)]).toBeUndefined()
+  })
+
+  it('refuses a Slot Counter aimed at an empty Slot', () => {
+    const variant = withHosts(
+      { oath: { host: 'slot', max: 1 } },
+      { bind: { target_type: 'board_slot', places_counter: 'oath' } },
+    )
+    const state = armed(variant, 'bind', 0)
+    const verdict = legality(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetSlotIndex: 2 })
+    expect(verdict.legal).toBe(false)
+    expect(verdict.reason).toContain('prepared Slot')
+  })
+
+  it('drops ground Counters when the ground itself burns away', () => {
+    // A structural Escalation Threshold takes hexes off the board for good
+    // (D-031). Whatever was marked on them goes too — the upkeep asks whether
+    // the host is still there, not what kind of host it was.
+    const variant = withHosts(
+      { embers: { host: 'hex', max: 3 } },
+      { scatter: { target_type: 'hex', range_tiles: 2, burst_radius: 0, places_counter: 'embers' } },
+    )
+    let state = armed(variant, 'scatter')
+    const ground = heroHex(state)
+    state = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetHex: ground }).state
+    expect(state.counters[hexCounterRef(ground)]).toHaveLength(1)
+
+    delete state.board.hexes[hexKey(ground)]
+    state = steps(variant, state, 3)
+    expect(state.counters[hexCounterRef(ground)]).toBeUndefined()
   })
 })
 
@@ -2548,7 +2709,7 @@ describe('area damage cards', () => {
       reasonText: 'Raking Claw',
       factContext: { damage_classification: 'tank_hit' },
     }).state
-    expect(state.counters[state.primaryHeroId]?.[0]?.id).toBe('riposte_ready')
+    expect(state.counters[combatantRef(state.primaryHeroId)]?.[0]?.id).toBe('riposte_ready')
     const bossHealthBefore = boss(state).health
     const fired = resolve(variant, state, {
       kind: 'fire_slot',
@@ -2559,7 +2720,7 @@ describe('area damage cards', () => {
     expect(state.board.entities.whelp_a.health).toBe(2)
     expect(fired.state.board.entities.whelp_a.health).toBe(1)
     expect(boss(fired.state).health).toBe(bossHealthBefore - 2)
-    expect(fired.state.counters[state.primaryHeroId] ?? []).toHaveLength(0)
+    expect(fired.state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
     expect(fired.facts.find((fact) => fact.kind === 'damage' && fact.detail.targetId === state.bossId)?.resolutionFact).toMatchObject({
       base_amount: 1,
       status_bonus: 1,
@@ -2732,7 +2893,7 @@ describe('card draw effects', () => {
   it('emits draws after the Card damage and on-fire Counter consequences', () => {
     const variant = withDrawCard({ boss_damage: 1, draw_count: 1 })
     const state = readyDraw(variant)
-    state.counters[state.primaryHeroId] = [
+    state.counters[combatantRef(state.primaryHeroId)] = [
       {
         id: 'draw_order_counter',
         title: 'Draw Order Counter',
@@ -2817,7 +2978,7 @@ describe('damage and Resolution Facts', () => {
       guarded_front: true,
       counter_evaluation: { result: 'granted', reason: 'qualifying_tank_hit' },
     })
-    expect(state.counters[state.primaryHeroId]?.[0]?.id).toBe('riposte_ready')
+    expect(state.counters[combatantRef(state.primaryHeroId)]?.[0]?.id).toBe('riposte_ready')
 
     // A legal Shield Slam consumes Riposte Ready for 2 bonus Boss damage.
     state.phase = 'quick'
@@ -2826,7 +2987,7 @@ describe('damage and Resolution Facts', () => {
     const slam = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
     state = slam.state
     expect(boss(state).health).toBe(bossHealthBefore - 5)
-    expect(state.counters[state.primaryHeroId] ?? []).toHaveLength(0)
+    expect(state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
     const damageFact = slam.facts.find((fact) => fact.kind === 'damage')
     expect(damageFact?.resolutionFact).toMatchObject({ base_amount: 3, status_bonus: 2, payoff_card_id: 'shield_slam' })
   })
@@ -2842,7 +3003,7 @@ describe('damage and Resolution Facts', () => {
       reasonText: 'Raking Claw',
       factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_classification: 'tank_hit' },
     }).state
-    expect(state.counters[state.primaryHeroId]?.[0]?.id).toBe('riposte_ready')
+    expect(state.counters[combatantRef(state.primaryHeroId)]?.[0]?.id).toBe('riposte_ready')
 
     state.phase = 'quick'
     hero(state).actionBar[0] = { topCard: card('s1', 'steady_strike'), charges: [card('s2', 'iron_guard')], activatedWindow: null, placedThisLoadout: false }
@@ -2851,7 +3012,7 @@ describe('damage and Resolution Facts', () => {
     state = strike.state
     // Steady Strike: 2 base + 1 per charged card + 1 off-payoff Riposte bonus.
     expect(boss(state).health).toBe(bossHealthBefore - 4)
-    expect(state.counters[state.primaryHeroId] ?? []).toHaveLength(0)
+    expect(state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
     const damageFact = strike.facts.find((fact) => fact.kind === 'damage')
     expect(damageFact?.resolutionFact).toMatchObject({ base_amount: 3, status_bonus: 1, payoff_card_id: 'steady_strike' })
   })
@@ -2867,13 +3028,13 @@ describe('damage and Resolution Facts', () => {
       reasonText: 'Raking Claw',
       factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_classification: 'tank_hit' },
     }).state
-    expect(state.counters[state.primaryHeroId]?.[0]?.id).toBe('riposte_ready')
+    expect(state.counters[combatantRef(state.primaryHeroId)]?.[0]?.id).toBe('riposte_ready')
 
     state.phase = 'quick'
     hero(state).actionBar[0] = { topCard: card('g1', 'iron_guard'), charges: [card('g2', 'steady_strike')], activatedWindow: null, placedThisLoadout: false }
     const guard = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
     state = guard.state
-    expect(state.counters[state.primaryHeroId]?.[0]?.id).toBe('riposte_ready')
+    expect(state.counters[combatantRef(state.primaryHeroId)]?.[0]?.id).toBe('riposte_ready')
   })
 
   it('expires an unconsumed Riposte Ready at the end of the Quick Window', () => {
@@ -2890,9 +3051,9 @@ describe('damage and Resolution Facts', () => {
     state = stepPhases(state, 2).state
     expect(state.phase).toBe('quick')
     const endQuick = advancePhase(catalog, state)
-    const expiry = endQuick.facts.find((fact) => fact.kind === 'expire_status')
+    const expiry = endQuick.facts.find((fact) => fact.kind === 'expire_counter')
     expect(expiry?.succeeded).toBe(true)
-    expect(endQuick.state.counters[state.primaryHeroId] ?? []).toHaveLength(0)
+    expect(endQuick.state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
   })
 
   it('removes a Minion the moment damage defeats it', () => {

@@ -4,7 +4,7 @@ import { applyAction, checkResolution } from './resolve'
 import { ESCALATION_MAX, escalationActionsForRoundEnd, escalationModifiers } from './escalation'
 import { minionIntent } from './minions'
 import { actionsForTrack, refreshTelegraphs } from './timeline'
-import { getCounters, counterEvent } from './counters'
+import { getCounters, counterEvent, refEntityId, type CounterRef } from './counters'
 import { RAID_HIT } from './keywords'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
 import type { EncounterState, Phase, ResolveResult, ResolvedActionFact } from './types'
@@ -30,18 +30,20 @@ function cleanupActions(catalog: ContentCatalog, draft: EncounterState, window: 
 
 function counterExpiryActions(draft: EncounterState, window: Phase): EncounterActionInput[] {
   const actions: EncounterActionInput[] = []
-  for (const entityId of Object.keys(draft.counters)) {
-    for (const counter of getCounters(draft, entityId)) {
+  for (const ref of Object.keys(draft.counters) as CounterRef[]) {
+    for (const counter of getCounters(draft, ref)) {
       if (counter.expiresAtWindowEnd !== window) {
         continue
       }
       actions.push({
-        kind: 'expire_status',
-        sourceId: entityId,
-        targetId: entityId,
-        statusId: counter.id,
+        kind: 'expire_counter',
+        // The host is the ref, not an entity: ground and prepared cards hold
+        // Counters too, and only the ref can say which one expired.
+        sourceId: refEntityId(ref) === '' ? ENCOUNTER_SOURCE : refEntityId(ref),
+        hostRef: ref,
+        counterId: counter.id,
         window,
-        statusEvent: counterEvent(counter, 'expired', 'expiry_window_ended'),
+        counterEvent: counterEvent(counter, 'expired', 'expiry_window_ended'),
       })
     }
   }

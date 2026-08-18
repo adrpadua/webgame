@@ -1,7 +1,7 @@
 import { cardChargeCap, cardWindowSpeed, type ContentCatalog } from './content/catalog'
 import { hexDistance, hexKey } from './hex'
 import { isLegalMove } from './board'
-import { getCounter } from './counters'
+import { getCounter, type CounterRef } from './counters'
 import { cardGatesPass } from './resolve'
 import type { EncounterActionInput } from './actions'
 import type { CardInstance, EncounterState, HeroState, LegalityVerdict } from './types'
@@ -96,7 +96,10 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       }
       const hasDisplacement = card.push_tiles > 0 || card.pull_tiles > 0
       let targetVerdict: LegalityVerdict | undefined
-      if (card.burst_radius > 0) {
+      // Every hex-targeting card needs a reachable on-board hex, not only a
+      // Burst: since D-046 a card may also put a Counter on the ground, and
+      // ground it cannot reach is the same illegal target either way.
+      if (card.target_type === 'hex') {
         const targetHex = action.targetHex
         const source = state.board.entities[action.sourceId]
         if (!targetHex || !source || state.board.hexes[hexKey(targetHex)] === undefined) {
@@ -107,6 +110,16 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
           return { ...illegal("The chosen hex is outside the Top Card's range."), targetRange }
         }
         targetVerdict = { ...legal(), targetRange }
+      }
+      // A Slot-targeting card needs a Slot holding a prepared card (D-035,
+      // reachable since D-046). Counters ride the Top Card, so an empty Slot
+      // has nothing to carry them.
+      if (card.target_type === 'board_slot') {
+        const slotIndex = action.targetSlotIndex
+        const targetSlot = slotIndex === undefined ? undefined : state.heroes[action.sourceId]?.actionBar[slotIndex]
+        if (!targetSlot || targetSlot.topCard === null) {
+          return illegal('The Top Card needs a prepared Slot to attach to.')
+        }
       }
       if (card.damage > 0 && card.burst_radius === 0) {
         const targetId = action.targetId ?? ''
@@ -154,7 +167,7 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       // Every `gate` the Card declares has to pass, and they AND together.
       // Checked here so the Slot simply is not firable, and so the targeting
       // projection the board draws from never offers an illegal piece.
-      if (!cardGatesPass(catalog, state, card, action.sourceId, action.targetId ?? '')) {
+      if (!cardGatesPass(catalog, state, card, action)) {
         return illegal('The Top Card needs more Counters than are there.')
       }
       return targetVerdict ?? legal()
@@ -186,10 +199,10 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       }
       return legal()
     }
-    case 'expire_status': {
-      const effect = getCounter(state, action.targetId, action.statusId)
-      if (!effect || effect.expiresAtWindowEnd !== action.window || state.phase !== action.window) {
-        return illegal('The Status Effect is not eligible to expire at this boundary.')
+    case 'expire_counter': {
+      const counter = getCounter(state, action.hostRef as CounterRef, action.counterId)
+      if (!counter || counter.expiresAtWindowEnd !== action.window || state.phase !== action.window) {
+        return illegal('The Counter is not eligible to expire at this boundary.')
       }
       return legal()
     }
