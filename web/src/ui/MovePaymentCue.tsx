@@ -33,9 +33,9 @@ export function MovePaymentCue() {
     return null
   }
   const heroCoords = state.board.entities[state.primaryHeroId]?.coords
-  // The destination as a hex edge — the vocabulary the MovePad and the piece
-  // labels already use, rather than a pair of coordinates the player never
-  // sees anywhere else.
+  // The destination as a hex edge — the vocabulary the piece labels already
+  // use, rather than a pair of coordinates the player never sees anywhere
+  // else.
   const direction =
     heroCoords === undefined
       ? undefined

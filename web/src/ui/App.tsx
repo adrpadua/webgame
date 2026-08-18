@@ -14,7 +14,6 @@ import { FirstTurnCue } from './FirstTurnCue'
 import { GuideModal } from './GuideModal'
 import { Hand } from './Hand'
 import { HoldPopoverLayer } from './HoldPopover'
-import { MovePad } from './MovePad'
 import { MovePaymentCue } from './MovePaymentCue'
 import { NotificationLayer, NotificationZone, Notify } from './NotificationLayer'
 import { PhaseBanner } from './PhaseBanner'
@@ -175,12 +174,12 @@ export default function App() {
         <PhaseControl />
         {/* overflow-hidden: the fixed-size Phaser canvas centers here and must
             clip, never spill over (or steal pointer events from) the HUD. */}
-        {/* The board takes the full width of the play surface. It used to
-            reserve 44px gutters on each side for the MovePad, which pinned the
-            width-bound canvas at 302px and left 145px of the board area empty;
-            the pad now sits in the strip below the bottom hex row, which a
-            hexagonal board leaves empty across the full canvas width, so
-            nothing has to be set aside for it. */}
+        {/* The board takes the full width of the play surface, and nothing
+            is set aside beside it: the direction pad that once claimed 44px
+            gutters — pinning the width-bound canvas at 302px — and then the
+            strip below the bottom hex row is gone entirely. A step is named
+            by pointing at the hex, which is the gesture the board already
+            teaches. */}
         <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <PhaserBoard />
           {/* Every floating surface on the play field lands in one of three
@@ -205,7 +204,6 @@ export default function App() {
               <OutcomeBanner />
             </NotificationZone>
             <NotificationZone zone="dock">
-              <MovePad />
               <PlayoutContinue />
               <TargetingBanner />
               <MovePaymentCue />

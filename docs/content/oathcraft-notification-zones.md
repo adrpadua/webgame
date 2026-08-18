@@ -35,7 +35,7 @@ Two rules set the ranks:
 
 **Capacity.** `guidance` and `stage` seat one member each — two voices teaching at once is no voice, and a second banner over the first is no announcement. The `dock` seats four. Past the cap the outermost ranks yield and are hidden rather than unmounted: an unmounted member would free the capacity that suppressed it and mount again, which is a loop.
 
-**Two dock members are not notifications.** The move pad and the stat panel are listed anyway, because they float in the same lane, and a lane with two owners is how the overlap came back last time. The pad takes rank `1` because it has to stay in the strip the hex grid leaves clear below its bottom row; the stat panel takes the outermost rank because it is the one member a player can reopen with a tap.
+**One dock member is not a notification.** The stat panel is listed anyway, because it floats in the same lane, and a lane with two owners is how the overlap came back last time. It takes the outermost rank because it is the one member a player can reopen with a tap.
 
 ## What This Does Not Decide
 

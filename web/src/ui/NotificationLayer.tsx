@@ -9,8 +9,8 @@ import { NOTIFICATION_RULES, resolveZone, stackOrder, type NotificationId, type 
 // direction asks for (docs/content/oathcraft-interface-direction.md).
 //
 // The bottom padding is 4px rather than the 8px the other edges carry: the
-// dock's anchor member is the move pad, which lives in the strip the hex grid
-// leaves clear below its bottom row and has about 12px of slack there.
+// dock hugs the Action Bar, and a prompt about the controls one row down
+// should sit against them rather than float above them.
 
 const ZONE_CLASS: Record<NotificationZone, string> = {
   // Top down from the board's top edge.

@@ -33,14 +33,14 @@ describe('notification zones', () => {
   it('orders a zone anchor-first', () => {
     expect(zoneMembers('guidance')).toEqual(['first-turn', 'coach-tip'])
     expect(zoneMembers('stage')).toEqual(['outcome', 'phase-banner'])
-    expect(zoneMembers('dock')).toEqual(['move-pad', 'playout-continue', 'targeting', 'move-payment', 'rejection', 'stat-panel'])
+    expect(zoneMembers('dock')).toEqual(['playout-continue', 'targeting', 'move-payment', 'rejection', 'stat-panel'])
   })
 
-  // The dock's anchor is the Action Bar's top edge, and the move pad has to
-  // stay in the strip the hex grid leaves clear along the board's bottom row.
-  it('anchors the dock on the move pad', () => {
-    expect(zoneMembers('dock')[0]).toBe('move-pad')
-    expect(stackOrder('move-pad')).toBe(1)
+  // The dock's anchor is the Action Bar's top edge, so its first rank is the
+  // prompt a player presses over and over through a Boss Row.
+  it('anchors the dock on the pacing prompt', () => {
+    expect(zoneMembers('dock')[0]).toBe('playout-continue')
+    expect(stackOrder('playout-continue')).toBe(1)
   })
 
   it('docks the prompts that ask for a tap on the controls below them', () => {
@@ -65,7 +65,7 @@ describe('resolveZone', () => {
   })
 
   it('orders live members by rank rather than by call order', () => {
-    expect(resolveZone('dock', ['stat-panel', 'move-pad', 'rejection'])).toEqual(['move-pad', 'rejection', 'stat-panel'])
+    expect(resolveZone('dock', ['stat-panel', 'targeting', 'rejection'])).toEqual(['targeting', 'rejection', 'stat-panel'])
   })
 
   it('lets the top rank take an exclusive zone', () => {
@@ -76,10 +76,10 @@ describe('resolveZone', () => {
   // Over capacity the far ranks yield, never the thing the player is about
   // to touch.
   it('drops the outermost ranks when a zone overflows', () => {
-    const crowded: NotificationId[] = ['move-pad', 'playout-continue', 'targeting', 'move-payment', 'rejection', 'stat-panel']
+    const crowded: NotificationId[] = ['playout-continue', 'targeting', 'move-payment', 'rejection', 'stat-panel']
     const shown = resolveZone('dock', crowded)
     expect(shown.length).toBe(ZONE_CAPACITY.dock)
-    expect(shown).toEqual(['move-pad', 'playout-continue', 'targeting', 'move-payment'])
+    expect(shown).toEqual(['playout-continue', 'targeting', 'move-payment'])
     expect(shown).not.toContain('stat-panel')
   })
 

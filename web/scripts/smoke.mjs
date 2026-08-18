@@ -392,7 +392,7 @@ try {
       }
       // GATED_CLASS is `pointer-events-none opacity-30 saturate-50`. Match
       // both halves: pointer-events-none alone rides live overlay wrappers
-      // (the toast, the Phase Banner, the MovePad), whose text is checked.
+      // (the toast, the Phase Banner), whose text is checked.
       const isGated = (el) => {
         for (let a = el; a && a !== document.body; a = a.parentElement) {
           if (a.classList.contains('pointer-events-none') && a.classList.contains('opacity-30')) return true
@@ -1032,8 +1032,8 @@ try {
   )
   assert(slotSpill.length === 0, `no Slot's text is truncated by the ladder (${slotSpill.join(' | ') || 'all contained'})`)
   // Walk to the Quick Window and select a card, so the measurements below
-  // run against the busiest state the phone ever shows: the move pad out
-  // beside the board.
+  // run against the busiest state the phone ever shows: a step lined up on
+  // the board with the dock loaded under it.
   // Park the cursor somewhere harmless before the touch-only section. Clicking
   // Skip leaves the mouse resting where that button was, and an element that
   // later lays out under a stationary cursor gets a real pointerenter — so the
@@ -1063,37 +1063,18 @@ try {
   await phone.locator('[data-testid="next-phase"]').click()
   await phone.waitForTimeout(400)
   await phoneScripted().click()
-  await phone.waitForSelector('[data-testid="move-pad"]')
   // The board refits itself when the HUD changes; give the scale manager
   // its poll interval before measuring.
   await phone.waitForTimeout(700)
-  // Test overlap against the hexes themselves, not the canvas rectangle: the
-  // canvas is a hexagon's bounding box, and the strip below its bottom hex
-  // row is empty. The pad lives in that strip, so a canvas-box test would
-  // fail every button while none of them touches a hex.
-  const padOverHex = await phone.evaluate(() => {
-    const hexes = window.__workbench.hexRects()
-    if (hexes.length === 0) {
-      return ['no hexes']
-    }
-    return [...document.querySelectorAll('[data-testid="move-pad"] button')]
-      .map((node) => ({ id: node.dataset.testid, rect: node.getBoundingClientRect() }))
-      .flatMap(({ id, rect }) =>
-        hexes
-          .map((hex) => ({
-            key: hex.key,
-            w: Math.min(rect.right, hex.right) - Math.max(rect.left, hex.left),
-            h: Math.min(rect.bottom, hex.bottom) - Math.max(rect.top, hex.top),
-          }))
-          .filter(({ w, h }) => w > 0 && h > 0)
-          .map(({ key, w, h }) => `${id} covers ${Math.round(w)}x${Math.round(h)} of hex ${key}`),
-      )
-  })
-  assert(padOverHex.length === 0, `the move pad sits below the bottom hex row without covering a hex (${padOverHex.join(' | ') || 'no overlap'})`)
-  // The pad is the dock's anchor member: a prompt stacking above it must not
-  // push it off the clear strip, and must not land on it either. Load the
-  // lane with a refusal — a drag onto a hex the Hero cannot reach — and
-  // measure the pad against the hexes a second time with the toast up.
+  // A selected card in the Quick Window is a step waiting for a hex, and the
+  // board is the only thing that names one now — the direction pad that used
+  // to sit in the strip below the bottom hex row is gone. Nothing may cover
+  // that strip in its place: a destination a player is being asked to step to
+  // has to stay tappable, which is the reason the pad had to live there in
+  // the first place.
+  //
+  // Load the dock with a refusal — a drag onto a hex the Hero cannot reach —
+  // so the measurement runs with the lane occupied rather than empty.
   const phoneHexes = await phone.evaluate(() => window.__workbench.hexRects())
   const farHex = phoneHexes.find((hex) => hex.key === '2,0') ?? phoneHexes[phoneHexes.length - 1]
   await phone.mouse.move((farHex.left + farHex.right) / 2, (farHex.top + farHex.bottom) / 2)
@@ -1102,18 +1083,31 @@ try {
     sourcePosition: await hexPosition(phoneBoardCanvas, 0, 0),
     targetPosition: await hexPosition(phoneBoardCanvas, 2, 0),
   })
-  const crowdedLive = await assertNotificationLayout(phone, 'with the move pad out at 390x844')
-  assert(crowdedLive.includes('move-pad'), `the move pad holds the dock's anchor rank (${crowdedLive.join(', ')})`)
-  const padStillClear = await phone.evaluate(() => {
+  const crowdedLive = await assertNotificationLayout(phone, 'with a step waiting for a hex at 390x844')
+  assert(crowdedLive.includes('rejection'), `the refusal docks above the Action Bar (${crowdedLive.join(', ')})`)
+  // Test against the hexes themselves, not the canvas rectangle: the canvas
+  // is a hexagon's bounding box and its corners are empty, so a canvas-box
+  // test would fail every docked plate while none of them touches a hex.
+  const dockOverHex = await phone.evaluate(() => {
     const hexes = window.__workbench.hexRects()
-    return [...document.querySelectorAll('[data-testid="move-pad"] button')].flatMap((node) => {
-      const rect = node.getBoundingClientRect()
-      return hexes
-        .filter((hex) => Math.min(rect.right, hex.right) - Math.max(rect.left, hex.left) > 0 && Math.min(rect.bottom, hex.bottom) - Math.max(rect.top, hex.top) > 0)
-        .map((hex) => `${node.dataset.testid} covers hex ${hex.key}`)
-    })
+    if (hexes.length === 0) {
+      return ['no hexes']
+    }
+    return [...document.querySelectorAll('[data-zone="dock"] [data-notification]')]
+      .filter((node) => !node.hidden)
+      .flatMap((node) => {
+        const rect = node.getBoundingClientRect()
+        return hexes
+          .map((hex) => ({
+            key: hex.key,
+            w: Math.min(rect.right, hex.right) - Math.max(rect.left, hex.left),
+            h: Math.min(rect.bottom, hex.bottom) - Math.max(rect.top, hex.top),
+          }))
+          .filter(({ w, h }) => w > 0 && h > 0)
+          .map(({ key, w, h }) => `${node.dataset.notification} covers ${Math.round(w)}x${Math.round(h)} of hex ${key}`)
+      })
   })
-  assert(padStillClear.length === 0, `a docked prompt above the pad leaves it on the clear strip (${padStillClear.join(' | ') || 'no overlap'})`)
+  assert(dockOverHex.length === 0, `the dock stays below the bottom hex row without covering a hex (${dockOverHex.join(' | ') || 'no overlap'})`)
   await shot(phone, 'phone-dock-stacked')
   // Let the refusal retire before the contrast and target sweeps below.
   await phone.waitForSelector('[data-testid="rejection-toast"]', { state: 'detached', timeout: 6000 })

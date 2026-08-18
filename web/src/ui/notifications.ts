@@ -40,7 +40,6 @@ export type NotificationId =
   | 'coach-tip'
   | 'phase-banner'
   | 'outcome'
-  | 'move-pad'
   | 'playout-continue'
   | 'targeting'
   | 'move-payment'
@@ -55,11 +54,10 @@ export interface NotificationRule {
   rank: number
 }
 
-// Two dock members — the move pad and the stat panel — are not notifications.
-// They are listed anyway because they float in the same lane, and a lane with
-// two owners is how the overlap came back last time: the pad has to stay in
-// the hex-free strip along the board's bottom edge, and the panel has to yield
-// to a prompt rather than sit under one.
+// One dock member — the stat panel — is not a notification. It is listed
+// anyway because it floats in the same lane, and a lane with two owners is
+// how the overlap came back last time: the panel has to yield to a prompt
+// rather than sit under one.
 export const NOTIFICATION_RULES: Record<NotificationId, NotificationRule> = {
   // Guidance, anchored to the board's top edge: teaching the player may
   // ignore. The scripted turn outranks ambient coaching, and while it runs the
@@ -75,22 +73,21 @@ export const NOTIFICATION_RULES: Record<NotificationId, NotificationRule> = {
 
   // Dock, anchored to the board's bottom edge — which is the Action Bar's top
   // edge. Everything that asks for a tap on the controls below it.
-  'move-pad': { zone: 'dock', rank: 1 },
-  'playout-continue': { zone: 'dock', rank: 2 },
-  targeting: { zone: 'dock', rank: 3 },
-  'move-payment': { zone: 'dock', rank: 4 },
-  rejection: { zone: 'dock', rank: 5 },
-  'stat-panel': { zone: 'dock', rank: 6 },
+  'playout-continue': { zone: 'dock', rank: 1 },
+  targeting: { zone: 'dock', rank: 2 },
+  'move-payment': { zone: 'dock', rank: 3 },
+  rejection: { zone: 'dock', rank: 4 },
+  'stat-panel': { zone: 'dock', rank: 5 },
 }
 
 // How many members of a zone may speak at once. Past the cap the far-from-the
 // anchor ranks yield, so the thing the player is about to touch is the last to
 // go. The dock's cap is a guard rather than a routine event: the realistic
-// crowd is the pad, one prompt, a toast, and the panel.
+// crowd is one prompt, a toast, and the panel.
 export const ZONE_CAPACITY: Record<NotificationZone, number> = {
   guidance: 1,
   stage: 1,
-  dock: 4,
+  dock: 3,
 }
 
 export function notificationRule(id: NotificationId): NotificationRule {
