@@ -52,6 +52,11 @@ export const chargeModifierSchema = z.object({
 // Ash, and the cards that read Ash decide what Ash is worth.
 export const counterReaderSchema = z.object({
   when: z.enum(['round_start', 'host_takes_damage', 'host_deals_damage', 'slot_fired']),
+  // Narrows a damage Reader to blows carrying one Keyword (D-047): empty
+  // answers every blow, `raid_hit` answers only a Minion's bite. This is the
+  // Reader reading the *event* rather than the host — the fact stream already
+  // carried these Keywords, and this is what lets content read them.
+  event_keyword: z.string().default(''),
   effect: z.enum(['armor', 'healing', 'boss_damage', 'target_damage']),
   // Signed, and applied once per Counter held: Sundered raises what its host
   // takes at `1`, Weakened lowers what its host deals at `-1`, and Fortified
@@ -139,6 +144,11 @@ export const cardSchema = z.object({
   // `board_slot` on an ally's Top Card (canon, unbuilt — D-035).
   places_counter: z.string().default(''),
   counter_amount: z.number().int().min(1).default(1),
+  // What this card's damage is made of, so a Counter can answer it (D-047).
+  // The party's damage was unkeyworded while only Boss Beats classified
+  // theirs, which left "increase fire damage by 1" authorable in one
+  // direction only.
+  damage_keywords: z.array(z.string()).default([]),
   // What this card reads before and while it resolves (D-045).
   reads: z.array(cardReaderSchema).default([]),
 })
@@ -187,7 +197,11 @@ export const bossBeatSchema = z.object({
   // see the ladder tests.
   consequence_tier: z.enum(['chip', 'structural', 'severe']).default('chip'),
   target_selector: z.string().default(''),
-  damage_classification: z.string().default(''),
+  // The Keywords this Beat's damage carries (D-047). Plural because "who it
+  // is aimed at" and "what it is made of" are two axes: a blow can be a Tank
+  // Hit *and* fire, and one string holding both would be the category error
+  // the `kind` discriminator exists to prevent.
+  damage_keywords: z.array(z.string()).default([]),
   damage: z.number().int().default(0),
   unguarded_bonus: z.number().int().min(0).default(0),
   // Escalation acceleration (ADR 0027): what it costs to leave this Beat's

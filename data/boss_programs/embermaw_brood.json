@@ -24,9 +24,11 @@
       ],
       "consequence_tier": "chip",
       "target_selector": "tank",
-      "damage_classification": "tank_hit",
       "damage": 4,
-      "unguarded_bonus": 3
+      "unguarded_bonus": 3,
+      "damage_keywords": [
+        "tank_hit"
+      ]
     }
   ],
   "incoming_beats": [

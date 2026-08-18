@@ -172,13 +172,22 @@ export function readerSum(
   ref: CounterRef,
   when: CounterInstance['readers'][number]['when'],
   effect: CounterInstance['readers'][number]['effect'],
+  eventKeywords: string[] = [],
 ): number {
   let total = 0
   for (const counter of getCounters(state, ref)) {
     for (const reader of counter.readers) {
-      if (reader.when === when && reader.effect === effect) {
-        total += reader.per * counter.count
+      if (reader.when !== when || reader.effect !== effect) {
+        continue
       }
+      // A Reader with no `event_keyword` answers every event of its kind; one
+      // that names a Keyword answers only the events carrying it (D-047). So
+      // "takes 1 more from everything" and "takes 1 more from Raid Hits" are
+      // the same Reader with one field different.
+      if (reader.event_keyword && !eventKeywords.includes(reader.event_keyword)) {
+        continue
+      }
+      total += reader.per * counter.count
     }
   }
   return total

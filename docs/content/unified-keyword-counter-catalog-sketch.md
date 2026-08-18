@@ -1,13 +1,19 @@
 # Unified Keyword & Counter Catalog — Sketch
 
-**Status: Phases 0–2 shipped (D-044, D-045, D-046); Phase 3 is sketch, not adopted.**
+**Status: shipped in full (D-044 through D-047), minus one deliberate refusal.**
 
 Live: one validated Keyword namespace with a `kind` discriminator (§3, §7), Counters with
-`gate`/`scale`/`spend` Readers (§4–6), and the `hex` and `slot` hosts. Still a proposal:
-event Keywords read off the fact stream (§8 Phase 3).
+`gate`/`scale`/`spend` Readers (§4–6), the `hex` and `slot` hosts, and event Keywords —
+Readers that answer one kind of blow.
 
 **§1's central claim was wrong and is corrected below.** Escalation is not this pattern and
-did not become a Counter (D-046).
+did not become a Counter (D-046). That is the one piece of the plan that was dropped rather
+than built, and dropping it was the finding.
+
+Nothing in the live deck places or reads a Counter yet: the first card that does changes the
+damage economy the D-016/D-017 walls were measured against, and owes the deck-evaluation gate
+(backlog item 10). Every phase here was verified as byte-identical gameplay against the same
+36-policy sweep for exactly that reason.
 
 Where the shipped code differs from what a section first proposed, the section says so.
 
@@ -309,9 +315,18 @@ last; a Slot Counter rides the prepared card, so re-loading the Slot drops it. A
 Readers, because every `when` in the vocabulary names a combatant's event. Escalation stays
 put — see the correction in §1.
 
-**Phase 3.** Event keywords — passives that read the *fact stream* rather than entity state
-("increase `fire` damage dealt by 1"). Resolution Facts already carry `damage_classification`,
-so the events are already keyworded; this phase just types them.
+**Phase 3 — shipped (D-047).** Damage carries Keywords, and a Reader may name one
+`event_keyword` to answer only blows carrying it. Two corrections to what this section
+assumed:
+
+- **The Keywords had to go plural.** `damage_classification` was one string, and "who a blow
+  is aimed at" and "what it is made of" are two axes — a blow can be a Tank Hit *and* fire.
+  One field holding both is the category error §3's `kind` discriminator exists to prevent,
+  so Beats and Cards now carry `damage_keywords`.
+- **Cards had to carry them too.** Only Boss Beats classified their damage, so an
+  event-Keyword Reader would have worked in one direction only: the party could be warded
+  against a Whelp's bite but could never throw anything a Counter could answer. "This phase
+  just types them" was true of the Boss side and false of the party's.
 
 ---
 

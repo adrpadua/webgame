@@ -250,7 +250,7 @@ describe('content catalog', () => {
       })
     })
 
-    // The four Keyword joins. `damage_classification` is why this section
+    // The four Keyword joins. `damage_keywords` is why this section
     // exists: the rules compare it against `tank_hit` to grant Riposte Ready,
     // and until it was catalogued a typo here disabled that Status Effect at
     // load with no error and every test still green.
@@ -265,9 +265,9 @@ describe('content catalog', () => {
       },
     })
 
-    it('rejects a Beat whose damage_classification is not an authored Keyword', () => {
-      expect(() => buildCatalog({ ...empty, programs: [beatProgram({ damage_classification: 'tank-hit' })] })).toThrow(
-        'Boss Beat probe_beat references unknown keyword tank-hit in damage_classification',
+    it('rejects a Beat whose damage_keywords are not authored Keywords', () => {
+      expect(() => buildCatalog({ ...empty, programs: [beatProgram({ damage_keywords: ['tank-hit'] })] })).toThrow(
+        'Boss Beat probe_beat references unknown keyword tank-hit in damage_keywords',
       )
     })
 
@@ -278,9 +278,9 @@ describe('content catalog', () => {
         buildCatalog({
           ...empty,
           keywords: [...empty.keywords, keyword('guard', 'trait')],
-          programs: [beatProgram({ damage_classification: 'guard' })],
+          programs: [beatProgram({ damage_keywords: ['guard'] })],
         }),
-      ).toThrow('Boss Beat probe_beat names guard in damage_classification, but that Keyword is trait and damage_classification takes damage_type')
+      ).toThrow('Boss Beat probe_beat names guard in damage_keywords, but that Keyword is trait and damage_keywords takes damage_type')
     })
 
     it('rejects an unauthored counter tag and an unauthored target selector', () => {
@@ -390,6 +390,32 @@ describe('content catalog', () => {
       expect(() => buildCatalog({ ...empty, counters: [bad] })).toThrow(
         'is hosted on a hex but declares readers, and every reader event is a combatant\'s',
       )
+    })
+
+    it('rejects an event_keyword on a Reader whose event carries no Keywords', () => {
+      // A Round starting and a Slot firing are not made of anything, so
+      // narrowing them by Keyword authors a Reader that can never fire.
+      const bad = {
+        source: 'data/counters/odd.json',
+        payload: { id: 'odd', title: 'Odd', readers: [{ when: 'round_start', event_keyword: 'tank_hit', effect: 'armor', per: 1 }] },
+      }
+      expect(() => buildCatalog({ ...empty, counters: [bad] })).toThrow(
+        'narrows a round_start reader by event_keyword, but only damage events carry Keywords',
+      )
+    })
+
+    it('rejects an unauthored event_keyword, and a Card keywording damage it never deals', () => {
+      const unknown = {
+        source: 'data/counters/odd.json',
+        payload: { id: 'odd', title: 'Odd', readers: [{ when: 'host_takes_damage', event_keyword: 'flame', effect: 'target_damage', per: 1 }] },
+      }
+      expect(() => buildCatalog({ ...empty, counters: [unknown] })).toThrow('references unknown keyword flame in event_keyword')
+
+      const idle = {
+        source: 'data/cards/idle_ember.json',
+        payload: { id: 'idle_ember', title: 'Idle Ember', speed: 'quick', damage_keywords: ['tank_hit'] },
+      }
+      expect(() => buildCatalog({ ...empty, cards: [idle] })).toThrow('declares damage_keywords but deals no damage')
     })
 
     it('rejects a burst Card that deals no damage and names its file', () => {
@@ -1034,7 +1060,7 @@ describe('phase cycle', () => {
       requested: 4,
       prevented: 0,
       health_loss: 4,
-      damage_classification: 'tank_hit',
+      damage_keywords: ['tank_hit'],
       guarded_front: true,
     })
     expect(state.board.hazards[hexKey({ q: 0, r: 0 })]?.[0]?.id).toBe('scorched')
@@ -1124,7 +1150,7 @@ describe('Minion end-step intent (D-006)', () => {
     const wrap2 = advancePhase(catalog, state)
     const bites = wrap2.facts.filter((fact) => fact.kind === 'damage' && fact.resolutionFact?.minion_intent === true)
     expect(bites).toHaveLength(2)
-    expect(bites.every((fact) => fact.resolutionFact?.damage_classification === 'raid_hit')).toBe(true)
+    expect(bites.every((fact) => ((fact.resolutionFact?.damage_keywords as string[]) ?? []).includes('raid_hit'))).toBe(true)
     expect(hero(wrap2.state).health).toBe(round2Health - 2)
     // A Raid Hit from a Minion never grants Riposte Ready.
     expect((wrap2.state.counters[combatantRef(state.primaryHeroId)] ?? []).some((effect) => effect.id === 'riposte_ready')).toBe(false)
@@ -1729,6 +1755,138 @@ describe('Counter hosts — ground and prepared cards (D-046)', () => {
     delete state.board.hexes[hexKey(ground)]
     state = steps(variant, state, 3)
     expect(state.counters[hexCounterRef(ground)]).toBeUndefined()
+  })
+})
+
+describe('Event Keywords — Readers that answer one kind of blow (D-047)', () => {
+  // The fact stream already carried what a blow was made of; D-047 is what
+  // lets content read it. A Reader with no `event_keyword` answers every blow
+  // of its kind, and one that names a Keyword answers only blows carrying it —
+  // the same Reader with one field different.
+  function withWard(eventKeyword: string) {
+    const variant = structuredClone(catalog)
+    variant.counters.warded = {
+      id: 'warded',
+      title: 'Warded',
+      rules_text: 'Answers one kind of blow.',
+      keywords: [],
+      host: 'combatant',
+      max: 1,
+      duration_rounds: 0,
+      readers: [{ when: 'host_takes_damage', event_keyword: eventKeyword, effect: 'target_damage', per: -2 }],
+    }
+    return variant
+  }
+
+  function warded(variant: ReturnType<typeof withWard>) {
+    const state = immortalHero(start())
+    state.counters[combatantRef(state.primaryHeroId)] = [
+      {
+        id: 'warded',
+        title: 'Warded',
+        count: 1,
+        max: 1,
+        remainingRounds: 0,
+        readers: variant.counters.warded.readers.map((reader) => ({ ...reader })),
+        bonusBossDamageOnSlotFired: 0,
+        bonusBossDamageOffPayoff: 0,
+        consumeOnCardId: '',
+        expiresAtWindowEnd: '',
+        triggerReason: 'test',
+        sourceId: 'test',
+        sourceBeatId: '',
+        triggerRound: state.round,
+        triggerPhase: state.phase,
+      },
+    ]
+    return state
+  }
+
+  const blow = (state: EncounterState, keywords: string[]) => ({
+    kind: 'damage' as const,
+    sourceId: state.bossId,
+    targetId: state.primaryHeroId,
+    amount: 5,
+    reasonText: 'test',
+    factContext: { damage_keywords: keywords },
+  })
+
+  it('answers only the blows carrying its Keyword', () => {
+    const variant = withWard('raid_hit')
+    const state = warded(variant)
+    expect(resolve(variant, state, blow(state, ['raid_hit'])).facts[0].resolutionFact).toMatchObject({ requested: 3 })
+    // A Tank Hit is a different kind of blow, so the ward is silent.
+    expect(resolve(variant, state, blow(state, ['tank_hit'])).facts[0].resolutionFact).toMatchObject({ requested: 5 })
+    // And a blow made of nothing named goes through untouched.
+    expect(resolve(variant, state, blow(state, [])).facts[0].resolutionFact).toMatchObject({ requested: 5 })
+  })
+
+  it('answers every blow when it names no Keyword', () => {
+    const variant = withWard('')
+    const state = warded(variant)
+    for (const keywords of [['raid_hit'], ['tank_hit'], []]) {
+      expect(resolve(variant, state, blow(state, keywords)).facts[0].resolutionFact).toMatchObject({ requested: 3 })
+    }
+  })
+
+  it('matches one Keyword out of several a blow carries', () => {
+    // Plural is the point: a blow can be aimed at the Tank *and* made of
+    // fire, and a ward against one still answers it.
+    const variant = withWard('raid_hit')
+    const state = warded(variant)
+    expect(resolve(variant, state, blow(state, ['tank_hit', 'raid_hit'])).facts[0].resolutionFact).toMatchObject({ requested: 3 })
+  })
+
+  it("keywords the party's own damage, so a Reader can answer what a Hero throws", () => {
+    // The gap this closes: only Boss Beats classified their damage, so an
+    // event-Keyword Reader worked in one direction only.
+    const variant = structuredClone(catalog)
+    variant.cards.ember_jab = {
+      ...variant.cards.steady_strike,
+      id: 'ember_jab',
+      title: 'Ember Jab',
+      charge_modifiers: [],
+      boss_damage: 4,
+      damage: 0,
+      damage_keywords: ['raid_hit'],
+    }
+    variant.counters.warded = {
+      id: 'warded',
+      title: 'Warded',
+      rules_text: '',
+      keywords: [],
+      host: 'combatant',
+      max: 1,
+      duration_rounds: 0,
+      readers: [{ when: 'host_takes_damage', event_keyword: 'raid_hit', effect: 'target_damage', per: -3 }],
+    }
+    let state = immortalHero(start())
+    state = stepPhases(state, 2).state
+    hero(state).hand = [card('t1', 'ember_jab'), card('t2', 'steady_strike')]
+    state = resolve(variant, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 't1' }).state
+    state = resolve(variant, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 't2' }).state
+    state.counters[combatantRef(state.bossId)] = [
+      {
+        id: 'warded',
+        title: 'Warded',
+        count: 1,
+        max: 1,
+        remainingRounds: 0,
+        readers: variant.counters.warded.readers.map((reader) => ({ ...reader })),
+        bonusBossDamageOnSlotFired: 0,
+        bonusBossDamageOffPayoff: 0,
+        consumeOnCardId: '',
+        expiresAtWindowEnd: '',
+        triggerReason: 'test',
+        sourceId: 'test',
+        sourceBeatId: '',
+        triggerRound: state.round,
+        triggerPhase: state.phase,
+      },
+    ]
+    const before = state.board.entities[state.bossId].health
+    const fired = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+    expect(before - fired.state.board.entities[state.bossId].health).toBe(1)
   })
 })
 
@@ -2707,7 +2865,7 @@ describe('area damage cards', () => {
       targetId: state.primaryHeroId,
       amount: 4,
       reasonText: 'Raking Claw',
-      factContext: { damage_classification: 'tank_hit' },
+      factContext: { damage_keywords: ['tank_hit'] },
     }).state
     expect(state.counters[combatantRef(state.primaryHeroId)]?.[0]?.id).toBe('riposte_ready')
     const bossHealthBefore = boss(state).health
@@ -2723,7 +2881,7 @@ describe('area damage cards', () => {
     expect(fired.state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
     expect(fired.facts.find((fact) => fact.kind === 'damage' && fact.detail.targetId === state.bossId)?.resolutionFact).toMatchObject({
       base_amount: 1,
-      status_bonus: 1,
+      counter_bonus: 1,
       payoff_card_id: 'burst_test',
     })
   })
@@ -2900,7 +3058,7 @@ describe('card draw effects', () => {
         count: 1,
         max: 1,
         remainingRounds: 1,
-        readers: [{ when: 'slot_fired', effect: 'boss_damage', per: 1 }],
+        readers: [{ when: 'slot_fired', event_keyword: '', effect: 'boss_damage', per: 1 }],
         bonusBossDamageOnSlotFired: 0,
         bonusBossDamageOffPayoff: 0,
         consumeOnCardId: '',
@@ -2948,7 +3106,7 @@ describe('damage and Resolution Facts', () => {
       targetId: state.primaryHeroId,
       amount: 4,
       reasonText: 'Raking Claw',
-      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_classification: 'tank_hit' },
+      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_keywords: ['tank_hit'] },
     })
     expect(result.facts[0].resolutionFact).toMatchObject({
       requested: 4,
@@ -2970,7 +3128,7 @@ describe('damage and Resolution Facts', () => {
       targetId: state.primaryHeroId,
       amount: 4,
       reasonText: 'Raking Claw',
-      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_classification: 'tank_hit' },
+      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_keywords: ['tank_hit'] },
     })
     state = hit.state
     expect(hit.facts[0].resolutionFact).toMatchObject({
@@ -2989,7 +3147,7 @@ describe('damage and Resolution Facts', () => {
     expect(boss(state).health).toBe(bossHealthBefore - 5)
     expect(state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
     const damageFact = slam.facts.find((fact) => fact.kind === 'damage')
-    expect(damageFact?.resolutionFact).toMatchObject({ base_amount: 3, status_bonus: 2, payoff_card_id: 'shield_slam' })
+    expect(damageFact?.resolutionFact).toMatchObject({ base_amount: 3, counter_bonus: 2, payoff_card_id: 'shield_slam' })
   })
 
   it('consumes Riposte Ready for +1 when a non-Shield-Slam Boss-damage card fires', () => {
@@ -3001,7 +3159,7 @@ describe('damage and Resolution Facts', () => {
       targetId: state.primaryHeroId,
       amount: 4,
       reasonText: 'Raking Claw',
-      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_classification: 'tank_hit' },
+      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_keywords: ['tank_hit'] },
     }).state
     expect(state.counters[combatantRef(state.primaryHeroId)]?.[0]?.id).toBe('riposte_ready')
 
@@ -3014,7 +3172,7 @@ describe('damage and Resolution Facts', () => {
     expect(boss(state).health).toBe(bossHealthBefore - 4)
     expect(state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
     const damageFact = strike.facts.find((fact) => fact.kind === 'damage')
-    expect(damageFact?.resolutionFact).toMatchObject({ base_amount: 3, status_bonus: 1, payoff_card_id: 'steady_strike' })
+    expect(damageFact?.resolutionFact).toMatchObject({ base_amount: 3, counter_bonus: 1, payoff_card_id: 'steady_strike' })
   })
 
   it('does not consume Riposte Ready when a card with no Boss damage fires', () => {
@@ -3026,7 +3184,7 @@ describe('damage and Resolution Facts', () => {
       targetId: state.primaryHeroId,
       amount: 4,
       reasonText: 'Raking Claw',
-      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_classification: 'tank_hit' },
+      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_keywords: ['tank_hit'] },
     }).state
     expect(state.counters[combatantRef(state.primaryHeroId)]?.[0]?.id).toBe('riposte_ready')
 
@@ -3046,7 +3204,7 @@ describe('damage and Resolution Facts', () => {
       targetId: state.primaryHeroId,
       amount: 4,
       reasonText: 'Raking Claw',
-      factContext: { damage_classification: 'tank_hit' },
+      factContext: { damage_keywords: ['tank_hit'] },
     }).state
     state = stepPhases(state, 2).state
     expect(state.phase).toBe('quick')
@@ -3300,7 +3458,7 @@ describe('Encounter Records (schema_version 2)', () => {
     expect(record.abandon_reason).toBe('exported_mid_encounter')
     expect(record.actions.some((action) => !action.succeeded && action.reason !== '')).toBe(true)
     expect(record.actions.some((action) => action.depth > 0 && action.kind === 'damage')).toBe(true)
-    expect(record.actions.some((action) => action.resolution_fact?.damage_classification === 'tank_hit')).toBe(true)
+    expect(record.actions.some((action) => ((action.resolution_fact?.damage_keywords as string[]) ?? []).includes('tank_hit'))).toBe(true)
   })
 
   it('marks Encounter Clock expiry as end_kind end_of_clock', async () => {

@@ -253,19 +253,22 @@ function resolveOne(
             targetId,
             amount: effects.targetDamage,
             reasonText: card.title,
+            factContext: cardDamageContext(card),
           })
         }
         const bossBaseAmount = baseBossDamage + (burstIncludesBoss ? effects.targetDamage : 0)
         const bossAmount = bossBaseAmount + consumed.bonusBossDamage
-        let factContext: Record<string, unknown> | undefined
-        if (consumed.bonusBossDamage > 0) {
-          factContext = {
-            base_amount: bossBaseAmount,
-            status_bonus: consumed.bonusBossDamage,
-            status_id: (consumed.events[0] as { status_id: string }).status_id,
-            payoff_card_id: card.id,
-          }
-        }
+        const factContext = cardDamageContext(
+          card,
+          consumed.bonusBossDamage > 0
+            ? {
+                base_amount: bossBaseAmount,
+                counter_bonus: consumed.bonusBossDamage,
+                counter_id: (consumed.events[0] as { counter_id: string }).counter_id,
+                payoff_card_id: card.id,
+              }
+            : undefined,
+        )
         if (bossAmount > 0) {
           generated.push({
             kind: 'damage',
@@ -278,15 +281,17 @@ function resolveOne(
         }
       } else {
         if (baseBossDamage + consumed.bonusBossDamage > 0) {
-          let factContext: Record<string, unknown> | undefined
-          if (consumed.bonusBossDamage > 0) {
-            factContext = {
-              base_amount: baseBossDamage,
-              status_bonus: consumed.bonusBossDamage,
-              status_id: (consumed.events[0] as { status_id: string }).status_id,
-              payoff_card_id: card.id,
-            }
-          }
+          const factContext = cardDamageContext(
+            card,
+            consumed.bonusBossDamage > 0
+              ? {
+                  base_amount: baseBossDamage,
+                  counter_bonus: consumed.bonusBossDamage,
+                  counter_id: (consumed.events[0] as { counter_id: string }).counter_id,
+                  payoff_card_id: card.id,
+                }
+              : undefined,
+          )
           generated.push({
             kind: 'damage',
             sourceId: action.sourceId,
@@ -303,6 +308,7 @@ function resolveOne(
             targetId: action.targetId ?? '',
             amount: effects.targetDamage,
             reasonText: card.title,
+            factContext: cardDamageContext(card),
           })
         }
       }
@@ -398,7 +404,11 @@ function resolveOne(
       break
     }
     case 'damage': {
-      const resolutionFact = applyDamage(draft, action.targetId, action.amount, action.sourceId)
+      // The Keywords a blow carries decide which Readers answer it (D-047),
+      // so they have to reach resolution rather than only the fact log they
+      // are merged into afterwards.
+      const damageKeywords = (action.factContext?.damage_keywords as string[] | undefined) ?? []
+      const resolutionFact = applyDamage(draft, action.targetId, action.amount, action.sourceId, damageKeywords)
       for (const [key, value] of Object.entries(action.factContext ?? {})) {
         if (!(key in resolutionFact)) {
           resolutionFact[key] = value
@@ -726,6 +736,19 @@ function slotFiredCounterActions(draft: EncounterState, entityId: string): Encou
   return [{ kind: 'damage', sourceId: entityId, targetId: draft.bossId, amount: bonus, reasonText: 'counter_reader' }]
 }
 
+// The fact context every blow a Card deals carries. The Card's own damage
+// Keywords ride it so a Counter can answer what the party throws, not just
+// what the Boss does (D-047) — the party's damage was unkeyworded while only
+// Boss Beats classified theirs, which left an event-Keyword Reader working in
+// one direction only.
+function cardDamageContext(card: Card, extra?: Record<string, unknown>): Record<string, unknown> | undefined {
+  const keywords = card.damage_keywords.length > 0 ? { damage_keywords: [...card.damage_keywords] } : undefined
+  if (keywords === undefined && extra === undefined) {
+    return undefined
+  }
+  return { ...keywords, ...extra }
+}
+
 // Where a Card puts the Counter it places: the Counter's own `host`, resolved
 // through whatever the Card targeted (D-046). `null` means the Card cannot
 // supply that host, which the catalog already refuses at load — it is a
@@ -845,14 +868,20 @@ function applyScaleReaders(
   }
 }
 
-function applyDamage(draft: EncounterState, targetId: string, amount: number, sourceId = ''): Record<string, unknown> {
+function applyDamage(
+  draft: EncounterState,
+  targetId: string,
+  amount: number,
+  sourceId = '',
+  damageKeywords: string[] = [],
+): Record<string, unknown> {
   // Counters ride damage resolution that already existed, through Readers
   // rather than through two named payload fields (D-045): the source's
   // Weakened lowers what it deals at `-1` a Counter, the target's Sundered
   // raises what it takes at `+1`. Both resolve before mitigation, so Armor
   // still answers the number the Party can read.
-  const dealtDelta = sourceId === '' ? 0 : readerSum(draft, combatantRef(sourceId), 'host_deals_damage', 'target_damage')
-  const takenDelta = readerSum(draft, combatantRef(targetId), 'host_takes_damage', 'target_damage')
+  const dealtDelta = sourceId === '' ? 0 : readerSum(draft, combatantRef(sourceId), 'host_deals_damage', 'target_damage', damageKeywords)
+  const takenDelta = readerSum(draft, combatantRef(targetId), 'host_takes_damage', 'target_damage', damageKeywords)
   const requested = Math.max(amount + dealtDelta + takenDelta, 0)
   // Armor is the only mitigation there has ever been: the old per-status
   // `damageReduction` field was never set by anything and left with D-045.
@@ -894,7 +923,7 @@ function evaluateDamageStatus(
   if (action.sourceId !== draft.bossId || action.targetId !== draft.primaryHeroId) {
     return
   }
-  if (resolutionFact.damage_classification !== TANK_HIT) {
+  if (!((resolutionFact.damage_keywords as string[] | undefined) ?? []).includes(TANK_HIT)) {
     return
   }
   const guardedFront = isGuardedFront(draft.board, draft.bossId, draft.primaryHeroId)

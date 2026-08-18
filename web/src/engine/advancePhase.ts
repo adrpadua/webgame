@@ -125,7 +125,7 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
             reasonText: `${draft.board.entities[minionId].title} bites`,
             factContext: {
               minion_intent: true,
-              damage_classification: RAID_HIT,
+              damage_keywords: [RAID_HIT],
               ...(escalationBonus > 0 ? { escalation_bonus: escalationBonus } : {}),
             },
           })

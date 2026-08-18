@@ -171,8 +171,8 @@ export function resolveBossBeat(
     if (beat.target_selector !== '') {
       factContext.target_selector = beat.target_selector
     }
-    if (beat.damage_classification !== '') {
-      factContext.damage_classification = beat.damage_classification
+    if (beat.damage_keywords.length > 0) {
+      factContext.damage_keywords = [...beat.damage_keywords]
     }
     if (unguardedBonusApplied > 0) {
       factContext.unguarded_bonus = unguardedBonusApplied

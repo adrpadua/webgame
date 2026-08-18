@@ -209,6 +209,12 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     for (const tag of card.tags) {
       requireKeyword(catalog, tag, KEYWORD_REFERENCES.cardTag, `Card ${card.id}`, 'tag')
     }
+    for (const keywordId of card.damage_keywords) {
+      requireKeyword(catalog, keywordId, KEYWORD_REFERENCES.damageKeywords, `Card ${card.id}`, 'damage_keywords')
+    }
+    if (card.damage_keywords.length > 0 && card.damage === 0 && card.boss_damage === 0) {
+      throw new Error(`Card ${card.id} declares damage_keywords but deals no damage`)
+    }
     if (card.places_counter !== '') {
       const counter = catalog.counters[card.places_counter]
       if (!counter) {
@@ -281,6 +287,15 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       if (reader.per === 0) {
         throw new Error(`Counter ${counter.id} has a ${reader.when} reader with per 0, which does nothing`)
       }
+      if (reader.event_keyword !== '') {
+        // Only a damage event carries Keywords. A Round starting and a Slot
+        // firing are not made of anything, so narrowing them by Keyword would
+        // author a Reader that can never fire.
+        if (reader.when !== 'host_takes_damage' && reader.when !== 'host_deals_damage') {
+          throw new Error(`Counter ${counter.id} narrows a ${reader.when} reader by event_keyword, but only damage events carry Keywords`)
+        }
+        requireKeyword(catalog, reader.event_keyword, KEYWORD_REFERENCES.damageKeywords, `Counter ${counter.id}`, 'event_keyword')
+      }
     }
     // Every `when` in the Reader vocabulary names something that happens to a
     // combatant — a Round's Armor grant, taking or dealing damage, firing a
@@ -317,12 +332,12 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
         throw new Error(`Boss Beat ${beat.id} references unknown minion ${beat.minion}`)
       }
       // The three Beat fields that were free text until now. All three are
-      // joins into the Keyword namespace, and `damage_classification` is the
+      // joins into the Keyword namespace, and `damage_keywords` is the
       // one that mattered: the rules compare it against `tank_hit` to grant
       // Riposte Ready, so an unchecked typo here disabled a Status Effect
       // silently, at load, with every test still green.
-      if (beat.damage_classification !== '') {
-        requireKeyword(catalog, beat.damage_classification, KEYWORD_REFERENCES.damageClassification, `Boss Beat ${beat.id}`, 'damage_classification')
+      for (const keywordId of beat.damage_keywords) {
+        requireKeyword(catalog, keywordId, KEYWORD_REFERENCES.damageKeywords, `Boss Beat ${beat.id}`, 'damage_keywords')
       }
       if (beat.target_selector !== '') {
         requireKeyword(catalog, beat.target_selector, KEYWORD_REFERENCES.targetSelector, `Boss Beat ${beat.id}`, 'target_selector')
@@ -453,9 +468,7 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
       // the answer the Forecast Row promises and the kind of blow the Beat
       // lands are both things a player reads, so retitling one starts a new
       // evidence cohort the same way retitling a Hazard does.
-      if (beat.damage_classification) {
-        addKeyword(beat.damage_classification)
-      }
+      beat.damage_keywords.forEach(addKeyword)
       if (beat.target_selector) {
         addKeyword(beat.target_selector)
       }
