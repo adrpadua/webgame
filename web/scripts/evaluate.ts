@@ -15,7 +15,6 @@ import { writeFileSync } from 'node:fs'
 import { loadCatalog, DEFAULT_ENCOUNTER_ID } from '../src/content'
 import {
   advancePhase,
-  forecast,
   programPredictability,
   cardChargeCap,
   createEncounterState,
@@ -52,15 +51,14 @@ interface PolicyKnobs {
   // Window, Iron Guard in the Slow. It exists because Brood Call's Escalation
   // penalty is only measurable against a policy that can actually pay it —
   // without one, pricing the demand just measures an unavoidable tick.
-  // `forecast_reader` and `forecast_blind` are a matched pair, and the only
-  // difference between them is whether the policy looks at the Forecast Row.
-  // They exist because nothing else in this sweep reads that row, so ADR 0026's
-  // whole third horizon was unfalsifiable: a fixed script cannot benefit from
-  // information it never consults. Fortify is the one card whose payoff lands
-  // next Round (D-019 banks its Armor for the next Round *start*), so the
-  // Forecast Row is the only surface that can price it — which makes this pair
-  // a direct test of whether the row is actionable or decorative.
-  slotPlan: 'dual_steady' | 'sword_shield' | 'turtle' | 'culler' | 'forecast_reader' | 'forecast_blind'
+  // `shover` is Drive Back plus Fortify: the plan that answers the cone by
+  // moving the Boss instead of the Hero. It was once a matched pair,
+  // `forecast_reader` and `forecast_blind`, differing only in whether the
+  // policy consulted the Forecast Row — the instrument that made ADR 0026's
+  // third horizon falsifiable. It returned a verdict (identical outcomes to two
+  // decimal places), the row was removed on that evidence (ADR 0031), and the
+  // pair collapsed into the one plan that remains worth sweeping.
+  slotPlan: 'dual_steady' | 'sword_shield' | 'turtle' | 'culler' | 'shover'
   position: 'far' | 'dodge' | 'stay'
   spike: boolean
 }
@@ -82,7 +80,6 @@ interface RunMetrics {
   riposteEarly: number
   rejected: number
   minionsKilled: number
-  shovesHeld: number
   burntHexes: number
 }
 
@@ -118,8 +115,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     sword_shield: { 0: 'steady_strike', 1: 'iron_guard' },
     turtle: { 0: 'iron_guard', 1: 'fortify' },
     culler: { 0: 'sweeping_blow', 1: 'iron_guard' },
-    forecast_reader: { 0: 'drive_back', 1: 'fortify' },
-    forecast_blind: { 0: 'drive_back', 1: 'fortify' },
+    shover: { 0: 'drive_back', 1: 'fortify' },
   }
   const wanted: Record<number, string> = WANTED_BY_PLAN[knobs.slotPlan]
   const hand = () => state.heroes[heroId].hand
@@ -191,24 +187,6 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     return pool
   }
 
-  // The entire difference between `forecast_reader` and `forecast_blind`.
-  // Drive Back shoves the Boss out of cone range, and the price is the Guarded
-  // Front: standing two hexes back means next Round's Raking Claw lands with
-  // its unguarded bonus. Only the Forecast Row can say whether next Round
-  // carries one, so this is the read, and holding the shove is what reading it
-  // buys.
-  const shouldFireSlot = (slotIndex: number, cardId: string): boolean => {
-    if (knobs.slotPlan !== 'forecast_reader' || catalog.cards[cardId].push_tiles === 0) {
-      return true
-    }
-    const ahead = forecast(catalog, state)
-    if (ahead !== null && ahead.counterTags.includes('Mitigate')) {
-      shovesHeld += 1
-      return false
-    }
-    return true
-  }
-
   const chargeSlots = () => {
     for (const slotIndex of [0, 1]) {
       let safety = 0
@@ -267,9 +245,6 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
       if (!top || slot(slotIndex).charges.length === 0) {
         continue
       }
-      if (!shouldFireSlot(slotIndex, top.cardId)) {
-        continue
-      }
       // Forced Movement needs another piece in range. The Boss is the target
       // that matters: shoving it moves the cone's origin and the Guarded Front
       // together, which is repositioning the fight without walking.
@@ -299,7 +274,6 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
   }
 
   let checkpoint = false
-  let shovesHeld = 0
   let guard = 0
   while (state.active && guard < 400) {
     guard += 1
@@ -368,12 +342,14 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
         // the only card that can pre-block the next Round's Instant Row, so a
         // survival policy has to use the Slow Window.
         //
-        // The reader prices that spend against the Forecast Row. A program that
-        // wants `Mitigate` opens with a Raking Claw in its Instant Row — a hit
-        // no Round-2 action could answer, which is exactly what banked Armor is
-        // for. A program that does not (Ember, Ashfall) deals its damage through
-        // a dodgeable cone instead, so the cards are worth more in hand as move
-        // fuel than spent on Armor that will be wiped unused.
+        // Whether that spend is worth it depends on what next Round opens
+        // with, and with the Forecast Row gone (ADR 0031) no policy here can
+        // know: a program wanting `Mitigate` opens with a Raking Claw that
+        // banked Armor answers, while Ember and Ashfall deal their damage
+        // through a dodgeable cone where the same cards were worth more in hand
+        // as move fuel. A human learns which is which by meeting them. A fixed
+        // script cannot, so these policies simply always spend — the sweep
+        // measures the floor of that decision, never its ceiling.
         chargeSlots()
         fireReadySlots()
         advance()
@@ -448,7 +424,6 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     riposteEarly,
     rejected,
     minionsKilled,
-    shovesHeld,
     burntHexes,
   }
 }
@@ -459,7 +434,7 @@ if (POLICY) {
   const [slotPlan, position, spike] = POLICY.split(',')
   variants.push({ slotPlan: slotPlan as PolicyKnobs['slotPlan'], position: position as PolicyKnobs['position'], spike: spike === 'true' })
 } else {
-  for (const slotPlan of ['dual_steady', 'sword_shield', 'turtle', 'culler', 'forecast_reader', 'forecast_blind'] as const) {
+  for (const slotPlan of ['dual_steady', 'sword_shield', 'turtle', 'culler', 'shover'] as const) {
     for (const position of ['far', 'dodge', 'stay'] as const) {
       for (const spike of [true, false]) {
         variants.push({ slotPlan, position, spike })
@@ -522,7 +497,6 @@ for (const knobs of variants) {
     escFromAdds: avg((run) => run.escalationFromDemands),
     whelpKills: avg((run) => run.minionsKilled),
     burnt: avg((run) => run.burntHexes),
-    held: avg((run) => run.shovesHeld),
     bossDmg: avg((run) => run.bossDamage),
     dmgSpread: spread((run) => run.bossDamage),
     ripGrant: avg((run) => run.riposteGranted),
@@ -574,7 +548,7 @@ if (!POLICY) {
     console.log('  (estimate under-sampled — raise the seed count before trusting it)')
   }
   if (predictability.meanAccuracy === 1) {
-    redFlags.push('Boss Program order is fully predictable: the Forecast Row discloses nothing a player cannot count (ADR 0028).')
+    redFlags.push('Boss Program order is fully predictable: there is nothing left to learn by playing it twice (ADR 0028, ADR 0031).')
   }
 }
 if (redFlags.length > 0) {
