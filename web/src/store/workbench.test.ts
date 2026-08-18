@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { hexKey, isLegalMove, neighbors, type Axial } from '@/engine'
 import { selectState, useWorkbench } from './workbench'
 
@@ -32,6 +32,10 @@ function openQuickWindow(): void {
     store().advance()
   }
 }
+
+afterEach(() => {
+  delete store().catalog.cards.burst_test
+})
 
 describe('dragging the Hero to a hex', () => {
   beforeEach(() => {
@@ -117,6 +121,12 @@ describe('dragging the Hero to a hex', () => {
 
   it('picks the target instead while a Top Card is waiting for a Minion', () => {
     const destination = firstLegalDestination()
+    state().heroes[state().primaryHeroId].actionBar[0] = {
+      topCard: { instanceId: 'targeting-card', cardId: 'sweeping_blow' },
+      charges: [{ instanceId: 'targeting-charge', cardId: 'iron_guard' }],
+      activatedWindow: null,
+      placedThisLoadout: false,
+    }
     useWorkbench.setState({ targetingSlotIndex: 0 })
 
     store().heroDraggedToHex(destination)
@@ -136,5 +146,62 @@ describe('dragging the Hero to a hex', () => {
 
     expect(store().pendingMove).toBeNull()
     expect(store().lastRejection).toBeNull()
+  })
+})
+
+describe('targeting a burst Card', () => {
+  beforeEach(() => {
+    openQuickWindow()
+    store().catalog.cards.burst_test = {
+      ...store().catalog.cards.sweeping_blow,
+      id: 'burst_test',
+      title: 'Burst Test',
+      target_type: 'hex',
+      range_tiles: 1,
+      damage: 1,
+      burst_radius: 1,
+    }
+    const live = state()
+    live.board.entities.burst_whelp = {
+      id: 'burst_whelp',
+      kind: 'minion',
+      coords: { q: -1, r: 0 },
+      health: 2,
+      maxHealth: 2,
+      facing: 0,
+      team: 'enemy',
+      title: 'Burst Whelp',
+    }
+    live.heroes[live.primaryHeroId].actionBar[0] = {
+      topCard: { instanceId: 'burst', cardId: 'burst_test' },
+      charges: [{ instanceId: 'charge', cardId: 'iron_guard' }],
+      activatedWindow: null,
+      placedThisLoadout: false,
+    }
+  })
+
+  it('fires at an empty legal hex and submits the centre to the engine', () => {
+    const emptyCenter = { q: 0, r: -1 }
+    expect(Object.values(state().board.entities).some((entity) => hexKey(entity.coords) === hexKey(emptyCenter))).toBe(false)
+
+    store().fireSlot(0)
+    expect(store().targetingSlotIndex).toBe(0)
+    store().hexClicked(emptyCenter)
+
+    expect(store().targetingSlotIndex).toBeNull()
+    expect(state().board.entities.burst_whelp.health).toBe(1)
+    expect(store().entries.at(-1)?.step).toEqual({
+      action: { kind: 'fire_slot', sourceId: state().primaryHeroId, slotIndex: 0, targetHex: emptyCenter },
+    })
+  })
+
+  it('keeps targeting open when the chosen hex is out of range', () => {
+    const entriesBefore = store().entries.length
+    store().fireSlot(0)
+    store().hexClicked({ q: -2, r: 0 })
+
+    expect(store().targetingSlotIndex).toBe(0)
+    expect(store().entries).toHaveLength(entriesBefore)
+    expect(store().lastRejection).toContain('outside')
   })
 })

@@ -7,6 +7,7 @@ export { resolve } from './resolve'
 export { advancePhase } from './advancePhase'
 export { legality } from './legality'
 export { legalActions } from './legalActions'
+export { fireTargeting, type FireTargeting } from './legalActions'
 export { runScenario, type ScenarioReplayEntry, type ScenarioReplayResult } from './scenario'
 export {
   buildEncounterRecord,
@@ -26,7 +27,7 @@ export * from './content/schemas'
 export type * from './types'
 export type { EncounterActionInput, ActionKind } from './actions'
 export { ENCOUNTER_SOURCE } from './actions'
-export { hexKey, parseHexKey, hexDistance, axialEquals, axialAdd, type Axial, type HexKey } from './hex'
+export { hexKey, parseHexKey, hexDistance, hexesWithinRadius, axialEquals, axialAdd, type Axial, type HexKey } from './hex'
 export {
   facingName,
   axialDeltaFor,

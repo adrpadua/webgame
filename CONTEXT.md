@@ -94,6 +94,10 @@ _Avoid_: Random phase change, hidden breakpoint
 A hostile combatant in an Encounter. The Boss and every Minion are Enemies.
 _Avoid_: Hostile target, foe
 
+**Burst**:
+A player Card effect centered on a selected on-board hex within Range of the firing Hero. The center may be empty. Every Enemy whose hex lies within the authored radius — including the Boss and all Minions, but never Heroes or allies — receives one ordinary damage action, with Minions in stable entity order and the Boss last (ADR 0030). The firing action records the center and its ordered on-board footprint so preview and resolution share one geometry result.
+_Avoid_: Piece-targeted area attack, splash estimate, friendly fire
+
 **Status Effect**:
 A temporary rule attached to one combatant — a Hero **or** an Enemy — that responds to an explicit trigger, such as the start of a Round, taking damage, or firing a Slot (D-032). The mechanism is identical on both sides; only which payload fields matter differs, so an Enemy-facing status uses `damageTakenBonus` and `damageDealtPenalty` where a Hero-facing one uses Armor and Boss-damage fields. Status definitions are authored content in `data/statuses/` and each one states whether it stacks (D-033). Every Status Effect is visible to the whole Party. A Status Effect may never redirect a Boss Beat's target or change what that Beat is.
 _Avoid_: Passive, invisible buff, Enemy Status
@@ -111,6 +115,10 @@ _Avoid_: Delayed buff, second Armor pool
 **Hazard**:
 A board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex. Most Hazards are temporary and expire at a Round boundary; a Hazard a Beat marks permanent survives it, because the arena does not recover from it. Permanence has two authors — a structural Escalation Threshold, which burns hexes nobody chose, and a Beat whose Hazard the party's own play placed (D-039). Only the first is banned from the ground next to the Boss: a hex the Tank burnt by standing there is a consequence, not a trap.
 _Avoid_: Surprise damage, ambient effect
+
+**Forced Movement**:
+Movement imposed on a target by an effect rather than paid for with Stamina. A Push moves the target away from the effect's source; a Pull moves it toward that source. Forced Movement advances one hex at a time, stops before an occupied or off-board hex, and may partially succeed or succeed at zero distance. It ignores restrictions that block voluntary movement, but every entered Hazard still resolves. It never changes the moved piece's facing and grants no immunity to a piece on the Guarded Front (ADR 0029).
+_Avoid_: Free move, teleport, knockback
 
 **Boss**:
 The primary Enemy that owns the Boss Timeline and is the encounter's victory target. A Boss is never a Minion.

@@ -131,21 +131,27 @@ function indexById<T extends { id: string }>(entries: ParsedEntry<T>[], label: s
   return result
 }
 
+function sourceAwareLabel<T extends { id: string }>(entries: ParsedEntry<T>[], label: string): (id: string) => string {
+  const sources = new Map(entries.map((entry) => [entry.value.id, entry.source]))
+  return (id) => {
+    const source = sources.get(id)
+    return source === undefined || source === '' ? `${label} ${id}` : `${label} ${id} (${source})`
+  }
+}
+
 // Parses every payload and validates cross-references, taking over the job
 // the frozen ContentValidator.gd did for .tres resources (ADR 0020).
 export function buildCatalog(raw: RawContent): ContentCatalog {
+  const parsedCards = parseAll(raw.cards, cardSchema, 'card')
+  const cardAt = sourceAwareLabel(parsedCards, 'Card')
   // Encounters are parsed to one side so their source files stay reachable
   // below: an Encounter carries the arena rules, so it is where a
   // cross-reference failure most needs to name the file.
   const parsedEncounters = parseAll(raw.encounters, encounterSchema, 'encounter')
-  const encounterSource = new Map(parsedEncounters.map((entry) => [entry.value.id, entry.source]))
-  const encounterAt = (id: string): string => {
-    const source = encounterSource.get(id)
-    return source === undefined || source === '' ? `Encounter ${id}` : `Encounter ${id} (${source})`
-  }
+  const encounterAt = sourceAwareLabel(parsedEncounters, 'Encounter')
 
   const catalog: ContentCatalog = {
-    cards: indexById(parseAll(raw.cards, cardSchema, 'card'), 'card'),
+    cards: indexById(parsedCards, 'card'),
     keywords: indexById(parseAll(raw.keywords, keywordSchema, 'keyword'), 'keyword'),
     chargeModifiers: indexById(parseAll(raw.chargeModifiers, chargeModifierSchema, 'charge modifier'), 'charge modifier'),
     hazards: indexById(parseAll(raw.hazards, hazardSchema, 'hazard'), 'hazard'),
@@ -158,6 +164,22 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
   }
 
   for (const card of Object.values(catalog.cards)) {
+    if (card.burst_radius > 0 && card.damage < 1) {
+      throw new Error(`${cardAt(card.id)} declares burst_radius ${card.burst_radius} but deals no damage`)
+    }
+    if (card.burst_radius > 0 && card.target_type !== 'hex') {
+      throw new Error(`${cardAt(card.id)} declares burst_radius ${card.burst_radius} but does not target a hex`)
+    }
+    if (card.push_tiles > 0 && card.pull_tiles > 0) {
+      throw new Error(`${cardAt(card.id)} declares both push_tiles and pull_tiles`)
+    }
+    const displacementField = card.push_tiles > 0 ? 'push_tiles' : card.pull_tiles > 0 ? 'pull_tiles' : ''
+    if (displacementField !== '' && card.target_type !== 'piece') {
+      throw new Error(`${cardAt(card.id)} declares ${displacementField} but does not target a piece`)
+    }
+    if (displacementField !== '' && card.range_tiles < 1) {
+      throw new Error(`${cardAt(card.id)} declares ${displacementField} but has range_tiles below 1`)
+    }
     for (const modifierId of card.charge_modifiers) {
       if (!catalog.chargeModifiers[modifierId]) {
         throw new Error(`Card ${card.id} references unknown charge modifier ${modifierId}`)
@@ -247,6 +269,72 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     }
   }
   return catalog
+}
+
+// Every authored definition that can change one selected Encounter's rules.
+// The Content Catalog owns this traversal because it already owns the
+// cross-reference graph. Consumers decide what to do with the result: an
+// Encounter Record sorts and hashes it, while evaluation decks and Scenarios
+// stay outside because neither changes the Encounter reached at runtime.
+export function reachableEncounterContent(catalog: ContentCatalog, encounterId: string): Map<string, unknown> {
+  const encounter = catalog.encounters[encounterId]
+  if (!encounter) {
+    throw new Error(`Unknown encounter: ${encounterId}`)
+  }
+
+  const reachable = new Map<string, unknown>()
+  const requireDefinition = <T>(kind: string, id: string, definitions: Record<string, T>): T => {
+    const definition = definitions[id]
+    if (!definition) {
+      throw new Error(`Encounter ${encounterId} reaches unknown ${kind} ${id}`)
+    }
+    reachable.set(`${kind}:${id}`, definition)
+    return definition
+  }
+  const addKeyword = (id: string): void => {
+    requireDefinition('keyword', id, catalog.keywords)
+  }
+  const visitedCards = new Set<string>()
+  const addCard = (id: string): void => {
+    const card = requireDefinition('card', id, catalog.cards)
+    if (visitedCards.has(id)) {
+      return
+    }
+    visitedCards.add(id)
+    card.tags.forEach(addKeyword)
+    for (const modifierId of card.charge_modifiers) {
+      const modifier = requireDefinition('charge_modifier', modifierId, catalog.chargeModifiers)
+      if (modifier.keyword_id !== '') {
+        addKeyword(modifier.keyword_id)
+      }
+    }
+    if (card.applies_status !== '') {
+      requireDefinition('status', card.applies_status, catalog.statuses)
+    }
+  }
+  const visitedPrograms = new Set<string>()
+  const addProgram = (id: string): void => {
+    const program = requireDefinition('boss_program', id, catalog.programs)
+    if (visitedPrograms.has(id)) {
+      return
+    }
+    visitedPrograms.add(id)
+    for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
+      if (beat.hazard) {
+        requireDefinition('hazard', beat.hazard, catalog.hazards)
+      }
+      if (beat.minion) {
+        requireDefinition('minion', beat.minion, catalog.minions)
+      }
+    }
+  }
+
+  reachable.set(`encounter:${encounterId}`, encounter)
+  encounter.player_deck.forEach((entry) => addCard(entry.card))
+  for (const programId of [...encounter.boss_programs, ...encounter.phase_two_programs]) {
+    addProgram(programId)
+  }
+  return reachable
 }
 
 // The Top Card alone determines activation timing; legacy "fast" reads as quick.

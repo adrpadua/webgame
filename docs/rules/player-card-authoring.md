@@ -13,8 +13,8 @@ Every player card has these authored fields:
 | `rules_text` | Complete, encounter-neutral mechanical text. It is the canonical card rules text. |
 | `speed` | `quick` for basics, setup, movement-adjacent effects, and low-commitment responses; `slow` for larger commitments and signature effects. |
 | `max_charge` | The Top Card's Charge Value: the maximum number of tucked cards it can hold. The engine default is `2`; the foundation cards `Steady Strike` and `Iron Guard` use `3`. |
-| `target_type` and `range_tiles` | Define what must be selected and where it is legal to use the card. `none` needs no selection, `piece` selects an Enemy, `board_slot` selects an ally's Top Card. Never imply a target in text that the data model does not enforce. |
-| Effect fields | State the base effect in the corresponding data field: Boss damage, Armor, healing, or targeted Minion damage. |
+| `target_type` and `range_tiles` | Define what must be selected and where it is legal to use the card. `none` needs no selection, `piece` selects a Minion, `hex` selects an on-board hex (including empty ground) for a Burst, and `board_slot` selects an ally's Top Card. Never imply a target in text that the data model does not enforce. |
+| Effect fields | State the base effect in the corresponding data field: Boss damage, Armor, healing, targeted Minion damage, Push/Pull distance, or a Burst radius. A positive `burst_radius` requires positive `damage` and `target_type: hex`. |
 | `applies_status` | A status id from `data/statuses/` (D-033). Where it lands follows `target_type`: `none` applies it to the firing Hero, `piece` to the selected Enemy, `board_slot` to an ally's Top Card. Apply an existing status rather than authoring a near-duplicate — a second Sundered with different text is how a shared vocabulary stops being shared. |
 | `tags` | Registered Keyword IDs from `data/keywords/` (ADR 0020). |
 | `charge_modifiers` | Explicit Charge Modifier Resources; never imply a bonus that is absent from data. |
@@ -35,7 +35,7 @@ Player cards are independent of a specific encounter. Use these canonical target
 
 `Enemy` is the umbrella rules term: the Boss and all Minions are Enemies, but a Boss is never a Minion. Boss programs own named Minions, named arena elements, and encounter-specific exceptions. A player card may name a broad mechanic such as `Scorched` only when that mechanic is part of the shared rules vocabulary rather than one encounter's private label.
 
-The current prototype has no generic Enemy target selector. `boss_damage` resolves against the Boss directly, while `PIECE` targeting selects a Minion on the board. Do not author `an Enemy` as a selectable target until the runtime can legally select either kind; author `the boss` or `a Minion` instead.
+The current prototype has no generic Enemy **piece** selector. `boss_damage` resolves against the Boss directly, while `piece` targeting selects a Minion on the board. A Burst instead selects a hex and then damages every Enemy in its footprint, including the Boss (ADR 0030); it does not make either Enemy type the selected target. Do not author `an Enemy` as a selectable piece until the runtime can legally select either kind; author `the boss`, `a Minion`, or a Burst centered on a hex instead.
 
 ### State the Base Effect First
 

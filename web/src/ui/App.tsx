@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { PhaserBoard } from '@/board/PhaserBoard'
+import { fireTargeting } from '@/engine'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { BossEmblem, HeroEmblem } from './icons'
@@ -83,13 +84,16 @@ function PlayoutContinue() {
 function TargetingBanner() {
   const targetingSlotIndex = useWorkbench((store) => store.targetingSlotIndex)
   const cancelTargeting = useWorkbench((store) => store.cancelTargeting)
+  const catalog = useWorkbench((store) => store.catalog)
+  const state = useWorkbench(selectState)
   if (targetingSlotIndex === null) {
     return null
   }
+  const targetMode = fireTargeting(catalog, state, state.primaryHeroId, targetingSlotIndex).mode
   return (
     <div className="absolute top-40 right-3 left-3 z-10" data-testid="targeting-banner">
       <div className="wb-plate wb-plate-sm wb-face-steel wb-acc-gold flex items-center justify-between py-2 text-xs font-semibold text-gold-100 shadow-lg">
-        <span>Pick a Minion</span>
+        <span>{targetMode === 'hex' ? 'Pick a hex' : 'Pick a piece'}</span>
         <button
           type="button"
           onClick={cancelTargeting}

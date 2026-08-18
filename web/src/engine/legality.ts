@@ -1,5 +1,5 @@
 import { cardChargeCap, cardWindowSpeed, type ContentCatalog } from './content/catalog'
-import { hexDistance } from './hex'
+import { hexDistance, hexKey } from './hex'
 import { isLegalMove } from './board'
 import { getStatus } from './statuses'
 import type { EncounterActionInput } from './actions'
@@ -15,6 +15,22 @@ function illegal(reason: string): LegalityVerdict {
 
 function handCard(hero: HeroState | undefined, cardInstanceId: string): CardInstance | undefined {
   return hero?.hand.find((card) => card.instanceId === cardInstanceId)
+}
+
+function rangeVerdict(
+  state: EncounterState,
+  sourceId: string,
+  targetId: string,
+  maximumRange: number,
+  outsideReason: string,
+): LegalityVerdict {
+  const source = state.board.entities[sourceId]
+  const target = state.board.entities[targetId]
+  if (!source || !target) {
+    return illegal('The selected piece is unavailable.')
+  }
+  const targetRange = hexDistance(source.coords, target.coords)
+  return targetRange > maximumRange ? { ...illegal(outsideReason), targetRange } : { ...legal(), targetRange }
 }
 
 // The single statement of every pre-resolution rule (ADR 0014): an action is
@@ -77,18 +93,43 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       if (cardWindowSpeed(card) !== state.phase) {
         return illegal('The Top Card cannot fire in this window.')
       }
-      if (card.damage > 0) {
+      const hasDisplacement = card.push_tiles > 0 || card.pull_tiles > 0
+      let targetVerdict: LegalityVerdict | undefined
+      if (card.burst_radius > 0) {
+        const targetHex = action.targetHex
+        const source = state.board.entities[action.sourceId]
+        if (!targetHex || !source || state.board.hexes[hexKey(targetHex)] === undefined) {
+          return illegal('The Top Card needs an on-board hex target.')
+        }
+        const targetRange = hexDistance(source.coords, targetHex)
+        if (targetRange > card.range_tiles) {
+          return { ...illegal("The chosen hex is outside the Top Card's range."), targetRange }
+        }
+        targetVerdict = { ...legal(), targetRange }
+      }
+      if (card.damage > 0 && card.burst_radius === 0) {
         const targetId = action.targetId ?? ''
         const target = state.board.entities[targetId]
-        const source = state.board.entities[action.sourceId]
         if (!target || target.kind !== 'minion') {
           return illegal('The Top Card needs a Minion target.')
         }
-        const targetRange = hexDistance(source.coords, target.coords)
-        if (targetRange > card.range_tiles) {
-          return { ...illegal("The chosen Minion is outside the Top Card's range."), targetRange }
+        const verdict = rangeVerdict(state, action.sourceId, targetId, card.range_tiles, "The chosen Minion is outside the Top Card's range.")
+        if (!verdict.legal) {
+          return verdict
         }
-        return { ...legal(), targetRange }
+        targetVerdict = verdict
+      }
+      if (hasDisplacement) {
+        const targetId = action.targetId ?? ''
+        const target = state.board.entities[targetId]
+        if (!target || targetId === action.sourceId) {
+          return illegal('The Top Card needs another piece target.')
+        }
+        const verdict = rangeVerdict(state, action.sourceId, targetId, card.range_tiles, "The chosen piece is outside the Top Card's range.")
+        if (!verdict.legal) {
+          return verdict
+        }
+        targetVerdict = verdict
       }
       // A card applying an enemy-facing status needs an Enemy, and each kind
       // keeps the targeting rule it already had (D-034): a Minion must be in
@@ -102,16 +143,16 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
           return illegal('The Top Card needs an Enemy target.')
         }
         if (target.kind === 'boss') {
-          return legal()
+          return targetVerdict ?? legal()
         }
-        const source = state.board.entities[action.sourceId]
-        const targetRange = hexDistance(source.coords, target.coords)
-        if (targetRange > card.range_tiles) {
-          return { ...illegal("The chosen Enemy is outside the Top Card's range."), targetRange }
+        if (targetVerdict === undefined) {
+          targetVerdict = rangeVerdict(state, action.sourceId, targetId, card.range_tiles, "The chosen Enemy is outside the Top Card's range.")
+          if (!targetVerdict.legal) {
+            return targetVerdict
+          }
         }
-        return { ...legal(), targetRange }
       }
-      return legal()
+      return targetVerdict ?? legal()
     }
     case 'move_hero': {
       const hero = state.heroes[action.sourceId]
