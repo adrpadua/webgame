@@ -42,10 +42,8 @@ interface PlayoutStore {
   momentSeq: number
   momentEffects: BoardEffect[]
   // What unplayed moments will do, so the board can hold it back: hazards
-  // stay undrawn, ground an unplayed moment gives back stays burnt, spawns
-  // stay unseen, a turning piece keeps its old facing.
+  // stay undrawn, spawns stay unseen, a turning piece keeps its old facing.
   pendingScorchKeys: string[]
-  pendingCoolKeys: string[]
   pendingSpawnIds: string[]
   pendingFacings: Record<string, number>
   begin: (script: PlayoutScript, autoAdvance: boolean) => void
@@ -66,17 +64,14 @@ function cancelTimers(): void {
 }
 
 // Everything the moments after `index` will show, summarized for the board.
-function pendingAfter(index: number): Pick<PlayoutStore, 'pendingScorchKeys' | 'pendingCoolKeys' | 'pendingSpawnIds' | 'pendingFacings'> {
+function pendingAfter(index: number): Pick<PlayoutStore, 'pendingScorchKeys' | 'pendingSpawnIds' | 'pendingFacings'> {
   const pendingScorchKeys: string[] = []
-  const pendingCoolKeys: string[] = []
   const pendingSpawnIds: string[] = []
   const pendingFacings: Record<string, number> = {}
   for (const moment of moments.slice(index + 1)) {
     for (const effect of moment.effects) {
       if (effect.kind === 'scorch') {
         pendingScorchKeys.push(hexKey(effect.at))
-      } else if (effect.kind === 'cool') {
-        pendingCoolKeys.push(hexKey(effect.at))
       } else if (effect.kind === 'spawn') {
         pendingSpawnIds.push(effect.entityId)
       } else if (effect.kind === 'turn' && effect.fromFacing !== undefined && !(effect.entityId in pendingFacings)) {
@@ -84,7 +79,7 @@ function pendingAfter(index: number): Pick<PlayoutStore, 'pendingScorchKeys' | '
       }
     }
   }
-  return { pendingScorchKeys, pendingCoolKeys, pendingSpawnIds, pendingFacings }
+  return { pendingScorchKeys, pendingSpawnIds, pendingFacings }
 }
 
 const IDLE = {
@@ -95,7 +90,6 @@ const IDLE = {
   awaitingContinue: false,
   paced: false,
   pendingScorchKeys: [],
-  pendingCoolKeys: [],
   pendingSpawnIds: [],
   pendingFacings: {},
 }
@@ -174,7 +168,6 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
         !store.outcomeHeld &&
         Object.keys(store.overrides).length === 0 &&
         store.pendingScorchKeys.length === 0 &&
-        store.pendingCoolKeys.length === 0 &&
         store.pendingSpawnIds.length === 0
           ? store
           : { ...store, ...IDLE },

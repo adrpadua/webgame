@@ -26,6 +26,12 @@ import { easeOutCubic, hexNoise } from './math'
 //   ash      — scorched coral takes the tile, at a coverage this module states
 //              and the scene composites (palette.ts owns that arithmetic)
 //
+// And a fourth, which is the same event running backwards: a temporary Hazard
+// expires at a Round boundary and the ground comes back. Both halves live here
+// because they are one choreography — the second one undoes exactly what the
+// first one did, on the same tile, out of the same hash — and splitting them
+// would put the two ends of one crossfade in two files.
+//
 // Everything is flat-filled with hard edges: the interface direction bans
 // blur and gradient ramps, and a flame drawn as a soft glow would be the one
 // thing on the board rendered in a different model. A tongue is a solid
@@ -90,8 +96,11 @@ const SWAY_REACH = 0.12
 const EMBER_COUNT = 4
 const EMBER_SPREAD = 0.5
 const EMBER_SIZE = 0.075
-// The window their deaths fall in. None survives the fade, and none goes out
-// on the first frame, so the tile is never bare while it is still cooling.
+// The window their deaths fall in. None goes out on the first frame, and the
+// last goes out as the ash finishes lifting — by 0.9 the tile is already
+// within a hair of clean ground, so no ember is ever left glowing on a hex
+// that has finished cooling, and none winks out while the ash is still plainly
+// there.
 const EMBER_FIRST_DEATH = 0.3
 const EMBER_LAST_DEATH = 0.9
 
@@ -109,9 +118,12 @@ export interface FlameTongue {
 }
 
 // One ember still alight on a cooling hex, as a filled shape relative to that
-// hex's centre.
+// hex's centre. `heat` is 1 the moment it is exposed and 0 as it goes out; the
+// scene spends it as a value between the ember material and the ash it lies
+// on, so an ember cools into the ground rather than vanishing off it.
 export interface Ember {
   points: Point[]
+  heat: number
 }
 
 // Salts 1 and up, so no draw here collides with the floor's own shade at
@@ -241,14 +253,15 @@ export function coolProgress(t: number): number {
 }
 
 // The embers left on a cooling hex, in pixels relative to its centre. Each is
-// a small flat diamond that holds its value and then goes out; they die at
+// a small flat diamond that cools where it lies and then goes out; they die at
 // staggered moments, so the hex darkens by losing its last points of heat one
 // at a time rather than by dimming as a whole.
 //
-// Nothing here moves — an ember neither drifts nor pulses — so unlike the
-// flames these are not what reduced motion turns off. What that setting gets
-// is the same hex, cooling, with the embers holding still until they go.
-export function dyingEmbers(coords: Axial, t: number): Ember[] {
+// No ember travels — none drifts, none pulses, and where each one lies is
+// fixed for the life of the effect. What does change is size, and that is what
+// reduced motion takes: there the embers hold one size and simply go out, so
+// the setting removes the animation without removing the event.
+export function dyingEmbers(coords: Axial, t: number, reducedMotion: boolean): Ember[] {
   if (t < 0 || t >= EMBER_LAST_DEATH) {
     return []
   }
@@ -262,10 +275,10 @@ export function dyingEmbers(coords: Axial, t: number): Ember[] {
     // reads as belonging to the boundary between two hexes.
     const x = (hexNoise(coords, EMBER_X_SALT + index) - 0.5) * 2 * EMBER_SPREAD * HEX_SIZE
     const y = (hexNoise(coords, EMBER_Y_SALT + index) - 0.5) * 2 * EMBER_SPREAD * HEX_SIZE * 0.72
-    // It shrinks as its own death approaches rather than fading: a flat shape
+    // It closes down toward its own death rather than fading out: a flat shape
     // going translucent is a dissolve, and this palette has no dissolve in it.
-    const life = 1 - t / death
-    const radius = EMBER_SIZE * HEX_SIZE * (0.45 + 0.55 * life)
+    const heat = 1 - t / death
+    const radius = EMBER_SIZE * HEX_SIZE * (reducedMotion ? 1 : 0.45 + 0.55 * heat)
     embers.push({
       points: [
         { x, y: y - radius },
@@ -273,6 +286,7 @@ export function dyingEmbers(coords: Axial, t: number): Ember[] {
         { x, y: y + radius },
         { x: x - radius * 0.7, y },
       ],
+      heat,
     })
   }
   return embers

@@ -146,7 +146,7 @@ describe('hex burn', () => {
   })
 
   it('puts out the embers one at a time, and all of them', () => {
-    const alight = (t: number) => dyingEmbers(HEX, t).length
+    const alight = (t: number) => dyingEmbers(HEX, t, false).length
     expect(alight(0)).toBe(4)
     expect(alight(1)).toBe(0)
     // They go out separately rather than together — the hex loses its last
@@ -162,11 +162,11 @@ describe('hex burn', () => {
 
   it('scatters the embers inside the hex, and the same way every time', () => {
     const halfWidth = (HEX_SIZE * Math.sqrt(3)) / 2
-    expect(dyingEmbers(HEX, 0.2)).toEqual(dyingEmbers(HEX, 0.2))
-    expect(dyingEmbers(HEX, 0.2)).not.toEqual(dyingEmbers({ q: 1, r: 0 }, 0.2))
+    expect(dyingEmbers(HEX, 0.2, false)).toEqual(dyingEmbers(HEX, 0.2, false))
+    expect(dyingEmbers(HEX, 0.2, false)).not.toEqual(dyingEmbers({ q: 1, r: 0 }, 0.2, false))
     for (const coords of [HEX, { q: 2, r: -1 }, { q: -3, r: 4 }]) {
       for (const t of frames(20)) {
-        for (const ember of dyingEmbers(coords, t)) {
+        for (const ember of dyingEmbers(coords, t, false)) {
           for (const point of ember.points) {
             expect(Math.abs(point.x)).toBeLessThan(halfWidth)
             expect(Math.abs(point.y)).toBeLessThan(HEX_SIZE)
@@ -174,6 +174,39 @@ describe('hex burn', () => {
         }
       }
     }
+  })
+
+  it('cools every ember toward the ash it lies on', () => {
+    // Heat is what the scene spends between the two authored materials, so an
+    // ember that never cooled would go out at full value — a dot winking off
+    // rather than a point of heat sinking into the ground.
+    for (const ember of dyingEmbers(HEX, 0.05, false)) {
+      expect(ember.heat).toBeGreaterThan(0.8)
+    }
+    for (const ember of dyingEmbers(HEX, 0.55, false)) {
+      expect(ember.heat).toBeLessThan(0.6)
+    }
+    for (const t of frames()) {
+      for (const ember of dyingEmbers(HEX, t, false)) {
+        expect(ember.heat).toBeGreaterThan(0)
+        expect(ember.heat).toBeLessThanOrEqual(1)
+      }
+    }
+  })
+
+  it('holds the embers at one size under reduced motion, and still puts them out', () => {
+    // Where each ember lies never changes; its size does, and that is the one
+    // thing in the expiry that setting has to take. What it must not take is
+    // the event — the hex still cools, and the embers still go out.
+    const sizes = frames(12).map((t) => dyingEmbers(HEX, t, true).map((ember) => spanY(ember.points)))
+    const steady = sizes.flat()
+    expect(steady.length).toBeGreaterThan(0)
+    expect(new Set(steady.map((size) => size.toFixed(6))).size).toBe(1)
+    expect(dyingEmbers(HEX, 0, true).length).toBe(4)
+    expect(dyingEmbers(HEX, 1, true)).toEqual([])
+    // Live, the same embers close down as they die.
+    const shrinking = frames(12).flatMap((t) => dyingEmbers(HEX, t, false).map((ember) => spanY(ember.points)))
+    expect(new Set(shrinking.map((size) => size.toFixed(6))).size).toBeGreaterThan(1)
   })
 
   it('lands the charring on the two materials it runs between', () => {
