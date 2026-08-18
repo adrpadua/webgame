@@ -82,7 +82,7 @@ interface RunMetrics {
   riposteEarly: number
   rejected: number
   minionsKilled: number
-  slowHeld: number
+  shovesHeld: number
   burntHexes: number
 }
 
@@ -118,8 +118,8 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     sword_shield: { 0: 'steady_strike', 1: 'iron_guard' },
     turtle: { 0: 'iron_guard', 1: 'fortify' },
     culler: { 0: 'sweeping_blow', 1: 'iron_guard' },
-    forecast_reader: { 0: 'iron_guard', 1: 'fortify' },
-    forecast_blind: { 0: 'iron_guard', 1: 'fortify' },
+    forecast_reader: { 0: 'drive_back', 1: 'fortify' },
+    forecast_blind: { 0: 'drive_back', 1: 'fortify' },
   }
   const wanted: Record<number, string> = WANTED_BY_PLAN[knobs.slotPlan]
   const hand = () => state.heroes[heroId].hand
@@ -191,6 +191,24 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     return pool
   }
 
+  // The entire difference between `forecast_reader` and `forecast_blind`.
+  // Drive Back shoves the Boss out of cone range, and the price is the Guarded
+  // Front: standing two hexes back means next Round's Raking Claw lands with
+  // its unguarded bonus. Only the Forecast Row can say whether next Round
+  // carries one, so this is the read, and holding the shove is what reading it
+  // buys.
+  const shouldFireSlot = (slotIndex: number, cardId: string): boolean => {
+    if (knobs.slotPlan !== 'forecast_reader' || catalog.cards[cardId].push_tiles === 0) {
+      return true
+    }
+    const ahead = forecast(catalog, state)
+    if (ahead !== null && ahead.counterTags.includes('Mitigate')) {
+      shovesHeld += 1
+      return false
+    }
+    return true
+  }
+
   const chargeSlots = () => {
     for (const slotIndex of [0, 1]) {
       let safety = 0
@@ -249,6 +267,22 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
       if (!top || slot(slotIndex).charges.length === 0) {
         continue
       }
+      if (!shouldFireSlot(slotIndex, top.cardId)) {
+        continue
+      }
+      // Forced Movement needs another piece in range. The Boss is the target
+      // that matters: shoving it moves the cone's origin and the Guarded Front
+      // together, which is repositioning the fight without walking.
+      const card0 = catalog.cards[top.cardId]
+      if (card0.push_tiles > 0 || card0.pull_tiles > 0) {
+        const here0 = state.board.entities[heroId].coords
+        const boss = state.board.entities[state.bossId]
+        const reach = boss && hexDistance(boss.coords, here0) <= card0.range_tiles ? boss : minionsByRange().find((e) => hexDistance(e.coords, here0) <= card0.range_tiles)
+        if (reach) {
+          submit({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetId: reach.id })
+        }
+        continue
+      }
       // A piece-targeting Top Card is illegal without a Minion in range, so
       // supply one rather than firing into a rejection.
       const card = catalog.cards[top.cardId]
@@ -265,7 +299,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
   }
 
   let checkpoint = false
-  let slowHeld = 0
+  let shovesHeld = 0
   let guard = 0
   while (state.active && guard < 400) {
     guard += 1
@@ -340,14 +374,6 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
         // for. A program that does not (Ember, Ashfall) deals its damage through
         // a dodgeable cone instead, so the cards are worth more in hand as move
         // fuel than spent on Armor that will be wiped unused.
-        if (knobs.slotPlan === 'forecast_reader') {
-          const ahead = forecast(catalog, state)
-          if (ahead !== null && !ahead.counterTags.includes('Mitigate')) {
-            slowHeld += 1
-            advance()
-            break
-          }
-        }
         chargeSlots()
         fireReadySlots()
         advance()
@@ -420,7 +446,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     riposteEarly,
     rejected,
     minionsKilled,
-    slowHeld,
+    shovesHeld,
     burntHexes,
   }
 }
@@ -494,7 +520,7 @@ for (const knobs of variants) {
     escFromAdds: avg((run) => run.escalationFromDemands),
     whelpKills: avg((run) => run.minionsKilled),
     burnt: avg((run) => run.burntHexes),
-    slowHeld: avg((run) => run.slowHeld),
+    held: avg((run) => run.shovesHeld),
     bossDmg: avg((run) => run.bossDamage),
     dmgSpread: spread((run) => run.bossDamage),
     ripGrant: avg((run) => run.riposteGranted),

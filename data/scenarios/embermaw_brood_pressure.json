@@ -4,14 +4,14 @@
   "version": 1,
   "description": "The solo-ceiling line paused entering Round 4: Whelps standing, slot engines running.",
   "encounter": "embermaw_prototype",
-  "seed": 6,
+  "seed": 8,
   "steps": [
     {
       "action": {
         "kind": "load_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "steady_strike_6"
+        "cardInstanceId": "steady_strike_4"
       }
     },
     {
@@ -28,7 +28,7 @@
           "q": 1,
           "r": 0
         },
-        "cardInstanceId": "fortify_18"
+        "cardInstanceId": "fortify_15"
       }
     },
     {
@@ -36,7 +36,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "iron_guard_10"
+        "cardInstanceId": "shield_slam_17"
       }
     },
     {
@@ -44,7 +44,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "sweeping_blow_15"
+        "cardInstanceId": "shield_slam_18"
       }
     },
     {
@@ -85,7 +85,7 @@
           "q": 2,
           "r": -1
         },
-        "cardInstanceId": "fortify_17"
+        "cardInstanceId": "fortify_16"
       }
     },
     {
@@ -93,7 +93,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 1,
-        "cardInstanceId": "iron_guard_14"
+        "cardInstanceId": "iron_guard_10"
       }
     },
     {
@@ -101,7 +101,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 1,
-        "cardInstanceId": "sweeping_blow_16"
+        "cardInstanceId": "iron_guard_8"
       }
     },
     {
