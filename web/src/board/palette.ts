@@ -120,7 +120,15 @@ export function toneColors(): Record<'hero' | 'boss' | 'guard' | 'heal' | 'hazar
 // against that number rather than chosen: they put the cone at L=0.219 and the
 // spawn at L=0.117, both clear of the Boss, 13.7 dE apart, and carrying three
 // to four times the chroma they did.
-export const TELEGRAPH_ALPHA = { cone: 0.7, spawn: 0.58 } as const
+//
+// The cone came down from 0.70 after the first look at it in play: at that
+// value a Cinder Breath lights several hexes at once and the loudest thing on
+// the board was the scenery of the warning rather than the warning. 0.62 keeps
+// every relationship the ranking needs — the cone still sits 1.76x the Boss and
+// 1.55x the spawn — and spends less of the board doing it. The floor for the
+// cone is nearer 0.58 than 0.62; the value is chosen for how it reads, not for
+// the last place the bound would still hold.
+export const TELEGRAPH_ALPHA = { cone: 0.62, spawn: 0.58 } as const
 
 // The measured warm median of the Boss sprite, which the telegraphs have to
 // clear. Taken from facing E; the whole sheet reads 0.1033, and the higher
