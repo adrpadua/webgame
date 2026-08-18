@@ -97,7 +97,7 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       const hasDisplacement = card.push_tiles > 0 || card.pull_tiles > 0
       let targetVerdict: LegalityVerdict | undefined
       // Every hex-targeting card needs a reachable on-board hex, not only a
-      // Burst: since D-046 a card may also put a Counter on the ground, and
+      // Burst: since D-048 a card may also put a Counter on the ground, and
       // ground it cannot reach is the same illegal target either way.
       if (card.target_type === 'hex') {
         const targetHex = action.targetHex
@@ -112,7 +112,7 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
         targetVerdict = { ...legal(), targetRange }
       }
       // A Slot-targeting card needs a Slot holding a prepared card (D-035,
-      // reachable since D-046). Counters ride the Top Card, so an empty Slot
+      // reachable since D-048). Counters ride the Top Card, so an empty Slot
       // has nothing to carry them.
       if (card.target_type === 'board_slot') {
         const slotIndex = action.targetSlotIndex
@@ -147,7 +147,7 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       }
       // A card that places a Counter on a piece, or reads one there, needs an
       // Enemy, and each kind keeps the targeting rule it already had (D-034,
-      // kept by D-045): a Minion must be in range, the Boss needs none —
+      // kept by D-047): a Minion must be in range, the Boss needs none —
       // requiring one would contradict the positionless `boss_damage` ruling.
       const needsEnemyPiece =
         card.target_type === 'piece' && (card.places_counter !== '' || card.reads.some((reader) => reader.on === 'target'))

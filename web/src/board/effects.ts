@@ -1,4 +1,5 @@
 import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type ResolvedActionFact } from '@/engine'
+import { BOSS_DEFEAT_MS } from './defeat'
 
 // Resolution Facts are the only thing the board animates from. Every beat of
 // motion on the board — a lunge, a hit, a step, a spawn — is derived from a
@@ -7,7 +8,22 @@ import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type
 
 export type EffectTone = 'hero' | 'boss' | 'guard' | 'heal' | 'hazard'
 
-export type BoardEffectKind = 'strike' | 'cast' | 'hit' | 'block' | 'move' | 'spawn' | 'defeat' | 'blast' | 'scorch' | 'cool' | 'turn'
+// `defeat` is a Minion's, which removes the piece; `boss_defeat` is the Boss's,
+// which does not — CONTEXT.md settles them as different rules and they are
+// different events on the board too.
+export type BoardEffectKind =
+  | 'strike'
+  | 'cast'
+  | 'hit'
+  | 'block'
+  | 'move'
+  | 'spawn'
+  | 'defeat'
+  | 'boss_defeat'
+  | 'blast'
+  | 'scorch'
+  | 'cool'
+  | 'turn'
 
 // How far apart consecutive Boss Beats start. The rules resolve a whole
 // track in one batch; the board replays that batch one beat at a time so
@@ -16,9 +32,11 @@ export const BEAT_STAGGER_MS = 700
 
 // How long after the last beat starts before staggered presentation (the
 // HUD's gauge overrides) settles back onto the authoritative state: the
-// longest effect that holds presentation state (BoardScene's
-// EFFECT_DURATION.blast — change them together), so no claim the HUD is
-// making is reclaimed mid-animation.
+// longest effect that holds presentation state, which is the blast and now
+// the spawn alongside it — a spawn holds a Minion off the board until its own
+// beat plays, and it is exactly this long (BoardScene's EFFECT_DURATION for
+// both; change them together). No claim the board or the HUD is making is
+// reclaimed mid-animation.
 //
 // Feedback that claims nothing may outlast it, and the ground does at both
 // ends: a burn runs 900ms and an expiry 640 (EFFECT_DURATION.scorch and
@@ -28,6 +46,13 @@ export const BEAT_STAGGER_MS = 700
 // instead would hold every Continue prompt in the game behind the longest
 // animation on it.
 export const EFFECT_SETTLE_MS = 560
+
+// How long a batch that ended the Encounter holds its outcome back. The
+// settle above is about gauges, and the reveal is not: the Boss going out is
+// the one thing on the board the banner is *about*, so a Victory plate landing
+// over a body still venting light would be the board announcing an ending it
+// has not finished showing. It waits for the fall.
+export const OUTCOME_REVEAL_MS = Math.max(EFFECT_SETTLE_MS, BOSS_DEFEAT_MS)
 
 export interface BoardEffect {
   kind: BoardEffectKind
@@ -173,6 +198,14 @@ export function deriveBoardEffects(
         }
         if (fact.resolutionFact?.target_removed === true) {
           add({ kind: 'defeat', entityId: targetId, at, tone: 'hero' })
+        }
+        // The Boss is the one piece a killing blow leaves standing:
+        // `checkResolution` ends the Encounter and the body stays on its hex,
+        // so nothing above says the fight is over. Read the health rather than
+        // the outcome — a Boss at zero is what the rules acted on, and the
+        // Encounter can end for reasons that have nothing to do with this hex.
+        if (targetId === before.bossId && (after.board.entities[after.bossId]?.health ?? 1) <= 0) {
+          add({ kind: 'boss_defeat', entityId: targetId, at, tone: 'boss' })
         }
         break
       }

@@ -12,6 +12,7 @@ Use this directory for the durable record of how the game works and why it is bu
 - [content/oathcraft-interface-direction.md](content/oathcraft-interface-direction.md): the locked interface direction — materials, palette, plate geometry, components
 - [content/oathcraft-board-direction.md](content/oathcraft-board-direction.md): the locked board direction — tints, lighting, and motion, consuming the palette above
 - [content/design-team-handoff.md](content/design-team-handoff.md): supported `data/` JSON content schemas and the designer validation/playtest loop
+- [artifacts/sprite-sheet-pipeline.md](artifacts/sprite-sheet-pipeline.md): how a board piece gets from a prompt to a pixel, and what checks each stage
 - [artifacts](artifacts): catalog of implementation and gameplay artifacts — see its [README](artifacts/README.md) first, because most of it is a Godot-era record
 - [agents](agents): repository-maintenance material for coding agents, including the [agent recovery kit](agents/recovery-kit.md) and copy-ready role prompts
 

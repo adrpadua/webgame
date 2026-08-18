@@ -12,7 +12,7 @@ export const SHIELD_SLAM = 'shield_slam'
 // express, which is exactly why D-033 left it there.
 export const ENGINE_COUNTERS = [FORTIFIED, RIPOSTE_READY]
 
-// Where a Counter lives, as one tagged string (D-046). Counters were keyed by
+// Where a Counter lives, as one tagged string (D-048). Counters were keyed by
 // entity id while combatants were the only host; the moment ground and
 // prepared cards can hold one too, the key has to say *what kind* of thing it
 // names, or the upkeep cannot tell a Minion that died from a hex that is
@@ -44,7 +44,7 @@ export function refEntityId(ref: CounterRef): string {
 }
 
 // Whether the thing a ref names is still there. A Counter never outlives its
-// host: a Minion's mark dies with the Minion (D-043), ground that burned away
+// host: a Minion's mark dies with the Minion (D-045), ground that burned away
 // takes its Counters with it, and a Slot's Counters go when its Top Card does.
 function hostIsLive(state: EncounterState, ref: CounterRef): boolean {
   const [kind, ...rest] = ref.split(':')
@@ -181,7 +181,7 @@ export function readerSum(
         continue
       }
       // A Reader with no `event_keyword` answers every event of its kind; one
-      // that names a Keyword answers only the events carrying it (D-047). So
+      // that names a Keyword answers only the events carrying it (D-049). So
       // "takes 1 more from everything" and "takes 1 more from Raid Hits" are
       // the same Reader with one field different.
       if (reader.event_keyword && !eventKeywords.includes(reader.event_keyword)) {
@@ -279,7 +279,7 @@ export function createFromDefinition(
 // start, after the wipe, so Fortify answers the next Round's pressure —
 // including Instant-row hits nothing else can pre-block.
 //
-// The banked Armor is the count (D-045). Firing Fortify twice in one window
+// The banked Armor is the count (D-047). Firing Fortify twice in one window
 // places twice the Counters onto one stack, which is the additive stacking
 // D-019 asked for, arrived at by addition rather than by a flag.
 export function createFortified(

@@ -56,7 +56,10 @@ const DEMANDS: {
   // those from the pool bills the party on a Round the Timeline never showed
   // the Beat, which is ADR 0027's disclosure rule broken from the inside.
   scope: 'pool' | 'program'
-  standing: (state: EncounterState) => boolean
+  // `rangeTiles` is the authored reach of the Beat that set the price, so a
+  // demand that asks a distance question asks the authored one. A demand with
+  // no distance in it simply ignores the argument.
+  standing: (state: EncounterState, rangeTiles: number) => boolean
 }[] = [
   {
     kind: 'spawn_minions',
@@ -81,29 +84,32 @@ const DEMANDS: {
     // Guarded Front's bonus made being close *safer*. Boss movement cannot fix
     // that — chasing a camper only pushes them onto the front. A demand that
     // being far *is* the failure of cannot be dodged by being far.
-    standing: (state) => {
+    standing: (state, rangeTiles) => {
       const boss = state.board.entities[state.bossId]
       if (!boss) {
         return false
       }
       return !Object.keys(state.heroes).some((heroId) => {
         const piece = state.board.entities[heroId]
-        return piece !== undefined && hexDistance(piece.coords, boss.coords) <= 1
+        return piece !== undefined && hexDistance(piece.coords, boss.coords) <= rangeTiles
       })
     },
   },
 ]
 
-// The authored price for one demand kind, read from whichever Beats the demand's
-// scope says may set it.
-function demandPrice(
+// The authored terms of one demand: what it costs to leave standing, which Beat
+// set that cost, and how far that Beat reaches. All three come off the same
+// Beat, so the question a demand asks and the price it charges can never be
+// read from different content.
+function demandTerms(
   catalog: ContentCatalog,
   state: EncounterState,
   kind: string,
   scope: 'pool' | 'program',
-): { amount: number; beatId: string } {
+): { amount: number; beatId: string; rangeTiles: number } {
   let amount = 0
   let beatId = ''
+  let rangeTiles = 0
   const programIds = scope === 'pool' ? state.programIds : state.currentProgramId === null ? [] : [state.currentProgramId]
   for (const programId of programIds) {
     const program = catalog.programs[programId]
@@ -114,10 +120,11 @@ function demandPrice(
       if (beat.kind === kind && beat.escalation_if_unanswered > amount) {
         amount = beat.escalation_if_unanswered
         beatId = beat.id
+        rangeTiles = beat.range_tiles
       }
     }
   }
-  return { amount, beatId }
+  return { amount, beatId, rangeTiles }
 }
 
 // The Round-end Escalation step: the automatic tick once it has begun, then
@@ -129,12 +136,12 @@ export function escalationActionsForRoundEnd(catalog: ContentCatalog, state: Enc
     actions.push({ kind: 'gain_escalation', sourceId: ENCOUNTER_SOURCE, amount: 1, reason: 'automatic_tick', beatId: '' })
   }
   for (const demand of DEMANDS) {
-    if (!demand.standing(state)) {
-      continue
-    }
-    const price = demandPrice(catalog, state, demand.kind, demand.scope)
-    if (price.amount > 0) {
-      actions.push({ kind: 'gain_escalation', sourceId: ENCOUNTER_SOURCE, amount: price.amount, reason: demand.reason, beatId: price.beatId })
+    // Terms first, then the question. The Beat that sets the price is also the
+    // Beat that sets the reach, so asking before pricing would mean asking a
+    // distance question with no authored distance to ask it about.
+    const terms = demandTerms(catalog, state, demand.kind, demand.scope)
+    if (terms.amount > 0 && demand.standing(state, terms.rangeTiles)) {
+      actions.push({ kind: 'gain_escalation', sourceId: ENCOUNTER_SOURCE, amount: terms.amount, reason: demand.reason, beatId: terms.beatId })
     }
   }
   return actions

@@ -11,7 +11,7 @@ export type EncounterActionInput =
   | { kind: 'load_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
   | { kind: 'charge_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
   // `targetSlotIndex` is the Slot a `board_slot` card chose — D-035's ally
-  // attachment, reachable since D-046. Solo, that is one of the firing Hero's
+  // attachment, reachable since D-048. Solo, that is one of the firing Hero's
   // own Slots; the field is the Slot rather than the card instance because a
   // re-loaded Slot is a different prepared card and drops what rode the old one.
   | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string; targetHex?: Axial; targetSlotIndex?: number }

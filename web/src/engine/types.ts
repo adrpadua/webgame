@@ -83,7 +83,7 @@ export interface PhaseTrigger {
   roundAtOrAfter: number | null
 }
 
-// One Counter held by one combatant (D-045). A Counter is a named, counted
+// One Counter held by one combatant (D-047). A Counter is a named, counted
 // marker; `readers` is the only thing that makes it do anything, and it is
 // copied from the authored definition so a live instance never has to look
 // its own meaning back up.
@@ -132,7 +132,7 @@ export interface EncounterState {
   board: BoardState
   heroes: Record<string, HeroState>
   // Keyed by Counter host ref (`combatant:<id>`, `hex:<q,r>`, `slot:<hero>:<n>`),
-  // never by bare entity id — see `counters.ts` (D-046).
+  // never by bare entity id — see `counters.ts` (D-048).
   counters: Record<string, CounterInstance[]>
   bossId: string
   primaryHeroId: string

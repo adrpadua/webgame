@@ -120,7 +120,15 @@ export function toneColors(): Record<'hero' | 'boss' | 'guard' | 'heal' | 'hazar
 // against that number rather than chosen: they put the cone at L=0.219 and the
 // spawn at L=0.117, both clear of the Boss, 13.7 dE apart, and carrying three
 // to four times the chroma they did.
-export const TELEGRAPH_ALPHA = { cone: 0.7, spawn: 0.58 } as const
+//
+// The cone came down from 0.70 after the first look at it in play: at that
+// value a Cinder Breath lights several hexes at once and the loudest thing on
+// the board was the scenery of the warning rather than the warning. 0.62 keeps
+// every relationship the ranking needs — the cone still sits 1.76x the Boss and
+// 1.55x the spawn — and spends less of the board doing it. The floor for the
+// cone is nearer 0.58 than 0.62; the value is chosen for how it reads, not for
+// the last place the bound would still hold.
+export const TELEGRAPH_ALPHA = { cone: 0.62, spawn: 0.58 } as const
 
 // The measured warm median of the Boss sprite, which the telegraphs have to
 // clear. Taken from facing E; the whole sheet reads 0.1033, and the higher
@@ -129,6 +137,32 @@ export const TELEGRAPH_ALPHA = { cone: 0.7, spawn: 0.58 } as const
 // composites, so a hotter Boss fails there rather than quietly retaking the
 // top of the ranking.
 export const BOSS_SPRITE_WARM_MEDIAN = 0.1036
+
+// Scales a 0xRRGGBB colour's channels toward black (factor < 1) or white
+// (factor > 1), so one authored colour yields its own shadow and highlight
+// instead of needing a second constant per tone. Above 1 the channels run into
+// their ceiling red first, which is why a hot value rides up toward white
+// rather than sideways into a hue nobody authored.
+export function shade(color: number, factor: number): number {
+  const r = Math.min(255, Math.round(((color >> 16) & 0xff) * factor))
+  const g = Math.min(255, Math.round(((color >> 8) & 0xff) * factor))
+  const b = Math.min(255, Math.round((color & 0xff) * factor))
+  return (r << 16) | (g << 8) | b
+}
+
+// Where the board draws something hotter than the material it is made of: the
+// core of a flame, the break a Minion comes up through, and the light coming
+// out of a Boss as it goes out.
+//
+// Each is a beat resolving now, which the board direction puts at the top of
+// the warm order — above the telegraph that announced it. Ash usually lands
+// inside the Cinder Breath cone and a spawn always lands on the mark that
+// warned about it, so a hot value failing to clear its own telegraph would
+// leave the event reading as part of its own warning. palette.test.ts holds
+// the two that land on a telegraph to exactly that, because a ranking nobody
+// asserts is a ranking that drifts. (A Boss going out lands on no telegraph:
+// nothing warns that the fight is about to end.)
+export const HOT_SHADE = { flameCore: 1.7, spawnBreak: 1.45 } as const
 
 // A tint over a tile, as the player sees it. Straight source-over compositing,
 // which is what Phaser's fillStyle alpha does.

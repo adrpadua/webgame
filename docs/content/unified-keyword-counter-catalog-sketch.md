@@ -1,13 +1,13 @@
 # Unified Keyword & Counter Catalog — Sketch
 
-**Status: shipped in full (D-044 through D-047), minus one deliberate refusal.**
+**Status: shipped in full (D-046 through D-049), minus one deliberate refusal.**
 
 Live: one validated Keyword namespace with a `kind` discriminator (§3, §7), Counters with
 `gate`/`scale`/`spend` Readers (§4–6), the `hex` and `slot` hosts, and event Keywords —
 Readers that answer one kind of blow.
 
 **§1's central claim was wrong and is corrected below.** Escalation is not this pattern and
-did not become a Counter (D-046). That is the one piece of the plan that was dropped rather
+did not become a Counter (D-048). That is the one piece of the plan that was dropped rather
 than built, and dropping it was the finding.
 
 Nothing in the live deck places or reads a Counter yet: the first card that does changes the
@@ -33,7 +33,7 @@ The pattern already exists three times, in three shapes, none of them sharing co
 | Charge Modifiers | Charge stack | `amount_per_match` per matching card | **by keyword** (`keyword_id`) |
 | Status Effects | Combatant | payload welded onto the marker | none |
 
-> **Correction (D-046).** Escalation belongs on this list for its *counting* and not for its
+> **Correction (D-048).** Escalation belongs on this list for its *counting* and not for its
 > *reading*, and the difference turned out to be the whole argument. Building Phase 2 made it
 > concrete: of Embermaw's four live thresholds, two are `scorch_hexes` — a one-shot board
 > mutation on crossing — one is `extra_spawn_count`, which changes how many Whelps a Beat
@@ -281,13 +281,13 @@ Beyond the existing "unknown id" checks:
 
 ## 8. Migration order
 
-**Phase 0 — shipped (D-044).** `damage_classification`, `target_selector`, and
+**Phase 0 — shipped (D-046).** `damage_classification`, `target_selector`, and
 `counter_tags` are keyword references validated by id and by kind; `raid_hit` is authored in
 `data/keywords/`; `role_marker` is gone, derived from `kind === 'role'`; `ENGINE_KEYWORDS`
 asserts at load that every Keyword the rules name by id exists as the right kind. Gameplay
 bit-identical — the smoke's replay fingerprint is unchanged.
 
-**Phase 1 — shipped (D-045).** Counters replace Status Effects outright: `data/statuses/`
+**Phase 1 — shipped (D-047).** Counters replace Status Effects outright: `data/statuses/`
 is now `data/counters/`, D-034's `damage_taken_bonus`/`damage_dealt_penalty` and the
 `applies_to`/`stacking` fields are gone, and cards carry `places_counter`/`counter_amount`
 plus a `reads` list. Fortified went too — its banked Armor is the count, so D-019's additive
@@ -306,7 +306,7 @@ only**. A Counter nothing reads fails the build. A Counter nothing *places* does
 Sundered and Weakened are exactly that while they wait on the deck-evaluation gate (backlog
 item 10) — enforcing it would delete authored content to satisfy a lint.
 
-**Phase 2 — shipped (D-046), minus Escalation.** `hex` and `slot` hosts are live, and
+**Phase 2 — shipped (D-048), minus Escalation.** `hex` and `slot` hosts are live, and
 Counters are keyed by a branded tagged ref (`combatant:<id>`, `hex:<q,r>`, `slot:<hero>:<n>`)
 rather than by entity id — one map, one upkeep, and a ref that can answer "is the host still
 there?" without knowing what kind it is. D-035's `board_slot` attachment is reachable at
@@ -315,7 +315,7 @@ last; a Slot Counter rides the prepared card, so re-loading the Slot drops it. A
 Readers, because every `when` in the vocabulary names a combatant's event. Escalation stays
 put — see the correction in §1.
 
-**Phase 3 — shipped (D-047).** Damage carries Keywords, and a Reader may name one
+**Phase 3 — shipped (D-049).** Damage carries Keywords, and a Reader may name one
 `event_keyword` to answer only blows carrying it. Two corrections to what this section
 assumed:
 

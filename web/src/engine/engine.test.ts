@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { loadCatalog } from '@/content'
 import { cardSchema } from './content/schemas'
+// Not part of the engine's public surface: the Round-end step is called by
+// `advancePhase`, and a guard on what it prices is sharper when it can ask
+// directly instead of inferring the answer from a whole Round's facts.
+import { escalationActionsForRoundEnd } from './escalation'
 import {
   advancePhase,
   buildCatalog,
@@ -13,10 +17,12 @@ import {
   fireTargeting,
   hexDistance,
   hexKey,
+  isGuardedFront,
   legality,
   minionIntents,
   replayRecord,
   ESCALATION_MAX,
+  escalationModifiers,
   escalationStartRound,
   forecast,
   highestTier,
@@ -307,7 +313,7 @@ describe('content catalog', () => {
 
     // The Counter and Reader vocabulary. Every one of these is a way to
     // author something that looks like a mechanic and silently is not — the
-    // exact failure mode D-045 exists to make loud.
+    // exact failure mode D-047 exists to make loud.
     const counterEntry = (patch: Record<string, unknown>) => ({
       source: 'data/counters/probe.json',
       payload: { id: 'probe_counter', title: 'Probe Counter', readers: [{ when: 'round_start', effect: 'armor', per: 1 }], ...patch },
@@ -717,6 +723,33 @@ describe('Ash Trail displacement (D-039)', () => {
     // never nothing.
     expect(Object.keys(after.board.hazards).length).toBeGreaterThan(0)
   })
+
+  it('does not count a hit absorbed away from the Guarded Front as absorbed', () => {
+    // The displacement is what holding the front buys. Armor alone must not buy
+    // it, or the Tank can stand anywhere, soak the unguarded bonus, and still
+    // move the Trail — which is the reward without the position that earns it.
+    // The predicate is zero Health loss *there*; both halves are load-bearing.
+    //
+    // The other three tests in this suite all keep the Hero on the front, so
+    // dropping the `guardedFront` half of the predicate left every one of them
+    // passing. This is the case that separates the halves.
+    const state = start()
+    state.board.entities[state.bossId].coords = { q: 2, r: -2 }
+    state.board.entities[state.primaryHeroId].coords = { q: -1, r: 1 }
+    // More than the claw plus its unguarded bonus, so Health never moves.
+    state.heroes[state.primaryHeroId].armor = 20
+    const after = throughInstant(state)
+    const heroCoords = after.board.entities[after.primaryHeroId].coords
+    expect(hero(after).health).toBe(hero(after).maxHealth)
+    // Hunt closes the gap before it claws, so assert the position the Beat
+    // actually resolved against rather than the one it was set up with.
+    expect(isGuardedFront(after.board, after.bossId, after.primaryHeroId)).toBe(false)
+    // Burnt under them, not spilled behind them — and there is somewhere to
+    // spill to, so this discriminates rather than falling back to the rim case.
+    // Asserted on the Hazard rather than on the key: a key with nothing under
+    // it would satisfy `toContain` while the ground stayed clear.
+    expect(after.board.hazards[hexKey(heroCoords)] ?? []).not.toHaveLength(0)
+  })
 })
 
 // D-041. Escalation acceleration is only legitimate if the Timeline showed the
@@ -770,6 +803,151 @@ describe('Demand disclosure (D-041)', () => {
       state = result.state
     }
     expect(charged).toBe(true)
+  })
+
+  it('reads the proximity demand as adjacency, and nothing looser', () => {
+    // The distance the demand asks for is a bare `1` in the engine, and every
+    // other test here camps at the rim — far enough that loosening it to 2, or
+    // to 3, would have changed no result. That makes the boundary the thing
+    // worth asserting: one hex out is answered, two hexes out is not.
+    const state = start()
+    state.currentProgramId = 'embermaw_brood'
+    expect(
+      [...catalog.programs.embermaw_brood.instant_beats, ...catalog.programs.embermaw_brood.incoming_beats].some(
+        (beat) => beat.kind === 'demand_proximity',
+      ),
+    ).toBe(true)
+
+    const bossCoords = boss(state).coords
+    function reasonsStandingAt(coords: { q: number; r: number }): string[] {
+      state.board.entities[state.primaryHeroId].coords = { ...coords }
+      return escalationActionsForRoundEnd(catalog, state)
+        .filter((action) => action.kind === 'gain_escalation')
+        .map((action) => action.reason)
+    }
+
+    const adjacent = { q: 0, r: 0 }
+    const twoOut = { q: -1, r: 1 }
+    expect(hexDistance(adjacent, bossCoords)).toBe(1)
+    expect(hexDistance(twoOut, bossCoords)).toBe(2)
+    expect(reasonsStandingAt(adjacent)).not.toContain('unanswered_proximity')
+    expect(reasonsStandingAt(twoOut)).toContain('unanswered_proximity')
+  })
+})
+
+// Reach is content (ADR 0020). It used to be three engine constants for two
+// Beats: `forwardCone`'s default parameter, a second literal at the telegraph
+// call site, and a bare `1` in the Escalation step. The only place a reader
+// could find the number was inside a `rules_text` string, which nothing checks.
+describe('Authored Beat reach', () => {
+  // Round 1 is Hunt Pattern on every seed, and Hunt's Incoming Row is a cone.
+  const TO_QUICK = 2
+
+  // Round-trip a built catalog back through the loader, so a content rule can
+  // be tested by editing content rather than by hand-assembling payloads.
+  function rebuild(source: typeof catalog) {
+    return buildCatalog({
+      cards: Object.values(source.cards),
+      keywords: Object.values(source.keywords),
+      chargeModifiers: Object.values(source.chargeModifiers),
+      hazards: Object.values(source.hazards),
+      minions: Object.values(source.minions),
+      counters: Object.values(source.counters),
+      programs: Object.values(source.programs),
+      encounters: Object.values(source.encounters),
+    })
+  }
+
+  function coneTelegraph(state: EncounterState): string[] {
+    return Object.entries(state.telegraphs)
+      .filter(([, kind]) => kind === 'cone')
+      .map(([key]) => key)
+      .sort()
+  }
+
+  function scorchedByIncoming(state: EncounterState): string[] {
+    return advancePhase(catalog, state)
+      .facts.filter((fact) => fact.kind === 'apply_hazard' && fact.succeeded)
+      .map((fact) => hexKey((fact.detail as { coords: { q: number; r: number } }).coords))
+      .sort()
+  }
+
+  it('draws the telegraph and burns the ground from the same authored number', () => {
+    // The telegraph must not lie. It used to agree with the resolution by
+    // coincidence — two separate literals that happened to both be 2 — so
+    // either could have been edited alone. Both now read `beat.range_tiles`,
+    // and this compares what the party was shown against what landed.
+    const quick = stepPhases(start(), TO_QUICK).state
+    expect(quick.phase).toBe('quick')
+    const shown = coneTelegraph(quick)
+    expect(shown.length).toBeGreaterThan(0)
+    expect(scorchedByIncoming(quick)).toEqual(shown)
+  })
+
+  it('moves both of them together when the authored number changes', () => {
+    // Proof the field is read rather than decorative, and that nothing kept a
+    // private copy: shortening the reach has to shrink the preview and the
+    // footprint alike. Against the old two-literal form this failed.
+    const shortened = structuredClone(catalog)
+    for (const program of Object.values(shortened.programs)) {
+      for (const beat of program.incoming_beats) {
+        if (beat.kind === 'forward_cone') {
+          beat.range_tiles = 1
+        }
+      }
+    }
+    const full = stepPhases(start(), TO_QUICK).state
+    let short = createEncounterState(shortened, 'embermaw_prototype')
+    for (let step = 0; step < TO_QUICK; step += 1) {
+      short = advancePhase(shortened, short).state
+    }
+    expect(coneTelegraph(short).length).toBeLessThan(coneTelegraph(full).length)
+    expect(
+      advancePhase(shortened, short)
+        .facts.filter((fact) => fact.kind === 'apply_hazard' && fact.succeeded).length,
+    ).toBeLessThan(scorchedByIncoming(full).length)
+  })
+
+  it('asks the proximity demand at the authored distance', () => {
+    // The companion to D-041's adjacency guard, which pins what the authored
+    // `1` means. This pins that the number is the one being read: widen the
+    // demand's reach and a Hero two hexes out stops being billed.
+    const widened = structuredClone(catalog)
+    for (const program of Object.values(widened.programs)) {
+      for (const beat of program.incoming_beats) {
+        if (beat.kind === 'demand_proximity') {
+          beat.range_tiles = 2
+        }
+      }
+    }
+    const state = start()
+    state.currentProgramId = 'embermaw_brood'
+    state.board.entities[state.primaryHeroId].coords = { q: -1, r: 1 }
+    expect(hexDistance({ q: -1, r: 1 }, boss(state).coords)).toBe(2)
+    const reasons = (source: typeof catalog) =>
+      escalationActionsForRoundEnd(source, state)
+        .filter((action) => action.kind === 'gain_escalation')
+        .map((action) => action.reason)
+    expect(reasons(catalog)).toContain('unanswered_proximity')
+    expect(reasons(widened)).not.toContain('unanswered_proximity')
+  })
+
+  it('refuses content that asks a distance question without answering it', () => {
+    const missing = structuredClone(catalog)
+    const beat = missing.programs.embermaw_hunt.incoming_beats.find((entry) => entry.kind === 'forward_cone')!
+    beat.range_tiles = 0
+    expect(() => rebuild(missing)).toThrow(/authors no range_tiles/)
+  })
+
+  it('refuses a reach on the hit that footwork cannot answer', () => {
+    // The other half of the rule, and the one worth stating as content rather
+    // than trusting to nobody trying it. Raking Claw is deliberately rangeless
+    // (D-017); giving it a reach would hand a camping Hero a hex to stand
+    // outside of and undo what the proximity demand exists to close.
+    const ranged = structuredClone(catalog)
+    const claw = ranged.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'targeted_hit')!
+    claw.range_tiles = 2
+    expect(() => rebuild(ranged)).toThrow(/must not author range_tiles/)
   })
 })
 
@@ -827,8 +1005,15 @@ describe('Own-side Hazard immunity (D-042)', () => {
   it('records the side that laid every Hazard the Encounter creates', () => {
     // Embermaw's own Beats and its structural Thresholds both act for the Boss,
     // so nothing it puts on the board should be missing a side.
+    //
+    // Escalation is left to climb on its own rather than assigned. Assigning it
+    // skips the crossing that lays structural Scorch, and structural Scorch is
+    // the only Hazard whose side comes from the fallback: it rides
+    // `ENCOUNTER_SOURCE`, which is not a board entity, so `?? 'enemy'` decides
+    // it. Pre-setting the value meant this test never once reached that branch,
+    // and flipping the fallback to 'party' — which would hand the party the run
+    // of a closing arena and start the Boss burning in it — left it passing.
     let state = immortalHero(start())
-    state.escalation = 4
     let guard = 0
     while (state.active && guard < 40) {
       guard += 1
@@ -837,6 +1022,23 @@ describe('Own-side Hazard immunity (D-042)', () => {
         for (const hazard of hazards) {
           expect(hazard.sourceTeam).toBe('enemy')
         }
+      }
+    }
+
+    // Proof the structural path ran at all, rather than the loop having only
+    // ever seen Beat-laid ground: D-031's authored hexes have to be on the
+    // board, and enemy-sided, by the time the clock has run out. Every
+    // scorch-bearing Threshold is checked, not the first one found — automatic
+    // ticks alone cross all of them, so picking one would leave the rest as
+    // unexamined as they were before.
+    const authored = catalog.encounters.embermaw_prototype.escalation_thresholds.filter(
+      (threshold) => threshold.scorch_hexes.length > 0,
+    )
+    expect(authored.length).toBeGreaterThan(0)
+    for (const threshold of authored) {
+      for (const coords of threshold.scorch_hexes) {
+        const laid = (state.board.hazards[hexKey(coords)] ?? []).find((hazard) => hazard.permanent === true)
+        expect(laid?.sourceTeam, `Threshold ${threshold.value} never laid Scorch at ${hexKey(coords)}`).toBe('enemy')
       }
     }
   })
@@ -1215,7 +1417,7 @@ describe('Fortify Slow commitment (D-019)', () => {
   })
 })
 
-describe('Authored Counters (D-032 to D-034, D-045)', () => {
+describe('Authored Counters (D-032 to D-034, D-047)', () => {
   // No live card places a Counter yet — the first one changes the damage
   // economy and owes the deck-evaluation gate — so the vocabulary is proven
   // against a catalog variant, the pattern the acceleration test established.
@@ -1439,7 +1641,7 @@ describe('Authored Counters (D-032 to D-034, D-045)', () => {
   })
 })
 
-describe('Counter Readers — gate, scale, spend (D-045)', () => {
+describe('Counter Readers — gate, scale, spend (D-047)', () => {
   // A Counter that is nothing but a marker, so every number in these tests
   // comes from a Reader rather than from the Counter itself. This is the
   // point of the vocabulary: Ash means whatever the cards that read Ash say
@@ -1624,7 +1826,7 @@ describe('Counter Readers — gate, scale, spend (D-045)', () => {
   })
 })
 
-describe('Counter hosts — ground and prepared cards (D-046)', () => {
+describe('Counter hosts — ground and prepared cards (D-048)', () => {
   function withHosts(counters: Record<string, Record<string, unknown>>, cards: Record<string, Record<string, unknown>>) {
     const variant = structuredClone(catalog)
     for (const [id, patch] of Object.entries(counters)) {
@@ -1758,8 +1960,8 @@ describe('Counter hosts — ground and prepared cards (D-046)', () => {
   })
 })
 
-describe('Event Keywords — Readers that answer one kind of blow (D-047)', () => {
-  // The fact stream already carried what a blow was made of; D-047 is what
+describe('Event Keywords — Readers that answer one kind of blow (D-049)', () => {
+  // The fact stream already carried what a blow was made of; D-049 is what
   // lets content read it. A Reader with no `event_keyword` answers every blow
   // of its kind, and one that names a Keyword answers only blows carrying it —
   // the same Reader with one field different.
@@ -2217,6 +2419,34 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     state.escalationThresholds = [{ value: 1, title: 'Test Band', rules_text: '', boss_damage_bonus: 2, extra_spawn_count: 0, minion_damage_bonus: 0, scorch_hexes: [] }]
     const hit = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
     expect(hit.facts.find((fact) => fact.kind === 'damage')?.resolutionFact).toMatchObject({ requested: 6, escalation_bonus: 2 })
+  })
+
+  it('keeps every threshold at or below the value live, not only the current band', () => {
+    // Cumulative is what lets a Boss raise the same axis twice at different
+    // bands, and it is the reason a threshold can be authored as a step up
+    // rather than as a replacement. Reading only the exact band is the quiet
+    // failure: nothing errors, the widened Brood Call simply stops happening
+    // from Escalation 3 upward, and every other Escalation test still passes
+    // because each one pins a single band.
+    const state = start()
+    for (let value = 0; value <= ESCALATION_MAX; value += 1) {
+      state.escalation = value
+      const live = state.escalationThresholds.filter((threshold) => threshold.value <= value)
+      expect(escalationModifiers(state), `Escalation ${value}`).toEqual({
+        bossDamageBonus: live.reduce((sum, threshold) => sum + threshold.boss_damage_bonus, 0),
+        extraSpawnCount: live.reduce((sum, threshold) => sum + threshold.extra_spawn_count, 0),
+        minionDamageBonus: live.reduce((sum, threshold) => sum + threshold.minion_damage_bonus, 0),
+      })
+    }
+
+    // The loop above mirrors the implementation's own arithmetic, so it cannot
+    // be the whole guard. This is the authored consequence stated on its own
+    // terms: Embermaw widens the Brood Call at 2 and sharpens Whelp bites at 3,
+    // on different axes, so at 3 both have to be live at once.
+    state.escalation = 3
+    const atThree = escalationModifiers(state)
+    expect(atThree.extraSpawnCount).toBeGreaterThan(0)
+    expect(atThree.minionDamageBonus).toBeGreaterThan(0)
   })
 
   it('raises Whelp bite damage at threshold 3', () => {

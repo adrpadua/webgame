@@ -44,7 +44,7 @@ export const chargeModifierSchema = z.object({
   amount_per_match: z.number().int().min(1),
 })
 
-// What a Counter does while it is held, and when it does it (D-045). A
+// What a Counter does while it is held, and when it does it (D-047). A
 // Counter is inert on its own — a named, counted marker — and a Reader is the
 // only thing that turns a count into an effect. The payload lives here rather
 // than on the marker, so what a Counter *means* is decided by what reads it.
@@ -52,7 +52,7 @@ export const chargeModifierSchema = z.object({
 // Ash, and the cards that read Ash decide what Ash is worth.
 export const counterReaderSchema = z.object({
   when: z.enum(['round_start', 'host_takes_damage', 'host_deals_damage', 'slot_fired']),
-  // Narrows a damage Reader to blows carrying one Keyword (D-047): empty
+  // Narrows a damage Reader to blows carrying one Keyword (D-049): empty
   // answers every blow, `raid_hit` answers only a Minion's bite. This is the
   // Reader reading the *event* rather than the host — the fact stream already
   // carried these Keywords, and this is what lets content read them.
@@ -66,7 +66,7 @@ export const counterReaderSchema = z.object({
 })
 
 // A Counter: identity, host, bounds, and what reads it. Counters replace the
-// Status Effect definition (D-045). The two named payload fields D-034 chose
+// Status Effect definition (D-047). The two named payload fields D-034 chose
 // are gone — an Enemy-facing Counter is one whose Readers happen to fire on
 // an Enemy's events, not a separate kind of thing with its own schema.
 export const counterSchema = z.object({
@@ -78,7 +78,7 @@ export const counterSchema = z.object({
   // `hex` is ground, which outlives whoever is standing on it; a `slot` is a
   // prepared Top Card, which is D-035's ally attachment finally reachable.
   // `encounter` is deliberately absent — Escalation is the encounter-wide
-  // counter, and its band effects are not `per`-count modifiers (D-046).
+  // counter, and its band effects are not `per`-count modifiers (D-048).
   host: z.enum(['combatant', 'hex', 'slot']).default('combatant'),
   // The stacking rule, as a number. `1` is the old non-stacking behaviour: a
   // second placement is refused rather than refreshing. Anything higher
@@ -139,17 +139,17 @@ export const cardSchema = z.object({
   tags: z.array(z.string()).default([]),
   charge_modifiers: z.array(z.string()).default([]),
   // The Counter this card places, if any. Where it lands comes from
-  // `target_type`, which D-033 made load-bearing and D-045 leaves alone:
+  // `target_type`, which D-033 made load-bearing and D-047 leaves alone:
   // `none` places on the firing Hero, `piece` on a selected Enemy,
   // `board_slot` on an ally's Top Card (canon, unbuilt — D-035).
   places_counter: z.string().default(''),
   counter_amount: z.number().int().min(1).default(1),
-  // What this card's damage is made of, so a Counter can answer it (D-047).
+  // What this card's damage is made of, so a Counter can answer it (D-049).
   // The party's damage was unkeyworded while only Boss Beats classified
   // theirs, which left "increase fire damage by 1" authorable in one
   // direction only.
   damage_keywords: z.array(z.string()).default([]),
-  // What this card reads before and while it resolves (D-045).
+  // What this card reads before and while it resolves (D-047).
   reads: z.array(cardReaderSchema).default([]),
 })
 
@@ -197,7 +197,7 @@ export const bossBeatSchema = z.object({
   // see the ladder tests.
   consequence_tier: z.enum(['chip', 'structural', 'severe']).default('chip'),
   target_selector: z.string().default(''),
-  // The Keywords this Beat's damage carries (D-047). Plural because "who it
+  // The Keywords this Beat's damage carries (D-049). Plural because "who it
   // is aimed at" and "what it is made of" are two axes: a blow can be a Tank
   // Hit *and* fire, and one string holding both would be the category error
   // the `kind` discriminator exists to prevent.
@@ -205,9 +205,22 @@ export const bossBeatSchema = z.object({
   damage: z.number().int().default(0),
   unguarded_bonus: z.number().int().min(0).default(0),
   // Escalation acceleration (ADR 0027): what it costs to leave this Beat's
-  // demand standing at a Round end. Only the living-Minion demand is
-  // supported, so today this rides `spawn_minions`.
+  // demand standing at a Round end. Carried by any Beat kind the Escalation
+  // step knows how to price — `spawn_minions` and `demand_proximity` today.
   escalation_if_unanswered: z.number().int().min(0).default(0),
+  // How far this Beat reaches, in hexes. Authored rather than defaulted,
+  // because reach is the whole difference between a Beat that footwork answers
+  // and one it does not, and ADR 0020 puts that kind of decision in `data/`.
+  //
+  // It arrived late: `forward_cone` carried its reach as a default parameter on
+  // `forwardCone` *and* as a second literal at the telegraph call site, and
+  // `demand_proximity` carried its own as a bare `1` in the Escalation step.
+  // Three constants for two Beats, none of them content, and the only place the
+  // number appeared to a reader was inside a `rules_text` string.
+  //
+  // `targeted_hit` has no reach on purpose and must not gain one here: Raking
+  // Claw's whole job is being the hit footwork cannot answer.
+  range_tiles: z.number().int().min(0).default(0),
   // How far an `advance_toward_player` Beat closes. Distance is authored because
   // it is the Boss's counter-pressure against standing out of reach, and how
   // hard that pressure bites is a per-Boss identity question (D-041).

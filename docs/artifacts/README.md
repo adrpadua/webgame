@@ -15,6 +15,7 @@ So the rule for this directory is: **a document that reads as a historical recor
 - [encounter-records.md](encounter-records.md) — the Encounter Record contract, `schema_version: 2`
 - [accessibility.md](accessibility.md) — the pointer-target and portrait contracts, enforced by the smoke suite in CI. Contains clauses marked *Godot-era* that are history rather than contract
 - [repo-artifacts.md](repo-artifacts.md) — where things live in the repo
+- [sprite-sheet-pipeline.md](sprite-sheet-pipeline.md) — prompt to pixel for a board piece: build, grade, declare, draw, and the checks that keep each stage honest
 - [probe-harness.md](probe-harness.md), [handoff-packets.md](handoff-packets.md), [deck-evaluation-measurement-plan.md](deck-evaluation-measurement-plan.md) — process contracts, Godot-era in their commands
 
 ## Historical

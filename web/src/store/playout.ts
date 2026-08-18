@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { hexKey } from '@/engine'
-import { BEAT_STAGGER_MS, EFFECT_SETTLE_MS, type BoardEffect, type HealthPlayoutValue, type PlayoutScript } from '@/board/effects'
+import { BEAT_STAGGER_MS, EFFECT_SETTLE_MS, OUTCOME_REVEAL_MS, type BoardEffect, type HealthPlayoutValue, type PlayoutScript } from '@/board/effects'
 
 // The staggered-playout director for one resolved batch. While a boss track
 // replays beat by beat, the authoritative state already holds the batch's
@@ -63,6 +63,13 @@ function cancelTimers(): void {
   timers = []
 }
 
+// Whether this batch shows the Boss going out. The reveal waits on that one
+// effect rather than on the fact that something ended, because it is the only
+// ending the board draws at length.
+function showsBossDefeat(): boolean {
+  return moments.some((moment) => moment.effects.some((effect) => effect.kind === 'boss_defeat'))
+}
+
 // Everything the moments after `index` will show, summarized for the board.
 function pendingAfter(index: number): Pick<PlayoutStore, 'pendingScorchKeys' | 'pendingSpawnIds' | 'pendingFacings'> {
   const pendingScorchKeys: string[] = []
@@ -112,7 +119,12 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
     if (index === moments.length - 1) {
       // The last moment settles on its own; there is nothing left to prompt
       // for, and any held outcome reveals when the feedback has played.
-      timers.push(setTimeout(finish, EFFECT_SETTLE_MS))
+      //
+      // The longer wait belongs to the Boss going out, not to every ending. A
+      // party that loses has no body to watch cool — the Hero falls, nothing
+      // on the board is still resolving, and holding the Defeat plate back
+      // for it would be sitting on a finished screen.
+      timers.push(setTimeout(finish, showsBossDefeat() ? OUTCOME_REVEAL_MS : EFFECT_SETTLE_MS))
     } else if (autoMode) {
       timers.push(setTimeout(() => fireMoment(index + 1), BEAT_STAGGER_MS))
     } else {
@@ -133,7 +145,19 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
       // first: -1 is what continuePlayout counts from and what pendingAfter
       // reads to hold every moment's hazards, spawns and turns back.
       momentIndex = -1
-      set({ ...IDLE, overrides: { ...script.initial }, outcomeHeld: script.endsEncounter, paced: !autoAdvance })
+      // The hold-back goes in with the opening state, not after it. Every set
+      // here notifies subscribers, and the board is one of them: leaving it
+      // out of this one published a frame in which nothing was pending, which
+      // is a frame with every Whelp of an unplayed Brood Call standing on the
+      // board. That frame is also where their sprites got made, so they then
+      // stood there for the rest of the Row.
+      set({
+        ...IDLE,
+        ...pendingAfter(-1),
+        overrides: { ...script.initial },
+        outcomeHeld: script.endsEncounter,
+        paced: !autoAdvance,
+      })
       const opening = moments[0]
       if (opening === undefined) {
         // derivePlayoutScript never scripts an empty batch, and firing a
@@ -151,7 +175,7 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
         fireMoment(0)
         return
       }
-      set({ awaitingContinue: true, nextBeatTitle: opening.beatTitle, ...pendingAfter(-1) })
+      set({ awaitingContinue: true, nextBeatTitle: opening.beatTitle })
     },
     continuePlayout: () => {
       if (!get().awaitingContinue || momentIndex + 1 >= moments.length) {

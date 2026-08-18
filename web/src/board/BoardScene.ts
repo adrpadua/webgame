@@ -5,8 +5,10 @@ import { BACKDROP_DEPTH, BACKDROPS, backdropFor } from './backdrop'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 import { idleBobOffset } from './ambience'
 import { BURN_MS, COOL_MS, charProgress, coolProgress, dyingEmbers, emberAlpha, flameTongues, flareRing } from './burn'
-import { easeOutCubic, hexNoise } from './math'
-import { boardPalette, composite, TELEGRAPH_ALPHA, toneColors } from './palette'
+import { easeOutCubic, hexNoiseFor } from './math'
+import { SPAWN_MS, arrivalScale, breakRing, groundHeat, spawnShards } from './spawn'
+import { BOSS_DEFEAT_MS, buckleOffset, groundFlare, heatLoss, slumpScale, ventsOpening } from './defeat'
+import { boardPalette, composite, shade, HOT_SHADE, TELEGRAPH_ALPHA, toneColors } from './palette'
 import { idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
 
 // The board is three layers: tiles and their tints, then the pieces, then the
@@ -151,31 +153,25 @@ const FLOATER_LANE_PX = 18
 // at 640 — and does so deliberately: neither claims a gauge or holds a prompt,
 // so their tails are ground still changing under a board that has already
 // moved on. See burn.ts for what those milliseconds are spent on.
+//
+// A Boss going out outlasts it too, and that one *is* held for: the outcome
+// reveal waits on the fall rather than on the settle, because a Victory plate
+// over a body still venting light would announce an ending the board has not
+// finished showing (OUTCOME_REVEAL_MS in effects.ts).
 const EFFECT_DURATION: Record<BoardEffect['kind'], number> = {
   strike: 320,
   hit: 420,
   block: 420,
   cast: 520,
   move: 280,
-  spawn: 460,
+  spawn: SPAWN_MS,
   defeat: 460,
+  boss_defeat: BOSS_DEFEAT_MS,
   blast: 560,
   scorch: BURN_MS,
   cool: COOL_MS,
   turn: 480,
 }
-
-// How much brighter a flame's core is than the hazard tone its body takes.
-// This is the hazard tone lit hotter, derived the same way every piece derives
-// its lit value — a value on the board's one warm material, not a second
-// colour anyone authored. Above 1 the channels run into their ceiling red
-// first, so the hottest part of the fire rides up toward white as fire does.
-//
-// It has to be this bright. The board direction ranks warm by imminence and
-// puts the beat resolving now at the top, and ash usually lands inside the
-// Cinder Breath cone that announced it: a core no hotter than that telegraph
-// would leave the fire reading as part of the warning it is answering.
-const FLAME_CORE_SHADE = 1.7
 
 // An effect whose `delay` has not elapsed yet holds negative `elapsed` and
 // stays invisible; `started` flips once, the moment it crosses zero.
@@ -199,21 +195,9 @@ interface Motion {
 
 const NO_MOTION: Motion = { dx: 0, dy: 0, scale: 1, flash: 0, flashColor: 0 }
 
-// Scales a 0xRRGGBB colour's channels toward black (factor < 1) or white
-// (factor > 1), so one authored colour yields its own shadow and highlight
-// instead of needing a second constant per tone.
-function shade(color: number, factor: number): number {
-  const r = Math.min(255, Math.round(((color >> 16) & 0xff) * factor))
-  const g = Math.min(255, Math.round(((color >> 8) & 0xff) * factor))
-  const b = Math.min(255, Math.round((color & 0xff) * factor))
-  return (r << 16) | (g << 8) | b
-}
-
 // The floor's own draw from the per-hex hash. The same hex always lands on the
-// same shade, so the floor holds still between frames; salt 0 is the floor's,
-// and every other consumer of a hex — the fire standing on it — takes another.
-const TILE_JITTER_SALT = 0
-
+// same shade, so the floor holds still between frames, and it asks for its
+// value by name like every other consumer of a hex.
 export class BoardScene extends Phaser.Scene {
   private snapshot: BoardSnapshot | null = null
   private graphicsLayer: Phaser.GameObjects.Graphics | null = null
@@ -386,6 +370,29 @@ export class BoardScene extends Phaser.Scene {
     }
   }
 
+  // How far a piece's heat has left it, 0 burning and 1 out. A Boss that has
+  // been reduced to nothing is not removed from the board — the Encounter ends
+  // and the body stays on its hex — so this reads two things: the fall while it
+  // plays, and the piece's own health once it has. The second is what keeps a
+  // dead Boss dark through every frame after, including the ones a rewound or
+  // replayed board draws with no effect in flight at all.
+  private heatLossFor(entity: { id: string; kind: string; health: number }): number {
+    for (const effect of this.active) {
+      if (effect.kind === 'boss_defeat' && effect.entityId === entity.id) {
+        // Queued but not yet playing: the blow has landed in the rules and the
+        // death has not happened on screen, so the body is still burning. The
+        // health below would call it out early and the effect would then start
+        // by putting the light back — the same hold every other effect gives
+        // the state it is about to change.
+        if (effect.elapsed < 0) {
+          return 0
+        }
+        return heatLoss(Math.min(effect.elapsed / effect.duration, 1))
+      }
+    }
+    return entity.kind === 'boss' && entity.health <= 0 ? 1 : 0
+  }
+
   // The piece's offset in its idle cycle right now, which only a piece that
   // flies has: see ambience.ts. Zero as well under reduced motion, and zero
   // while any effect owns the piece — a bob layered onto a strike or a move
@@ -457,7 +464,12 @@ export class BoardScene extends Phaser.Scene {
           break
         }
         case 'spawn': {
-          motion.scale *= this.reducedMotion ? 1 : Math.min(easeOutCubic(t) * 1.15, 1)
+          motion.scale *= arrivalScale(t, this.reducedMotion)
+          break
+        }
+        case 'boss_defeat': {
+          motion.dx += buckleOffset(t, this.reducedMotion)
+          motion.scale *= slumpScale(t)
           break
         }
         default:
@@ -467,7 +479,17 @@ export class BoardScene extends Phaser.Scene {
     return motion
   }
 
-  private drawEffectOverlays(graphics: Phaser.GameObjects.Graphics, flames: Phaser.GameObjects.Graphics): void {
+  // Everything an effect paints on the floor: the footprint of a blast, the
+  // heat and flames of a burn, the embers of an expiry, the break a Minion
+  // comes up through. Drawn between the tiles and the pieces, because all of
+  // it is ground.
+  //
+  // The split is not decoration. Tiles, pieces without an authored sheet, and
+  // effect marks all fill into the same Graphics, where order is the only
+  // depth there is — so a mark drawn in one pass after the pieces sits on top
+  // of every token on the board, and the comments claiming these marks stay
+  // under the pieces were true only for the pieces that happen to have art.
+  private drawGroundEffects(graphics: Phaser.GameObjects.Graphics, flames: Phaser.GameObjects.Graphics): void {
     for (const effect of this.active) {
       if (effect.elapsed < 0) {
         continue
@@ -495,7 +517,7 @@ export class BoardScene extends Phaser.Scene {
           }
           const flare = flareRing(t)
           if (flare.alpha > 0) {
-            graphics.lineStyle(3, shade(color, FLAME_CORE_SHADE), flare.alpha)
+            graphics.lineStyle(3, shade(color, HOT_SHADE.flameCore), flare.alpha)
             this.strokePath(graphics, hexCorners(x, y, flare.radius))
           }
           // The heat on the face is ground and stays under the pieces; the
@@ -506,10 +528,35 @@ export class BoardScene extends Phaser.Scene {
               flames,
               tongue.body.map((point) => ({ x: x + point.x, y: y + point.y })),
             )
-            flames.fillStyle(shade(color, FLAME_CORE_SHADE), tongue.alpha)
+            flames.fillStyle(shade(color, HOT_SHADE.flameCore), tongue.alpha)
             this.fillPath(
               flames,
               tongue.core.map((point) => ({ x: x + point.x, y: y + point.y })),
+            )
+          }
+          break
+        }
+        case 'boss_defeat': {
+          // The Boss going out. The body is drawn by the piece loop, which
+          // reads how far its heat has gone; what is here is what leaves it —
+          // the light breaking out in wedges, and the heat it dumps into the
+          // hex it stood on.
+          //
+          // The wedges are drawn on the flame layer, over the pieces: light
+          // coming out of a body has to be in front of that body, and this is
+          // the one piece on the board big enough to swallow anything drawn
+          // behind it.
+          const { x, y } = axialToPixel(effect.at)
+          const flare = groundFlare(t)
+          if (flare > 0) {
+            graphics.fillStyle(color, flare)
+            this.fillPath(graphics, hexCorners(x, y, HEX_SIZE - 5))
+          }
+          for (const vent of ventsOpening(effect.at, t, this.reducedMotion)) {
+            flames.fillStyle(composite(shade(color, HOT_SHADE.flameCore), vent.heat, SCORCHED_FILL), 1)
+            this.fillPath(
+              flames,
+              vent.points.map((point) => ({ x: x + point.x, y: y + point.y })),
             )
           }
           break
@@ -541,12 +588,57 @@ export class BoardScene extends Phaser.Scene {
           }
           break
         }
+        case 'spawn': {
+          // The hex breaking open and giving a Whelp up. The mark the spawn
+          // telegraph has been holding on this hex for a Round closes onto the
+          // point the piece comes through, shards of the tile go with it, and
+          // the ground it came out of stays hot after both.
+          //
+          // All of it under the pieces: what arrives has to be the thing the
+          // eye lands on, and debris drawn over a piece that is still swelling
+          // into place would be covering the event with its own noise.
+          const { x, y } = axialToPixel(effect.at)
+          const heat = groundHeat(t)
+          if (heat > 0) {
+            graphics.fillStyle(color, heat)
+            this.fillPath(graphics, hexCorners(x, y, HEX_SIZE - 5))
+          }
+          const opening = breakRing(t)
+          if (opening.alpha > 0) {
+            graphics.lineStyle(3, shade(color, HOT_SHADE.spawnBreak), opening.alpha)
+            this.strokePath(graphics, hexCorners(x, y, opening.radius))
+          }
+          for (const shard of spawnShards(effect.at, t, this.reducedMotion)) {
+            graphics.fillStyle(composite(shade(color, HOT_SHADE.spawnBreak), shard.heat, MINION_FILL), 1)
+            this.fillPath(
+              graphics,
+              shard.points.map((point) => ({ x: x + point.x, y: y + point.y })),
+            )
+          }
+          break
+        }
+        default:
+          break
+      }
+    }
+  }
+
+  // The mark that belongs to a piece rather than to the floor it stands on: a
+  // ring at what was cast, hit, guarded, or killed. Drawn after the pieces,
+  // because it is about them.
+  private drawPieceEffects(graphics: Phaser.GameObjects.Graphics): void {
+    for (const effect of this.active) {
+      if (effect.elapsed < 0) {
+        continue
+      }
+      const t = Math.min(effect.elapsed / effect.duration, 1)
+      switch (effect.kind) {
         case 'cast':
         case 'hit':
         case 'block':
-        case 'defeat':
-        case 'spawn': {
+        case 'defeat': {
           const { x, y } = axialToPixel(effect.at)
+          const color = TONE_COLOR[effect.tone]
           const grow = this.reducedMotion ? 0.6 : easeOutCubic(t)
           const radius = 16 + grow * 26
           graphics.lineStyle(3, color, 1 - t)
@@ -701,7 +793,7 @@ export class BoardScene extends Phaser.Scene {
       // each hex's value a little breaks that up without introducing a
       // second authored colour.
       const ground = composite(SCORCHED_FILL, char, TILE_FILL)
-      const fill = shade(ground, 1 - TILE_JITTER / 2 + hexNoise(coords, TILE_JITTER_SALT) * TILE_JITTER)
+      const fill = shade(ground, 1 - TILE_JITTER / 2 + hexNoiseFor(coords, 'floor:jitter') * TILE_JITTER)
       return { key, coords, x, y, fill, corners: hexCorners(x, y, HEX_SIZE - 2) }
     })
 
@@ -772,10 +864,17 @@ export class BoardScene extends Phaser.Scene {
       }
     }
 
+    this.drawGroundEffects(graphics, flames)
+
+    // What actually got drawn this frame, which is not the same as what the
+    // state holds: a Minion whose spawn has not played yet is in the rules and
+    // not yet on the board.
+    const drawn = new Set<string>()
     for (const entity of Object.values(state.board.entities)) {
       if (pendingSpawns.has(entity.id)) {
         continue
       }
+      drawn.add(entity.id)
       const base = axialToPixel(entity.coords)
       const motion = this.motionFor(entity.id)
       const x = base.x + motion.dx
@@ -786,14 +885,19 @@ export class BoardScene extends Phaser.Scene {
       const bodyY = y + this.idleBob(entity)
       const baseRadius = entity.kind === 'boss' ? 22 : entity.kind === 'hero' ? 16 : 12
       const radius = Math.max(baseRadius * motion.scale, 1)
-      const fill = entity.kind === 'boss' ? BOSS_FILL : entity.kind === 'hero' ? HERO_FILL : MINION_FILL
+      const gone = this.heatLossFor(entity)
+      // A body that has gone out is the same material with the heat taken out
+      // of it, which is exactly what scorched ground is. The board already
+      // spends that step on the floor a Hazard leaves behind; a Boss that has
+      // stopped is made of the same thing now.
+      const fill = composite(SCORCHED_FILL, gone, entity.kind === 'boss' ? BOSS_FILL : entity.kind === 'hero' ? HERO_FILL : MINION_FILL)
       graphics.fillStyle(0x000000, 0.35)
       graphics.fillCircle(x + 2, y + 3, radius)
       // A piece with an authored sheet is drawn as itself. The shadow above
       // stays either way: it is what plants the piece on the tile, and it is
       // cast from the resting position, so a flying piece rises off it while a
       // standing one sits on it.
-      if (this.placeSprite(entity, x, bodyY, motion)) {
+      if (this.placeSprite(entity, x, bodyY, motion, gone)) {
         // The sheet draws its own facing, its own light, and its own rim, so
         // the token's crescent, highlight and facing wedge would all be a
         // second opinion drawn over the top of it.
@@ -835,11 +939,20 @@ export class BoardScene extends Phaser.Scene {
     }
 
     // A defeated Minion or a Hero that left the board keeps no sprite: the
-    // graphics layer is cleared every frame, but a retained object would
-    // stand there after the piece it draws is gone.
-    this.reapSprites(new Set(Object.keys(state.board.entities)))
+    // graphics layer is cleared every frame, but a retained object would stand
+    // there after the piece it draws is gone.
+    //
+    // Reaped against what was drawn rather than against what the state holds,
+    // because the same is true at the other end of a piece's life. Skipping a
+    // pending spawn in the loop above stops it being *re*drawn, and a sprite
+    // is a retained object: one created before its beat came kept standing on
+    // its hex through every frame that skipped it, so a Whelp was on the board
+    // for the whole Boss Row that was still working up to calling it — and its
+    // arrival then played on a piece the player had been looking at for
+    // seconds.
+    this.reapSprites(drawn)
 
-    this.drawEffectOverlays(graphics, flames)
+    this.drawPieceEffects(graphics)
     if (rebuildLabels) {
       this.drawFloaters()
     }
@@ -857,7 +970,7 @@ export class BoardScene extends Phaser.Scene {
   // the caller falls back to the token. Sprites are retained objects in an
   // otherwise immediate-mode renderer, so they are created on first sight and
   // reaped in renderSnapshot when their piece leaves the board.
-  private placeSprite(entity: { id: string; kind: string; facing: number }, x: number, y: number, motion: Motion): boolean {
+  private placeSprite(entity: { id: string; kind: string; facing: number }, x: number, y: number, motion: Motion, heatGone: number): boolean {
     const sheet = this.sheetFor(entity)
     if (sheet === null) {
       return false
@@ -888,6 +1001,21 @@ export class BoardScene extends Phaser.Scene {
     if (motion.flash > 0) {
       sprite.setTint(motion.flashColor)
       sprite.setAlpha(1)
+    } else if (heatGone > 0) {
+      // A Phaser tint MULTIPLIES the sheet, so white is the art as drawn and
+      // this walks that multiplier from white toward the ash step: the light
+      // goes out of the art itself rather than a dead colour being laid over
+      // it, and every shape the sheet draws survives. The product is darker
+      // than the ash step, which is right — a fire seen through cooling coals
+      // is not the same value as the ground they fall on.
+      //
+      // This is the one runtime tint that governs a piece's place in the warm
+      // ordering, which the board direction says belongs to the PNG and is
+      // measured off the sheet. It is safe here because it only ever moves the
+      // piece *down*, and because the piece it moves has left the ordering:
+      // a defeated Boss is not a threat being ranked against the beats around
+      // it, it is what is left over after the last one.
+      sprite.setTint(composite(SCORCHED_FILL, heatGone, 0xffffff))
     } else {
       sprite.clearTint()
     }

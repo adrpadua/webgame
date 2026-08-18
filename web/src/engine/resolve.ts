@@ -146,7 +146,7 @@ function resolveOne(
       slot.charges = []
       slot.activatedWindow = null
       // A Slot's Counters ride the prepared card, not the Slot's position, so
-      // loading a different card drops them (D-046). Nothing transfers: the
+      // loading a different card drops them (D-048). Nothing transfers: the
       // thing they were attached to has left.
       if (clearCounters(draft, slotRef(action.sourceId, action.slotIndex))) {
         fact.detail.clearedSlotCounters = true
@@ -209,13 +209,13 @@ function resolveOne(
       }
       // An authored Counter. `target_type` decides where it lands: the chosen
       // piece when the card targets one, the firing Hero otherwise (D-033,
-      // kept by D-045). `board_slot` — an ally's Top Card — is canon but
+      // kept by D-047). `board_slot` — an ally's Top Card — is canon but
       // unbuilt (D-035) and rejected at load.
       if (card.places_counter !== '') {
         const definition = catalog.counters[card.places_counter]
         if (definition) {
           // Where a Counter lands is the Counter's `host` read through the
-          // card's chosen target (D-046): a combatant Counter goes on the
+          // card's chosen target (D-048): a combatant Counter goes on the
           // selected piece or on the firing Hero, a hex Counter onto the
           // chosen ground, a slot Counter onto the chosen prepared card. The
           // catalog already refused any card whose `target_type` cannot
@@ -404,7 +404,7 @@ function resolveOne(
       break
     }
     case 'damage': {
-      // The Keywords a blow carries decide which Readers answer it (D-047),
+      // The Keywords a blow carries decide which Readers answer it (D-049),
       // so they have to reach resolution rather than only the fact log they
       // are merged into afterwards.
       const damageKeywords = (action.factContext?.damage_keywords as string[] | undefined) ?? []
@@ -460,7 +460,7 @@ function resolveOne(
         const hero = draft.heroes[heroId]
         hero.armor = 0
         // Fortified's banked Armor is its count times its Reader's `per`
-        // (D-045), so two Fortify commitments are one stack of Counters and
+        // (D-047), so two Fortify commitments are one stack of Counters and
         // the additive stacking D-019 asked for is just addition.
         hero.armor += Math.max(readerSum(draft, combatantRef(heroId), 'round_start', 'armor'), 0)
       }
@@ -738,7 +738,7 @@ function slotFiredCounterActions(draft: EncounterState, entityId: string): Encou
 
 // The fact context every blow a Card deals carries. The Card's own damage
 // Keywords ride it so a Counter can answer what the party throws, not just
-// what the Boss does (D-047) — the party's damage was unkeyworded while only
+// what the Boss does (D-049) — the party's damage was unkeyworded while only
 // Boss Beats classified theirs, which left an event-Keyword Reader working in
 // one direction only.
 function cardDamageContext(card: Card, extra?: Record<string, unknown>): Record<string, unknown> | undefined {
@@ -750,7 +750,7 @@ function cardDamageContext(card: Card, extra?: Record<string, unknown>): Record<
 }
 
 // Where a Card puts the Counter it places: the Counter's own `host`, resolved
-// through whatever the Card targeted (D-046). `null` means the Card cannot
+// through whatever the Card targeted (D-048). `null` means the Card cannot
 // supply that host, which the catalog already refuses at load — it is a
 // belt-and-braces return, not a runtime path content can reach.
 function counterHostRef(
@@ -769,7 +769,7 @@ function counterHostRef(
 
 // Which host a Card's Reader is talking about. A closed set of two subjects,
 // not a path expression: the firing Hero, or whatever the Card chose — which
-// since D-046 may be a piece, a hex, or a prepared Slot, decided by the Card's
+// since D-048 may be a piece, a hex, or a prepared Slot, decided by the Card's
 // own `target_type` rather than by a third subject name.
 function readerSubject(
   action: Extract<EncounterActionInput, { kind: 'fire_slot' }>,
@@ -876,7 +876,7 @@ function applyDamage(
   damageKeywords: string[] = [],
 ): Record<string, unknown> {
   // Counters ride damage resolution that already existed, through Readers
-  // rather than through two named payload fields (D-045): the source's
+  // rather than through two named payload fields (D-047): the source's
   // Weakened lowers what it deals at `-1` a Counter, the target's Sundered
   // raises what it takes at `+1`. Both resolve before mitigation, so Armor
   // still answers the number the Party can read.
@@ -884,7 +884,7 @@ function applyDamage(
   const takenDelta = readerSum(draft, combatantRef(targetId), 'host_takes_damage', 'target_damage', damageKeywords)
   const requested = Math.max(amount + dealtDelta + takenDelta, 0)
   // Armor is the only mitigation there has ever been: the old per-status
-  // `damageReduction` field was never set by anything and left with D-045.
+  // `damageReduction` field was never set by anything and left with D-047.
   const adjusted = requested
   const hero = draft.heroes[targetId]
   if (hero) {

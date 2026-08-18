@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { boardPalette, BOSS_SPRITE_WARM_MEDIAN, composite, relativeLuminance, TELEGRAPH_ALPHA, TOKENS } from './palette'
+import { boardPalette, BOSS_SPRITE_WARM_MEDIAN, composite, HOT_SHADE, relativeLuminance, shade, TELEGRAPH_ALPHA, TOKENS } from './palette'
 
 // These fallbacks are held against index.css by the smoke suite, which can
 // read the stylesheet; this environment cannot. What is checked here is the
@@ -57,6 +57,25 @@ describe('the board palette', () => {
     // dE apart once, which is a difference a player cannot act on.
     it('separates the cone from the spawn by more than a hair', () => {
       expect(relativeLuminance(cone) / relativeLuminance(spawn)).toBeGreaterThan(1.4)
+    })
+
+    // The top of the warm order is the beat resolving now, and two of them are
+    // drawn as a hot value of the material rather than as a token of their
+    // own: the core of a flame, and the break a Minion comes up through. Both
+    // land on the hex that was warning about them — ash inside the Cinder
+    // Breath cone, a Whelp on its own spawn mark — so a hot value that failed
+    // to clear its telegraph would leave the event reading as part of its own
+    // warning.
+    it('burns hotter than the telegraph each of those beats lands on', () => {
+      const flameCore = shade(rendered.spawnOverlay, HOT_SHADE.flameCore)
+      const spawnBreak = shade(rendered.bossFill, HOT_SHADE.spawnBreak)
+      expect(relativeLuminance(flameCore)).toBeGreaterThan(relativeLuminance(cone))
+      expect(relativeLuminance(spawnBreak)).toBeGreaterThan(relativeLuminance(spawn))
+      // And both stay warm doing it: a value driven so hard it arrives white
+      // has left the material behind.
+      for (const hot of [flameCore, spawnBreak]) {
+        expect((hot >> 16) & 0xff).toBeGreaterThan(hot & 0xff)
+      }
     })
   })
 })
