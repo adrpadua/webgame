@@ -5,6 +5,7 @@ import { ESCALATION_MAX, escalationActionsForRoundEnd, escalationModifiers } fro
 import { minionIntent } from './minions'
 import { actionsForTrack, refreshTelegraphs } from './timeline'
 import { getStatuses, statusEvent } from './statuses'
+import { RAID_HIT } from './keywords'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
 import type { EncounterState, Phase, ResolveResult, ResolvedActionFact } from './types'
 
@@ -122,7 +123,7 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
             reasonText: `${draft.board.entities[minionId].title} bites`,
             factContext: {
               minion_intent: true,
-              damage_classification: 'raid_hit',
+              damage_classification: RAID_HIT,
               ...(escalationBonus > 0 ? { escalation_bonus: escalationBonus } : {}),
             },
           })

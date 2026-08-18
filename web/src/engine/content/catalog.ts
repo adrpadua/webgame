@@ -20,6 +20,7 @@ import {
   type Scenario,
   type StatusDefinition,
 } from './schemas'
+import { ENGINE_KEYWORDS, KEYWORD_REFERENCES, type KeywordKind } from '../keywords'
 import { hexDistance } from '../hex'
 
 export interface ContentCatalog {
@@ -131,6 +132,25 @@ function indexById<T extends { id: string }>(entries: ParsedEntry<T>[], label: s
   return result
 }
 
+// One check for every join into the Keyword namespace. The id has to exist,
+// and it has to name the right sort of thing — a reference that resolves to a
+// Keyword of the wrong kind is a category error, not a working reference.
+function requireKeyword(
+  catalog: { keywords: Record<string, Keyword> },
+  id: string,
+  kinds: KeywordKind[],
+  owner: string,
+  field: string,
+): void {
+  const keyword = catalog.keywords[id]
+  if (!keyword) {
+    throw new Error(`${owner} references unknown keyword ${id} in ${field}`)
+  }
+  if (!kinds.includes(keyword.kind)) {
+    throw new Error(`${owner} names ${id} in ${field}, but that Keyword is ${keyword.kind} and ${field} takes ${kinds.join(' or ')}`)
+  }
+}
+
 function sourceAwareLabel<T extends { id: string }>(entries: ParsedEntry<T>[], label: string): (id: string) => string {
   const sources = new Map(entries.map((entry) => [entry.value.id, entry.source]))
   return (id) => {
@@ -186,9 +206,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       }
     }
     for (const tag of card.tags) {
-      if (!catalog.keywords[tag]) {
-        throw new Error(`Card ${card.id} references unknown keyword ${tag}`)
-      }
+      requireKeyword(catalog, tag, KEYWORD_REFERENCES.cardTag, `Card ${card.id}`, 'tag')
     }
     if (card.applies_status !== '') {
       const status = catalog.statuses[card.applies_status]
@@ -207,8 +225,8 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     }
   }
   for (const modifier of Object.values(catalog.chargeModifiers)) {
-    if (modifier.keyword_id !== '' && !catalog.keywords[modifier.keyword_id]) {
-      throw new Error(`Charge modifier ${modifier.id} references unknown keyword ${modifier.keyword_id}`)
+    if (modifier.keyword_id !== '') {
+      requireKeyword(catalog, modifier.keyword_id, KEYWORD_REFERENCES.chargeModifierMatch, `Charge modifier ${modifier.id}`, 'keyword_id')
     }
   }
   for (const program of Object.values(catalog.programs)) {
@@ -219,6 +237,32 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       if (beat.minion && !catalog.minions[beat.minion]) {
         throw new Error(`Boss Beat ${beat.id} references unknown minion ${beat.minion}`)
       }
+      // The three Beat fields that were free text until now. All three are
+      // joins into the Keyword namespace, and `damage_classification` is the
+      // one that mattered: the rules compare it against `tank_hit` to grant
+      // Riposte Ready, so an unchecked typo here disabled a Status Effect
+      // silently, at load, with every test still green.
+      if (beat.damage_classification !== '') {
+        requireKeyword(catalog, beat.damage_classification, KEYWORD_REFERENCES.damageClassification, `Boss Beat ${beat.id}`, 'damage_classification')
+      }
+      if (beat.target_selector !== '') {
+        requireKeyword(catalog, beat.target_selector, KEYWORD_REFERENCES.targetSelector, `Boss Beat ${beat.id}`, 'target_selector')
+      }
+      for (const tag of beat.counter_tags) {
+        requireKeyword(catalog, tag, KEYWORD_REFERENCES.counterTag, `Boss Beat ${beat.id}`, 'counter_tags')
+      }
+    }
+  }
+  // A Keyword the engine names by id has to be there, and be the right kind.
+  // Content can rename a Keyword's wording freely; it cannot rename one out
+  // from under the rules that compare against it.
+  for (const required of ENGINE_KEYWORDS) {
+    const keyword = catalog.keywords[required.id]
+    if (!keyword) {
+      throw new Error(`The rules name Keyword ${required.id}, which is not authored in data/keywords/`)
+    }
+    if (keyword.kind !== required.kind) {
+      throw new Error(`The rules name Keyword ${required.id} as ${required.kind}, but it is authored as ${keyword.kind}`)
     }
   }
   for (const encounter of Object.values(catalog.encounters)) {
@@ -326,6 +370,17 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
       if (beat.minion) {
         requireDefinition('minion', beat.minion, catalog.minions)
       }
+      // A Beat's Keywords are reachable content like anything else it names:
+      // the answer the Forecast Row promises and the kind of blow the Beat
+      // lands are both things a player reads, so retitling one starts a new
+      // evidence cohort the same way retitling a Hazard does.
+      if (beat.damage_classification) {
+        addKeyword(beat.damage_classification)
+      }
+      if (beat.target_selector) {
+        addKeyword(beat.target_selector)
+      }
+      beat.counter_tags.forEach(addKeyword)
     }
   }
 

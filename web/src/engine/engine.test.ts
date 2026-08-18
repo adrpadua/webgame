@@ -151,7 +151,21 @@ describe('content catalog', () => {
   // The audience for a content error is a designer who edited a JSON file and
   // has never opened the parser. It has to name the file and the field.
   describe('validation errors', () => {
-    const empty = { cards: [], keywords: [], chargeModifiers: [], hazards: [], minions: [], programs: [], encounters: [] }
+    // The smallest catalog the rules will accept: no content, but the
+    // Keywords engine code names by id, because a catalog without those is
+    // one where Riposte Ready can never be granted.
+    const empty = {
+      cards: [],
+      keywords: [
+        { id: 'tank_hit', title: 'Tank Hit', kind: 'damage_type' },
+        { id: 'raid_hit', title: 'Raid Hit', kind: 'damage_type' },
+      ],
+      chargeModifiers: [],
+      hazards: [],
+      minions: [],
+      programs: [],
+      encounters: [],
+    }
 
     it('names the file and every bad field', () => {
       const bad = {
@@ -169,7 +183,7 @@ describe('content catalog', () => {
     })
 
     it('names both files behind a duplicate id', () => {
-      const entry = (source: string) => ({ source, payload: { id: 'guard', title: 'Guard' } })
+      const entry = (source: string) => ({ source, payload: { id: 'guard', title: 'Guard', kind: 'trait' } })
       expect(() => buildCatalog({ ...empty, keywords: [entry('data/keywords/guard.json'), entry('data/keywords/guard_copy.json')] })).toThrow(
         'Duplicate keyword id "guard": defined in data/keywords/guard.json and again in data/keywords/guard_copy.json',
       )
@@ -231,6 +245,61 @@ describe('content catalog', () => {
         push_tiles: 1,
         pull_tiles: 0,
       })
+    })
+
+    // The four Keyword joins. `damage_classification` is why this section
+    // exists: the rules compare it against `tank_hit` to grant Riposte Ready,
+    // and until it was catalogued a typo here disabled that Status Effect at
+    // load with no error and every test still green.
+    const keyword = (id: string, kind: string) => ({ source: `data/keywords/${id}.json`, payload: { id, title: id, kind } })
+    const beatProgram = (beat: Record<string, unknown>) => ({
+      source: 'data/boss_programs/probe.json',
+      payload: {
+        id: 'probe_program',
+        title: 'Probe Program',
+        instant_beats: [{ id: 'probe_beat', title: 'Probe Beat', kind: 'turn_toward_player', ...beat }],
+        incoming_beats: [],
+      },
+    })
+
+    it('rejects a Beat whose damage_classification is not an authored Keyword', () => {
+      expect(() => buildCatalog({ ...empty, programs: [beatProgram({ damage_classification: 'tank-hit' })] })).toThrow(
+        'Boss Beat probe_beat references unknown keyword tank-hit in damage_classification',
+      )
+    })
+
+    it('rejects a Keyword reference that resolves to the wrong kind', () => {
+      // Spelled correctly, resolves, and is still nonsense: `guard` is a trait
+      // a card carries, not a kind of blow a Beat lands.
+      expect(() =>
+        buildCatalog({
+          ...empty,
+          keywords: [...empty.keywords, keyword('guard', 'trait')],
+          programs: [beatProgram({ damage_classification: 'guard' })],
+        }),
+      ).toThrow('Boss Beat probe_beat names guard in damage_classification, but that Keyword is trait and damage_classification takes damage_type')
+    })
+
+    it('rejects an unauthored counter tag and an unauthored target selector', () => {
+      expect(() => buildCatalog({ ...empty, programs: [beatProgram({ counter_tags: ['Kill Adds'] })] })).toThrow(
+        'Boss Beat probe_beat references unknown keyword Kill Adds in counter_tags',
+      )
+      expect(() => buildCatalog({ ...empty, programs: [beatProgram({ target_selector: 'tank' })] })).toThrow(
+        'Boss Beat probe_beat references unknown keyword tank in target_selector',
+      )
+    })
+
+    it('rejects a catalog missing a Keyword the rules name by id', () => {
+      // The other half of the contract. Content may retitle a Keyword freely;
+      // it may not rename one out from under the rules comparing against it.
+      const withoutTankHit = { ...empty, keywords: empty.keywords.filter((entry) => entry.id !== 'tank_hit') }
+      expect(() => buildCatalog(withoutTankHit)).toThrow(
+        'The rules name Keyword tank_hit, which is not authored in data/keywords/',
+      )
+      const miskinded = { ...empty, keywords: [keyword('tank_hit', 'answer').payload, ...withoutTankHit.keywords] }
+      expect(() => buildCatalog(miskinded)).toThrow(
+        'The rules name Keyword tank_hit as damage_type, but it is authored as answer',
+      )
     })
 
     it('rejects a burst Card that deals no damage and names its file', () => {
@@ -659,7 +728,7 @@ describe('Own-side Hazard immunity (D-042)', () => {
 
 describe('Program identity (D-036)', () => {
   it('gives each Phase I program a distinct set of demands', () => {
-    const tags = (id: string) => programCounterTags(catalog.programs[id]).sort().join(',')
+    const tags = (id: string) => programCounterTags(catalog, catalog.programs[id]).sort().join(',')
     const hunt = tags('embermaw_hunt')
     const embers = tags('embermaw_embers')
     const brood = tags('embermaw_brood')
@@ -667,10 +736,10 @@ describe('Program identity (D-036)', () => {
     // Named explicitly, because "they differ" is weaker than "they differ in
     // the way the design intends": Armor answers Hunt, footwork answers Ember,
     // and only Brood asks anyone to kill something.
-    expect(programCounterTags(catalog.programs.embermaw_brood)).toContain('Kill Adds')
-    expect(programCounterTags(catalog.programs.embermaw_embers)).not.toContain('Mitigate')
-    expect(programCounterTags(catalog.programs.embermaw_embers)).not.toContain('Kill Adds')
-    expect(programCounterTags(catalog.programs.embermaw_hunt)).not.toContain('Kill Adds')
+    expect(programCounterTags(catalog, catalog.programs.embermaw_brood)).toContain('Kill Adds')
+    expect(programCounterTags(catalog, catalog.programs.embermaw_embers)).not.toContain('Mitigate')
+    expect(programCounterTags(catalog, catalog.programs.embermaw_embers)).not.toContain('Kill Adds')
+    expect(programCounterTags(catalog, catalog.programs.embermaw_hunt)).not.toContain('Kill Adds')
   })
 
   it('keeps the first program of every phase free of severe Beats', () => {

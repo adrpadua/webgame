@@ -1,6 +1,7 @@
 import type { ContentCatalog } from './content/catalog'
 import type { BossBeat, BossProgram } from './content/schemas'
 import type { EncounterState } from './types'
+import { keywordTitle } from './keywords'
 
 export type ConsequenceTier = BossBeat['consequence_tier']
 
@@ -18,16 +19,22 @@ export function highestTier(program: BossProgram): ConsequenceTier {
 
 // The union of a program's counter tags, in first-appearance order across
 // Instant then Incoming: what kind of answer the next Round will want.
-export function programCounterTags(program: BossProgram): string[] {
-  const tags: string[] = []
+//
+// Beats reference Keywords by id and this resolves them to their authored
+// titles, so the Forecast Row keeps reading `Position · Mitigate · Kill Adds`
+// while the content underneath is a validated reference rather than a display
+// string a designer had to spell identically in five program files.
+export function programCounterTags(catalog: ContentCatalog, program: BossProgram): string[] {
+  const titles: string[] = []
   for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
     for (const tag of beat.counter_tags) {
-      if (!tags.includes(tag)) {
-        tags.push(tag)
+      const title = keywordTitle(catalog, tag)
+      if (!titles.includes(title)) {
+        titles.push(title)
       }
     }
   }
-  return tags
+  return titles
 }
 
 // The Boss Program the next Round will run, without mutating anything —
@@ -75,7 +82,7 @@ export function forecast(catalog: ContentCatalog, state: EncounterState): Foreca
   return {
     programId,
     title: program.title,
-    counterTags: programCounterTags(program),
+    counterTags: programCounterTags(catalog, program),
     tier: highestTier(program),
     rulesText: program.rules_text,
   }

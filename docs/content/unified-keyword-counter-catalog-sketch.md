@@ -1,8 +1,10 @@
 # Unified Keyword & Counter Catalog — Sketch
 
-**Status: sketch, not adopted.** No decision-log entry, no schema changes. This exists to
-make the shape arguable. It proposes reversing part of D-034, so adopting any of it owes a
-decision entry.
+**Status: Phase 0 shipped (D-044); Phases 1–3 are sketch, not adopted.** Phases 1 onward
+propose reversing part of D-034, so adopting any of them owes their own decision entry.
+
+Phase 0 — one validated Keyword namespace with a `kind` discriminator — is live. Sections 3
+and 7 describe what was built; §4–6 remain a proposal.
 
 The goal: keywords become one validated namespace that everything joins on, and counters
 become a general primitive that content reads — the SoTM model, where a passive says
@@ -64,10 +66,7 @@ export const keywordSchema = z.object({
   // One namespace so anything can join on anything, one discriminator so the
   // validator can still reject a category error. `damage_classification:
   // "guard"` is spelled correctly and still nonsense.
-  kind: z.enum(['role', 'damage_type', 'answer', 'archetype', 'trait']),
-  // Existing: a Keyword that marks Role rather than behaviour, left off glance
-  // surfaces because every card in a Hero's deck carries theirs.
-  role_marker: z.boolean().default(false),
+  kind: z.enum(['role', 'trait', 'damage_type', 'answer']),
 })
 ```
 
@@ -78,10 +77,18 @@ export const keywordSchema = z.object({
 
 // data/keywords/kill_adds.json — was the Title Case display label "Kill Adds"
 { "id": "kill_adds", "title": "Kill Adds", "kind": "answer" }
-
-// data/keywords/embermaw.json — archetype scoping is just a keyword
-{ "id": "embermaw", "title": "Embermaw", "kind": "archetype" }
 ```
+
+Two notes on what shipped versus what this section first proposed:
+
+- **`role_marker` is gone**, derived from `kind === 'role'`. Being a Role is the whole reason
+  a Role Keyword is left off the glance surfaces, so the two were never independent facts.
+- **`archetype` is not in the enum.** Nothing places or reads an archetype Keyword yet, and
+  §7's reachability rule says a dead vocabulary entry should not ship. It arrives with the
+  first content that needs it.
+
+`kind` is required, with no default: a Keyword that cannot say what sort of thing it is
+cannot be checked against anything.
 
 Every free string above becomes a validated reference:
 
@@ -252,10 +259,11 @@ Beyond the existing "unknown id" checks:
 
 ## 8. Migration order
 
-**Phase 0 — no design risk, do regardless.** Promote `damage_classification`,
-`target_selector`, and `counter_tags` into the keyword catalog with `kind`; move `raid_hit`
-out of engine code; add kind validation. Kills the silent-typo failure that can currently
-disable Riposte Ready. Touches no gameplay.
+**Phase 0 — shipped (D-044).** `damage_classification`, `target_selector`, and
+`counter_tags` are keyword references validated by id and by kind; `raid_hit` is authored in
+`data/keywords/`; `role_marker` is gone, derived from `kind === 'role'`; `ENGINE_KEYWORDS`
+asserts at load that every Keyword the rules name by id exists as the right kind. Gameplay
+bit-identical — the smoke's replay fingerprint is unchanged.
 
 **Phase 1.** Counters + `gate`/`scale`/`spend`, `host: combatant` only. Port `sundered` and
 `weakened` off named fields onto readers. Reversal of D-034 — owes a decision entry.

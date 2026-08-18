@@ -9,7 +9,7 @@
       "rules_text": "Embermaw faces the guardian.",
       "kind": "turn_toward_player",
       "counter_tags": [
-        "Position"
+        "position"
       ],
       "consequence_tier": "chip"
     },
@@ -19,8 +19,8 @@
       "rules_text": "Target: Tank. Deal 4 damage. Movement does not evade this hit. An unheld Guarded Front suffers +3.",
       "kind": "targeted_hit",
       "counter_tags": [
-        "Mitigate",
-        "Position"
+        "mitigate",
+        "position"
       ],
       "consequence_tier": "chip",
       "target_selector": "tank",
@@ -36,7 +36,7 @@
       "rules_text": "If no hero stands adjacent to Embermaw at the end of this Round, Escalation rises by 1.",
       "kind": "demand_proximity",
       "counter_tags": [
-        "Position"
+        "position"
       ],
       "consequence_tier": "severe",
       "escalation_if_unanswered": 1
@@ -47,7 +47,7 @@
       "rules_text": "Whelps emerge at the marked edge hexes. Any Whelp still standing at the next Round end raises Escalation by 1.",
       "kind": "spawn_minions",
       "counter_tags": [
-        "Kill Adds"
+        "kill_adds"
       ],
       "consequence_tier": "severe",
       "minion": "whelp",
@@ -60,7 +60,7 @@
       "rules_text": "A living Whelp is what pulls the collapse forward.",
       "kind": "warning",
       "counter_tags": [
-        "Kill Adds"
+        "kill_adds"
       ],
       "consequence_tier": "chip"
     }

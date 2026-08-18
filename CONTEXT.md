@@ -227,8 +227,8 @@ An explicit Top Card rule that changes its effect according to the Keywords on c
 _Avoid_: Default charge bonus, hidden synergy
 
 **Keyword**:
-A reusable mechanical label on a Card. A card may have multiple Keywords. It contributes one Charge when tucked, and counts once for every explicit matching Charge Modifier on the Top Card.
-_Avoid_: Card type, flavor tag
+A reusable mechanical label, authored in `data/keywords/` and referenced by id. Keywords are the game's one tag namespace: a Card's tags, the Role a Boss Beat selects, the kind of damage a Beat deals, and the answers a Boss Program demands are all Keywords, so anything that pivots on a label pivots on the same vocabulary (D-044). Each Keyword declares a `kind` — `role`, `trait`, `damage_type`, or `answer` — and every reference is checked against both the id and the kind it is allowed to name, because a reference that resolves to the wrong sort of Keyword is an error the id alone cannot catch. A Keyword carries no behaviour of its own; it is a join key, and what reads it decides what it means. A card may have multiple Keywords: it contributes one Charge when tucked, and counts once for every explicit matching Charge Modifier on the Top Card. A Keyword of kind `role` marks whose deck a card belongs to, so every card in a Hero's deck carries it and the glance surfaces leave it off.
+_Avoid_: Card type, flavor tag, tag string
 
 **Top Card**:
 The visible card occupying a Slot and defining that Slot's actual ability. The Top Card determines range, Charge Value, timing, and effect text.

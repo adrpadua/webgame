@@ -1,5 +1,6 @@
 {
   "id": "support",
   "title": "Support",
+  "kind": "trait",
   "rules_text": "Marks cards that restore or assist the party."
 }

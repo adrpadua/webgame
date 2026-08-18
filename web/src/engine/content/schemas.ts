@@ -9,16 +9,30 @@ export const axialSchema = z.object({
   r: z.number().int(),
 })
 
+// The one tag namespace. Everything taggable joins here — card tags, the Role
+// a Beat selects, the kind of damage a Beat deals, the answers a Program
+// demands — so a pivot can be written against any of them and the validator
+// can check every reference. Keywords carry no behaviour and never will: a
+// Keyword is a join key, and the moment one grows a mechanical field the
+// payload is welded to the marker again.
 export const keywordSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   rules_text: z.string().default(''),
-  // A Keyword that marks which Role a card belongs to rather than what it
-  // does. Every card in a Hero's deck carries theirs, so it distinguishes
-  // nothing between two cards in hand and the HUD leaves it off the glance
-  // surfaces. It is still an ordinary Keyword to the rules: a Charge Modifier
-  // may name it, and the Detail Popup still lists it.
-  role_marker: z.boolean().default(false),
+  // One namespace lets anything join on anything; the discriminator is what
+  // still catches a category error. `damage_classification: "guard"` is
+  // spelled correctly and remains nonsense, and only `kind` can say so.
+  //
+  // `role`       — the Role a card belongs to, and what a Beat may select.
+  // `trait`      — what a card does; the axis a Charge Modifier matches on.
+  // `damage_type`— what kind of blow a damage action is.
+  // `answer`     — the response a Boss Program demands, shown in the Forecast.
+  //
+  // A Role Keyword replaces the old `role_marker` flag: every card in a Hero's
+  // deck carries their Role, so it distinguishes nothing between two cards in
+  // hand and the glance surfaces leave it off. That is a consequence of being
+  // a Role, not a separate fact to keep in sync.
+  kind: z.enum(['role', 'trait', 'damage_type', 'answer']),
 })
 
 export const chargeModifierSchema = z.object({

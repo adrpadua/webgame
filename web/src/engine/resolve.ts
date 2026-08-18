@@ -19,8 +19,8 @@ import {
   RIPOSTE_READY,
   roundUpkeep,
   statusEvent,
-  TANK_HIT,
 } from './statuses'
+import { TANK_HIT } from './keywords'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
 import type { CardInstance, EncounterState, HazardInstance, HeroState, Phase, ResolveResult, ResolvedActionFact } from './types'
 

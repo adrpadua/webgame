@@ -9,7 +9,7 @@
       "rules_text": "Embermaw turns to the guardian.",
       "kind": "turn_toward_player",
       "counter_tags": [
-        "Position"
+        "position"
       ],
       "consequence_tier": "chip"
     },
@@ -19,7 +19,7 @@
       "rules_text": "The ground under the last pattern stays Scorched.",
       "kind": "hazard_last_impact",
       "counter_tags": [
-        "Move"
+        "move"
       ],
       "consequence_tier": "structural",
       "duration_rounds": 1,
@@ -33,8 +33,8 @@
       "rules_text": "Forward cone, range 1-2. Deal 13 damage.",
       "kind": "forward_cone",
       "counter_tags": [
-        "Move",
-        "Interrupt"
+        "move",
+        "interrupt"
       ],
       "consequence_tier": "structural",
       "damage": 13,
@@ -47,7 +47,7 @@
       "rules_text": "Scorched ground blocks voluntary movement. Leave yourself somewhere to stand.",
       "kind": "warning",
       "counter_tags": [
-        "Move"
+        "move"
       ],
       "consequence_tier": "chip"
     }

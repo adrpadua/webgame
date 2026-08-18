@@ -4,7 +4,6 @@ import type { EncounterState, Phase, StatusInstance } from './types'
 export const RIPOSTE_READY = 'riposte_ready'
 export const FORTIFIED = 'fortified'
 export const SHIELD_SLAM = 'shield_slam'
-export const TANK_HIT = 'tank_hit'
 
 export function getStatuses(state: EncounterState, entityId: string): StatusInstance[] {
   return state.statusEffects[entityId] ?? []

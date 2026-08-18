@@ -1,0 +1,6 @@
+{
+  "id": "raid_hit",
+  "title": "Raid Hit",
+  "kind": "damage_type",
+  "rules_text": "A blow from a Minion rather than the Boss itself."
+}
