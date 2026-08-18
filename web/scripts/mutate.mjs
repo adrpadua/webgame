@@ -173,12 +173,21 @@ if (selected.length === 0) {
   process.exit(1)
 }
 
+// Built from a char code rather than written literally: an escape byte in
+// source is invisible to a reader and lint rejects it outright.
+const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
+
 function runSuite() {
   try {
     execFileSync('npx', ['vitest', 'run', '--reporter=dot'], { cwd: WEB, stdio: 'pipe', encoding: 'utf8' })
     return { caught: false, detail: '' }
   } catch (error) {
-    const output = `${error.stdout ?? ''}\n${error.stderr ?? ''}`
+    // Strip ANSI first. Vitest colours its output when it detects a terminal
+    // and CI is one, so the summary regex below matched locally and silently
+    // missed on the runner — the count vanished and every line fell back to
+    // "suite failed". Reading the actual CI log is what caught it; the local
+    // run looked perfect.
+    const output = `${error.stdout ?? ''}\n${error.stderr ?? ''}`.replace(ANSI, '')
     // Vitest prints a "Tests  N failed" summary line; fall back to the raw
     // failure markers if the format ever moves, so a caught mutation is never
     // reported as a survivor because a regex missed.
