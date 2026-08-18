@@ -118,6 +118,16 @@ Same principle as the markers, different arithmetic. The scene multiplies, so **
 
 That means the art cannot be near-white the way a hollow ring is — a slab with no headroom has nowhere to put a lit edge. Keep the body of the slab near **50% grey**, and wire it to the **700 step** of whichever ramp it is drawn in. The body then lands on the 900 step the board fills with today: `steel-700` `#37465f` at half value is `#1c2330`, against the `steel-900` `#1b2434` currently drawn. Scorched follows the same step, `coral-700` to `coral-900`.
 
+### It Was Drawn, Not Generated
+
+The prompt below is kept because it states the constraints, but the asset in `assets/art/board/tile-floor.png` did not come from a generator. Once the brief is "a regular hexagon, a chamfer, and two hard value steps, symmetrical, no interior detail", a generator can only approximate what can simply be stated:
+
+```bash
+python3 tools/build_tile_floor.py assets/art/board/tile-floor.png
+```
+
+That emits the 236x272 export directly, exact rather than nearly regular, and it is re-runnable when a value or the chamfer width changes. Send the prompt to a vector generator only if the tile ever wants character the script cannot express — and re-read the budget above first, because most such character is a second texture the tile is not allowed.
+
 ### The Prompt
 
 ```text
