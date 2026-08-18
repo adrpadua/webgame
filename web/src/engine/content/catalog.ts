@@ -176,6 +176,13 @@ function sourceAwareLabel<T extends { id: string }>(entries: ParsedEntry<T>[], l
 
 // Parses every payload and validates cross-references, taking over the job
 // the frozen ContentValidator.gd did for .tres resources (ADR 0020).
+// Which `target_type` values can supply each Counter host.
+const HOST_TARGETS: Record<CounterDefinition['host'], string[]> = {
+  combatant: ['none', 'piece'],
+  hex: ['hex'],
+  slot: ['board_slot'],
+}
+
 export function buildCatalog(raw: RawContent): ContentCatalog {
   const parsedCards = parseAll(raw.cards, cardSchema, 'card')
   const cardAt = sourceAwareLabel(parsedCards, 'Card')
@@ -242,15 +249,10 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       // Counter whose Reader fires on `host_takes_damage` does the same thing
       // to whoever holds it, and a card that Sunders its own Hero is a bad
       // card rather than an incoherent one.
-      // A Counter's host and a card's target have to agree: only a hex target
-      // can supply a hex, only a Slot target a Slot (D-048). Checked here so
+      // A Counter's host and a card's target have to agree (D-048): only a hex
+      // target can supply a hex, only a Slot target a Slot. Checked here so
       // resolution never has to ask what to do with a card that targets
       // nothing and places ground.
-      const HOST_TARGETS: Record<typeof counter.host, string[]> = {
-        combatant: ['none', 'piece'],
-        hex: ['hex'],
-        slot: ['board_slot'],
-      }
       if (!HOST_TARGETS[counter.host].includes(card.target_type)) {
         throw new Error(
           `Card ${card.id} places ${counter.id}, a ${counter.host} Counter, but targets ${card.target_type}; that host needs ${HOST_TARGETS[counter.host].join(' or ')}`,
