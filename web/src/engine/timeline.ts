@@ -115,7 +115,7 @@ export function resolveBossBeat(
       scorchedDurationRounds = beat.duration_rounds
       break
     case 'forward_cone':
-      patternHexes = forwardCone(draft.board.hexes, bossCoords, bossFacing)
+      patternHexes = forwardCone(draft.board.hexes, bossCoords, bossFacing, beat.range_tiles)
       if (containsHex(patternHexes, playerCoords)) {
         playerDamage = beat.damage
         impactedHexes.push(playerCoords)
@@ -224,7 +224,10 @@ export function refreshTelegraphs(catalog: ContentCatalog, draft: EncounterState
   for (const beat of program.incoming_beats) {
     switch (beat.kind) {
       case 'forward_cone':
-        for (const coords of forwardCone(draft.board.hexes, boss.coords, boss.facing, 2)) {
+        // The same authored reach the Beat will resolve with, not a matching
+        // literal: the telegraph must not lie, and two constants agreeing is
+        // not the same as one constant being read twice.
+        for (const coords of forwardCone(draft.board.hexes, boss.coords, boss.facing, beat.range_tiles)) {
           draft.telegraphs[hexKey(coords)] = 'cone'
         }
         break

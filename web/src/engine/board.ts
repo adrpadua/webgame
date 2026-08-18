@@ -148,7 +148,13 @@ export function frontArc(hexes: Record<HexKey, true>, origin: Axial, facing: num
 
 // The live forward-cone geometry (ADR 0017): a symmetric wedge expanding
 // from the facing ray, clipped to on-board hexes.
-export function forwardCone(hexes: Record<HexKey, true>, origin: Axial, facing: number, maximumRange = 2): Axial[] {
+//
+// `maximumRange` is required rather than defaulted. It used to default to 2,
+// and the telegraph passed its own literal 2 alongside — so the preview and the
+// resolution agreed only by coincidence, and either could be edited without the
+// other. Every caller now has to say what it means, which is the authored
+// `range_tiles` of the Beat being drawn or resolved.
+export function forwardCone(hexes: Record<HexKey, true>, origin: Axial, facing: number, maximumRange: number): Axial[] {
   const result: Axial[] = []
   const forward = axialDeltaFor(facing)
   const left = axialDeltaFor(facing + 2)
