@@ -1,14 +1,21 @@
 import type { Axial } from '@/engine'
 import { HEX_SIZE } from './layout'
+import { easeOutCubic, hexNoise } from './math'
 
 // What a hex looks like while it catches fire.
 //
-// A Hazard landing on a hex is a beat resolving now, which the board direction
-// ranks at the top of the warm order — above the telegraph that announced it
-// and above the Boss that laid it. It used to be drawn as a single flat coral
-// wash fading out over a third of a second, and the tile snapped to ash under
-// it: the most imminent thing on the board was also the quietest, and the
-// ground changed material between two frames with nothing in between.
+// A Hazard landing on a hex is a beat resolving now, which is the top of the
+// board direction's warm order — above the telegraph that announced it and
+// above the Boss that laid it. It used to be drawn as a single flat coral wash
+// fading out over a third of a second, and the tile snapped to ash under it:
+// the most imminent thing on the board was also the quietest, and the ground
+// changed material between two frames with nothing in between.
+//
+// The fire keeps that ranking with its core rather than its body. The body
+// takes the effect's own hazard tone, which is a step the board already
+// spends; the core is that tone lit hotter, and it is the core that has to
+// out-burn every telegraph on screen — including the Cinder Breath cone the
+// ash usually lands inside.
 //
 // So the hex burns. Three stages, and the shape of each is stated here rather
 // than in the scene, because a curve nobody can hold a test against is a curve
@@ -16,7 +23,8 @@ import { HEX_SIZE } from './layout'
 //
 //   ignition — a hex-shaped flare runs out from the tile's centre to its edge
 //   burn     — flame tongues rise off the face, flicker, and collapse
-//   ash      — the tile mixes from oathsteel to scorched coral as it chars
+//   ash      — scorched coral takes the tile, at a coverage this module states
+//              and the scene composites (palette.ts owns that arithmetic)
 //
 // Everything is flat-filled with hard edges: the interface direction bans
 // blur and gradient ramps, and a flame drawn as a soft glow would be the one
@@ -80,21 +88,16 @@ export interface FlameTongue {
   alpha: number
 }
 
+// Salts 1 and up, so no draw here collides with the floor's own shade at
+// salt 0: the height of the first flame on a tile and how dark that tile is
+// are unrelated facts.
+const HEIGHT_SALT = 1
+const PHASE_SALT = HEIGHT_SALT + TONGUE_COUNT
+const REACH_SALT = PHASE_SALT + TONGUE_COUNT
+const WIDTH_SALT = REACH_SALT + TONGUE_COUNT
+
 function clamp01(value: number): number {
   return value < 0 ? 0 : value > 1 ? 1 : value
-}
-
-function easeOutCubic(t: number): number {
-  return 1 - (1 - t) ** 3
-}
-
-// A stable pseudo-random value in [0, 1) for one hex and one purpose. The same
-// hex always draws the same fire, so a burn replayed by time travel is the
-// burn the player saw the first time. `salt` separates the draws — a tongue's
-// height and its phase must not be the same number.
-function hexNoise(coords: Axial, salt: number): number {
-  const h = Math.sin(coords.q * 127.1 + coords.r * 311.7 + salt * 74.7) * 43758.5453
-  return h - Math.floor(h)
 }
 
 // How tall the fire stands at `t`: up fast, held, then collapsing back into
@@ -138,16 +141,26 @@ export function emberAlpha(t: number): number {
   return 0.5 * ramp * (1 - t / COLLAPSE_END)
 }
 
-// How far the ground has charred, 0 clean and 1 fully scorched. Monotonic on
-// purpose: the tile darkens and stays dark, because ash is the state the hex
-// is left in and a floor that brightens again mid-burn reads as a flicker in
-// the terrain rather than in the fire.
+// How far the ground has charred: the coverage the scorched material has taken
+// of the tile, 0 clean and 1 fully ash. The scene composites the two authored
+// materials at this coverage rather than inventing a third — the same
+// source-over the telegraphs are painted with.
+//
+// Monotonic on purpose: the tile darkens and stays dark, because ash is the
+// state the hex is left in and a floor that brightens again mid-burn reads as
+// a flicker in the terrain rather than in the fire.
 export function charProgress(t: number): number {
   const span = clamp01((t - CHAR_START) / (CHAR_END - CHAR_START))
   return easeOutCubic(span)
 }
 
 // The flames on one hex at this instant, in pixels relative to its centre.
+//
+// The fire's shape is the hex's own: where each tongue is rooted, how tall it
+// reaches and how wide it stands come from the hex's coordinates, so one hex
+// burns the same way every time it burns and no two hexes burn alike. Its
+// flicker runs on the scene clock, like every other live animation on the
+// board — a Scenario replayed twice shows the same fire, not the same frames.
 //
 // Returns nothing under reduced motion: rising, flickering, swaying fire is
 // exactly what that setting turns off. The burn still reads there — the flare,
@@ -164,18 +177,18 @@ export function flameTongues(coords: Axial, t: number, nowMs: number, reducedMot
     // lower than one at the tile's shoulder, and the fire sits *in* the hex
     // instead of on a straight line drawn across it.
     const spread = (index + 0.5) / TONGUE_COUNT - 0.5
-    const jitter = (hexNoise(coords, index) - 0.5) * 0.12
+    const jitter = (hexNoise(coords, HEIGHT_SALT + index) - 0.5) * 0.12
     const offset = spread + jitter
     const rootX = offset * 2 * ROOT_SPREAD * HEX_SIZE
     const rootY = ROOT_ARC * HEX_SIZE * (1 - Math.abs(offset) * 1.6)
-    const phase = hexNoise(coords, index + TONGUE_COUNT)
+    const phase = hexNoise(coords, PHASE_SALT + index)
     // Tallest in the middle, so five tongues read as one fire rather than as
     // a picket fence, and never the same height twice on any two hexes.
-    const reach = (0.72 + 0.5 * hexNoise(coords, index + TONGUE_COUNT * 2)) * (1 - Math.abs(offset) * 0.7)
+    const reach = (0.72 + 0.5 * hexNoise(coords, REACH_SALT + index)) * (1 - Math.abs(offset) * 0.7)
     const flicker = 1 + FLICKER_DEPTH * Math.sin((nowMs / FLICKER_MS + phase) * Math.PI * 2)
     const sway = Math.sin((nowMs / SWAY_MS + phase) * Math.PI * 2) * SWAY_REACH * HEX_SIZE
     const height = TONGUE_HEIGHT * HEX_SIZE * reach * envelope * flicker
-    const width = TONGUE_WIDTH * HEX_SIZE * (0.8 + 0.4 * hexNoise(coords, index + TONGUE_COUNT * 3)) * Math.min(1, envelope * 1.4)
+    const width = TONGUE_WIDTH * HEX_SIZE * (0.8 + 0.4 * hexNoise(coords, WIDTH_SALT + index)) * Math.min(1, envelope * 1.4)
     const body = tonguePath(rootX, rootY, width, height, sway * envelope)
     tongues.push({
       body,
@@ -201,17 +214,4 @@ function tonguePath(rootX: number, rootY: number, width: number, height: number,
     { x: rootX + width * 0.48, y: rootY - height * 0.16 },
     { x: rootX + width / 2, y: rootY },
   ]
-}
-
-// Mixes two 0xRRGGBB colours channel-wise. The tile crossfades from oathsteel
-// to scorched coral through this rather than swapping between them, so ground
-// takes the fire's whole length to become ash.
-export function mixColor(from: number, to: number, amount: number): number {
-  const ratio = clamp01(amount)
-  const channel = (shift: number): number => {
-    const start = (from >> shift) & 0xff
-    const end = (to >> shift) & 0xff
-    return Math.round(start + (end - start) * ratio)
-  }
-  return (channel(16) << 16) | (channel(8) << 8) | channel(0)
 }

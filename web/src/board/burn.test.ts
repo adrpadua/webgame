@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { BURN_MS, charProgress, emberAlpha, flameEnvelope, flameTongues, flareRing, mixColor, type FlameTongue, type Point } from './burn'
+import { BURN_MS, charProgress, emberAlpha, flameEnvelope, flameTongues, flareRing, type FlameTongue, type Point } from './burn'
+import { composite } from './palette'
 import { HEX_SIZE } from './layout'
 
 const HEX = { q: 0, r: 0 }
@@ -75,11 +76,17 @@ describe('hex burn', () => {
     // A burn that spilled sideways would say its neighbour was on fire too.
     // Upward is the one direction it may leave the tile: that is what rising
     // looks like, and there is nothing above a tile to be confused with.
+    //
+    // Sideways the bound is the hex's own half-width, not HEX_SIZE — a
+    // pointy-top hex is HEX_SIZE tall to its points and only √3/2 of that
+    // wide, and a flame rooted between those two numbers is standing on the
+    // neighbouring tile.
+    const halfWidth = (HEX_SIZE * Math.sqrt(3)) / 2
     for (const coords of [HEX, { q: 2, r: -1 }, { q: -3, r: 4 }]) {
       for (const t of frames(30)) {
         for (const tongue of flameTongues(coords, t, t * BURN_MS, false)) {
           for (const point of [...tongue.body, ...tongue.core]) {
-            expect(Math.abs(point.x)).toBeLessThan(HEX_SIZE)
+            expect(Math.abs(point.x)).toBeLessThan(halfWidth)
             expect(point.y).toBeLessThan(HEX_SIZE)
             expect(point.y).toBeGreaterThan(-HEX_SIZE * 1.5)
           }
@@ -89,8 +96,9 @@ describe('hex burn', () => {
   })
 
   it('draws the same fire on the same hex and a different one on the next', () => {
-    // Time travel replays a batch: the burn the player sees the second time
-    // has to be the burn they saw the first.
+    // The fire's shape belongs to the hex, not to the moment: a Scenario
+    // replayed twice burns the same hex the same way. (Its flicker runs on
+    // the scene clock, which is why the clock is held still here.)
     expect(flameTongues(HEX, 0.4, 500, false)).toEqual(flameTongues(HEX, 0.4, 500, false))
     // Two hexes burning together must not flicker in step, or a row of them
     // reads as one pulsing warning light rather than as several fires.
@@ -123,19 +131,15 @@ describe('hex burn', () => {
     expect(charProgress(0.9)).toBe(1)
   })
 
-  it('mixes the floor from oathsteel to ash without inventing a colour', () => {
-    expect(mixColor(0x1b2434, 0x45200f, 0)).toBe(0x1b2434)
-    expect(mixColor(0x1b2434, 0x45200f, 1)).toBe(0x45200f)
-    expect(mixColor(0x1b2434, 0x45200f, 2)).toBe(0x45200f)
-    expect(mixColor(0x000000, 0xffffff, 0.5)).toBe(0x808080)
-    // Every channel stays between its ends, so no midpoint is a hue the
-    // palette never authored.
-    for (const t of frames(20)) {
-      const mixed = mixColor(0x1b2434, 0x45200f, t)
-      expect((mixed >> 16) & 0xff).toBeGreaterThanOrEqual(0x1b)
-      expect((mixed >> 16) & 0xff).toBeLessThanOrEqual(0x45)
-      expect(mixed & 0xff).toBeLessThanOrEqual(0x34)
-      expect(mixed & 0xff).toBeGreaterThanOrEqual(0x0f)
-    }
+  it('lands the charring on the two materials it runs between', () => {
+    // What the scene composites is scorched coral over the tile at the
+    // coverage below, so the two ends are the authored materials themselves
+    // and everything between is one being laid over the other — the same
+    // source-over a telegraph is painted with, not a third invented colour.
+    expect(composite(0x45200f, charProgress(0), 0x1b2434)).toBe(0x1b2434)
+    expect(composite(0x45200f, charProgress(1), 0x1b2434)).toBe(0x45200f)
+    // And it arrives there before the fire goes out, so nothing is still
+    // darkening on a hex with no flame left on it.
+    expect(composite(0x45200f, charProgress(0.85), 0x1b2434)).toBe(0x45200f)
   })
 })

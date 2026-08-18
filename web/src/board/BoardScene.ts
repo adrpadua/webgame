@@ -4,8 +4,9 @@ import { axialToPixel, hexCorners, pixelToAxial, BOARD_CENTER_X, BOARD_CENTER_Y,
 import { BACKDROP_DEPTH, BACKDROPS, backdropFor } from './backdrop'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 import { idleBobOffset } from './ambience'
-import { BURN_MS, charProgress, emberAlpha, flameTongues, flareRing, mixColor } from './burn'
-import { boardPalette, TELEGRAPH_ALPHA, toneColors } from './palette'
+import { BURN_MS, charProgress, emberAlpha, flameTongues, flareRing } from './burn'
+import { easeOutCubic, hexNoise } from './math'
+import { boardPalette, composite, TELEGRAPH_ALPHA, toneColors } from './palette'
 import { idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
 
 // The board is three layers: tiles and their tints, then the pieces, then the
@@ -13,10 +14,11 @@ import { idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
 // within a depth, and the graphics layer is built once while labels are
 // rebuilt per frame, so the pieces need saying explicitly.
 const SPRITE_DEPTH = 1
-// Flames are the one part of the board that draws over the pieces. The ground
-// a Hazard takes is usually ground somebody is standing on — Ash Trail burns
-// the hex the claw struck — and fire drawn behind that piece is fire nobody
-// sees. A piece standing in it is in it.
+// Flames are the one thing the board draws over its pieces rather than under
+// them; above that, only the labels. The ground a Hazard takes is usually
+// ground somebody is standing on — Ash Trail burns the hex the claw struck,
+// which is the hex the Tank is holding — and fire behind that piece is fire
+// nobody sees. A piece standing in it is in it.
 const FLAME_DEPTH = 1.5
 const LABEL_DEPTH = 2
 
@@ -162,10 +164,15 @@ const EFFECT_DURATION: Record<BoardEffect['kind'], number> = {
 }
 
 // How much brighter a flame's core is than the hazard tone its body takes.
-// Above 1 the channels run toward their ceiling, so the hottest part of the
-// fire desaturates toward white on its own instead of needing a colour of its
-// own — which is what fire actually does, and what keeps the burn inside the
-// one warm material the board direction allows it.
+// This is the hazard tone lit hotter, derived the same way every piece derives
+// its lit value — a value on the board's one warm material, not a second
+// colour anyone authored. Above 1 the channels run into their ceiling red
+// first, so the hottest part of the fire rides up toward white as fire does.
+//
+// It has to be this bright. The board direction ranks warm by imminence and
+// puts the beat resolving now at the top, and ash usually lands inside the
+// Cinder Breath cone that announced it: a core no hotter than that telegraph
+// would leave the fire reading as part of the warning it is answering.
 const FLAME_CORE_SHADE = 1.7
 
 // An effect whose `delay` has not elapsed yet holds negative `elapsed` and
@@ -190,10 +197,6 @@ interface Motion {
 
 const NO_MOTION: Motion = { dx: 0, dy: 0, scale: 1, flash: 0, flashColor: 0 }
 
-function easeOutCubic(t: number): number {
-  return 1 - (1 - t) ** 3
-}
-
 // Scales a 0xRRGGBB colour's channels toward black (factor < 1) or white
 // (factor > 1), so one authored colour yields its own shadow and highlight
 // instead of needing a second constant per tone.
@@ -204,12 +207,10 @@ function shade(color: number, factor: number): number {
   return (r << 16) | (g << 8) | b
 }
 
-// A stable pseudo-random value in [0, 1) for a hex. The same hex always lands
-// on the same shade, so the floor holds still between frames.
-function tileJitter(coords: Axial): number {
-  const h = Math.sin(coords.q * 127.1 + coords.r * 311.7) * 43758.5453
-  return h - Math.floor(h)
-}
+// The floor's own draw from the per-hex hash. The same hex always lands on the
+// same shade, so the floor holds still between frames; salt 0 is the floor's,
+// and every other consumer of a hex — the fire standing on it — takes another.
+const TILE_JITTER_SALT = 0
 
 export class BoardScene extends Phaser.Scene {
   private snapshot: BoardSnapshot | null = null
@@ -587,37 +588,57 @@ export class BoardScene extends Phaser.Scene {
     // unseen until that moment's own effect fires. The playout director
     // reports unplayed moments through the snapshot; still-delayed effects
     // already queued here count too.
-    const pendingScorch = new Set<string>(snapshot.pendingScorchKeys)
-    const pendingSpawns = new Set<string>(snapshot.pendingSpawnIds)
-    for (const effect of this.active) {
-      if (effect.elapsed >= 0) {
-        continue
-      }
-      if (effect.kind === 'scorch') {
-        pendingScorch.add(hexKey(effect.at))
-      } else if (effect.kind === 'spawn') {
-        pendingSpawns.add(effect.entityId)
-      }
+    // Hazards are counted rather than flagged, because they stack: a cone can
+    // land on ground Ash Trail already took, and a hex that ends the batch
+    // with two of them may still be showing its first.
+    const unplayedHazards = new Map<string, number>()
+    const holdBack = (key: string) => unplayedHazards.set(key, (unplayedHazards.get(key) ?? 0) + 1)
+    for (const key of snapshot.pendingScorchKeys) {
+      holdBack(key)
     }
-    // A hex the fire is on right now does not snap to ash: its burn says how
-    // far it has charred, and the tile mixes toward scorched coral across the
-    // whole length of the fire. Hexes with no live burn are all the way to one
-    // end or the other — clean, or ground that burned in an earlier batch.
+    const pendingSpawns = new Set<string>(snapshot.pendingSpawnIds)
+    // How far the fire currently on a hex has charred it, for the hexes that
+    // have one. Filled in the same pass, since both readings are questions
+    // about the same live effects.
     const burning = new Map<string, number>()
     for (const effect of this.active) {
-      if (effect.kind === 'scorch' && effect.elapsed >= 0) {
+      if (effect.elapsed < 0) {
+        if (effect.kind === 'scorch') {
+          holdBack(hexKey(effect.at))
+        } else if (effect.kind === 'spawn') {
+          pendingSpawns.add(effect.entityId)
+        }
+      } else if (effect.kind === 'scorch') {
         burning.set(hexKey(effect.at), charProgress(Math.min(effect.elapsed / effect.duration, 1)))
       }
     }
     const tiles = Object.keys(state.board.hexes).map((key) => {
       const coords = parseHexKey(key)
       const { x, y } = axialToPixel(coords)
-      const scorched = (state.board.hazards[key] ?? []).length > 0 && !pendingScorch.has(key)
-      const char = burning.get(key) ?? (scorched ? 1 : 0)
+      // How much ash the ground shows. The snapshot is the batch's final
+      // state, so what has actually landed on screen is what the state holds
+      // less what the playout has not played yet.
+      const played = (state.board.hazards[key] ?? []).length - (unplayedHazards.get(key) ?? 0)
+      const burn = burning.get(key)
+      // A hex the fire is on right now does not snap to ash: its burn says how
+      // far it has charred, and the scorched material takes the tile across
+      // the whole length of the fire. Two things that would go wrong if the
+      // burn simply owned the tile while it played:
+      //
+      // The rules decide what is burnt ground, never the animation (ADR 0019).
+      // A burn still playing over a board rewound past its Hazard has no
+      // hazard left to count, so it paints nothing.
+      //
+      // And ash does not un-burn. A second fire on ground already taken starts
+      // at zero char, and following it would flick the tile back to clean
+      // oathsteel before darkening it again. Ground that has paid for a Hazard
+      // already stays black, and the new fire burns on top of it.
+      const char = played <= 0 ? 0 : played > 1 || burn === undefined ? 1 : burn
       // A flat fill repeated across every hex reads as vector art. Nudging
       // each hex's value a little breaks that up without introducing a
       // second authored colour.
-      const fill = shade(mixColor(TILE_FILL, SCORCHED_FILL, char), 1 - TILE_JITTER / 2 + tileJitter(coords) * TILE_JITTER)
+      const ground = composite(SCORCHED_FILL, char, TILE_FILL)
+      const fill = shade(ground, 1 - TILE_JITTER / 2 + hexNoise(coords, TILE_JITTER_SALT) * TILE_JITTER)
       return { key, coords, x, y, fill, corners: hexCorners(x, y, HEX_SIZE - 2) }
     })
 

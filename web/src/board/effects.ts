@@ -16,8 +16,16 @@ export const BEAT_STAGGER_MS = 700
 
 // How long after the last beat starts before staggered presentation (the
 // HUD's gauge overrides) settles back onto the authoritative state: the
-// longest single effect duration (BoardScene's EFFECT_DURATION.blast —
-// change them together), so nothing is reclaimed mid-animation.
+// longest effect that holds presentation state (BoardScene's
+// EFFECT_DURATION.blast — change them together), so no claim the HUD is
+// making is reclaimed mid-animation.
+//
+// Feedback that claims nothing may outlast it, and one does: a burn runs
+// 900ms (EFFECT_DURATION.scorch). It overrides no gauge and reads the
+// authoritative board every frame, so settling underneath it takes nothing
+// back — the ground is simply still cooling while the board moves on. Timing
+// this to the fire instead would hold every Continue prompt in the game
+// behind the longest animation on it.
 export const EFFECT_SETTLE_MS = 560
 
 export interface BoardEffect {
