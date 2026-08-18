@@ -318,6 +318,10 @@ function resolveOne(
       if (action.permanent === true) {
         hazard.permanent = true
       }
+      // The Encounter itself acts for the Boss: a structural Escalation
+      // Threshold closing the arena (D-031) is the Boss's pressure, not
+      // neutral weather, so it lays an Enemy Hazard.
+      hazard.sourceTeam = draft.board.entities[action.sourceId]?.team ?? 'enemy'
       if (!addHazard(draft.board, action.coords, hazard)) {
         fail(fact, 'The hazard could not be applied to that hex.')
         break
@@ -580,8 +584,13 @@ function resolveDisplacement(
 }
 
 function hazardEntryActions(draft: EncounterState, targetId: string, coords: Axial): EncounterActionInput[] {
+  const enteringTeam = draft.board.entities[targetId]?.team
   return getHazards(draft.board, coords)
     .filter((hazard) => hazard.enterDamage > 0)
+    // Immune to your own side's ground (D-042). Without this a Boss advancing
+    // across its own permanent Ash Trail chips itself, crediting a Hero with
+    // Boss damage they never dealt — against a D-016 margin already down to 2.
+    .filter((hazard) => hazard.sourceTeam === undefined || hazard.sourceTeam !== enteringTeam)
     .map((hazard) => ({
       kind: 'damage' as const,
       sourceId: 'hazard',

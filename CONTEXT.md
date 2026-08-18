@@ -113,7 +113,7 @@ An Elian Voss Status Effect created by firing Fortify in the Slow Window (D-019)
 _Avoid_: Delayed buff, second Armor pool
 
 **Hazard**:
-A board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex. Most Hazards are temporary and expire at a Round boundary; a Hazard a Beat marks permanent survives it, because the arena does not recover from it. Permanence has two authors — a structural Escalation Threshold, which burns hexes nobody chose, and a Beat whose Hazard the party's own play placed (D-039). Only the first is banned from the ground next to the Boss: a hex the Tank burnt by standing there is a consequence, not a trap.
+A board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex. Most Hazards are temporary and expire at a Round boundary; a Hazard a Beat marks permanent survives it, because the arena does not recover from it. Permanence has two authors — a structural Escalation Threshold, which burns hexes nobody chose, and a Beat whose Hazard the party's own play placed (D-039). Only the first is banned from the ground next to the Boss: a hex the Tank burnt by standing there is a consequence, not a trap. Every Hazard records the side that laid it, and **a combatant is immune to its own side's Hazards** (D-042) — a Boss crosses its own Ash Trail untouched and a Minion does not burn in its master's fire, while a Hazard the party lays still burns Enemies.
 _Avoid_: Surprise damage, ambient effect
 
 **Forced Movement**:

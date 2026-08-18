@@ -572,6 +572,75 @@ describe('Demand disclosure (D-041)', () => {
   })
 })
 
+// D-042. Recorded as a latent interaction during PR #77's review and ruled on
+// after: an Enemy is immune to its own side's Hazards. The rule is stated per
+// Hazard rather than as "Enemies ignore Hazards", because a Hero-placed damage
+// zone is exactly the card the new effect families invite and it has to keep
+// working against Enemies.
+describe('Own-side Hazard immunity (D-042)', () => {
+  const scorch = (sourceTeam: 'party' | 'enemy') => ({
+    id: 'scorched',
+    title: 'Scorched',
+    remainingRounds: 1,
+    enterDamage: 1,
+    blocksVoluntaryMovement: true,
+    sourceTeam,
+  })
+
+  function drag(state: EncounterState, targetId: string, into: { q: number; r: number }) {
+    // Park the target one hex short and pull it in, so the move is a real
+    // displacement that runs the Hazard-entry path.
+    const from = { q: into.q + 1, r: into.r }
+    state.board.entities[targetId].coords = from
+    state.board.entities[state.primaryHeroId].coords = { q: into.q - 1, r: into.r }
+    return resolve(catalog, state, {
+      kind: 'displace_piece',
+      sourceId: state.primaryHeroId,
+      targetId,
+      distance: 1,
+      movement: 'pull',
+      reasonText: 'test',
+    })
+  }
+
+  it('spares the Boss walking onto ground its own side laid', () => {
+    const state = immortalHero(start())
+    const hex = { q: 0, r: 0 }
+    state.board.hazards[hexKey(hex)] = [scorch('enemy')]
+    const before = boss(state).health
+    const moved = drag(state, state.bossId, hex)
+    expect(moved.state.board.entities[state.bossId].coords).toEqual(hex)
+    expect(moved.state.board.entities[state.bossId].health).toBe(before)
+  })
+
+  it('still burns the Boss on ground the party laid', () => {
+    // The half that makes this a rule about sides rather than about Enemies.
+    const state = immortalHero(start())
+    const hex = { q: 0, r: 0 }
+    state.board.hazards[hexKey(hex)] = [scorch('party')]
+    const before = boss(state).health
+    const moved = drag(state, state.bossId, hex)
+    expect(moved.state.board.entities[state.bossId].health).toBeLessThan(before)
+  })
+
+  it('records the side that laid every Hazard the Encounter creates', () => {
+    // Embermaw's own Beats and its structural Thresholds both act for the Boss,
+    // so nothing it puts on the board should be missing a side.
+    let state = immortalHero(start())
+    state.escalation = 4
+    let guard = 0
+    while (state.active && guard < 40) {
+      guard += 1
+      state = advancePhase(catalog, state).state
+      for (const hazards of Object.values(state.board.hazards)) {
+        for (const hazard of hazards) {
+          expect(hazard.sourceTeam).toBe('enemy')
+        }
+      }
+    }
+  })
+})
+
 describe('Program identity (D-036)', () => {
   it('gives each Phase I program a distinct set of demands', () => {
     const tags = (id: string) => programCounterTags(catalog.programs[id]).sort().join(',')
@@ -1832,7 +1901,10 @@ describe('forced movement cards', () => {
     let state = readyToFire(variant, { q: -1, r: 0 })
     state = resolve(variant, state, {
       kind: 'apply_hazard',
-      sourceId: state.bossId,
+      // Party-laid, because the shove target is a Minion and an Enemy is immune
+      // to its own side's ground (D-042). A Boss-laid Hazard here would test the
+      // immunity rather than the entry-damage rule this case is about.
+      sourceId: state.primaryHeroId,
       coords: { q: -2, r: 0 },
       hazardId: 'scorched',
       fallbackDurationRounds: 1,
