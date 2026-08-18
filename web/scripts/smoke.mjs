@@ -147,6 +147,55 @@ try {
       tooHot.push(`${file}: saturated warm peaks at L=${peak.toFixed(4)}, ${(peak / ceiling).toFixed(1)}x a telegraph`)
     }
   }
+  // The Boss is drawn art, so no runtime tint governs it and no token can be
+  // moved to correct it — it is the one step of the warm ranking that lives in
+  // a PNG. The unit test holds the telegraph composites above a measured
+  // constant; this holds that constant against the sheet it was measured from,
+  // so a hotter Boss retaking the top of the ranking fails here instead of
+  // shipping. Median rather than peak: every piece carries near-white specular
+  // highlights, and those say nothing about how warm the piece reads.
+  const bossBinding = /boss: \{ key: '[\w-]+', url: (\w+)/.exec(sceneSource)?.[1]
+  assert(Boolean(bossBinding && imports[bossBinding]), 'the scene declares a Boss sprite sheet')
+  const bossBytes = readFileSync(new URL(`../src/assets/${imports[bossBinding]}`, import.meta.url))
+  const bossWarmMedian = await backdropPage.evaluate(async (dataUrl) => {
+    const image = document.createElement('img')
+    image.src = dataUrl
+    await image.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = image.width
+    canvas.height = image.height
+    const context = canvas.getContext('2d')
+    context.drawImage(image, 0, 0)
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
+    const toLinear = (channel) => {
+      const v = channel / 255
+      return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+    }
+    const warm = []
+    for (let index = 0; index < pixels.length; index += 4) {
+      const [r, g, b, a] = [pixels[index], pixels[index + 1], pixels[index + 2], pixels[index + 3]]
+      if (a < 128 || r - b <= 60) continue
+      warm.push(0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b))
+    }
+    warm.sort((x, y) => x - y)
+    return warm.length ? warm[Math.floor(warm.length / 2)] : 0
+  }, `data:image/png;base64,${bossBytes.toString('base64')}`)
+
+  const alphas = /TELEGRAPH_ALPHA = \{ cone: ([\d.]+), spawn: ([\d.]+) \}/.exec(paletteSource)
+  assert(Boolean(alphas), 'palette.ts declares the telegraph alphas')
+  const token = (name) => {
+    const hex = new RegExp(`--color-${name}:\\s*#([0-9a-fA-F]{6})`).exec(stylesheet)[1]
+    return [0, 2, 4].map((at) => parseInt(hex.slice(at, at + 2), 16))
+  }
+  const over = (tint, alpha, base) => tint.map((c, index) => alpha * c + (1 - alpha) * base[index])
+  const tile = token('steel-900')
+  const coneL = luminance(over(token('coral-300'), Number(alphas[1]), tile))
+  const spawnL = luminance(over(token('coral-400'), Number(alphas[2]), tile))
+  assert(
+    bossWarmMedian < Math.min(coneL, spawnL),
+    `both telegraphs outrank the Boss sprite on screen (boss L=${bossWarmMedian.toFixed(4)}, cone ${coneL.toFixed(4)}, spawn ${spawnL.toFixed(4)})`,
+  )
+
   await backdropPage.close()
   assert(
     tooHot.length === 0,
