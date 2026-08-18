@@ -179,6 +179,21 @@ Nothing may leave the body's outline. No drifting embers, falling ash, smoke, sp
 
 Composed and ready to send in [embermaw-sprite-prompts.md](embermaw-sprite-prompts.md). Save the accepted sheet as `assets/art/characters/embermaw/idle-contact-sheet-phase-two.png` and build it to `web/src/assets/embermaw-phase-two-idle.png`.
 
+## The Label Gutter Is Not Evidence
+
+The facing labels down the left edge say what a row was *asked* for, not what was drawn. On both Embermaw sheets the generator swapped the compass on every diagonal: the band labelled `SE` faces down-left, `NE` faces up-left, and only `E` and `W` came back pointing where their labels claimed.
+
+That shipped. The first Embermaw sheet drew all six rows and was built by trusting the gutter, so the Boss turned the wrong way on four of its six facings from the day it landed — through a rebuild, a mirroring change, and two rounds of acceptance checks, because every one of them read the labels rather than the art.
+
+**Check which way the piece points, not what the gutter says.** For a piece with a directional feature the check is mechanical: Embermaw's furnace throat is the `BOARD_READ` precisely because its position tells a player which way the heat is going, so measuring which side of the body the throat sits on decides the row. For a piece without one, it is a read in the Sprite Inspector against the arrows beside each row.
+
+When the drawn rows disagree with their labels, **rename the rows rather than re-rolling the sheet**. `--rows` names the bands in sheet order, so a sheet whose diagonals are swapped is built by passing the names it actually drew:
+
+```bash
+python3 tools/build_sprite_sheet.py <contact>.png <out>.png \
+  --rows NE,NW,E,SW,SE,W --mirror W=E,NW=NE,SW=SE
+```
+
 ## Acceptance Check
 
 Build the sheet first, then run the checks in the **Sprite Inspector** — the debug rail's "Inspect sheets" button, on any build with the rail (`npm run dev`, or `?debug=1`). It lays every frame out in the engine's facing order with the direction each row is supposed to face, so the checks below are a read rather than an investigation. Its `checker` ground is the one that shows keying damage; its `board size` zoom is the one that answers whether the piece reads at all.
