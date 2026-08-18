@@ -185,7 +185,15 @@ The facing labels down the left edge say what a row was *asked* for, not what wa
 
 That shipped. The first Embermaw sheet drew all six rows and was built by trusting the gutter, so the Boss turned the wrong way on four of its six facings from the day it landed — through a rebuild, a mirroring change, and two rounds of acceptance checks, because every one of them read the labels rather than the art.
 
-**Check which way the piece points, not what the gutter says.** For a piece with a directional feature the check is mechanical: Embermaw's furnace throat is the `BOARD_READ` precisely because its position tells a player which way the heat is going, so measuring which side of the body the throat sits on decides the row. For a piece without one, it is a read in the Sprite Inspector against the arrows beside each row.
+**Check which way the piece points, not what the gutter says**, and check it against the right feature. Each piece has one thing that actually states its direction, and picking the wrong one gives a confident wrong answer:
+
+| Piece | The tell |
+| --- | --- |
+| A figure | **Where the eyes and face point.** Nothing else on a humanoid is reliable — Elian's runeglass panel rides his far arm, so it lands on the opposite side of frame from the way he is looking, and reading the panel gets every row backwards. |
+| Embermaw | The furnace throat, which is its `BOARD_READ` precisely because its position says which way the heat is going. |
+| A Whelp | Nothing, really. Its core is central and it renders 40px tall; its pairs mirror by construction and its diagonals sit within noise of centre. Do not invent a verdict for a piece with no directional feature. |
+
+Elian's sheet cost three rebuilds to learn this. The panel test said his diagonals were fine, the face test said every one of his six rows was wrong, and the face test was right.
 
 When the drawn rows disagree with their labels, **rename the rows rather than re-rolling the sheet**. `--rows` names the bands in sheet order, so a sheet whose diagonals are swapped is built by passing the names it actually drew:
 
