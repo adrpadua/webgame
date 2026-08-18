@@ -49,13 +49,13 @@ The ordering above was written for a board of flat fills, where a token and a re
 
 **A sprite is governed by nothing.** Pieces are drawn art, so no token moves them. Their place in the ordering is a property of the PNG and has to be measured against the sheet, which the smoke suite does.
 
-### Boss And Minion Separate By Size, Not By Pixel
+### Boss And Minion, Measured
 
-Measured on the shipped sheets, the Whelp's warm median is `L=0.152` against Embermaw's `L=0.103` — the Minion is the more saturated of the two, per pixel, which reads as an inversion of the ranking above.
+They are one material, and the ordering above puts the Boss over the Minion. Shipped, it was the other way round: the Whelp's warm median measured `L=0.152` against Embermaw's `L=0.103`, and on a dark board two small intense pieces pulled the eye ahead of the thing that dominates the frame.
 
-It is not one, and the ranking should be read as **total warm presence** rather than per-pixel saturation for these two. The Boss covers 5014 px² of board to a Whelp's 851 and carries **4.5× its warm energy**, so the piece that dominates the frame is the piece the ordering says should. The alternative was grading the Whelp down by 42%, which would have cost the too-bright core that is its whole board read — the feature that says *a piece of the furnace broke off*, and the reason the two share a material at all.
+The Whelp's sheet is now graded to `L=0.085`, a uniform scale in linear light rather than a ceiling. That distinction is the whole design of the fix: a ceiling compresses the brightest pixels hardest, and on a Whelp those are the too-bright core that is its entire board read — the feature that says *a piece of the furnace broke off*, and the reason the two share a material at all. Scaling everything by one factor lowers the piece while leaving the core where it was relative to its shards; measured, that contrast went from 5.4x to 4.5x rather than collapsing.
 
-So the rule for two pieces of one material: **they separate by size and by how much of the frame they command.** Per-pixel saturation is the wrong instrument for a Minion small enough that its brightest pixels are a rounding error in what the player sees.
+Total presence was never the problem and is not the fix. The Boss commands roughly ten times the Whelp's warm energy on the board, before and after. What was wrong was the per-pixel ordering the ranking actually states, and it is now held by the smoke suite in both forms — energy and median — because the Whelp is built from a contact sheet that stays ungraded, so a rebuild that forgets the grading step puts the inversion straight back.
 
 ## Lighting
 

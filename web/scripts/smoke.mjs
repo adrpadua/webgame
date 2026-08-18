@@ -206,22 +206,35 @@ try {
         const v = channel / 255
         return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
       }
+      const warm = []
       let total = 0
       for (let index = 0; index < pixels.length; index += 4) {
         const [r, g, b, a] = [pixels[index], pixels[index + 1], pixels[index + 2], pixels[index + 3]]
         if (a < 128 || r - b <= 60) continue
-        total += 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b)
+        const value = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b)
+        warm.push(value)
+        total += value
       }
-      return total
+      warm.sort((x, y) => x - y)
+      return { total, median: warm.length ? warm[Math.floor(warm.length / 2)] : 0 }
     }, `data:image/png;base64,${bytes.toString('base64')}`)
-    // One facing's worth, at the size the board draws it.
-    return (summed / 6) * scale ** 2
+    // Energy is one facing's worth at the size the board draws it; the median
+    // is a property of the art and takes no scaling.
+    return { energy: (summed.total / 6) * scale ** 2, median: summed.median }
   }
-  const bossEnergy = await warmEnergy('boss')
-  const minionEnergy = await warmEnergy('minion')
+  const boss = await warmEnergy('boss')
+  const minion = await warmEnergy('minion')
   assert(
-    bossEnergy !== null && minionEnergy !== null && bossEnergy > minionEnergy,
-    `the Boss commands more warm presence than a Minion (boss ${bossEnergy?.toFixed(0)}, minion ${minionEnergy?.toFixed(0)})`,
+    boss !== null && minion !== null && boss.energy > minion.energy,
+    `the Boss commands more warm presence than a Minion (boss ${boss?.energy.toFixed(0)}, minion ${minion?.energy.toFixed(0)})`,
+  )
+  // And per pixel, which is the ordering the direction states outright. The
+  // Whelp shipped brighter than the Boss until its sheet was graded, and it is
+  // built from a contact sheet that is still ungraded — so a rebuild that skips
+  // the grading step reintroduces the inversion, and fails here.
+  assert(
+    boss !== null && minion !== null && boss.median > minion.median,
+    `the Boss outranks a Minion per warm pixel too (boss L=${boss?.median.toFixed(4)}, minion L=${minion?.median.toFixed(4)})`,
   )
 
   const alphas = /TELEGRAPH_ALPHA = \{ cone: ([\d.]+), spawn: ([\d.]+) \}/.exec(paletteSource)
