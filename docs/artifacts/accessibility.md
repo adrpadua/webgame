@@ -48,7 +48,10 @@ npm run build && node scripts/smoke.mjs
 
 The smoke suite asserts the pointer-target and portrait contracts directly in a real browser at the canonical `390x844` canvas: the whole board on screen with nothing cropped, every enabled control at `44x44` or larger, no sideways scroll, no move-pad button overlapping the board, and the full HUD fitting without scrolling. It also replays the session's Encounter Record headlessly and compares fingerprints.
 
-Since 2026-08-16 this runs in CI on every pull request touching `web/` or `data/` (`.github/workflows/verify-workbench.yml`), so the contract is enforced rather than merely documented.
+Since 2026-08-16 this runs in CI on every pull request
+(`.github/workflows/verify-workbench.yml`), so the contract is enforced rather
+than merely documented. The workflow does not run again after merge; `main`
+goes directly through the Pages build and deployment workflow.
 
 ## Historical: The Godot Probe Suite
 

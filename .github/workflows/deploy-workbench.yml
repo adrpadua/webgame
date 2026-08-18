@@ -1,7 +1,9 @@
 name: Deploy Encounter Workbench
 
-# Builds the Encounter Workbench (web/) and publishes it to GitHub Pages so
-# it is playable from any device, including an iPad on mobile connectivity.
+# Builds the Encounter Workbench (web/) and publishes it to GitHub Pages after
+# every merge to main, so it is playable from any device, including an iPad on
+# mobile connectivity. Validation belongs to the pull-request workflow and is
+# intentionally not repeated here.
 # One-time setup: repository Settings -> Pages -> Source: "GitHub Actions",
 # and the auto-created github-pages environment must allow this branch under
 # Settings -> Environments -> github-pages -> Deployment branches.
@@ -10,10 +12,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'web/**'
-      - 'data/**'
-      - '.github/workflows/deploy-workbench.yml'
   workflow_dispatch:
 
 permissions:
@@ -38,12 +36,6 @@ jobs:
       - name: Install
         working-directory: web
         run: npm ci
-      - name: Test
-        working-directory: web
-        run: npm test
-      - name: Lint
-        working-directory: web
-        run: npm run lint
       - name: Build
         working-directory: web
         run: npm run build
