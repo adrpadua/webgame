@@ -41,6 +41,22 @@ Within a temperature, the more imminent thing is the more saturated. The researc
 
 Imminence rather than novelty, or a spawned Minion outshouts the Cinder Breath cone about to land. Imminence rather than damage, or scorched ground never fades after it has been paid for.
 
+### The Ranking Is Of What Reaches The Screen
+
+The ordering above was written for a board of flat fills, where a token and a rendered pixel were the same thing. They are no longer, and the ranking is only meaningful in the second.
+
+**A tint is not its token.** A telegraph is composited over the tile, and compositing costs it most of its chroma: `coral-400` carries C\*=63 as a token and arrived at C\*=15 on screen, `coral-300` at C\*=8. The board once passed a test asserting this ordering while showing the exact inverse of it, because the test ranked tokens. Rank composites — `palette.ts` carries the arithmetic and `palette.test.ts` the assertion.
+
+**A sprite is governed by nothing.** Pieces are drawn art, so no token moves them. Their place in the ordering is a property of the PNG and has to be measured against the sheet, which the smoke suite does.
+
+### Boss And Minion Separate By Size, Not By Pixel
+
+Measured on the shipped sheets, the Whelp's warm median is `L=0.152` against Embermaw's `L=0.103` — the Minion is the more saturated of the two, per pixel, which reads as an inversion of the ranking above.
+
+It is not one, and the ranking should be read as **total warm presence** rather than per-pixel saturation for these two. The Boss covers 5014 px² of board to a Whelp's 851 and carries **4.5× its warm energy**, so the piece that dominates the frame is the piece the ordering says should. The alternative was grading the Whelp down by 42%, which would have cost the too-bright core that is its whole board read — the feature that says *a piece of the furnace broke off*, and the reason the two share a material at all.
+
+So the rule for two pieces of one material: **they separate by size and by how much of the frame they command.** Per-pixel saturation is the wrong instrument for a Minion small enough that its brightest pixels are a rounding error in what the player sees.
+
 ## Lighting
 
 The board is lit by **one fixed key from the upper left**, never varied per piece. Consistency across a cast comes from lighting everything with the same scene light rather than from remembering where the sun was.

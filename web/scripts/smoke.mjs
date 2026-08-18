@@ -181,6 +181,49 @@ try {
     return warm.length ? warm[Math.floor(warm.length / 2)] : 0
   }, `data:image/png;base64,${bossBytes.toString('base64')}`)
 
+  // Boss against Minion. They are one material and the direction ranks the
+  // Boss above, but per pixel the Whelp is the brighter of the two — its
+  // too-bright core is its whole board read. What actually carries the
+  // ordering is how much of the frame each commands, so that is what is held:
+  // warm energy, luminance summed over the area the board draws the piece at.
+  // See "Boss And Minion Separate By Size" in oathcraft-board-direction.md.
+  const warmEnergy = async (kind) => {
+    const binding = new RegExp(`${kind}: \\{ key: '[\\w-]+', url: (\\w+).*?targetHeight: (\\d+)`).exec(sceneSource)
+    if (!binding) return null
+    const bytes = readFileSync(new URL(`../src/assets/${imports[binding[1]]}`, import.meta.url))
+    const scale = Number(binding[2]) / Number(new RegExp(`${kind}: \\{[^}]*frameHeight: (\\d+)`).exec(sceneSource)[1])
+    const summed = await backdropPage.evaluate(async (dataUrl) => {
+      const image = document.createElement('img')
+      image.src = dataUrl
+      await image.decode()
+      const canvas = document.createElement('canvas')
+      canvas.width = image.width
+      canvas.height = image.height
+      const context = canvas.getContext('2d')
+      context.drawImage(image, 0, 0)
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
+      const toLinear = (channel) => {
+        const v = channel / 255
+        return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+      }
+      let total = 0
+      for (let index = 0; index < pixels.length; index += 4) {
+        const [r, g, b, a] = [pixels[index], pixels[index + 1], pixels[index + 2], pixels[index + 3]]
+        if (a < 128 || r - b <= 60) continue
+        total += 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b)
+      }
+      return total
+    }, `data:image/png;base64,${bytes.toString('base64')}`)
+    // One facing's worth, at the size the board draws it.
+    return (summed / 6) * scale ** 2
+  }
+  const bossEnergy = await warmEnergy('boss')
+  const minionEnergy = await warmEnergy('minion')
+  assert(
+    bossEnergy !== null && minionEnergy !== null && bossEnergy > minionEnergy,
+    `the Boss commands more warm presence than a Minion (boss ${bossEnergy?.toFixed(0)}, minion ${minionEnergy?.toFixed(0)})`,
+  )
+
   const alphas = /TELEGRAPH_ALPHA = \{ cone: ([\d.]+), spawn: ([\d.]+) \}/.exec(paletteSource)
   assert(Boolean(alphas), 'palette.ts declares the telegraph alphas')
   const token = (name) => {
