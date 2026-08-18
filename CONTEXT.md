@@ -167,8 +167,16 @@ The shared simultaneous player phase after the `Incoming Row` resolves. It is fo
 _Avoid_: Power phase, cast phase
 
 **Action Bar**:
-The persistent set of player action slots that hold prepared abilities. Players slide cards under slotted abilities to charge them over multiple rounds.
+The persistent set of player action slots that hold prepared abilities. Players slide cards under slotted abilities to charge them over multiple rounds. It also carries the two `Action Bar Rail` controls that pace the fight, one on each side of the Slots.
 _Avoid_: Hand row, toolbar
+
+**Action Bar Rail**:
+One of the two narrow controls flanking the Slots in the `Bottom Interaction Zone`: `Undo` on the left, and on the right the single control that moves the fight forward — playing the next Boss Beat while a Boss Row is being told, closing the window otherwise, and restarting once the Encounter has ended. A rail is a control rather than a readout, which is what earns it a place in the thumb's reach; the Round's state is read from the Round track, which carries no controls at all.
+_Avoid_: Toolbar button, Next button, footer control
+
+**Undo**:
+Taking back the Hero's last action inside the window it was taken in — a Slot loaded or fired, a Charge tucked, a step paid for. It reaches the actions still standing above the last phase advance and no further: a Boss Beat and the advance that closed a window are not the Party's to rewind, because the Round is the Boss's clock and an `Escalation` that can be walked backwards is not a clock. An action that was refused changed nothing and is stepped over rather than taken back, so one press always takes back one thing that happened.
+_Avoid_: Rewind, time travel, take-back of a Boss Beat
 
 **Slot**:
 A single action bar position that holds one prepared ability and its charge stack. A slot is the smallest player planning unit that persists across rounds.

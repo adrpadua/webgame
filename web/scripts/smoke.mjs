@@ -812,6 +812,30 @@ try {
   const stepsAfterConfirm = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
   assert(stepsAfterConfirm === stepsBeforeConfirm + 1, 'a confirmed replacement records exactly one Scenario step')
 
+  // The Action Bar's left rail. Undo reaches exactly as far as the open
+  // window: it takes back the replacement that just landed, and then greys,
+  // because the only thing left behind it is the advance that opened this
+  // Loadout — and the Boss's side of the Round is not the player's to rewind.
+  const undo = page.locator('[data-testid="undo"]')
+  assert((await undo.getAttribute('data-can-undo')) === 'true', 'a landed action arms the undo rail')
+  await undo.click()
+  await page.waitForTimeout(150)
+  assert((await slot0.getAttribute('data-top-card')) === slot0CardBefore, `undo put the replaced Top Card back (${slot0CardBefore})`)
+  assert(
+    JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length === stepsBeforeConfirm,
+    'the undone replacement is off the Scenario line',
+  )
+  assert((await undo.getAttribute('data-can-undo')) === 'false', 'undo greys at the window it opened in')
+  assert(await undo.isDisabled(), 'a greyed undo rail is not pressable')
+  // Put it back the way the walk found it: the rest of the Round is written
+  // against the replaced Slot.
+  await page.locator('[data-testid="hand-card"]').first().click()
+  await slot0.click()
+  await page.waitForSelector('[data-testid="replace-confirm"]')
+  await page.locator('[data-testid="confirm-replace"]').click()
+  await page.waitForSelector('[data-testid="replace-confirm"]', { state: 'detached' })
+  assert((await slot0.getAttribute('data-top-card')) === replacementCardId, 'redoing the replacement restores the walk')
+
   // Outside the script, a Boss Row steps through beat by beat: the batch
   // that opens the window replays paced, and every beat — the opening one
   // included — waits behind a Continue prompt that names it, so the player
@@ -824,6 +848,14 @@ try {
   // the board's top edge, and the Continue prompt docked above the Action
   // Bar. All three were placed by hand before, and the banner printed across
   // whichever of the other two had grown into its percentage.
+  // The Action Bar's right rail is the one control that moves the fight on,
+  // and it says which move it is about to make: playing the next beat of a
+  // Boss Row and closing the window are different presses, so they are
+  // different marks.
+  assert(
+    (await page.locator('[data-testid="next-phase"]').getAttribute('data-rail')) === 'continue',
+    'the advance rail turns to Continue while a Boss row is paced',
+  )
   const pacedLive = await assertNotificationLayout(page, 'while a Boss row is paced')
   assert(pacedLive.includes('playout-continue'), `the Continue prompt docks above the Action Bar during a Boss row (${pacedLive.join(', ')})`)
   assert(pacedLive.includes('phase-banner'), `the phase word takes the stage while the dock is occupied (${pacedLive.join(', ')})`)
@@ -861,6 +893,10 @@ try {
   assert((await page.locator('[data-testid="playout-continue"]').count()) === 0, 'the last beat needs no prompt and the playout settles')
   // The resolved track waits in the Boss's window; Next moves on.
   assert((await phase()) === 'instant', 'the settled track waits in Boss Instant for Next')
+  assert(
+    (await page.locator('[data-testid="next-phase"]').getAttribute('data-rail')) === 'next',
+    'the advance rail turns back to Next once the row has finished telling',
+  )
   // During a Boss row no card in hand has a legal action, so the Hand
   // recedes — and it must come back the moment a player window opens. A
   // Hand that hides has to be provably reachable, or the recession is a
@@ -911,6 +947,10 @@ try {
     (await page.locator('[data-testid="outcome-banner"]').getAttribute('data-outcome')) === 'defeat',
     'the solo-ceiling Scenario replays to its Defeat banner',
   )
+  // An Encounter with no window left to close leaves one move on the rail.
+  await page.waitForSelector('[data-testid="restart"]')
+  assert((await page.locator('[data-testid="restart"]').getAttribute('data-rail')) === 'restart', 'an ended Encounter turns the rail to Restart')
+  assert((await page.locator('[data-testid="next-phase"]').count()) === 0, 'a finished Encounter offers no Next')
 
   const position = await page.locator('[data-testid="time-travel-position"]').textContent()
   assert(/Step \d+ \/ \d+/.test(position ?? ''), `time travel shows the Scenario line (${position?.trim()})`)
@@ -941,6 +981,56 @@ try {
   // below reaches the busiest state.
   const spilling = await cardSpill(phone)
   assert(spilling.length === 0, `no Compact Card's text overflows its plate at 390x844 (${spilling.join(' | ') || 'all contained'})`)
+  // The Action Bar's twelve-unit ladder: 2 | 4 | 4 | 2. The rails carry the
+  // fight's two most-pressed moves and the Slots carry the cards, and the
+  // ratio is the contract — a rail that grew into a Slot would take the
+  // width a card title needs, which is the whole reason the Slot plate wears
+  // a tighter rake than its size class.
+  const ladder = await phone.evaluate(() => {
+    const bar = document.querySelector('[data-testid="action-bar"]')
+    if (bar === null) {
+      return null
+    }
+    const gap = Number.parseFloat(getComputedStyle(bar).columnGap) || 0
+    const widths = ['undo', 'slot-0', 'slot-1', 'next-phase'].map((id) => {
+      const node = bar.querySelector(`[data-testid="${id}"]`)
+      return node === null ? 0 : node.getBoundingClientRect().width
+    })
+    // A span of n units is n columns plus the n-1 gaps between them, so back
+    // the gaps out before comparing a 2 against a 4.
+    return { widths, units: widths.map((width, index) => (width - ([2, 4, 4, 2][index] - 1) * gap) / [2, 4, 4, 2][index]) }
+  })
+  assert(ladder !== null && ladder.widths.every((width) => width > 0), 'the Action Bar carries both rails and both Slots')
+  const unitDrift = Math.max(...ladder.units) - Math.min(...ladder.units)
+  assert(
+    unitDrift < 1,
+    `the Action Bar runs 2 | 4 | 4 | 2 on one unit (${ladder.widths.map((width) => Math.round(width)).join(' | ')} = ${ladder.units.map((unit) => unit.toFixed(1)).join(', ')} per unit)`,
+  )
+  // The rails are marks, not words, and a mark still has to be a 44px target.
+  const railTargets = await phone.evaluate(() =>
+    ['undo', 'next-phase'].map((id) => {
+      const node = document.querySelector(`[data-testid="${id}"]`)
+      const rect = node?.getBoundingClientRect()
+      return `${id} ${Math.round(rect?.width ?? 0)}x${Math.round(rect?.height ?? 0)}`
+    }),
+  )
+  assert(
+    railTargets.every((entry) => {
+      const [width, height] = entry.split(' ')[1].split('x').map(Number)
+      return width >= 44 && height >= 44
+    }),
+    `both Action Bar rails meet the 44px target (${railTargets.join(' | ')})`,
+  )
+  // A Slot's title is what a player chooses between, so it must not be
+  // truncated by the rails taking their four units.
+  const slotSpill = await phone.evaluate(() =>
+    [...document.querySelectorAll('[data-testid^="slot-"]')].flatMap((slot) =>
+      [...slot.querySelectorAll('span')]
+        .filter((node) => node.children.length === 0 && (node.textContent ?? '').trim() !== '' && node.scrollWidth > node.clientWidth + 1)
+        .map((node) => `${slot.dataset.testid} "${(node.textContent ?? '').trim()}"`),
+    ),
+  )
+  assert(slotSpill.length === 0, `no Slot's text is truncated by the ladder (${slotSpill.join(' | ') || 'all contained'})`)
   // Walk to the Quick Window and select a card, so the measurements below
   // run against the busiest state the phone ever shows: the move pad out
   // beside the board.
