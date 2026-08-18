@@ -113,7 +113,6 @@ export const bossBeatSchema = z.object({
     'hazard_last_impact',
     'forward_cone',
     'spawn_minions',
-    'warning',
   ]),
   counter_tags: z.array(z.string()).default([]),
   // Consequence Tier (ADR 0031). It once set the earliest horizon a Beat could
