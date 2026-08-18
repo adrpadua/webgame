@@ -1,11 +1,12 @@
 // Film a board effect frame by frame, so the animation that ships can be
 // looked at rather than reasoned about.
 //
-// Every Board Feedback animation so far — the burn, the expiry, a spawn, the
-// Boss going out — was found to be wrong by watching it, not by reading it.
-// A flame drawn behind the Hero, a tint whose arguments were the wrong way
-// round and did nothing at all: both passed their unit tests and both were
-// obvious in the first frame anyone looked at.
+// The defects these animations shipped with were all found by watching them
+// rather than by reading them: flames drawn behind the Hero rather than over
+// him, Whelps standing on the board before the Beat that called them, and a
+// Boss tint whose `composite` arguments were the wrong way round and so did
+// nothing at all. Every one of those passed its unit tests, because a curve
+// can be correct while the thing drawing it is not.
 //
 // Capture is `page.screenshot()`, deliberately, and not CDP's
 // `Page.startScreencast`. The board is a WebGL canvas, and a screencast hands
@@ -18,18 +19,35 @@
 // screen.
 //
 // The price is the frame rate. A screenshot round-trip is dominated by the
-// capture itself rather than by encoding: clipped to the board, measured on
-// the machine this was written on, JPEG frames land about every 60ms and PNG
-// frames about every 80ms — call it 17fps against 12. So frames are JPEG
-// unless `--png` asks otherwise, and every frame is named for the elapsed
-// time it was actually taken at rather than the time it was meant to be
-// taken at. Twelve honest frames across a 900ms effect beat sixty frames
-// where some of them are last frame's buffer.
+// capture rather than by the encoding, but the encoding still shows: filming
+// the board on the machine this was written on runs around 15fps as JPEG and
+// around 9fps as PNG, and both move with whatever else the machine is doing.
+// So frames are JPEG unless `--png` asks for the exact pixels, and every
+// frame is named for the elapsed time it was actually taken at rather than
+// the time it was meant to be taken at. Nine honest frames across a 900ms
+// effect beat sixty where some of them are last frame's buffer.
 //
 // Usage:
 //   npm run build && node scripts/film.mjs --fact "Hazard at"
 //   node scripts/film.mjs --shot spawn --ms 4000
 //   node scripts/film.mjs --list                       (name every shot)
+//
+//   --shot <name>      a named shot: its Scenario, Fact, and duration
+//   --scenario <id>    the Scenario to load (default embermaw_solo_ceiling)
+//   --fact "<text>"    stop in front of the step whose facts contain this
+//   --ms <n>           how long to film for, from the step landing
+//   --hex q,r          frame on one hex instead of the whole board
+//   --every <ms>       wait between frames, to sample a long moment thinly
+//   --png              exact pixels, at roughly half the frame rate
+//   --out <dir>        where the frames go (default film/<shot>)
+//   --columns <n>      contact sheet width, in frames
+//   --zoom <factor>    contact sheet scale (default 0.5)
+//   --no-sheet         frames only
+//
+// This films the built app, so a change to the rules, the board, or the
+// content in data/ is not on screen until `npm run build` has run — a stale
+// dist/ is how a Scenario comes to end forty steps early against Boss health
+// nobody has any more, and the fact being looked for never lands.
 //
 // Moments are found rather than driven. Loading a committed Scenario and
 // stepping forward through time travel replays that step exactly as the
@@ -55,7 +73,10 @@ const BASE_URL = `http://localhost:${PORT}/`
 // long enough to include the Continue prompts a Boss Row waits behind.
 const SHOTS = {
   hazard: { scenario: 'embermaw_solo_ceiling', fact: 'Hazard at', ms: 3200 },
-  expiry: { scenario: 'embermaw_solo_ceiling', fact: 'begins', ms: 2000 },
+  // The Hazard of Round 1 is given back at the Round 2 boundary, and an
+  // expiry is a state difference rather than an action, so the fact to stop
+  // in front of is the Round beginning rather than anything about the ground.
+  expiry: { scenario: 'embermaw_solo_ceiling', fact: 'Round 2 begins', ms: 2000 },
   spawn: { scenario: 'embermaw_brood_pressure', fact: 'Spawn ', ms: 4000 },
 }
 
@@ -67,7 +88,14 @@ function parseArgs(argv) {
   for (let at = 0; at < argv.length; at += 1) {
     const flag = argv[at]
     if (VALUED[flag]) {
-      args[flag.slice(2)] = VALUED[flag](argv[at + 1])
+      const value = VALUED[flag](argv[at + 1])
+      // A flag whose value went missing is worth stopping for. `--ms` with
+      // nothing after it reads as NaN, which makes the capture loop end
+      // before its first frame and reports a successful film of nothing.
+      if (argv[at + 1] === undefined || (typeof value === 'number' && !Number.isFinite(value))) {
+        throw new Error(`${flag} needs a value`)
+      }
+      args[flag.slice(2)] = value
       at += 1
     } else if (flag === '--list') {
       console.log(Object.keys(SHOTS).join('\n'))
@@ -83,6 +111,9 @@ function parseArgs(argv) {
   const named = args.shot === undefined ? null : SHOTS[args.shot]
   if (args.shot !== undefined && !named) {
     throw new Error(`Unknown shot ${args.shot} — try one of: ${Object.keys(SHOTS).join(', ')}`)
+  }
+  if (args.columns < 1 || args.zoom <= 0) {
+    throw new Error('A contact sheet needs at least one column and a scale above zero')
   }
   return {
     ...args,
@@ -123,11 +154,14 @@ const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--stric
   stdio: 'ignore',
 })
 
+// Both the server and the browser are taken down in one place, so a shot that
+// throws half way through leaves nothing running behind it.
+let browser = null
 try {
   await waitForServer(BASE_URL)
   // Let Playwright resolve the browser it installed; PLAYWRIGHT_CHROMIUM_PATH
   // overrides it for images that ship their own build at a fixed path.
-  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined })
+  browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined })
   const page = await browser.newPage({ viewport: { width: 1400, height: 950 } })
   // The Scenario picker and time travel are debug-rail controls, and the rail
   // is opt-in on a build.
@@ -188,7 +222,7 @@ try {
   let clip = { x: Math.floor(board.x), y: Math.floor(board.y), width: Math.ceil(board.width), height: Math.ceil(board.height) }
   const named = options.hex ?? /\((-?\d+), (-?\d+)\)/.exec(matched)?.slice(1, 3).join(',') ?? null
   if (named !== null) {
-    const rect = (await page.evaluate(() => window.__workbench.hexRects())).find((hex) => hex.key === named.replace(' ', ''))
+    const rect = (await page.evaluate(() => window.__workbench.hexRects())).find((hex) => hex.key === named.replace(/\s/g, ''))
     if (!rect) {
       throw new Error(`No hex ${named} on this board`)
     }
@@ -300,7 +334,7 @@ try {
     console.log(`contact sheet: ${options.out}/sheet.png`)
   }
 
-  await browser.close()
 } finally {
+  await browser?.close()
   server.kill()
 }
