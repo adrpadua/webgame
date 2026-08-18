@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { hexKey } from '@/engine'
-import { BEAT_STAGGER_MS, EFFECT_SETTLE_MS, type BoardEffect, type HealthPlayoutValue, type PlayoutScript } from '@/board/effects'
+import { BEAT_STAGGER_MS, EFFECT_SETTLE_MS, OUTCOME_REVEAL_MS, type BoardEffect, type HealthPlayoutValue, type PlayoutScript } from '@/board/effects'
 
 // The staggered-playout director for one resolved batch. While a boss track
 // replays beat by beat, the authoritative state already holds the batch's
@@ -111,8 +111,11 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
     }))
     if (index === moments.length - 1) {
       // The last moment settles on its own; there is nothing left to prompt
-      // for, and any held outcome reveals when the feedback has played.
-      timers.push(setTimeout(finish, EFFECT_SETTLE_MS))
+      // for, and any held outcome reveals when the feedback has played. A
+      // batch that ended the Encounter waits longer, because what it is
+      // waiting for is longer: the Boss has to finish going out before the
+      // board is allowed to say the fight is over.
+      timers.push(setTimeout(finish, get().outcomeHeld ? OUTCOME_REVEAL_MS : EFFECT_SETTLE_MS))
     } else if (autoMode) {
       timers.push(setTimeout(() => fireMoment(index + 1), BEAT_STAGGER_MS))
     } else {

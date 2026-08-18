@@ -1,4 +1,5 @@
 import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type ResolvedActionFact } from '@/engine'
+import { FALL_MS } from './defeat'
 
 // Resolution Facts are the only thing the board animates from. Every beat of
 // motion on the board — a lunge, a hit, a step, a spawn — is derived from a
@@ -7,7 +8,7 @@ import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type
 
 export type EffectTone = 'hero' | 'boss' | 'guard' | 'heal' | 'hazard'
 
-export type BoardEffectKind = 'strike' | 'cast' | 'hit' | 'block' | 'move' | 'spawn' | 'defeat' | 'blast' | 'scorch' | 'cool' | 'turn'
+export type BoardEffectKind = 'strike' | 'cast' | 'hit' | 'block' | 'move' | 'spawn' | 'defeat' | 'fall' | 'blast' | 'scorch' | 'cool' | 'turn'
 
 // How far apart consecutive Boss Beats start. The rules resolve a whole
 // track in one batch; the board replays that batch one beat at a time so
@@ -30,6 +31,13 @@ export const BEAT_STAGGER_MS = 700
 // instead would hold every Continue prompt in the game behind the longest
 // animation on it.
 export const EFFECT_SETTLE_MS = 560
+
+// How long a batch that ended the Encounter holds its outcome back. The
+// settle above is about gauges, and the reveal is not: the Boss going out is
+// the one thing on the board the banner is *about*, so a Victory plate landing
+// over a body still venting light would be the board announcing an ending it
+// has not finished showing. It waits for the fall.
+export const OUTCOME_REVEAL_MS = Math.max(EFFECT_SETTLE_MS, FALL_MS)
 
 export interface BoardEffect {
   kind: BoardEffectKind
@@ -175,6 +183,14 @@ export function deriveBoardEffects(
         }
         if (fact.resolutionFact?.target_removed === true) {
           add({ kind: 'defeat', entityId: targetId, at, tone: 'hero' })
+        }
+        // The Boss is the one piece a killing blow leaves standing:
+        // `checkResolution` ends the Encounter and the body stays on its hex,
+        // so nothing above says the fight is over. Read the health rather than
+        // the outcome — a Boss at zero is what the rules acted on, and the
+        // Encounter can end for reasons that have nothing to do with this hex.
+        if (targetId === before.bossId && (after.board.entities[after.bossId]?.health ?? 1) <= 0) {
+          add({ kind: 'fall', entityId: targetId, at, tone: 'boss' })
         }
         break
       }

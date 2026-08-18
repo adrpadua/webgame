@@ -62,6 +62,10 @@ const SHARD_SIZE = 0.1
 const SHARD_ANGLE_SALT = BURN_SALTS_END
 const SHARD_REACH_SALT = SHARD_ANGLE_SALT + SHARD_COUNT
 const SHARD_SIZE_SALT = SHARD_REACH_SALT + SHARD_COUNT
+// Where this module's draws stop, for the next effect to read a hex. Same
+// contract as BURN_SALTS_END: a number taken from the module that owns it,
+// never one copied out of it.
+export const SPAWN_SALTS_END = SHARD_SIZE_SALT + SHARD_COUNT
 
 // One splinter of the furnace, in pixels relative to the hex's centre. `heat`
 // is 1 as it leaves the break and 0 as it lands, and the scene spends it
