@@ -273,6 +273,71 @@ describe('Boss Program predictability (D-038)', () => {
   })
 })
 
+// D-039. Mitigation used to protect only Health, which the sweep showed was
+// never the binding constraint — runs end at Escalation with Health to spare,
+// so Armor bought nothing that reached the ending. It now protects standing
+// room. The rule that keeps it honest is Tank Principle 1 generalised: perfect
+// play may change the *shape* of the loss, never the total.
+describe('Ash Trail displacement (D-039)', () => {
+  // Round 1 is Hunt Pattern on every seed, and Hunt is the program that pairs a
+  // targeted hit with `hazard_last_impact`.
+  function throughInstant(state: EncounterState): EncounterState {
+    return advancePhase(catalog, state).state
+  }
+
+  it('burns the hex the Tank stood on when the hit drew blood', () => {
+    const state = throughInstant(start())
+    const heroKey = hexKey({ q: 0, r: 0 })
+    expect(hero(state).health).toBeLessThan(hero(state).maxHealth)
+    expect(state.board.hazards[heroKey]?.[0]?.permanent).toBe(true)
+  })
+
+  it('spills behind the Tank when the hit was fully absorbed', () => {
+    // Enough Armor to eat the claw whole while holding the Guarded Front.
+    const armored = start()
+    armored.heroes[armored.primaryHeroId].armor = 20
+    const state = throughInstant(armored)
+    expect(hero(state).health).toBe(hero(state).maxHealth)
+
+    const heroCoords = state.board.entities[state.primaryHeroId].coords
+    const bossCoords = state.board.entities[state.bossId].coords
+    const burnt = Object.keys(state.board.hazards)
+    expect(burnt).not.toContain(hexKey(heroCoords))
+    expect(burnt).toHaveLength(1)
+    // Behind means further from the Boss, which is the whole point: the ground
+    // the Tank has to keep standing on to keep absorbing survives longer.
+    const [q, r] = burnt[0].split(',').map(Number)
+    expect(hexDistance({ q, r }, bossCoords)).toBeGreaterThan(hexDistance(heroCoords, bossCoords))
+  })
+
+  it('costs the same number of hexes either way', () => {
+    // The invariant that keeps this honest against Tank Principle 1. If a clean
+    // absorb ever burnt fewer hexes than a sloppy one, perfect play would stop
+    // the bleed rather than slow it, and the arena would stop closing for a
+    // good Tank — sustain creep in a new denomination.
+    const sloppy = throughInstant(start())
+    const clean = start()
+    clean.heroes[clean.primaryHeroId].armor = 20
+    const absorbed = throughInstant(clean)
+    expect(Object.keys(absorbed.board.hazards)).toHaveLength(Object.keys(sloppy.board.hazards).length)
+  })
+
+  it('burns under the Tank anyway with nowhere left to spill', () => {
+    // Backed against the rim, absorbing cleanly buys nothing. The bleed refuses
+    // to stop even for perfect play, which is the rule stated as geometry.
+    const state = start()
+    const heroId = state.primaryHeroId
+    const rim = { q: -2, r: 2 }
+    state.board.entities[heroId].coords = { ...rim }
+    state.heroes[heroId].armor = 20
+    const after = throughInstant(state)
+    expect(hero(after).health).toBe(hero(after).maxHealth)
+    // Either it spilled to a real hex further out, or it burnt the rim itself —
+    // never nothing.
+    expect(Object.keys(after.board.hazards).length).toBeGreaterThan(0)
+  })
+})
+
 describe('Program identity (D-036)', () => {
   it('gives each Phase I program a distinct set of demands', () => {
     const tags = (id: string) => programCounterTags(catalog.programs[id]).sort().join(',')
@@ -517,7 +582,11 @@ describe('phase cycle', () => {
     expect(state.phase).toBe('loadout')
     expect(state.round).toBe(2)
     expect(hero(state).hand).toHaveLength(4)
-    expect(Object.keys(state.board.hazards)).toHaveLength(0)
+    // The cone's Scorch expires with the Round; the Ash Trail does not. The
+    // Hero took the claw on the chin here, so the ash burnt the hex they were
+    // standing on, permanently (D-039).
+    expect(Object.keys(state.board.hazards)).toEqual([hexKey({ q: 0, r: 0 })])
+    expect(state.board.hazards[hexKey({ q: 0, r: 0 })][0].permanent).toBe(true)
     expect(wrap.facts.some((fact) => fact.kind === 'round_start')).toBe(true)
   })
 

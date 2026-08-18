@@ -53,6 +53,7 @@ export function createEncounterState(catalog: ContentCatalog, encounterId: strin
     telegraphedSpawnHexes: [],
     telegraphs: {},
     previousImpactedHexes: [],
+    previousImpactAbsorbed: false,
     lastPattern: [],
     minionSequence: 0,
     cardInstanceSequence: 0,

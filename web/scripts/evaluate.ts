@@ -83,6 +83,7 @@ interface RunMetrics {
   rejected: number
   minionsKilled: number
   slowHeld: number
+  burntHexes: number
 }
 
 // Same policy shape as generateScenarios.ts, instrumented for metrics instead
@@ -401,6 +402,10 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     }
   }
 
+  // Arena permanently lost by the end (D-039). The Ash Trail writes to it where
+  // the Tank stood, so this is the ground a run's positioning actually cost.
+  const burntHexes = Object.values(state.board.hazards).filter((list) => list.some((hazard) => hazard.permanent === true)).length
+
   return {
     outcome: state.outcome,
     escalation: state.escalation,
@@ -416,6 +421,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     rejected,
     minionsKilled,
     slowHeld,
+    burntHexes,
   }
 }
 
@@ -487,6 +493,7 @@ for (const knobs of variants) {
     escalation: avg((run) => run.escalation),
     escFromAdds: avg((run) => run.escalationFromDemands),
     whelpKills: avg((run) => run.minionsKilled),
+    burnt: avg((run) => run.burntHexes),
     slowHeld: avg((run) => run.slowHeld),
     bossDmg: avg((run) => run.bossDamage),
     dmgSpread: spread((run) => run.bossDamage),

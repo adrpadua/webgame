@@ -1,7 +1,7 @@
-import { emptyHexes, facingToward, firstEmptyHexes, forwardCone, frontArc, isGuardedFront } from './board'
+import { emptyHexes, facingToward, firstEmptyHexes, forwardCone, frontArc, isGuardedFront, neighbors } from './board'
 import { escalationModifiers } from './escalation'
 import { normalizeFacing } from './facing'
-import { containsHex, hexKey, type Axial } from './hex'
+import { containsHex, hexDistance, hexKey, type Axial } from './hex'
 import { randiRange, shuffle, type RngState } from './rng'
 import type { BossBeat, BossProgram } from './content/schemas'
 import type { ContentCatalog } from './content/catalog'
@@ -30,6 +30,24 @@ export function actionsForTrack(catalog: ContentCatalog, state: EncounterState, 
 function nextMinionId(draft: EncounterState, minionContentId: string | undefined): string {
   draft.minionSequence += 1
   return `${minionContentId ?? 'minion'}_${draft.minionSequence}`
+}
+
+// Where a fully absorbed hit's ash falls: a neighbouring hex strictly further
+// from the Boss, preferring ground that is not already burnt so the spill costs
+// a real hex rather than being wasted on one already gone.
+//
+// At the board edge there is no such hex, and the ash lands under the Tank
+// after all. That is deliberate: backed against the rim, absorbing cleanly no
+// longer buys anything, which is the bleed refusing to stop.
+function spillAwayFrom(draft: EncounterState, from: Axial, bossCoords: Axial): Axial {
+  const away = neighbors(draft.board.hexes, from).filter(
+    (coords) => hexDistance(coords, bossCoords) > hexDistance(from, bossCoords),
+  )
+  if (away.length === 0) {
+    return from
+  }
+  const clean = away.filter((coords) => (draft.board.hazards[hexKey(coords)] ?? []).length === 0)
+  return (clean.length > 0 ? clean : away)[0]
 }
 
 // Authored Boss Beat resolution (ADR 0016 carried over): the spatial rule for
@@ -76,7 +94,15 @@ export function resolveBossBeat(
     // `previousImpactedHexes`, where a Beat connected. The two differ exactly
     // when a pattern misses, which is the case the guard below exists for.
     case 'hazard_last_impact':
-      scorchedHexes = [...draft.previousImpactedHexes]
+      // Displace, never prevent (D-039). A hit the Tank absorbed cleanly still
+      // spills — the arena loses the same number of hexes however well the
+      // Tank plays — but it spills behind them instead of under them, so the
+      // ground they have to stand on to keep absorbing survives longer. That
+      // is Tank Principle 1 applied to standing room rather than Health:
+      // perfect play changes the shape of the loss, never the total.
+      scorchedHexes = draft.previousImpactAbsorbed
+        ? draft.previousImpactedHexes.map((coords) => spillAwayFrom(draft, coords, bossCoords))
+        : [...draft.previousImpactedHexes]
       scorchedDurationRounds = beat.duration_rounds
       break
     case 'forward_cone':
@@ -104,6 +130,10 @@ export function resolveBossBeat(
   // zero hexes; it is no impact at all, and Ash Trail still has its target.
   if (impactedHexes.length > 0) {
     draft.previousImpactedHexes = [...impactedHexes]
+    // Assume it hurt. The damage this Beat generates has not resolved yet, so
+    // Armor cannot have spoken; the flag flips only if the hit is later fully
+    // absorbed, which happens before the next Beat reads it.
+    draft.previousImpactAbsorbed = false
   }
   const actions: EncounterActionInput[] = []
   let escalationBonusApplied = 0
@@ -144,6 +174,7 @@ export function resolveBossBeat(
       coords,
       hazardId: beat.hazard ?? null,
       fallbackDurationRounds: scorchedDurationRounds,
+      permanent: beat.permanent,
     })
   }
   for (const coords of spawnHexes) {

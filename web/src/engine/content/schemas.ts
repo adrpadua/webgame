@@ -117,6 +117,11 @@ export const bossBeatSchema = z.object({
   // supported, so today this rides `spawn_minions`.
   escalation_if_unanswered: z.number().int().min(0).default(0),
   duration_rounds: z.number().int().min(1).default(1),
+  // A permanent Hazard survives the Round boundary (D-039). This is how a Beat
+  // writes to the arena for good, which is what makes mitigation protect
+  // standing room instead of only Health — the currency that was never the
+  // binding one. `duration_rounds` is ignored when this is set.
+  permanent: z.boolean().default(false),
   hazard: z.string().optional(),
   minion: z.string().optional(),
   count: z.number().int().min(1).max(12).default(2),

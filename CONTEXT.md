@@ -100,6 +100,8 @@ _Avoid_: Passive, invisible buff, Enemy Status
 
 **Riposte Ready**:
 A non-stacking, non-refreshing Elian Voss Status Effect. When a Boss Tank Hit resolves against Captain Elian Voss while they occupy the Guarded Front and causes `0` Health loss, grant Riposte Ready if they do not already have it. It expires at the end of the first Quick Window after that qualifying hit, whether the hit occurred in an Instant Row or an Incoming Row. The first card that deals Boss damage while it is active consumes it: a legal Shield Slam gains `2` additional Boss damage, and any other Boss-damage card gains `1` (D-015). Cards that deal no Boss damage never consume it. The effect must show its qualifying trigger, expiry, and consumption; it is not a general posture category or a resource meter.
+
+The same qualifying hit also decides where that Beat's Hazard falls (D-039): absorbed cleanly, the ash spills to a hex further from the Boss instead of underfoot. One predicate, two rewards — throughput for a Party that can spend it, standing room for a line that cannot. Neither reward ever reduces what the Beat costs; they only change where the cost lands.
 _Avoid_: Awakening, stacking buff, generic stance
 
 **Fortified**:
@@ -107,7 +109,7 @@ An Elian Voss Status Effect created by firing Fortify in the Slow Window (D-019)
 _Avoid_: Delayed buff, second Armor pool
 
 **Hazard**:
-A board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex. Most Hazards are temporary and expire at a Round boundary; a Hazard placed by a structural Escalation Threshold is permanent, because the arena does not recover from it.
+A board effect attached to one or more hexes. A Hazard may constrain voluntary movement or respond when a combatant enters its hex. Most Hazards are temporary and expire at a Round boundary; a Hazard a Beat marks permanent survives it, because the arena does not recover from it. Permanence has two authors — a structural Escalation Threshold, which burns hexes nobody chose, and a Beat whose Hazard the party's own play placed (D-039). Only the first is banned from the ground next to the Boss: a hex the Tank burnt by standing there is a consequence, not a trap.
 _Avoid_: Surprise damage, ambient effect
 
 **Boss**:

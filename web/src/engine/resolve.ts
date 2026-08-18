@@ -596,6 +596,11 @@ function evaluateDamageStatus(
   }
   const guardedFront = isGuardedFront(draft.board, draft.bossId, draft.primaryHeroId)
   resolutionFact.guarded_front = guardedFront
+  // One predicate, two rewards (D-039). Absorbing a Tank Hit on the Guarded
+  // Front for zero Health loss grants Riposte Ready *and* decides where the
+  // Beat's ash falls — the throughput payoff for a party, the standing-room
+  // payoff for a line that cannot win. It never reduces the ash.
+  draft.previousImpactAbsorbed = (resolutionFact.health_loss as number) === 0 && guardedFront
   const evaluation: Record<string, unknown> = { status_id: RIPOSTE_READY, result: 'not_granted', reason: '' }
   if ((resolutionFact.health_loss as number) > 0) {
     evaluation.reason = 'health_lost'

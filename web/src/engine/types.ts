@@ -155,6 +155,11 @@ export interface EncounterState {
   telegraphedSpawnHexes: Axial[]
   telegraphs: Record<HexKey, TelegraphKind>
   previousImpactedHexes: Axial[]
+  // Whether the Beat that produced `previousImpactedHexes` was fully absorbed —
+  // the same predicate that grants Riposte Ready: a Tank Hit taken on the
+  // Guarded Front for zero Health loss. `hazard_last_impact` reads it to decide
+  // *where* the spill lands, never whether it lands (D-039).
+  previousImpactAbsorbed: boolean
   lastPattern: Axial[]
   minionSequence: number
   cardInstanceSequence: number

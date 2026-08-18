@@ -143,7 +143,7 @@ The three implemented Phase I programs each lead a different demand, which is wh
 
 | Program | Beats | Asks for | Deliberately does not ask for |
 | --- | --- | --- | --- |
-| `Hunt Pattern` | Raking Claw `4`/`+3`, Ash Trail, Cinder Breath `5` | `Position`, `Mitigate`, `Move`, `Interrupt` | `Kill Adds` — the pinned opener never spawns |
+| `Hunt Pattern` | Raking Claw `4`/`+3`, Ash Trail (permanent), Cinder Breath `5` | `Position`, `Mitigate`, `Move`, `Interrupt` | `Kill Adds` — the pinned opener never spawns |
 | `Ember Pattern` | Ember Scar, Cinder Breath `10` | `Position`, `Move`, `Interrupt` | `Mitigate` — Armor is wasted on a Round answered by footwork |
 | `Brood Pattern` | Raking Claw `4`/`+3`, Brood Call (2 Whelps, `Severe`) | `Position`, `Mitigate`, `Kill Adds` | `Move` — nothing here is dodged |
 
@@ -161,7 +161,13 @@ Phase II mirrors the split at harder values and in the order `Ashfall, Molting`,
 
 The `Lands` column is the **automatic-tick** schedule: where each threshold falls for a party that answers every demand. Acceleration only shortens it. Since D-036 priced Brood Call at `1`, a party that leaves Whelps standing crosses each threshold about a Round early and meets `Worldfire` around Round `6` — and in the solo sweep the only policy that still sees Round `8` is the one that spends its Quick Slot clearing Whelps. The Encounter Clock is the length a party earns, not the length it is given.
 
-Two of these were `+1` damage each until D-031 replaced them: escalation is felt as the arena closing toward Embermaw, not as a larger number. The ground that burns is always the ground furthest from the Boss, and never a hex adjacent to it — burning the Guarded Front would leave the Tank unable to move into the place their kit exists to hold.
+**Ash Trail is the Tank's own contribution to that closing (D-039).** The claw cannot be evaded, so the only question is what it costs the floor: a hit that draws blood burns the hex the Tank was standing on, permanently, while a hit absorbed on the Guarded Front for zero Health loss spills its ash one hex further from Embermaw instead. It never spills less — the arena loses the same ground either way, and the Tank only chooses whether that ground is the front they have to keep holding. Backed against the rim there is nowhere to spill and the ash lands underfoot regardless, which is the rule refusing to reward perfect play with immunity.
+
+This is Tank Principle 1 applied to standing room rather than Health: *perfect play slows the bleed and never stops it*. Preventing the burn outright would have been the FFXIV Warrior failure in a new denomination — mitigation that stops needing a party.
+
+Honest dose, recorded rather than implied: **Ash Trail currently accounts for about `1` burnt hex of `19` per fight (`1.6` for a dodging line), against the `5` the Thresholds already take.** Hunt is one of three programs and fights end around Round 6, so only about two Ash Trails resolve. The mechanism is right and its weight is not yet real; raising it is a dosage decision, not a design one.
+
+Two of the Thresholds were `+1` damage each until D-031 replaced them: escalation is felt as the arena closing toward Embermaw, not as a larger number. The ground that burns is always the ground furthest from the Boss, and never a hex adjacent to it — burning the Guarded Front would leave the Tank unable to move into the place their kit exists to hold.
 
 The "Lands" column is the automatic schedule — ticks begin at `Encounter Clock - 4` and run one per Round end. Acceleration can pull every row earlier; Embermaw's Brood Call prices its unanswered demand at `0` until the deck holds a Whelp answer (D-003), so today the schedule is the whole story.
 
