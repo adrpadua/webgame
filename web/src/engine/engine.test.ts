@@ -518,6 +518,60 @@ describe('Ash Trail displacement (D-039)', () => {
   })
 })
 
+// D-041. Escalation acceleration is only legitimate if the Timeline showed the
+// demand: ADR 0027 requires a Beat that can add Escalation to disclose it. A
+// demand priced from the whole pool violates that on any Round whose program
+// does not carry the Beat.
+describe('Demand disclosure (D-041)', () => {
+  function chargedReasons(result: { facts: ResolvedActionFact[] }): string[] {
+    return result.facts
+      .filter((fact) => fact.kind === 'gain_escalation' && fact.succeeded)
+      .map((fact) => (fact.resolutionFact as Record<string, unknown>)?.escalation_reason as string)
+  }
+
+  it('never charges proximity on a Round whose program does not demand it', () => {
+    // Camp out of reach for the whole fight and check every charge against the
+    // program that actually ran. Round 1 is Hunt Pattern, which carries no
+    // proximity demand, and used to be billed anyway.
+    let state = immortalHero(start(1))
+    state.board.entities[state.primaryHeroId].coords = { q: -2, r: 2 }
+    let guard = 0
+    while (state.active && guard < 40) {
+      guard += 1
+      const program = catalog.programs[state.currentProgramId ?? '']
+      const result = advancePhase(catalog, state)
+      if (chargedReasons(result).includes('unanswered_proximity')) {
+        const demands = [...program.instant_beats, ...program.incoming_beats].some((beat) => beat.kind === 'demand_proximity')
+        expect(demands, `Round ${state.round} charged proximity but ${state.currentProgramId} never showed the Beat`).toBe(true)
+      }
+      state = result.state
+    }
+  })
+
+  it('still charges a standing Minion whichever program is up', () => {
+    // The other scope, and the reason it is not one rule: a Minion is on the
+    // board regardless of which program runs, so its demand outlives the Beat
+    // that spawned it and any priced Beat in the pool sets its cost.
+    let state = immortalHero(startBroodSecond())
+    let charged = false
+    let guard = 0
+    while (state.active && guard < 40) {
+      guard += 1
+      const program = catalog.programs[state.currentProgramId ?? '']
+      const result = advancePhase(catalog, state)
+      if (chargedReasons(result).includes('unanswered_minions')) {
+        charged = true
+        if (![...program.instant_beats, ...program.incoming_beats].some((beat) => beat.kind === 'spawn_minions')) {
+          // Exactly the case pool scope exists for.
+          expect(Object.values(result.state.board.entities).some((entity) => entity.kind === 'minion')).toBe(true)
+        }
+      }
+      state = result.state
+    }
+    expect(charged).toBe(true)
+  })
+})
+
 describe('Program identity (D-036)', () => {
   it('gives each Phase I program a distinct set of demands', () => {
     const tags = (id: string) => programCounterTags(catalog.programs[id]).sort().join(',')
