@@ -111,7 +111,7 @@ does the same thing from a keyboard.
 
 A Boss Beat's own numbers arrive on its Beat Card, which the Row deals one beat
 at a time and which is the control that resolves it. There is no persistent
-Boss Program strip (D-058): the fight above the board is two lines — the Round
+Boss Program strip (D-060): the fight above the board is two lines — the Round
 track, and the Escalation gauge under it.
 
 A first visit opens the `embermaw_first_turn` Encounter with the scripted

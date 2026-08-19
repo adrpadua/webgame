@@ -439,6 +439,31 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
         }
       }
     }
+    // The Round-end step prices one demand per kind, taking the dearest priced
+    // Beat in the pool and asking *its* question (`escalation.ts`). That is
+    // fine while every priced Beat of a kind asks the same question, and a
+    // silent drop the moment two disagree: two priced `place_counter` Beats
+    // naming different Counters would leave the cheaper Counter authored with a
+    // price and never billed, and two `demand_proximity` Beats at different
+    // reaches would bill the party at a distance one of them never asked
+    // about. Neither shows up as a failure — it shows up as a demand that
+    // quietly does nothing, which is exactly the shape this pass was written to
+    // stop shipping. Refuse the content instead.
+    const pooled = [...encounter.boss_programs, ...encounter.phase_two_programs]
+      .flatMap((programId) => catalog.programs[programId] ?? [])
+      .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
+      .filter((beat) => beat.escalation_if_unanswered > 0)
+    for (const kind of new Set(pooled.map((beat) => beat.kind))) {
+      const sameKind = pooled.filter((beat) => beat.kind === kind)
+      for (const field of ['counter', 'range_tiles'] as const) {
+        const asked = new Set(sameKind.map((beat) => beat[field]))
+        if (asked.size > 1) {
+          throw new Error(
+            `${encounterAt(encounter.id)} prices ${sameKind.length} ${kind} Beats (${sameKind.map((beat) => beat.id).join(', ')}) that disagree on ${field} (${[...asked].join(', ')}); the Round-end step prices one ${kind} demand, so all of them must ask the same question`,
+          )
+        }
+      }
+    }
   }
   for (const deck of Object.values(catalog.decks)) {
     if (!catalog.encounters[deck.encounter]) {

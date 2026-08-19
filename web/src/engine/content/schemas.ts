@@ -225,7 +225,8 @@ export const bossBeatSchema = z.object({
   unguarded_bonus: z.number().int().min(0).default(0),
   // Escalation acceleration (ADR 0027): what it costs to leave this Beat's
   // demand standing at a Round end. Carried by any Beat kind the Escalation
-  // step knows how to price — `spawn_minions` and `demand_proximity` today.
+  // step knows how to price — `spawn_minions`, `demand_proximity` and
+  // `place_counter` today.
   escalation_if_unanswered: z.number().int().min(0).default(0),
   // How far this Beat reaches, in hexes. Authored rather than defaulted,
   // because reach is the whole difference between a Beat that footwork answers

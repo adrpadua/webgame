@@ -88,6 +88,30 @@ function stepPhases(state: EncounterState, count: number): { state: EncounterSta
   return { state: current, facts }
 }
 
+// Every standing demand answered, as a stand-in for the cards a party would
+// spend answering them: Whelps cleared the way Sweeping Blow clears them, Heat
+// drawn off the way Quench draws it off. Tests about anything other than
+// acceleration need this, or they measure the automatic clock plus whatever the
+// newest priced demand happens to charge — which is what several of them
+// quietly started doing the moment Heat was priced.
+function answerDemands(state: EncounterState): void {
+  for (const entity of Object.values(state.board.entities)) {
+    if (entity.kind === 'minion') {
+      delete state.board.entities[entity.id]
+    }
+  }
+  delete state.counters[combatantRef(state.bossId)]
+}
+
+// One whole Round, answered in the Slow Window — the last player window before
+// the Round-end step. Answering after the Round instead works only for a demand
+// with a spawn-Round grace, and Heat has none.
+function answeredRound(state: EncounterState): EncounterState {
+  const inSlow = stepPhases(state, 4).state
+  answerDemands(inSlow)
+  return stepPhases(inSlow, 1).state
+}
+
 describe('content catalog', () => {
   // Presence, not census. A count or an exhaustive id list turns "a designer
   // authored a new card" into a failing suite, which teaches the design team
@@ -128,8 +152,9 @@ describe('content catalog', () => {
     expect(
       Object.fromEntries(catalog.encounters.embermaw_prototype.player_deck.map((entry) => [entry.card, entry.copies])),
     ).toEqual({
-      steady_strike: 6,
+      steady_strike: 4,
       iron_guard: 6,
+      quench: 2,
       sweeping_blow: 2,
       fortify: 2,
       shield_slam: 2,
@@ -1009,6 +1034,25 @@ describe('Authored Beat reach', () => {
     expect(() => rebuild(missing)).toThrow(/authors no range_tiles/)
   })
 
+  it('refuses priced Beats of one kind that ask different questions', () => {
+    // The Round-end step prices one demand per kind — the dearest priced Beat
+    // in the pool, asking *its* question — so two priced Beats of a kind that
+    // disagree mean one of them is authored with a price and silently never
+    // billed. Both halves of the rule, because the two fields fail differently:
+    // a second reach bills the party at a distance the cheaper Beat never asked
+    // about, and a second Counter leaves the cheaper Counter uncharged.
+    const twoReaches = structuredClone(catalog)
+    const proximity = twoReaches.programs.embermaw_brood.incoming_beats.find((beat) => beat.kind === 'demand_proximity')!
+    proximity.range_tiles = 2
+    expect(() => rebuild(twoReaches)).toThrow(/disagree on range_tiles/)
+
+    const twoCounters = structuredClone(catalog)
+    const heat = twoCounters.programs.embermaw_embers.instant_beats.find((beat) => beat.kind === 'place_counter')!
+    twoCounters.counters.chill = { ...twoCounters.counters[heat.counter], id: 'chill' }
+    twoCounters.programs.embermaw_hunt.instant_beats.push({ ...heat, id: 'stoke_elsewhere', counter: 'chill' })
+    expect(() => rebuild(twoCounters)).toThrow(/disagree on counter/)
+  })
+
   it('refuses a reach on the hit that footwork cannot answer', () => {
     // The other half of the rule, and the one worth stating as content rather
     // than trusting to nobody trying it. Raking Claw is deliberately rangeless
@@ -1164,11 +1208,13 @@ describe('Phase Trigger (ADR 0023)', () => {
 
   it('breaks on the Round half of the trigger, before Phase II’s first Instant Row', () => {
     let state = durableStart()
-    // Rounds 2, 3 and 4 open on the Phase I loop.
-    state = stepPhases(state, 5).state
+    // Rounds 2, 3 and 4 open on the Phase I loop. Answered Rounds, because a
+    // party that leaves every demand standing does not reach Round 5 alive —
+    // and this test is about the Phase break, not about the clock.
+    state = answeredRound(state)
     expect(state.round).toBe(2)
     expect(state.bossPhase).toBe(1)
-    state = stepPhases(state, 10).state
+    state = answeredRound(answeredRound(state))
     expect(state.round).toBe(4)
     expect(state.bossPhase).toBe(1)
     // Round 5 opens Phase II, and it opens on Phase II's own first Program
@@ -1903,13 +1949,17 @@ describe('The Boss marks too (D-051)', () => {
     // party watches accrue and may spend a card cooling.
     let state = immortalHero(start())
     const heatBeat = catalog.programs.embermaw_embers.instant_beats.find((beat) => beat.kind === 'place_counter')!
-    expect(heatBeat).toMatchObject({ counter: 'heat', counter_target: 'self', counter_amount: 1 })
+    expect(heatBeat).toMatchObject({ counter: 'heat', counter_target: 'self' })
+    const banked = heatBeat.counter_amount
 
     const placed = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: heatBeat, track: 'instant' })
     state = placed.state
-    expect(state.counters[combatantRef(state.bossId)][0]).toMatchObject({ id: 'heat', count: 1 })
+    expect(state.counters[combatantRef(state.bossId)][0]).toMatchObject({ id: 'heat', count: banked })
 
-    // One Heat, one more damage on everything it throws.
+    // Every Heat, one more damage on everything it throws. Read off the
+    // authored amount rather than a literal, because the amount is a tuning
+    // dial: pinning it here would make retuning the Beat fail this test for a
+    // reason that has nothing to do with whether Heat is read at all.
     const hit = resolve(catalog, state, {
       kind: 'damage',
       sourceId: state.bossId,
@@ -1917,7 +1967,7 @@ describe('The Boss marks too (D-051)', () => {
       amount: 4,
       reasonText: 'test',
     })
-    expect(hit.facts[0].resolutionFact).toMatchObject({ requested: 5 })
+    expect(hit.facts[0].resolutionFact).toMatchObject({ requested: 4 + banked })
   })
 
   it('marks the Party when the Beat says hero, not itself', () => {
@@ -1926,8 +1976,64 @@ describe('The Boss marks too (D-051)', () => {
     const state = immortalHero(start())
     const beat = { ...catalog.programs.embermaw_embers.instant_beats.find((b) => b.kind === 'place_counter')!, counter_target: 'hero' as const }
     const marked = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat, track: 'instant' })
-    expect(marked.state.counters[combatantRef(state.primaryHeroId)]?.[0]).toMatchObject({ id: 'heat', count: 1 })
+    expect(marked.state.counters[combatantRef(state.primaryHeroId)]?.[0]).toMatchObject({ id: 'heat', count: beat.counter_amount })
     expect(marked.state.counters[combatantRef(state.bossId)] ?? []).toHaveLength(0)
+  })
+
+  // The price. Heat used to pay out only in Boss damage, and the sweep said
+  // what that was worth: trading two Steady Strike for two Quench cost the
+  // damage plan a fifth of its damage and moved the Round the run ended on by
+  // 0.00. A decision that cannot reach the clock is not a decision (ADR 0027),
+  // so a Counter left at its cap is now a standing demand like a Minion is.
+  it('bills a Counter left at its cap, and not one below it', () => {
+    let state = immortalHero(start())
+    const cap = catalog.counters.heat.max
+    expect(cap).toBeGreaterThan(1)
+    // A one-at-a-time Stoke, so the stack can be walked up to the cap and the
+    // boundary asked on both sides of it. The shipped Beat banks the cap in one
+    // go, which would only ever show the billed side.
+    const heatBeat = { ...catalog.programs.embermaw_embers.instant_beats.find((beat) => beat.kind === 'place_counter')!, counter_amount: 1 }
+    const reasons = (source: typeof catalog): string[] =>
+      escalationActionsForRoundEnd(source, state)
+        .filter((action) => action.kind === 'gain_escalation')
+        .map((action) => action.reason)
+
+    expect(reasons(catalog)).not.toContain('unanswered_counter')
+    for (let placed = 1; placed < cap; placed += 1) {
+      state = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: heatBeat, track: 'instant' }).state
+      expect(reasons(catalog)).not.toContain('unanswered_counter')
+    }
+    state = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: heatBeat, track: 'instant' }).state
+    expect(reasons(catalog)).toContain('unanswered_counter')
+
+    // And the threshold is the Counter's authored cap, not a literal. Raise the
+    // cap and the same stack stops being billed — which is what makes `max`
+    // load-bearing rather than decorative, and what gives the demand its slack:
+    // Heat can be ignored for a while and then cannot.
+    const deeper = structuredClone(catalog)
+    deeper.counters.heat.max = cap + 1
+    expect(reasons(deeper)).not.toContain('unanswered_counter')
+  })
+
+  it('asks the Hero for a Beat that marks the Hero', () => {
+    // The demand reads where the Beat actually places it. Reading only the Boss
+    // would price half the mechanic: a Counter piled onto a Hero would sit at
+    // its cap unanswered and cost nothing.
+    const marking = structuredClone(catalog)
+    const beat = marking.programs.embermaw_embers.instant_beats.find((entry) => entry.kind === 'place_counter')!
+    beat.counter_target = 'hero'
+    let state = immortalHero(start())
+    const reasons = (): string[] =>
+      escalationActionsForRoundEnd(marking, state)
+        .filter((action) => action.kind === 'gain_escalation')
+        .map((action) => action.reason)
+
+    // The Boss at its own cap answers nothing here: this Beat marks the Party.
+    const onSelf = { ...beat, counter_target: 'self' as const }
+    state = resolve(marking, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: onSelf, track: 'instant' }).state
+    expect(reasons()).not.toContain('unanswered_counter')
+    state = resolve(marking, state, { kind: 'resolve_boss', sourceId: state.bossId, beat, track: 'instant' }).state
+    expect(reasons()).toContain('unanswered_counter')
   })
 
   it('stops banking at the authored cap, and says so', () => {
@@ -2010,20 +2116,28 @@ describe('Quench, the first Card that reads a Counter (D-052)', () => {
   it('scales off the Heat it is about to remove, then removes it', () => {
     // `resolution` timing is the whole card: it scales off the full Heat and
     // cools afterwards, so a hotter Boss is a bigger hit *and* a bigger cool.
+    //
+    // Run against a Boss that can bank deeper than Quench draws off, so the
+    // partial cool is visible. Live Heat caps at exactly what Quench removes —
+    // the cap is what the Escalation demand is priced at (ADR 0027), and one
+    // Quench is meant to be a complete answer — which would make every cool a
+    // full one and leave the clamp in `spendCounter` unexercised.
+    const deeper = structuredClone(catalog)
+    deeper.counters.heat.max = 3
     let state = immortalHero(start())
     state = stepPhases(state, 2).state
     expect(state.phase).toBe('quick')
-    const heatBeat = catalog.programs.embermaw_embers.instant_beats.find((beat) => beat.kind === 'place_counter')!
+    const heatBeat = { ...deeper.programs.embermaw_embers.instant_beats.find((beat) => beat.kind === 'place_counter')!, counter_amount: 1 }
     for (let index = 0; index < 3; index += 1) {
-      state = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: heatBeat, track: 'instant' }).state
+      state = resolve(deeper, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: heatBeat, track: 'instant' }).state
     }
     expect(state.counters[combatantRef(state.bossId)][0].count).toBe(3)
 
     hero(state).hand = [card('q1', 'quench'), card('q2', 'steady_strike')]
-    state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'q1' }).state
-    state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'q2' }).state
+    state = resolve(deeper, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'q1' }).state
+    state = resolve(deeper, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'q2' }).state
     const before = state.board.entities[state.bossId].health
-    const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetId: state.bossId })
+    const fired = resolve(deeper, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetId: state.bossId })
 
     // 2 printed + 1 per Heat × 3 held.
     expect(before - fired.state.board.entities[state.bossId].health).toBe(5)
@@ -2041,11 +2155,17 @@ describe('Quench, the first Card that reads a Counter (D-052)', () => {
     expect(before - fired.state.board.entities[state.bossId].health).toBe(2)
   })
 
-  it('stays out of the default deck, and rides the candidate deck instead', () => {
-    // The automatic half of the rubric does not support promotion (D-052), so
-    // the card is authored and measurable without changing the live economy.
+  it('is in the deck because the demand it answers is priced (D-003)', () => {
+    // Promotion, and the reason for it. Quench sat in the candidate deck while
+    // Heat paid out only in Boss damage: the sweep measured the trade at a
+    // fifth of the damage plan's output for 0.00 Rounds, which is not a card
+    // worth a slot. Pricing Heat in Escalation changed the reading and made the
+    // promotion mandatory rather than optional — D-003 forbids pricing a demand
+    // the deck cannot answer, and Quench is the only answer authored.
     const live = catalog.encounters.embermaw_prototype.player_deck.map((entry) => entry.card)
-    expect(live).not.toContain('quench')
+    expect(live).toContain('quench')
+    // The candidate deck stays, unchanged, as the before-picture the promotion
+    // was argued from.
     expect(catalog.decks.aegis_heat_answer.player_deck.map((entry) => entry.card)).toContain('quench')
     expect(catalog.decks.aegis_heat_answer.encounter).toBe('embermaw_prototype')
   })
@@ -2379,7 +2499,14 @@ describe('Consequence Tier ladder (D-021, ADR 0031)', () => {
     // run-ending outcomes. Every severe Beat here is severe for that reason —
     // Embermaw still has no single hit that downs a Hero from full health.
     const severe = everyBeat.filter(({ beat }) => beat.consequence_tier === 'severe')
-    expect(severe.map(({ beat }) => beat.id).sort()).toEqual(['brood_call', 'brood_call', 'within_reach', 'within_reach', 'within_reach'])
+    expect(severe.map(({ beat }) => beat.id).sort()).toEqual([
+      'brood_call',
+      'brood_call',
+      'stoke_the_forge',
+      'within_reach',
+      'within_reach',
+      'within_reach',
+    ])
     expect(severe.every(({ beat }) => beat.escalation_if_unanswered > 0)).toBe(true)
     const worst = Math.max(...everyBeat.map(({ beat }) => beat.damage + beat.unguarded_bonus))
     expect(worst).toBeLessThan(catalog.encounters.embermaw_prototype.player_health)
@@ -2400,14 +2527,6 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
   const PHASES_TO_BROOD_SLOW = 9
   const PHASES_TO_BROOD_QUICK = 7
 
-  function clearMinions(state: EncounterState): void {
-    for (const entity of Object.values(state.board.entities)) {
-      if (entity.kind === 'minion') {
-        delete state.board.entities[entity.id]
-      }
-    }
-  }
-
   it('derives the start Round so automatic ticks alone reach the top at the Encounter Clock', () => {
     expect(escalationStartRound(8)).toBe(4)
     expect(start().escalationStartRound).toBe(4)
@@ -2417,19 +2536,14 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
 
   it('does not tick before the start Round, then ticks once per Round end', () => {
     let state = immortal()
-    for (let round = 1; round < 4; round += 1) {
-      const wrap = stepPhases(state, 5)
-      // Clear each Round's Whelps so only the automatic tick can move the value.
-      state = wrap.state
-      clearMinions(state)
+    for (let index = 1; index < 4; index += 1) {
+      state = answeredRound(state)
       expect(state.escalation).toBe(0)
     }
     expect(state.round).toBe(4)
-    state = stepPhases(state, 5).state
-    clearMinions(state)
+    state = answeredRound(state)
     expect(state.escalation).toBe(1)
-    state = stepPhases(state, 5).state
-    clearMinions(state)
+    state = answeredRound(state)
     expect(state.escalation).toBe(2)
   })
 
@@ -2443,7 +2557,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
       const wrap = advancePhase(catalog, state)
       state = wrap.state
       if (state.phase === 'slow') {
-        clearMinions(state)
+        answerDemands(state)
       }
     }
     expect(state.active).toBe(false)
@@ -2499,6 +2613,27 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
       answers.length,
       `Brood Call is priced but no card in the deck deals ${whelpHealth}+ to a piece`,
     ).toBeGreaterThan(0)
+  })
+
+  it('prices a Counter demand only because the deck can answer it (D-003)', () => {
+    // The same rule as Brood Call's, for the demand kind that arrived after it.
+    // The guard above was written per-kind — `spawn_minions` and nothing else —
+    // so the rule it states did not travel to the next demand: Stoke the Forge
+    // was priced against a deck with no way to cool Heat, and every check in
+    // the suite passed. A demand the deck cannot answer is a tax, and the
+    // sweep says so plainly — pricing Heat with no Quench in the list pinned
+    // every policy's run to exactly five Rounds, spread 5-5.
+    const encounter = catalog.encounters.embermaw_prototype
+    const priced = Object.values(catalog.programs)
+      .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
+      .filter((beat) => beat.kind === 'place_counter' && beat.escalation_if_unanswered > 0)
+    expect(priced.length).toBeGreaterThan(0)
+    for (const beat of priced) {
+      const answers = encounter.player_deck.filter((entry) =>
+        catalog.cards[entry.card].reads.some((reader) => reader.verb === 'spend' && reader.counter === beat.counter),
+      )
+      expect(answers.length, `${beat.id} is priced but no card in the deck spends ${beat.counter}`).toBeGreaterThan(0)
+    }
   })
 
   it('does not count a Whelp that arrived this Round as unanswered', () => {
@@ -3821,11 +3956,13 @@ describe('Encounter Records (schema_version 2)', () => {
     expect(record.schema_version).toBe(2)
     expect(record.seed).toBe(scenario.seed)
     expect(record.outcome).toBe('defeat')
-    // The solo ceiling now ends at the clock rather than at zero Health: with
-    // Brood Call priced (D-036), the deepest surviving push runs out of Rounds
-    // before it runs out of Hero. `outcome` stays `defeat`; `end_kind` is what
-    // distinguishes the two ways to lose.
-    expect(record.end_kind).toBe('end_of_clock')
+    // The solo ceiling ends at zero Health again. It had moved to the clock
+    // when Brood Call was priced (D-036); promoting Quench moved it back, by
+    // trading two Steady Strike out of the list — the deepest push now runs out
+    // of Hero a Round before it runs out of Rounds. `outcome` stays `defeat`
+    // either way; `end_kind` is what distinguishes the two ways to lose, and
+    // the clock ending has its own test below rather than riding on this one.
+    expect(record.end_kind).toBe('defeat')
     expect(record.abandon_reason).toBe('')
     expect(record.content_identity.fingerprint).toMatch(/^[0-9a-f]{64}$/)
     expect(record.content_identity.ids).toContain('encounter:embermaw_prototype')

@@ -22,7 +22,7 @@ import { FOCUS_RING_CLASS } from "./theme";
 // is the first thing the Row says. The rules already resolved the whole track —
 // this only paces the telling.
 //
-// Since the program strip was removed (D-058) this card is the only place a
+// Since the program strip was removed (D-060) this card is the only place a
 // Boss Beat is named and priced, which raises what it owes: every parameter
 // resolution depends on has to be printed here, because there is no longer a
 // chip to hold for the rest.

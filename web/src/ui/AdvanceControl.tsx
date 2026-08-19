@@ -97,7 +97,7 @@ export function AdvanceControl() {
   // rail already waits this state out (see onPress), and it is what the smoke
   // suite holds a prompt's promise against: the card names the Beat the press
   // will play, and this says which one actually went. The Boss Beat chips
-  // carried that reading until the program strip was removed (D-058); nothing
+  // carried that reading until the program strip was removed (D-060); nothing
   // else on the surface reports it, and a press that plays a different Beat
   // from the one it advertised is the defect the pacing exists to prevent.
   const activeBeatId = usePlayout((store) => store.activeBeatId)

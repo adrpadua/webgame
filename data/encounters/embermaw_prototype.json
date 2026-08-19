@@ -24,7 +24,7 @@
   "player_deck": [
     {
       "card": "steady_strike",
-      "copies": 6
+      "copies": 4
     },
     {
       "card": "iron_guard",
@@ -44,6 +44,10 @@
     },
     {
       "card": "drive_back",
+      "copies": 2
+    },
+    {
+      "card": "quench",
       "copies": 2
     }
   ],

@@ -239,7 +239,7 @@ Measured in the running Workbench at 390×844, not estimated: **the board canvas
 | Action Bar | 97 | 11% |
 | Hand | 121 | 14% |
 
-Re-measured after the Boss program strip was removed (D-058). It cost 102 points and the phase band it merged into now costs 101, because the Escalation gauge it carried came with it and took its own 44-point line under the Round track: **one band above the board where there were two, and 61 points back for the board.**
+Re-measured after the Boss program strip was removed (D-060). It cost 102 points and the phase band it merged into now costs 101, because the Escalation gauge it carried came with it and took its own 44-point line under the Round track: **one band above the board where there were two, and 61 points back for the board.**
 
 **114 points sit empty inside the board's own container**, because the hex grid is centred in a box taller than it needs. The canvas is width-bound — it scales to fit 380×400 in whatever the HUD leaves, and at 390 wide that is settled by the width — so height handed back by a band that leaves is headroom, not larger hexes. That is a fit defect rather than a layout decision, and reclaiming it is the largest single gain still available at no cost to information.
 

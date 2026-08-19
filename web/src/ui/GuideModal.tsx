@@ -106,7 +106,7 @@ export function GuideModal() {
       // step teaches that coral is the Boss, and this is the same bar.
       //
       // Where it is has to match where it is: the gauge rode the Boss program
-      // strip's header top right until that strip was removed (D-058), and it
+      // strip's header top right until that strip was removed (D-060), and it
       // now runs the full width of the band under the Round track.
       title: boss ? `Hold the line against ${boss.title}` : 'Hold the line',
       body: `You are ${hero?.title ?? 'the party tank'}, alone. Bringing a boss down takes a party — your fight is the coral bar under the Round track. It fills every Round, and faster when a demand goes unanswered.`,

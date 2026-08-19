@@ -111,7 +111,7 @@ export function phaseDetail(phase: Phase, active: boolean): HoldDetail {
 }
 
 // The Boss Program's own popup and the per-Beat popup both left with the
-// program strip that held them (D-058). A Beat's numbers, reach, rules text
+// program strip that held them (D-060). A Beat's numbers, reach, rules text
 // and answers are printed on its Beat Card as it resolves, which is the one
 // moment they are worth reading; the program's name survives as the badge on
 // the Boss's Stat Panel.
