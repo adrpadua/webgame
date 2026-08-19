@@ -1,7 +1,7 @@
 import { selectState, useWorkbench } from '@/store/workbench'
 import { encounterTerms, phaseDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
-import { PHASE_TRACK, roundTrackDetail, type PhaseMark } from './phaseTrack'
+import { OwnerWedge, PHASE_TRACK, phaseMark, roundTrackDetail, type PhaseMark } from './phaseTrack'
 import { FOCUS_RING_CLASS } from './theme'
 
 // The Round track and the Encounter Clock beside it: what the Round is
@@ -12,35 +12,62 @@ import { FOCUS_RING_CLASS } from './theme'
 // is — leaving this band a readout, which is the direction the interface
 // wants for it (docs/content/oathcraft-interface-direction.md).
 //
-// The track is five flat marks, one per window, in the phase tones (see
-// phaseTrack.tsx). It used to be five labelled chips, and five words never
-// fit: at phone width the row ran out of room and cut Slow in half. A mark
-// costs a fifth of the width and does not truncate, so the whole Round is
-// legible on the narrowest screen the game supports.
+// The track is five marks, one per window, each wearing its owner's tone at
+// rest and its wedge — the Boss's windows point down at the board, yours
+// point up — so the Round's shape, strike answer strike answer, reads
+// before any window opens (see phaseTrack.tsx for the table and the
+// reasoning). The live window is not a fifth tinted mark but the row's one
+// lit chip: a raked plate in the owner's material carrying the window's
+// word. One word always fits where five never did, and a lit plate is
+// visible from the board the way an 18px hue shift was not.
 //
-// The words are still one gesture away, by whichever gesture the device
-// has. Hovering a mark names its window and explains it; holding anywhere
-// on the track draws the whole Round in order with the live window lit,
-// which is the reading a finger cannot assemble a mark at a time.
+// The rest of the words are still one gesture away, by whichever gesture
+// the device has. Hovering a mark names its window and explains it; holding
+// anywhere on the track draws the whole Round in order with the live window
+// lit, which is the reading a finger cannot assemble a mark at a time.
 
 // One window's mark. It carries its own detail so a mouse can learn the row
 // a mark at a time; the track underneath it holds for touch.
+//
+// The live mark takes only the width its chip needs and the resting four
+// split what remains, so the chip's word never squeezes a neighbour off the
+// row — the marks give way instead, and they can: an icon and a wedge cost
+// a fraction of a fifth.
 function PhaseWindowMark({ mark, active }: { mark: PhaseMark; active: boolean }) {
   const hold = useHold(phaseDetail(mark.phase, active))
   const Icon = mark.Icon
+  if (active) {
+    return (
+      <span
+        {...hold.holdProps}
+        data-testid="phase-mark"
+        data-mark={mark.phase}
+        data-owner={mark.owner}
+        data-active={active}
+        className="flex shrink-0 flex-col items-center gap-1 py-1"
+      >
+        <span className={`wb-plate wb-plate-xs ${mark.faceClass} flex items-center gap-1.5 py-1`}>
+          <Icon className="h-3.5 w-3.5 shrink-0" />
+          <span className="text-[10px] leading-none font-black tracking-widest whitespace-nowrap uppercase">{mark.label}</span>
+        </span>
+        <OwnerWedge owner={mark.owner} className={`h-1.5 w-2.5 shrink-0 ${mark.activeClass}`} />
+      </span>
+    )
+  }
   return (
     <span
       {...hold.holdProps}
       data-testid="phase-mark"
       data-mark={mark.phase}
+      data-owner={mark.owner}
       data-active={active}
-      className="flex flex-1 flex-col items-center gap-1 py-1"
+      className={`flex min-w-0 flex-1 flex-col items-center gap-1 py-1 ${mark.restClass}`}
     >
-      <Icon className={`h-[18px] w-[18px] transition-colors duration-300 ${active ? mark.activeClass : 'text-steel-500'}`} />
-      {/* The live window is marked twice: in tone, and by this rule under
-          it. Colour alone would be the only channel otherwise, and two of
-          the five windows share one. */}
-      <span className={`h-0.5 w-4 rounded-full transition-colors duration-300 ${active ? mark.barClass : 'bg-transparent'}`} />
+      <Icon className="h-[18px] w-[18px] shrink-0 transition-colors duration-300" />
+      {/* The owner, without colour: coral and gold are both warm, and the
+          wedge is what keeps the Boss's windows and yours apart for anyone
+          the hues do not reach. */}
+      <OwnerWedge owner={mark.owner} className="h-1.5 w-2.5 shrink-0" />
     </span>
   )
 }
@@ -86,7 +113,7 @@ export function PhaseControl() {
         type="button"
         {...hold.holdProps}
         data-testid="phase-track"
-        aria-label={`Round track: ${state.phase}. Hold for every window in order.`}
+        aria-label={`Round track: ${phaseMark(state.phase).title}. Hold for every window in order.`}
         // min-w-0 lets the track shrink below its marks' natural width; without
         // it flex-1 will not go under content size and the row overflows the
         // surface, which then scrolls sideways under any focus or modal.
