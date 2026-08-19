@@ -224,6 +224,19 @@ body {
   animation: wb-face-pulse 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* --- Accent pulse --------------------------------------------------------
+   The same "waiting on you" signal for a plate that carries body text.
+   `wb-face-pulse` breathes ::before, which is the plate's *face*, so the
+   content sits on a background dipping to 55% opacity — over the board that
+   means hexes and sprites read straight through it. On a one-line bar that
+   was survivable; on the Beat card, which carries a Beat's rules text and
+   stats, it is not, and no contrast check catches it because the text's own
+   opacity never moves. Breathe the accent alone: ::after is a 3px band with
+   nothing written on it, so it can dip as far as it likes. */
+.wb-accent-pulse::after {
+  animation: wb-face-pulse 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 /* --- Ring pulse ----------------------------------------------------------
    For a control that is not a plate — the move pad's square buttons — a
    breathing runeglass ring says "legal, tap me" without touching the
@@ -506,6 +519,7 @@ body {
   .wb-seat,
   .wb-face-pulse::before,
   .wb-face-pulse::after,
+  .wb-accent-pulse::after,
   .wb-ring-pulse,
   .wb-hex-step,
   .wb-damage-flash {
