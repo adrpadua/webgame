@@ -43,7 +43,7 @@ The effect a Boss applies at its top Escalation Threshold. Different bosses may 
 _Avoid_: Global enrage rule, overtime, parallel timer
 
 **Boss Timeline**:
-The visible sequence of boss actions arranged into two horizons: the `Instant` row and the `Incoming` row, both belonging to the current Round. Row names state when, never how much is known. A third horizon, the `Forecast` row, existed until ADR 0031 removed it: next Round's schedule is now learned by playing rather than shown. The boss timeline is mostly scripted rather than random.
+The sequence of boss actions arranged into two horizons: the `Instant` row and the `Incoming` row, both belonging to the current Round. Row names state when, never how much is known. A third horizon, the `Forecast` row, existed until ADR 0031 removed it: next Round's schedule is now learned by playing rather than shown. The boss timeline is mostly scripted rather than random. It is a rules structure, not a HUD band: the strip that listed both rows by name was removed (D-058), and a Beat is read as a `Beat Card` when it resolves, while the `Incoming` row's threat stands on the board ahead of the `Quick Window` as its telegraph.
 _Avoid_: Deck, queue, stack
 
 **Boss Program**:
@@ -145,7 +145,7 @@ The visible end-step action a living Minion will take: advance one hex toward it
 _Avoid_: Hidden AI, random wander, aggro table
 
 **Commitment**:
-An authored card effect bound to one named Boss Beat, visible to the Party, resolving when that Beat resolves (D-028). A Commitment may only bind to a Beat whose parameters are disclosed — one in the `Incoming Row` or `Instant Row`. With the Forecast Row gone (ADR 0031) every visible Beat qualifies, so the constraint now bites in a different place: there is no surface naming a *future* Beat, which is what the mechanism was designed to bind to. Commitments prepare for a named future problem; they may never redirect its target or change what it is, and that ban is effect-level — it binds any mechanism that could produce the same effect. Nothing implements a Commitment yet: Fortify was reclassified as one and the reclassification was retracted, because it prepares for whatever the next Round opens with rather than for a named Beat.
+An authored card effect bound to one named Boss Beat, visible to the Party, resolving when that Beat resolves (D-028). A Commitment may only bind to a Beat whose parameters are disclosed — one in the `Incoming Row` or `Instant Row`. With the Forecast Row gone (ADR 0031) every disclosed Beat qualifies, so the constraint now bites in a different place: there is no surface naming a *future* Beat, which is what the mechanism was designed to bind to. Removing the program strip (D-058) sharpened that — no surface names an `Incoming Row` Beat before it resolves either — so whatever ships a Commitment owes it a naming surface of its own. Commitments prepare for a named future problem; they may never redirect its target or change what it is, and that ban is effect-level — it binds any mechanism that could produce the same effect. Nothing implements a Commitment yet: Fortify was reclassified as one and the reclassification was retracted, because it prepares for whatever the next Round opens with rather than for a named Beat.
 _Avoid_: Attachment, counterspell, reaction
 _Not yet in the engine_
 
@@ -159,7 +159,7 @@ The boss actions that resolve before the party's `Quick Window`. These are urgen
 _Avoid_: Fast row, active row
 
 **Incoming Row**:
-The boss actions that resolve before the party's `Slow Window`. These are telegraphed mechanics that the party can plan around.
+The boss actions that resolve before the party's `Slow Window`. These are telegraphed mechanics that the party can plan around — telegraphed on the board, since D-058, rather than named in a strip: the breath cone and the marked spawn hexes are painted before the row resolves.
 _Avoid_: Future row, pending row
 
 **Quick Window**:
@@ -259,7 +259,7 @@ A hand-sized card that exposes only what the card is for in the current window, 
 _Avoid_: Full card, tooltip card
 
 **Detail Popup**:
-The temporary reading surface for any named HUD object — a Compact Card, a Slot, a Boss Beat chip, a Hero stat, the Round track. It carries that object's numbers and complete authored text. Each input opens it its own way: touch presses and holds, a mouse hovers, the keyboard holds `Enter` or `Space`; it dismisses on release or when the pointer leaves. The HUD proper carries names, numbers, and colour; the sentences live here, one gesture away. Card Inspection is the Compact Card case of a Detail Popup.
+The temporary reading surface for any named HUD object — a Compact Card, a Slot, a phase mark, the Round track, the Escalation gauge, a Hero stat. It carries that object's numbers and complete authored text. Each input opens it its own way: touch presses and holds, a mouse hovers, the keyboard holds `Enter` or `Space`; it dismisses on release or when the pointer leaves. The HUD proper carries names, numbers, and colour; the sentences live here, one gesture away. Card Inspection is the Compact Card case of a Detail Popup.
 _Avoid_: Tooltip, card menu, help screen
 
 **Stat Panel**:

@@ -5,9 +5,9 @@ import { BEAT_STAGGER_MS, EFFECT_SETTLE_MS, OUTCOME_REVEAL_MS, type BoardEffect,
 // The staggered-playout director for one resolved batch. While a boss track
 // replays beat by beat, the authoritative state already holds the batch's
 // final numbers; this store carries what the HUD should *show* right now —
-// gauge values, the beat currently playing (the Boss Beat chip it
-// lights), the moment's board effects, and what has not happened on screen
-// yet (ground scorched or Whelps spawned by unplayed moments).
+// gauge values, the beat currently playing, the moment's board effects, and
+// what has not happened on screen yet (ground scorched or Whelps spawned by
+// unplayed moments).
 //
 // Pacing: every Boss Beat waits behind a press, the first one included. The
 // batch lands on a Continue prompt naming the beat that press will play, and
@@ -26,7 +26,8 @@ interface PlayoutStore {
   // True while a batch that ended the Encounter is still replaying: the
   // outcome presentation (banner, Restart control) waits for it.
   outcomeHeld: boolean
-  // The beat playing right now, for the Boss Beat chip.
+  // The beat playing right now. The board shows it; the advance rail
+  // publishes which one it is.
   activeBeatId: string | null
   // The beat the next Continue will play, for the prompt. A prompt names
   // what it is about to show, never what it has already shown: the player

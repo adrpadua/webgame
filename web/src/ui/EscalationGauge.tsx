@@ -8,10 +8,12 @@ import { FOCUS_RING_CLASS } from './theme'
 // approaching. A clock nobody can see does not do that, so the value gets a
 // permanent seat rather than living in a debug readout.
 //
-// It rides the program strip's header because Escalation is a Boss value and
-// the strip is the Boss's own surface — and because the header survives the
-// strip collapsing, so the clock never goes away. The phase row was the other
-// candidate and lost: it is already the width of the Round track.
+// It used to ride the program strip's header, on the argument that Escalation
+// is a Boss value and the strip was the Boss's own surface. The strip is gone
+// and the phase band — the other candidate at the time, rejected then for
+// being already the width of the Round track — is where it lives now, on its
+// own line under the track rather than squeezed beside it. The two readouts
+// stack: where the Round is, then how far the fight has run.
 //
 // The gauge carries no label. A word costs more room than the reading it
 // buys, and the reading is in the shape: a bar filling left to right in the
@@ -104,10 +106,10 @@ export function escalationBandLabel(pip: EscalationPip, enrageText: string): str
 }
 
 // The ladder: every band the fight still has, in order, on the Boss's rail.
-// This is the popup's whole point — the gauge on the strip says how far the
-// clock has run, and this says what the runs cost. It is drawn rather than
-// listed because a list of five rows reads as a table of data, and the thing
-// a player has to feel here is a climb with a floor and a last step.
+// This is the popup's whole point — the bar says how far the clock has run,
+// and this says what the runs cost. It is drawn rather than listed because a
+// list of five rows reads as a table of data, and the thing a player has to
+// feel here is a climb with a floor and a last step.
 function EscalationLadder({ pips, enrageText }: { pips: EscalationPip[]; enrageText: string }) {
   const next = nextEscalationPip(pips)
   return (
@@ -190,14 +192,15 @@ export function EscalationGauge({ state, enrageText }: { state: EncounterState; 
       // reachable by keyboard — so it takes the same 44px target every other
       // control does. The smoke check only scans button and input, so this one
       // is honoured on the rule's intent rather than under its selector.
-      className={`flex min-h-11 shrink-0 items-center gap-1.5 ${FOCUS_RING_CLASS}`}
+      className={`flex min-h-11 w-full items-center ${FOCUS_RING_CLASS}`}
     >
       {/* The gauge language the Hero's panel and the Boss line already speak
-          (theme.ts): a dark track, and a fill measured from the left. Here it
-          is drawn compact, and divided at the band boundaries so the five
-          steps are still countable — a bar that only slides is a percentage,
-          and Escalation moves in bands that each land once. */}
-      <span className="relative block h-2 w-16 overflow-hidden rounded-sm bg-steel-950 ring-1 ring-steel-800 ring-inset" aria-hidden="true">
+          (theme.ts): a dark track, and a fill measured from the left. It takes
+          the band's full width — it is the fight's clock, not a tag beside a
+          title — and is divided at the band boundaries so the five steps are
+          still countable: a bar that only slides is a percentage, and
+          Escalation moves in bands that each land once. */}
+      <span className="relative block h-2 w-full overflow-hidden rounded-sm bg-steel-950 ring-1 ring-steel-800 ring-inset" aria-hidden="true">
         {/* The last band ends the fight, so its stretch of the track is
             washed in the Boss's own colour before the clock ever reaches it. */}
         <span className="absolute inset-y-0 right-0 w-1/5 bg-coral-900/70" />

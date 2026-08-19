@@ -321,9 +321,12 @@ try {
 
   const phase = () => page.locator('[data-phase]').getAttribute('data-phase')
   // A Boss Row resolves in the batch that opens its window and replays
-  // beat by beat; Next is inert until the last beat's moment has played.
+  // beat by beat; Next is inert until the last beat's moment has played. The
+  // rail publishes the Beat it is playing (`data-playing-beat`), so the wait
+  // is for that attribute to leave — it was the lit Boss Beat chip until the
+  // program strip was removed.
   const waitForBeatsToSettle = (view = page) =>
-    view.waitForSelector('[data-testid="beat-chip"][data-playing="true"]', { state: 'detached', timeout: 8000 })
+    view.waitForSelector('[data-testid="next-phase"][data-playing-beat]', { state: 'detached', timeout: 8000 })
   const next = () => page.locator('[data-testid="next-phase"]').click()
   const cueStep = () => page.locator('[data-testid="first-turn-cue"]').getAttribute('data-step')
   const boardCanvas = page.locator('[data-testid="board"] canvas')
@@ -531,7 +534,7 @@ try {
       // Nothing floating may cover a band that carries the fight's own
       // controls. Next is the specific casualty worth naming: losing it while
       // a prompt is up is losing the only way forward.
-      for (const bandId of ['program-strip', 'next-phase', 'action-bar', 'hand']) {
+      for (const bandId of ['phase-band', 'next-phase', 'action-bar', 'hand']) {
         const band = document.querySelector(`[data-testid="${bandId}"]`)
         if (band === null) {
           continue
@@ -591,26 +594,19 @@ try {
     (await page.locator('[data-testid="hold-popover"]').getAttribute('data-hold-id'))?.startsWith('hand:'),
     'hovering a Compact Card opens its detail popup',
   )
-  // ...and a boss beat chip explains that beat, rather than the whole strip.
-  await page.locator('[data-testid="beat-chip"]').nth(1).hover()
+  // ...a phase mark explains that window rather than the whole Round...
+  await page.locator('[data-testid="phase-mark"]').nth(1).hover()
   await page.waitForTimeout(400)
-  const beatPopoverId = await page.locator('[data-testid="hold-popover"]').getAttribute('data-hold-id')
-  assert(beatPopoverId?.startsWith('beat:'), `hovering a boss beat explains that beat (${beatPopoverId})`)
-  // Not every Beat carries numbers — a Boss advance or a demand has none — so
-  // walk the chips for one that does rather than pinning an index that content
-  // reorders.
-  let numbered = ''
-  const chipCount = await page.locator('[data-testid="beat-chip"]').count()
-  for (let index = 0; index < chipCount; index += 1) {
-    await page.locator('[data-testid="beat-chip"]').nth(index).hover()
-    await page.waitForTimeout(400)
-    const text = await page.locator('[data-testid="hold-popover"]').innerText()
-    if (text.includes('Damage')) {
-      numbered = text
-      break
-    }
-  }
-  assert(numbered !== '', `some beat popup carries its numbers (checked ${chipCount} chips)`)
+  const markPopoverId = await page.locator('[data-testid="hold-popover"]').getAttribute('data-hold-id')
+  assert(markPopoverId?.startsWith('phase:'), `hovering a phase mark explains that window (${markPopoverId})`)
+  // ...and the Escalation gauge names every band it still has. The gauge
+  // moved out of the program strip's header into the phase band when the
+  // strip was removed, and its detail is the one thing it carries no label
+  // for, so the reach has to be checked where it now lives.
+  await page.locator('[data-testid="escalation-gauge"]').hover()
+  await page.waitForTimeout(400)
+  const escalationPopoverId = await page.locator('[data-testid="hold-popover"]').getAttribute('data-hold-id')
+  assert(escalationPopoverId === 'escalation', `hovering the Escalation gauge opens its ladder (${escalationPopoverId})`)
   await page.locator('[data-testid="hand"]').hover()
   await page.waitForSelector('[data-testid="hold-popover"]', { state: 'detached' })
   assert((await page.locator('[data-testid="hold-popover"]').count()) === 0, 'moving the pointer away dismisses the popup')
@@ -860,6 +856,15 @@ try {
   // that opens the window replays paced, and every beat — the opening one
   // included — waits behind a Continue prompt that names it, so the player
   // reads every part of the turn before it lands.
+  //
+  // How many beats that Row holds used to be read off the strip's Instant
+  // track. The strip is gone, so it comes from the rules instead: the whole
+  // Row resolves in the batch that opens the window (ADR 0024), so the fact
+  // log's `Boss Beat:` lines are already all there before the first press,
+  // and the presses are counted against them.
+  const bossBeatLines = async () =>
+    ((await page.locator('[data-testid="fact-log"]').textContent()) ?? '').split('Boss Beat:').length - 1
+  const beatsBeforeRow = await bossBeatLines()
   await next()
   await page.waitForSelector('[data-testid="playout-continue"]')
   assert((await phase()) === 'instant', 'Round 2 Next opens Boss Instant and paces its beats')
@@ -881,9 +886,9 @@ try {
   assert(pacedLive.includes('phase-banner'), `the phase word takes the stage while the dock is occupied (${pacedLive.join(', ')})`)
   await assertContrast(page, 'during a paced Boss row')
   await shot(page, 'boss-row-paced')
-  // The Row lands announced, not already swinging: no chip is lit yet.
+  // The Row lands announced, not already swinging: the rail names no beat yet.
   assert(
-    (await page.locator('[data-testid="beat-chip"][data-playing="true"]').count()) === 0,
+    (await page.locator('[data-testid="next-phase"]').getAttribute('data-playing-beat')) === null,
     'the opening prompt arms before any beat has played',
   )
   const promptText = await page.locator('[data-testid="playout-continue"]').textContent()
@@ -908,16 +913,23 @@ try {
   assert(faceAnimation === 'none', `the Beat card's face does not breathe behind its text (::before animation ${faceAnimation})`)
   // The prompt is a trailer, not a caption: the beat it names is the beat
   // the press plays. Naming the beat already on the board made every press
-  // read as a skip, so hold each promise against what actually lights. The
-  // Instant track's beats are pressed through one at a time until the last
-  // one settles the playout on its own.
-  const instantBeats = await page.locator('[data-testid="beat-track"][data-track="instant"] [data-testid="beat-chip"]').count()
-  assert(instantBeats > 1, `the Instant track lists more than one beat to press through (${instantBeats})`)
+  // read as a skip, so hold each promise against what actually plays — the
+  // rail publishes the Beat's own id, which is a stronger match than the
+  // title the chips used to carry. The Instant Row's beats are pressed
+  // through one at a time until the last one settles the playout on its own.
+  const instantBeats = (await bossBeatLines()) - beatsBeforeRow
+  assert(instantBeats > 1, `the Instant Row resolved more than one beat to press through (${instantBeats})`)
   let presses = 0
+  // The Beat Card is the only place a Beat's numbers are printed now, so at
+  // least one card in the Row has to carry them. Walked rather than pinned to
+  // an index: not every Beat has a number — a Boss advance or a demand has
+  // none — and pinning one is a defect this suite has already shipped once.
+  let numbered = ''
   // Bounded so a prompt that never retires fails loudly instead of hanging.
   while ((await page.locator('[data-testid="playout-continue"]').count()) > 0 && presses <= instantBeats) {
     const prompt = page.locator('[data-testid="playout-continue"]')
     const promised = (await prompt.getAttribute('data-next-beat')) ?? ''
+    const promisedId = (await prompt.getAttribute('data-beat-id')) ?? ''
     presses += 1
     assert(promised !== '', `Continue prompt ${presses} names the beat it will play`)
     assert((await prompt.textContent())?.includes(promised), `prompt ${presses} shows that beat's name (${promised})`)
@@ -925,17 +937,19 @@ try {
     // back to a bare title. The fallback exists so a card can never throw, and
     // this is what stops it becoming the silent normal case — a degraded card
     // still looks like a card, so nothing else would notice.
-    assert(
-      ((await prompt.getAttribute('data-beat-id')) ?? '') !== '',
-      `card ${presses} found the authored Beat behind "${promised}", not just its title`,
-    )
+    assert(promisedId !== '', `card ${presses} found the authored Beat behind "${promised}", not just its title`)
+    const cardText = await prompt.innerText()
+    if (numbered === '' && cardText.includes('Damage')) {
+      numbered = cardText
+    }
     await prompt.click()
-    const playing = ((await page.locator('[data-testid="beat-chip"][data-playing="true"]').first().textContent()) ?? '').trim()
-    assert(playing === promised, `Continue ${presses} plays the beat it promised (promised ${promised}, played ${playing})`)
+    const playing = (await page.locator('[data-testid="next-phase"]').getAttribute('data-playing-beat')) ?? ''
+    assert(playing === promisedId, `Continue ${presses} plays the beat it promised (promised ${promisedId}, played ${playing})`)
     // Let the moment settle so a next prompt — if there is one — can arm.
     await page.waitForTimeout(900)
   }
   assert(presses === instantBeats, `every beat of the Instant Row took its own press, the first included (${presses} of ${instantBeats})`)
+  assert(numbered !== '', `some Beat Card in the Row printed its numbers (walked ${presses} cards)`)
   assert((await page.locator('[data-testid="playout-continue"]').count()) === 0, 'the last beat needs no prompt and the playout settles')
   // The resolved track waits in the Boss's window; Next moves on.
   assert((await phase()) === 'instant', 'the settled track waits in Boss Instant for Next')

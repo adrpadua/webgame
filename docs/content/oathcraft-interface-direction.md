@@ -229,18 +229,19 @@ That distinction carries more weight than it would have as two persistent panels
 
 ## Layout: The Board Is The Interface
 
-Measured in the running Workbench at 390×844, not estimated: **the board canvas gets 318 of 844 points — 38%.** Four chrome bands stack top to bottom and the board takes what is left.
+Measured in the running Workbench at 390×844, not estimated: **the board canvas gets 411 of 844 points — 49%.** Three chrome bands stack top to bottom and the board takes what is left.
 
 | Region | Points | Share |
 | --- | --- | --- |
-| Boss program strip | 102 | 12% |
-| Phase strip | 61 | 7% |
-| Board container | 463 | 55% |
-| — hex grid actually drawn | 318 | 38% |
+| Phase band (Round track + Escalation gauge) | 101 | 12% |
+| Board container | 525 | 62% |
+| — hex grid actually drawn | 411 | 49% |
 | Action Bar | 97 | 11% |
 | Hand | 121 | 14% |
 
-**145 points sit empty inside the board's own container**, because the hex grid is centred in a box taller than it needs. That is a fit defect rather than a layout decision, and reclaiming it is the largest single gain available at no cost to information.
+Re-measured after the Boss program strip was removed (D-058). It cost 102 points and the phase band it merged into now costs 101, because the Escalation gauge it carried came with it and took its own 44-point line under the Round track: **one band above the board where there were two, and 61 points back for the board.**
+
+**114 points sit empty inside the board's own container**, because the hex grid is centred in a box taller than it needs. The canvas is width-bound — it scales to fit 380×400 in whatever the HUD leaves, and at 390 wide that is settled by the width — so height handed back by a band that leaves is headroom, not larger hexes. That is a fit defect rather than a layout decision, and reclaiming it is the largest single gain still available at no cost to information.
 
 The target is **roughly 80% board**, which is what comparable hex tactics on the same screen size give it.
 

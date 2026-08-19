@@ -19,7 +19,6 @@ import { MovePaymentCue } from './MovePaymentCue'
 import { NotificationLayer, NotificationZone, Notify } from './NotificationLayer'
 import { PhaseBanner } from './PhaseBanner'
 import { PhaseControl } from './PhaseControl'
-import { ProgramStrip } from './ProgramStrip'
 import { ReplaceConfirmModal } from './ReplaceConfirmModal'
 import { FOCUS_RING_CLASS, FRAME_HEIGHT_CLASS } from './theme'
 
@@ -128,7 +127,9 @@ export default function App() {
         className={`relative flex ${FRAME_HEIGHT_CLASS} w-full max-w-full shrink-0 touch-manipulation flex-col overflow-clip bg-steel-950 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-2xl select-none sm:w-[420px] sm:rounded-3xl sm:border sm:border-steel-700`}
         data-testid="play-surface"
       >
-        <ProgramStrip />
+        {/* One chrome band above the board, not two: the Boss program strip
+            that used to sit here is gone, and the Escalation gauge it carried
+            moved into the phase band under the Round track. */}
         <PhaseControl />
         {/* overflow-hidden: the fixed-size Phaser canvas centers here and must
             clip, never spill over (or steal pointer events from) the HUD. */}

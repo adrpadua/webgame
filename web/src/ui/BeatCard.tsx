@@ -19,10 +19,13 @@ import { FOCUS_RING_CLASS } from "./theme";
 // "Raking Claw · Resolve" reads as a promise to show the claw, and naming the
 // beat already on the board made every press look like it skipped one. Every
 // beat of a Boss Row gets its own press, the opening one included, so the card
-// is the first thing the Row says. What has already resolved stays readable
-// beside it: the Boss Beat chips in the strip keep their light until the next
-// moment fires. The rules already resolved the whole track — this only paces
-// the telling.
+// is the first thing the Row says. The rules already resolved the whole track —
+// this only paces the telling.
+//
+// Since the program strip was removed (D-058) this card is the only place a
+// Boss Beat is named and priced, which raises what it owes: every parameter
+// resolution depends on has to be printed here, because there is no longer a
+// chip to hold for the rest.
 //
 // Making it a card is also what a board-game port needs (D-055): if a Beat is
 // going to be printed, everything resolution depends on has to be *on* it. That

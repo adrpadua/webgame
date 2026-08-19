@@ -33,10 +33,12 @@ Escalation is the encounter's only clock (D-023, [ADR 0027](../adr/0027-make-esc
 
 ## Boss Timeline
 
-The boss has a visible two-horizon timeline, and every beat in either row states every parameter ([ADR 0031](../adr/0031-remove-the-forecast-row-and-let-the-schedule-be-learned.md)). Row names state *when*, never how much is known. A third row, `Forecast`, previewed next round's program at family level until measurement showed reading it changed no outcome; the schedule is learned by playing now.
+The boss has a two-horizon timeline, and every beat in either row states every parameter ([ADR 0031](../adr/0031-remove-the-forecast-row-and-let-the-schedule-be-learned.md)). Row names state *when*, never how much is known. A third row, `Forecast`, previewed next round's program at family level until measurement showed reading it changed no outcome; the schedule is learned by playing now.
 
 - `Instant Row`: the action already resolving this round, with every parameter
 - `Incoming Row`: the action telegraphed for later this round, with every parameter, then promoted into the next round's instant
+
+The rows are a rules structure, not a HUD band. The persistent strip that listed both rows by name is gone (D-058): a beat is read as a `Beat Card` when it resolves, carrying its damage, target, reach, rules text and answers, and the `Incoming Row`'s threat is on the board ahead of the `Quick Window` as the telegraph it always was — the breath cone and the marked spawn hexes, painted before the row resolves.
 
 The current prototype boss is `Embermaw`, using a short scripted loop of authored boss actions.
 
@@ -85,7 +87,7 @@ The playable surface is the web Encounter Workbench (ADR 0019): the portrait pla
 - Movement spends a hand card for `1 Stamina` toward an adjacent legal hex during the Quick Window.
 - `Next` drives phase progression. Board Feedback derives every motion from Resolution Facts, so the board never shows a blow the Encounter did not resolve.
 - A first-time player's Round 1 runs the Scripted First Turn, gating input to one control at a time; it carries a `Skip` and retires once finished or skipped.
-- The Escalation gauge sits in the Boss Program strip's header and stays visible when the strip collapses: five pips, filled for each band crossed, with the top band ringed because it ends the fight. Its Detail Popup names every band, quotes the Encounter's enrage line for the last, and says when automatic ticks begin.
+- The Escalation gauge sits in the phase band, on its own line under the Round track and the full width of it (D-058; it rode the Boss Program strip's header until that strip was removed): five bands, filled for each one crossed, with the top band washed in because it ends the fight. Its Detail Popup names every band, quotes the Encounter's enrage line for the last, and says when automatic ticks begin.
 
 ## Resources
 
