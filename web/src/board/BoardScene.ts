@@ -9,7 +9,7 @@ import { easeOutCubic, hexNoiseFor } from './math'
 import { SPAWN_MS, arrivalScale, breakRing, groundHeat, spawnShards } from './spawn'
 import { BOSS_DEFEAT_MS, buckleOffset, groundFlare, heatLoss, slumpScale, ventsOpening } from './defeat'
 import { boardPalette, composite, shade, HOT_SHADE, TELEGRAPH_ALPHA, toneColors } from './palette'
-import { idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
+import { bossSheetKey, idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
 
 // The board is three layers: tiles and their tints, then the pieces, then the
 // text that has to be read over both. Phaser falls back to creation order
@@ -962,7 +962,12 @@ export class BoardScene extends Phaser.Scene {
   // not a placeholder: a token reads its facing and its state at a glance,
   // and only the pieces with a sheet have earned the right to be a body.
   private sheetFor(entity: { kind: string }): SheetSpec | null {
-    const sheet = SHEETS[entity.kind]
+    // Every kind but the Boss maps straight to its sheet. A Boss wears the
+    // form its phase is in, which is read from the snapshot rather than
+    // remembered, so time travel across the Phase Trigger restores the first
+    // form on the way back as well as the second on the way out.
+    const kind = entity.kind === 'boss' ? bossSheetKey(this.snapshot?.state.bossPhase ?? 1) : entity.kind
+    const sheet = SHEETS[kind]
     return sheet && this.textures.exists(sheet.key) ? sheet : null
   }
 
@@ -982,6 +987,13 @@ export class BoardScene extends Phaser.Scene {
       // its height never shifts where that point is.
       sprite.setOrigin(0.5, 1)
       this.sprites.set(entity.id, sprite)
+    }
+    // A sprite is created once and kept, so a Boss that changes phase would
+    // otherwise keep the texture it was born with and the Phase Break would
+    // show nothing at all. setTexture resets the frame, which the setFrame
+    // below restores in the same pass.
+    if (sprite.texture.key !== sheet.key) {
+      sprite.setTexture(sheet.key)
     }
     const footY = y + sheet.footOffset
     sprite.setPosition(x, footY)

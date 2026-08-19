@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FACING_ROWS, IDLE_FRAMES, idleStep, IDLE_MS, SHEETS, spriteFrame } from './sheets'
+import { bossSheetKey, FACING_ROWS, IDLE_FRAMES, idleStep, IDLE_MS, SHEETS, spriteFrame } from './sheets'
 
 describe('sprite sheets', () => {
   // The board and the Sprite Inspector both index frames through this, which
@@ -39,5 +39,43 @@ describe('sprite sheets', () => {
       expect(sheet.targetHeight, kind).toBeGreaterThan(0)
       expect(sheet.url, kind).toBeTruthy()
     }
+  })
+})
+
+describe('boss phase sheets', () => {
+  it('dresses the Boss in the form its phase is in', () => {
+    expect(bossSheetKey(1)).toBe('boss')
+    expect(bossSheetKey(2)).toBe('bossPhaseTwo')
+    expect(SHEETS[bossSheetKey(1)]).toBeDefined()
+    expect(SHEETS[bossSheetKey(2)]).toBeDefined()
+  })
+
+  // Stepping back across the Phase Trigger has to undress it again. The scene
+  // re-reads this every snapshot rather than swapping once at the Phase
+  // Reveal, which is what makes time travel work in both directions.
+  it('answers by phase alone, not by how the phase was reached', () => {
+    expect(bossSheetKey(2)).not.toBe(bossSheetKey(1))
+  })
+
+  it('holds the last form for a phase nobody drew', () => {
+    expect(bossSheetKey(3)).toBe('bossPhaseTwo')
+    expect(bossSheetKey(99)).toBe('bossPhaseTwo')
+  })
+
+  it('survives a phase that is out of range or not a number', () => {
+    expect(bossSheetKey(0)).toBe('boss')
+    expect(bossSheetKey(-2)).toBe('boss')
+    expect(bossSheetKey(Number.NaN)).toBe('boss')
+  })
+
+  // Both forms are the same creature taking the same ground. A phase changes
+  // what the Boss does, not how much hex it occupies.
+  it('renders both Boss forms at the same size', () => {
+    const one = SHEETS[bossSheetKey(1)]
+    const two = SHEETS[bossSheetKey(2)]
+    expect(two.targetHeight).toBe(one.targetHeight)
+    expect(two.footOffset).toBe(one.footOffset)
+    const aspect = (sheet: typeof one) => sheet.frameWidth / sheet.frameHeight
+    expect(Math.abs(aspect(two) - aspect(one))).toBeLessThan(0.05)
   })
 })
