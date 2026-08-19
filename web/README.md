@@ -15,6 +15,7 @@ npm test         # Encounter Engine Vitest suite
 npm run lint     # includes the engine-purity boundary rule
 npm run build
 npm run hooks:install    # once per clone: installs the pre-push gate below
+node scripts/check-browser.mjs   # is the browser this repo pins installed?
 npm run verify:local     # build + smoke. The browser half of the gate: the
                          # scripted first turn, ordinary round play, Scenario
                          # replay, time travel, headless record verification,
@@ -57,13 +58,26 @@ Output lands in `web/film/<shot>/` and is ignored by git.
 
 The Workbench is a fully static build, so it deploys to GitHub Pages via
 `.github/workflows/deploy-workbench.yml` after every merge to `main`. Pull
-requests run the test, mutation-audit, lint, and build gates in CI; the
-browser smoke runs locally instead, on push, via the pre-push hook
-(`npm run hooks:install`). It was in CI until 2026-08-19 and could not be
-relied on there — `playwright install --with-deps` shells out to apt-get on a
-hosted runner, and a slow Ubuntu mirror failed the check for reasons no author
-could act on. The post-merge deployment only installs dependencies, creates
-the Pages build, and publishes it.
+requests run the test, mutation-audit, lint, and build gates on a hosted
+runner, and the browser smoke on a **self-hosted** one labelled `playwright`
+that has Chromium installed on it. Set that machine up once with
+`bash web/scripts/setup-local-runner.sh` — it registers the runner, bakes the
+browser in, installs it as a service, and sets the `SELF_HOSTED_SMOKE`
+repository variable that switches the job on. Until that variable is set the
+smoke job is skipped, because a job whose runner labels match nothing sits
+queued for 24 hours instead of failing fast.
+
+The smoke is not on a hosted runner because `playwright install --with-deps`
+shells out to apt-get there, and on 2026-08-18 a slow Ubuntu mirror failed the
+check for reasons no author could act on. It also still runs locally on push
+through the pre-push hook, which is deliberate belt and braces: a self-hosted
+runner is a machine that can be switched off, and the hook means a pull
+request was verified once before it existed.
+
+A pull request **from a fork never reaches the self-hosted runner** — the
+smoke job is guarded on the head repository, because that job would otherwise
+execute a stranger's code on someone's own machine. The post-merge deployment
+only installs dependencies, creates the Pages build, and publishes it.
 
 Pages is enabled for this repository (Settings → Pages → Source: "GitHub
 Actions"), so every deploy lands at `https://adrpadua.github.io/webgame/` —
