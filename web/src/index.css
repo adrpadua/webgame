@@ -282,9 +282,9 @@ body {
   animation: wb-card-offer 380ms ease-out both;
 }
 
-/* --- The Primed seat -----------------------------------------------------
+/* --- The Full seat -----------------------------------------------------
    Fires once when a Slot's last tumbler drops and the lock head's ward ring
-   closes, then stops. No idle pulse: a Primed Slot can persist for rounds,
+   closes, then stops. No idle pulse: a Full Slot can persist for rounds,
    and anything that breathes that long becomes furniture the eye edits out
    — the failure that got Presence deleted. Motion that carries state fires
    once; only ambient motion may loop. */

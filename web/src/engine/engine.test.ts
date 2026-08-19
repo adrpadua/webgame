@@ -2811,10 +2811,10 @@ describe('Slot rules', () => {
     for (const instanceId of ['h2', 'h3', 'h4']) {
       state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: instanceId }).state
     }
-    // Primed: full stack, not yet activated. Ending the window keeps it.
-    const primedEnd = advancePhase(catalog, state)
-    expect(primedEnd.facts.some((fact) => fact.kind === 'full_charge_cleanup')).toBe(false)
-    expect(primedEnd.state.heroes[state.primaryHeroId].actionBar[0].topCard?.cardId).toBe('steady_strike')
+    // Full: full stack, not yet activated. Ending the window keeps it.
+    const fullEnd = advancePhase(catalog, state)
+    expect(fullEnd.facts.some((fact) => fact.kind === 'full_charge_cleanup')).toBe(false)
+    expect(fullEnd.state.heroes[state.primaryHeroId].actionBar[0].topCard?.cardId).toBe('steady_strike')
 
     // Firing the full Slot, then ending the window, discards the bundle.
     state = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 }).state
