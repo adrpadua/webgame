@@ -19,6 +19,8 @@ Recommended layout:
 Current starter docs:
 
 - [design-team-handoff.md](design-team-handoff.md)
+- [authoring-a-new-hero.md](authoring-a-new-hero.md)
+- [templates/README.md](templates/README.md)
 - [world/README.md](world/README.md)
 - [world/world-history.md](world/world-history.md)
 - [world/gazetteer.md](world/gazetteer.md)

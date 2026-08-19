@@ -14,6 +14,7 @@
     "mutate": "node scripts/mutate.mjs",
     "lint": "eslint .",
     "headless": "vite-node scripts/runHeadless.ts --",
+    "scaffold": "node scripts/scaffold.mjs",
     "film": "node scripts/film.mjs",
     "evaluate": "vite-node scripts/evaluate.ts --",
     "log:ids": "vite-node scripts/decisionIds.ts --"

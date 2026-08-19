@@ -165,7 +165,7 @@ export const cardSchema = z.object({
   // never drawn, never replaceable, never discarded. Its Slot charges only
   // through the `standing` Grants below — hand cards physically cannot reach
   // it — and firing spends the whole stack while the card stays. Only a card
-  // an Encounter names as its `signature_card` may set this.
+  // a Hero names as their `signature_card` may set this (ADR 0034).
   fixed: z.boolean().default(false),
   standing: z.array(signatureGrantSchema).default([]),
   full_charge: fullChargeSchema.default({ places_counter: '', counter_amount: 1 }),
@@ -201,6 +201,30 @@ export const cardSchema = z.object({
   damage_keywords: z.array(z.string()).default([]),
   // What this card reads before and while it resolves (D-047).
   reads: z.array(cardReaderSchema).default([]),
+})
+
+// A Hero as first-class authored content: identity, health pool, and the
+// Signature printed on them (ADR 0034). What a Hero *is* was previously three
+// inline strings on every Encounter that fielded them, which meant a Hero
+// could not exist before an Encounter did and could not be shared by two —
+// retuning Elian's health in the prototype silently left the teaching slice's
+// copy behind. What stays on the Encounter is everything the *fight* decides:
+// where the Hero starts, what deck they bring, how many Slots the bar holds,
+// and whether the Signature is fielded at all (the teaching slice keeps its
+// two-Slot bar until its scripted first turn learns the third).
+//
+// A Hero's Role is deliberately absent: every card in their deck carries the
+// Role Keyword, so the deck already states it and `heroRole` reads it back
+// out. A copy here would be the one nothing checks.
+export const heroSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  rules_text: z.string().default(''),
+  max_health: z.number().int().min(1),
+  // The Signature printed on this Hero (D-064, ADR 0032): a `fixed: true`
+  // card, installed as an always-present extra Slot wherever an Encounter
+  // fields this Hero. Empty means the Hero has no Signature authored yet.
+  signature_card: z.string().default(''),
 })
 
 export const hazardSchema = z.object({
@@ -355,13 +379,15 @@ export const encounterSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   rules_text: z.string().default(''),
-  primary_hero_id: z.string().min(1),
-  primary_hero_title: z.string().min(1),
-  // The Hero's Signature (D-064): a `fixed: true` card installed as an
-  // always-present third Slot at setup. Empty means the Hero fields no
-  // Signature in this Encounter — the teaching slice keeps its two-Slot bar
-  // until its script learns the third.
-  signature_card: z.string().default(''),
+  // The Hero this Encounter fields, by id from data/heroes/ (ADR 0034).
+  // Identity, health, and the Signature ride the Hero definition; the
+  // Encounter keeps what the fight decides — start hex, deck, Slot count.
+  hero: z.string().min(1),
+  // Whether the Hero's Signature Slot is installed at setup (D-064). The
+  // teaching slice sets this false and keeps its two-Slot bar until its
+  // scripted first turn learns the third; everywhere else the printed card
+  // is part of what fielding the Hero means, so the default is true.
+  fields_signature: z.boolean().default(true),
   boss_id: z.string().min(1),
   boss_title: z.string().min(1),
   round_limit: z.number().int().min(1),
@@ -369,7 +395,6 @@ export const encounterSchema = z.object({
   board_radius: z.number().int().min(1).max(8),
   player_start: axialSchema,
   boss_start: axialSchema,
-  player_health: z.number().int().min(1),
   boss_health: z.number().int().min(1),
   slot_count: z.number().int().min(1).max(8),
   hand_refill_target: z.number().int().min(1).max(12),
@@ -432,6 +457,7 @@ export type Keyword = z.infer<typeof keywordSchema>
 export type ChargeModifier = z.infer<typeof chargeModifierSchema>
 export type Card = z.infer<typeof cardSchema>
 export type SignatureGrant = z.infer<typeof signatureGrantSchema>
+export type Hero = z.infer<typeof heroSchema>
 export type Hazard = z.infer<typeof hazardSchema>
 export type Minion = z.infer<typeof minionSchema>
 export type CounterDefinition = z.infer<typeof counterSchema>

@@ -5,6 +5,7 @@ import {
   encounterSchema,
   evaluationDeckSchema,
   hazardSchema,
+  heroSchema,
   keywordSchema,
   minionSchema,
   scenarioSchema,
@@ -16,6 +17,7 @@ import {
   type EncounterDefinition,
   type EvaluationDeck,
   type Hazard,
+  type Hero,
   type Keyword,
   type Minion,
   type Scenario,
@@ -41,6 +43,7 @@ const RANGED_BEAT_KINDS = new Set<BossBeat['kind']>(['forward_cone', 'demand_pro
 
 export interface ContentCatalog {
   cards: Record<string, Card>
+  heroes: Record<string, Hero>
   keywords: Record<string, Keyword>
   chargeModifiers: Record<string, ChargeModifier>
   hazards: Record<string, Hazard>
@@ -71,6 +74,7 @@ function isSourced(entry: unknown): entry is SourcedPayload {
 
 export interface RawContent {
   cards: unknown[]
+  heroes?: unknown[]
   keywords: unknown[]
   chargeModifiers: unknown[]
   hazards: unknown[]
@@ -192,9 +196,12 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
   // cross-reference failure most needs to name the file.
   const parsedEncounters = parseAll(raw.encounters, encounterSchema, 'encounter')
   const encounterAt = sourceAwareLabel(parsedEncounters, 'Encounter')
+  const parsedHeroes = parseAll(raw.heroes ?? [], heroSchema, 'hero')
+  const heroAt = sourceAwareLabel(parsedHeroes, 'Hero')
 
   const catalog: ContentCatalog = {
     cards: indexById(parsedCards, 'card'),
+    heroes: indexById(parsedHeroes, 'hero'),
     keywords: indexById(parseAll(raw.keywords, keywordSchema, 'keyword'), 'keyword'),
     chargeModifiers: indexById(parseAll(raw.chargeModifiers, chargeModifierSchema, 'charge modifier'), 'charge modifier'),
     hazards: indexById(parseAll(raw.hazards, hazardSchema, 'hazard'), 'hazard'),
@@ -482,31 +489,36 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       throw new Error(`The rules name Keyword ${required.id} as ${required.kind}, but it is authored as ${keyword.kind}`)
     }
   }
-  // Only a Hero-referenced card may be fixed (D-064): a Signature is printed
-  // on a Hero, and the Encounter's `signature_card` is where a Hero names it
-  // while Heroes live inline on Encounters. Checked in both directions —
-  // an Encounter naming a non-fixed card, and a fixed card no Encounter
-  // names, are both authoring errors.
+  // Only a Hero-named card may be fixed (D-064): a Signature is printed on a
+  // Hero, and the Hero definition in data/heroes/ is where it is printed
+  // (ADR 0034). Checked in both directions — a Hero naming a non-fixed card,
+  // and a fixed card no Hero names, are both authoring errors.
   const referencedSignatures = new Set<string>()
-  for (const encounter of Object.values(catalog.encounters)) {
-    if (encounter.signature_card === '') {
+  for (const hero of Object.values(catalog.heroes)) {
+    if (hero.signature_card === '') {
       continue
     }
-    const signature = catalog.cards[encounter.signature_card]
+    const signature = catalog.cards[hero.signature_card]
     if (!signature) {
-      throw new Error(`${encounterAt(encounter.id)} references unknown signature card ${encounter.signature_card}`)
+      throw new Error(`${heroAt(hero.id)} references unknown signature card ${hero.signature_card}`)
     }
     if (!signature.fixed) {
-      throw new Error(`${encounterAt(encounter.id)} names ${signature.id} as its signature card, but that card is not fixed`)
+      throw new Error(`${heroAt(hero.id)} names ${signature.id} as their signature card, but that card is not fixed`)
     }
     referencedSignatures.add(signature.id)
   }
   for (const card of Object.values(catalog.cards)) {
     if (card.fixed && !referencedSignatures.has(card.id)) {
-      throw new Error(`${cardAt(card.id)} is fixed but no Encounter names it as a signature card, so no Hero carries it`)
+      throw new Error(`${cardAt(card.id)} is fixed but no Hero names it as their signature card, so nothing carries it`)
     }
   }
   for (const encounter of Object.values(catalog.encounters)) {
+    // The Hero an Encounter fields has to exist before the fight can start,
+    // and the error names the Encounter file because that is the one being
+    // edited when the reference breaks.
+    if (!catalog.heroes[encounter.hero]) {
+      throw new Error(`${encounterAt(encounter.id)} references unknown hero ${encounter.hero}`)
+    }
     for (const entry of encounter.player_deck) {
       if (!catalog.cards[entry.card]) {
         throw new Error(`${encounterAt(encounter.id)} deck references unknown card ${entry.card}`)
@@ -663,11 +675,17 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
   }
 
   reachable.set(`encounter:${encounterId}`, encounter)
+  // The Hero definition is reachable content (ADR 0034): their health pool
+  // changes the Encounter's rules, so retuning a Hero starts a new evidence
+  // cohort for every Encounter that fields them.
+  const hero = requireDefinition('hero', encounter.hero, catalog.heroes)
   encounter.player_deck.forEach((entry) => addCard(entry.card))
   // The Signature is reachable content like any deck card (D-064): it changes
-  // the Encounter's rules, so retuning it starts a new evidence cohort.
-  if (encounter.signature_card !== '') {
-    addCard(encounter.signature_card)
+  // the Encounter's rules, so retuning it starts a new evidence cohort. Only
+  // when fielded — the teaching slice's fight is the same fight whether or
+  // not the printed card exists.
+  if (encounter.fields_signature && hero.signature_card !== '') {
+    addCard(hero.signature_card)
   }
   for (const programId of [...encounter.boss_programs, ...encounter.phase_two_programs]) {
     addProgram(programId)
