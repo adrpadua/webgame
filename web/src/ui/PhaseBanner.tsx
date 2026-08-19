@@ -2,16 +2,19 @@ import { useEffect, useRef, useState } from 'react'
 import type { Phase } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { Notify } from './NotificationLayer'
+import { phaseMark } from './phaseTrack'
 
 // A short, non-blocking banner that names each phase as it begins: the word
 // and its colour, nothing else. What the phase means lives behind a hold on
-// the Round track.
-const PHASE_COPY: Record<Phase, { title: string; tone: string }> = {
-  loadout: { title: 'Loadout', tone: 'wb-face-steel wb-acc-none text-ceramic-200' },
-  instant: { title: 'Boss Instant', tone: 'wb-face-steel wb-acc-ember text-ember-100' },
-  quick: { title: 'Quick Window', tone: 'wb-face-steel wb-acc-glass text-glass-100' },
-  incoming: { title: 'Boss Incoming', tone: 'wb-face-steel wb-acc-ember text-ember-100' },
-  slow: { title: 'Slow Window', tone: 'wb-face-steel wb-acc-gold text-gold-100' },
+// the Round track. The words are the track table's full titles, so the
+// banner and the row's lit chip can never disagree about a window's name;
+// only the banner's plate tones live here.
+const PHASE_TONE: Record<Phase, string> = {
+  loadout: 'wb-face-steel wb-acc-none text-ceramic-200',
+  instant: 'wb-face-steel wb-acc-ember text-ember-100',
+  quick: 'wb-face-steel wb-acc-glass text-glass-100',
+  incoming: 'wb-face-steel wb-acc-ember text-ember-100',
+  slow: 'wb-face-steel wb-acc-gold text-gold-100',
 }
 
 export function PhaseBanner() {
@@ -101,12 +104,11 @@ export function PhaseBanner() {
   if (shownPhase === null || !state.active) {
     return null
   }
-  const copy = PHASE_COPY[shownPhase]
   return (
     <Notify id="phase-banner">
       <div className="pointer-events-none flex justify-center" data-testid="phase-banner">
-        <div key={shownPhase} className={`wb-banner wb-plate wb-plate-lg py-2.5 text-center ${copy.tone}`}>
-          <div className="text-lg font-black tracking-widest uppercase">{copy.title}</div>
+        <div key={shownPhase} className={`wb-banner wb-plate wb-plate-lg py-2.5 text-center ${PHASE_TONE[shownPhase]}`}>
+          <div className="text-lg font-black tracking-widest uppercase">{phaseMark(shownPhase).title}</div>
         </div>
       </div>
     </Notify>

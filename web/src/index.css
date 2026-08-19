@@ -210,6 +210,7 @@ body {
 @utility wb-face-gold    { --wb-face: var(--color-gold-500); --wb-edge: var(--color-gold-400); }
 @utility wb-face-dim     { --wb-face: var(--color-steel-950); --wb-edge: var(--color-steel-800); }
 @utility wb-face-coral   { --wb-face: var(--color-coral-400); --wb-edge: var(--color-coral-300); }
+@utility wb-face-glass   { --wb-face: var(--color-glass-400); --wb-edge: var(--color-glass-300); }
 @utility wb-acc-gold  { --wb-acc: var(--color-gold-400); }
 @utility wb-acc-glass { --wb-acc: var(--color-glass-400); }
 @utility wb-acc-ember { --wb-acc: var(--color-ember-500); }
