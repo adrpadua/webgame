@@ -27,6 +27,7 @@ import {
   combatantRef,
   slotRef,
   clearCounters,
+  hexCounterRef,
   type CounterRef,
 } from './counters'
 import { TANK_HIT } from './keywords'
@@ -354,6 +355,16 @@ function resolveOne(
         fail(fact, 'The hazard could not be applied to that hex.')
         break
       }
+      // Ground that burns away for good takes its Counters with it (D-050).
+      // A permanent Hazard is D-031's arena closing, and a hex nobody can
+      // stand on should not keep paying out what was banked there — a
+      // structural Threshold has to cost the party, and a marked hex that
+      // survived its own burning would make the collapse a windfall for
+      // whoever had marked it. Only permanent Hazards do this: a temporary
+      // one is weather the ground outlives.
+      if (hazard.permanent === true && clearCounters(draft, hexCounterRef(action.coords))) {
+        fact.detail.clearedHexCounters = true
+      }
       succeed(fact)
       break
     }
@@ -408,6 +419,22 @@ function resolveOne(
       const hero = draft.heroes[action.sourceId]
       const card = takeFromHand(hero, action.cardInstanceId)
       hero.discard.push(card)
+      succeed(fact)
+      break
+    }
+    case 'place_counter': {
+      const definition = catalog.counters[action.counterId]
+      if (!definition) {
+        fail(fact, `The Counter ${action.counterId} is not authored.`)
+        break
+      }
+      const placing = createFromDefinition(definition, { sourceId: action.sourceId, round: draft.round, phase: draft.phase })
+      const placed = placeCounter(draft, action.hostRef as CounterRef, placing, action.amount)
+      fact.detail.placedCounter = definition.id
+      fact.detail.placedCounterAmount = placed
+      fact.resolutionFact = {
+        counter_event: counterEvent({ ...placing, count: placed }, placed > 0 ? 'placed' : 'refused', placed > 0 ? action.reasonText : 'at_max'),
+      }
       succeed(fact)
       break
     }
@@ -910,6 +937,8 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: `Damage ${action.amount} to ${action.targetId} (${action.reasonText})`, detail }
     case 'discard_for_stamina':
       return { title: 'Discard for Stamina', detail }
+    case 'place_counter':
+      return { title: `${action.reasonText}: ${action.amount} ${action.counterId}`, detail }
     case 'expire_counter':
       return { title: `Counter expires: ${action.counterId}`, detail }
     case 'advance_phase':

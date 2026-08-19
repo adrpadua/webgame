@@ -48,18 +48,32 @@ npm run build && node scripts/smoke.mjs
 
 The smoke suite asserts the pointer-target and portrait contracts directly in a real browser at the canonical `390x844` canvas: the whole board on screen with nothing cropped, every enabled control at `44x44` or larger, no sideways scroll, nothing floating over a hex a player may step to, and the full HUD fitting without scrolling. It also replays the session's Encounter Record headlessly and compares fingerprints.
 
-From 2026-08-16 to 2026-08-19 this ran in CI on every pull request. It runs
-locally now, on push, through the pre-push hook `npm run hooks:install`
-installs — the contract is still enforced rather than merely documented, and
-still before a pull request exists, but it is enforced where a browser
-actually is. `playwright install --with-deps` shells out to apt-get on a
-hosted runner, and a slow Ubuntu mirror failed the check for reasons no author
-could act on; a gate that goes red for reasons you cannot fix is one everybody
-learns to ignore. What stayed in CI
-(`.github/workflows/verify-workbench.yml`) is everything that needs no
-browser: the Vitest suite, the mutation audit, lint, and the build. Neither
-workflow runs again after merge; `main` goes directly through the Pages build
-and deployment workflow.
+This runs on every pull request, in two places, and the contract is enforced
+rather than merely documented.
+
+In CI it runs on a **self-hosted runner** labelled `playwright` that carries
+Chromium on the host, set up by `web/scripts/setup-local-runner.sh`. That job
+is gated on a `SELF_HOSTED_SMOKE` repository variable the same script sets, so
+the enforcement is only as live as that machine — if the variable is unset the
+job is skipped and the pre-push hook below is the only place this is checked. It was on
+a hosted runner from 2026-08-16 to 2026-08-19 and could not be relied on
+there: `playwright install --with-deps` shells out to apt-get, and a slow
+Ubuntu mirror failed the check for reasons no author could act on — a gate
+that goes red for reasons you cannot fix is one everybody learns to ignore.
+Everything that needs no browser stays on a hosted runner: the Vitest suite,
+the mutation audit, lint, and the build.
+
+It also runs locally on push, through the pre-push hook `npm run
+hooks:install` installs. Two places rather than one because a self-hosted
+runner is a machine that can be off, and because a pull request opened from a
+fork is deliberately never given the self-hosted runner — that job would
+execute a stranger's code on someone's own machine, so it is guarded on the
+head repository and skipped for forks. For a fork, the local hook is the only
+place this contract is checked, which is a limit worth knowing rather than
+one to paper over.
+
+Neither workflow runs again after merge; `main` goes directly through the
+Pages build and deployment workflow.
 
 ## Historical: The Godot Probe Suite
 

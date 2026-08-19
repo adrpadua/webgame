@@ -1,0 +1,14 @@
+{
+  "id": "quench",
+  "title": "Quench",
+  "rules_text": "Deal 2 Boss damage, plus 1 for each Heat Embermaw carries. Then draw off 2 of that Heat.",
+  "speed": "quick",
+  "target_type": "piece",
+  "range_tiles": 0,
+  "boss_damage": 2,
+  "tags": ["attack", "reaction", "tank"],
+  "reads": [
+    { "verb": "scale", "counter": "heat", "on": "target", "effect": "boss_damage", "per": 1, "timing": "cost" },
+    { "verb": "spend", "counter": "heat", "on": "target", "amount": 2, "timing": "resolution" }
+  ]
+}

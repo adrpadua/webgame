@@ -30,6 +30,27 @@ export function slotWantedKeywords(catalog: WorkbenchCatalog, slot: SlotState): 
   return wanted
 }
 
+// One definition of "this Slot is waiting for the other window": a player
+// window is open, the Slot holds an unfired Top Card, and that card fires in
+// the window this one is not. The Action Bar reads this to turn the Slot
+// visibly off — a quick Slot in the Slow Window cannot fire however charged
+// it is, and a plate that stays lit through a window it cannot act in is
+// asserting a move the rules deny.
+//
+// Deliberately false outside Quick and Slow: in Loadout and the Boss's rows
+// no Slot fires, so "out of window" would dim the whole bar and say nothing.
+// And deliberately false once the Slot has fired — Fired is its own state,
+// and a spent Slot must not look merely parked.
+export function slotOutOfWindow(catalog: WorkbenchCatalog, state: EncounterState, slot: SlotState): boolean {
+  if (!state.active || (state.phase !== 'quick' && state.phase !== 'slow')) {
+    return false
+  }
+  if (slot.topCard === null || slot.activatedWindow !== null) {
+    return false
+  }
+  return cardWindowSpeed(catalog.cards[slot.topCard.cardId]) !== state.phase
+}
+
 // One definition of "this Slot can take another Charge right now", mirroring
 // the engine's charge_slot rule: it holds a Top Card, has not activated in
 // this window, and its Charge Stack is not already at the Top Card's Charge

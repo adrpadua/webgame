@@ -114,6 +114,7 @@ describe('content catalog', () => {
     ])
     expect(catalog.programs.embermaw_embers.instant_beats.map((beat) => beat.kind)).toEqual([
       'turn_toward_player',
+      'place_counter',
       'hazard_last_impact',
     ])
     expect(catalog.encounters.embermaw_prototype.boss_programs).toEqual(['embermaw_hunt', 'embermaw_embers', 'embermaw_brood'])
@@ -434,6 +435,25 @@ describe('content catalog', () => {
         payload: { id: 'idle_ember', title: 'Idle Ember', speed: 'quick', damage_keywords: ['tank_hit'] },
       }
       expect(() => buildCatalog({ ...empty, cards: [idle] })).toThrow('declares damage_keywords but deals no damage')
+    })
+
+    it('rejects a Beat that places nothing, or names a Counter it cannot host', () => {
+      const heat = { source: 'data/counters/heat.json', payload: { id: 'heat', title: 'Heat', readers: [{ when: 'host_deals_damage', effect: 'target_damage', per: 1 }] } }
+      const ground = { source: 'data/counters/ground.json', payload: { id: 'ground', title: 'Ground', host: 'hex' } }
+      const reader = { source: 'data/cards/reads.json', payload: { id: 'reads', title: 'Reads', speed: 'quick', target_type: 'hex', range_tiles: 1, reads: [{ verb: 'scale', counter: 'ground', on: 'target', per: 1, effect: 'boss_damage' }] } }
+      const program = (beat: Record<string, unknown>) => ({
+        source: 'data/boss_programs/probe.json',
+        payload: { id: 'probe', title: 'Probe', instant_beats: [{ id: 'probe_beat', title: 'Probe Beat', ...beat }], incoming_beats: [] },
+      })
+      expect(() => buildCatalog({ ...empty, counters: [heat], programs: [program({ kind: 'place_counter' })] })).toThrow(
+        'is a place_counter but names no counter',
+      )
+      expect(() => buildCatalog({ ...empty, counters: [heat], programs: [program({ kind: 'turn_toward_player', counter: 'heat' })] })).toThrow(
+        'names counter heat but is a turn_toward_player, which never places one',
+      )
+      expect(() =>
+        buildCatalog({ ...empty, counters: [ground], cards: [reader], programs: [program({ kind: 'place_counter', counter: 'ground' })] }),
+      ).toThrow('which is hosted on a hex; a Beat marks combatants')
     })
 
     it('rejects a burst Card that deals no damage and names its file', () => {
@@ -1855,6 +1875,161 @@ describe('Counter Readers — gate, scale, spend (D-047)', () => {
     const second = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetId: state.bossId })
     expect(second.facts[0].detail.placedCounterAmount).toBe(1)
     expect(second.state.counters[combatantRef(state.bossId)][0].count).toBe(5)
+  })
+})
+
+describe('The Boss marks too (D-051)', () => {
+  it('banks Heat on itself, and every Heat makes its blows land harder', () => {
+    // The half Counters were missing: the party could mark the Boss and the
+    // Boss could not mark back. Heat is the Boss marking itself, which the
+    // party watches accrue and may spend a card cooling.
+    let state = immortalHero(start())
+    const heatBeat = catalog.programs.embermaw_embers.instant_beats.find((beat) => beat.kind === 'place_counter')!
+    expect(heatBeat).toMatchObject({ counter: 'heat', counter_target: 'self', counter_amount: 1 })
+
+    const placed = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: heatBeat, track: 'instant' })
+    state = placed.state
+    expect(state.counters[combatantRef(state.bossId)][0]).toMatchObject({ id: 'heat', count: 1 })
+
+    // One Heat, one more damage on everything it throws.
+    const hit = resolve(catalog, state, {
+      kind: 'damage',
+      sourceId: state.bossId,
+      targetId: state.primaryHeroId,
+      amount: 4,
+      reasonText: 'test',
+    })
+    expect(hit.facts[0].resolutionFact).toMatchObject({ requested: 5 })
+  })
+
+  it('marks the Party when the Beat says hero, not itself', () => {
+    // `counter_target` is the whole direction of the mark, and getting it
+    // backwards would put the Boss's own debuff on the Boss.
+    const state = immortalHero(start())
+    const beat = { ...catalog.programs.embermaw_embers.instant_beats.find((b) => b.kind === 'place_counter')!, counter_target: 'hero' as const }
+    const marked = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat, track: 'instant' })
+    expect(marked.state.counters[combatantRef(state.primaryHeroId)]?.[0]).toMatchObject({ id: 'heat', count: 1 })
+    expect(marked.state.counters[combatantRef(state.bossId)] ?? []).toHaveLength(0)
+  })
+
+  it('stops banking at the authored cap, and says so', () => {
+    let state = immortalHero(start())
+    const heatBeat = catalog.programs.embermaw_embers.instant_beats.find((beat) => beat.kind === 'place_counter')!
+    const cap = catalog.counters.heat.max
+    let last
+    for (let index = 0; index < cap + 2; index += 1) {
+      last = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: heatBeat, track: 'instant' })
+      state = last.state
+    }
+    expect(state.counters[combatantRef(state.bossId)][0].count).toBe(cap)
+    // The Beat past the cap records that nothing landed rather than pretending.
+    const placement = last!.facts.find((fact) => fact.kind === 'place_counter')!
+    expect(placement.detail.placedCounterAmount).toBe(0)
+  })
+})
+
+describe('Ground that burns for good (D-050)', () => {
+  // The open question D-048 logged, answered: a structural Threshold closes
+  // the arena, and a hex nobody can stand on should not keep paying out what
+  // was banked there. Temporary weather is different — the ground outlives it.
+  function withGroundCounter() {
+    const variant = structuredClone(catalog)
+    variant.counters.embers = {
+      id: 'embers', title: 'Embers', rules_text: '', keywords: [],
+      host: 'hex', max: 3, duration_rounds: 0, readers: [],
+    }
+    variant.cards.scatter = {
+      ...variant.cards.steady_strike, id: 'scatter', title: 'Scatter', boss_damage: 0, damage: 0,
+      charge_modifiers: [], target_type: 'hex', range_tiles: 2, burst_radius: 0,
+      places_counter: 'embers', counter_amount: 2,
+    }
+    return variant
+  }
+
+  function marked(variant: ReturnType<typeof withGroundCounter>) {
+    let state = immortalHero(start())
+    state = advancePhase(variant, advancePhase(variant, state).state).state
+    hero(state).hand = [card('s1', 'scatter'), card('s2', 'steady_strike')]
+    state = resolve(variant, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 's1' }).state
+    state = resolve(variant, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 's2' }).state
+    const ground = state.board.entities[state.primaryHeroId].coords
+    state = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetHex: ground }).state
+    expect(state.counters[hexCounterRef(ground)]).toHaveLength(1)
+    return { state, ground }
+  }
+
+  it('takes the Counters on a hex with it when the burn is permanent', () => {
+    const variant = withGroundCounter()
+    const { state, ground } = marked(variant)
+    const burnt = resolve(variant, state, {
+      kind: 'apply_hazard',
+      sourceId: state.bossId,
+      coords: ground,
+      hazardId: 'scorched',
+      fallbackDurationRounds: 1,
+      permanent: true,
+    })
+    expect(burnt.facts[0].detail.clearedHexCounters).toBe(true)
+    expect(burnt.state.counters[hexCounterRef(ground)]).toBeUndefined()
+  })
+
+  it('leaves them alone when the Hazard is weather the ground outlives', () => {
+    const variant = withGroundCounter()
+    const { state, ground } = marked(variant)
+    const burnt = resolve(variant, state, {
+      kind: 'apply_hazard',
+      sourceId: state.bossId,
+      coords: ground,
+      hazardId: 'scorched',
+      fallbackDurationRounds: 1,
+    })
+    expect(burnt.facts[0].detail.clearedHexCounters).toBeUndefined()
+    expect(burnt.state.counters[hexCounterRef(ground)]).toHaveLength(1)
+  })
+})
+
+describe('Quench, the first Card that reads a Counter (D-052)', () => {
+  it('scales off the Heat it is about to remove, then removes it', () => {
+    // `resolution` timing is the whole card: it scales off the full Heat and
+    // cools afterwards, so a hotter Boss is a bigger hit *and* a bigger cool.
+    let state = immortalHero(start())
+    state = stepPhases(state, 2).state
+    expect(state.phase).toBe('quick')
+    const heatBeat = catalog.programs.embermaw_embers.instant_beats.find((beat) => beat.kind === 'place_counter')!
+    for (let index = 0; index < 3; index += 1) {
+      state = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: heatBeat, track: 'instant' }).state
+    }
+    expect(state.counters[combatantRef(state.bossId)][0].count).toBe(3)
+
+    hero(state).hand = [card('q1', 'quench'), card('q2', 'steady_strike')]
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'q1' }).state
+    state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'q2' }).state
+    const before = state.board.entities[state.bossId].health
+    const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetId: state.bossId })
+
+    // 2 printed + 1 per Heat × 3 held.
+    expect(before - fired.state.board.entities[state.bossId].health).toBe(5)
+    expect(fired.state.counters[combatantRef(state.bossId)][0].count).toBe(1)
+  })
+
+  it('is a plain 2 with the Boss cold, so it is never a dead card', () => {
+    let state = immortalHero(start())
+    state = stepPhases(state, 2).state
+    hero(state).hand = [card('q1', 'quench'), card('q2', 'steady_strike')]
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'q1' }).state
+    state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 'q2' }).state
+    const before = state.board.entities[state.bossId].health
+    const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetId: state.bossId })
+    expect(before - fired.state.board.entities[state.bossId].health).toBe(2)
+  })
+
+  it('stays out of the default deck, and rides the candidate deck instead', () => {
+    // The automatic half of the rubric does not support promotion (D-052), so
+    // the card is authored and measurable without changing the live economy.
+    const live = catalog.encounters.embermaw_prototype.player_deck.map((entry) => entry.card)
+    expect(live).not.toContain('quench')
+    expect(catalog.decks.aegis_heat_answer.player_deck.map((entry) => entry.card)).toContain('quench')
+    expect(catalog.decks.aegis_heat_answer.encounter).toBe('embermaw_prototype')
   })
 })
 

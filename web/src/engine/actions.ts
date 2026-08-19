@@ -26,6 +26,9 @@ export type EncounterActionInput =
   | { kind: 'move_minion'; sourceId: string; destination: Axial }
   | { kind: 'damage'; sourceId: string; targetId: string; amount: number; reasonText: string; factContext?: Record<string, unknown> }
   | { kind: 'discard_for_stamina'; sourceId: string; cardInstanceId: string }
+  // A Boss Beat placing a Counter (D-051). It rides an action like every other
+  // mutation a Beat causes, so the fact log records who marked what.
+  | { kind: 'place_counter'; sourceId: string; hostRef: string; counterId: string; amount: number; reasonText: string }
   | { kind: 'expire_counter'; sourceId: string; hostRef: string; counterId: string; window: Phase; counterEvent: Record<string, unknown> }
   | { kind: 'advance_phase'; sourceId: typeof ENCOUNTER_SOURCE; fromPhase: Phase; toPhase: Phase; round: number }
   | { kind: 'round_start'; sourceId: typeof ENCOUNTER_SOURCE; round: number }

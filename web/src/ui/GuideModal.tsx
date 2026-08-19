@@ -2,7 +2,7 @@ import { selectState, useWorkbench } from '@/store/workbench'
 import { useOnboarding } from '@/store/onboarding'
 import { BossEmblem, HeroEmblem, HexIcon, ShieldIcon, SwordIcon } from './icons'
 import { Modal } from './Modal'
-import { PHASE_TRACK } from './phaseTrack'
+import { OwnerWedge, PHASE_TRACK } from './phaseTrack'
 import { FOCUS_RING_CLASS } from './theme'
 
 // The How to Play guide: a four-step illustrated walkthrough shown on the
@@ -11,10 +11,10 @@ import { FOCUS_RING_CLASS } from './theme'
 // watching it instead of reading a manual. Diagrams are pure CSS animation
 // and freeze under prefers-reduced-motion.
 
-// The same five marks the HUD's phase row wears, each paired with its word.
-// This is where a player learns to read that row, so the marks and tones
-// come from PHASE_TRACK rather than being restated here — the guide cannot
-// teach a mark the HUD does not show.
+// The same five marks the HUD's phase row wears, each paired with its word
+// and its owner wedge. This is where a player learns to read that row, so
+// the marks, wedges, and tones come from PHASE_TRACK rather than being
+// restated here — the guide cannot teach a mark the HUD does not show.
 function TimelineDiagram() {
   return (
     <div className="flex items-center justify-center gap-1.5 bg-navy-950 px-3 py-6">
@@ -24,6 +24,7 @@ function TimelineDiagram() {
             <mark.Icon className={`h-5 w-5 ${mark.activeClass}`} />
             <span className={`h-1 w-9 rounded-full ${mark.barClass}`} />
           </span>
+          <OwnerWedge owner={mark.owner} className={`h-1.5 w-2.5 ${mark.activeClass}`} />
           <span className="text-[9px] font-semibold tracking-wide text-steel-400 uppercase">{mark.label}</span>
         </div>
       ))}
@@ -126,7 +127,7 @@ export function GuideModal() {
       // The marks and their tones are the row the HUD wears, so the words
       // name what is actually drawn: coral is the Boss, and the two windows
       // between its beats are yours.
-      body: 'The coral beats are the boss. The Quick and Slow windows between them are yours. Next moves the track.',
+      body: 'The coral down-wedge beats are the boss striking. The up-wedge Quick and Slow windows between them are yours. Next moves the track.',
       diagram: <TimelineDiagram />,
     },
     {
