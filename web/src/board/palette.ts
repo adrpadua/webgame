@@ -53,6 +53,7 @@ export interface BoardPalette {
   scorchedFill: number
   guidedStroke: number
   targetStroke: number
+  guardedFrontOverlay: number
 }
 
 // Cool objects and cool tints are yours: oathsteel ground, a signal-cloth
@@ -85,6 +86,12 @@ export function boardPalette(): BoardPalette {
     // is the one neutral on the board; aether ceramic is the palette's white.
     guidedStroke: readToken('ceramic-100'),
     targetStroke: readToken('glass-400'),
+    // The Guarded Front is a hex you may choose to stand on, so it is
+    // runeglass like every other cool tint. There is no fourth cool material
+    // to give it and it must not invent one: it separates from a destination
+    // and a target marker by shape and by sitting at the bottom of the cool
+    // order, which is where the board direction puts ground.
+    guardedFrontOverlay: readToken('glass-400'),
   }
 }
 

@@ -299,7 +299,7 @@ The next one damage event that would affect the ally selected by an Interception
 _Avoid_: Permanent redirect, damage split
 
 **Guarded Front**:
-The hex adjacent to the Boss on the side the Boss faces. A Shield Wall Hero holds the Guarded Front by standing in it, which is where the Guardian's positional protection and front-line duties apply; it is not a universal safe zone.
+The hex adjacent to the Boss on the side the Boss faces. A Shield Wall Hero holds the Guarded Front by standing in it, which is where the Guardian's positional protection and front-line duties apply; it is not a universal safe zone. The board marks it, and marks it only where the Player Hero's Role is Tank: what it is worth to stand there is a Tank Hit answered, so on anyone else's board the same mark would invite a Hero to stand where the Boss is looking in exchange for nothing. The mark is presentation, derived from the Boss's position and facing; it creates no legal action and is not a rules surface.
 _Avoid_: Tank lane, front row
 
 **Slot Tension**:
