@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { boardPalette, BOSS_SPRITE_WARM_MEDIAN, composite, HOT_SHADE, relativeLuminance, shade, TELEGRAPH_ALPHA, TOKENS } from './palette'
+import { boardPalette, BLAST_EDGE, BOSS_SPRITE_WARM_MEDIAN, composite, HOT_SHADE, relativeLuminance, shade, TELEGRAPH_ALPHA, TOKENS } from './palette'
 
 // These fallbacks are held against index.css by the smoke suite, which can
 // read the stylesheet; this environment cannot. What is checked here is the
@@ -48,9 +48,40 @@ describe('the board palette', () => {
     // The Boss is drawn art and no runtime tint governs it, so it is the one
     // step that cannot be corrected by moving a token. The telegraphs are what
     // must clear it.
-    it('keeps both telegraphs above the Boss sprite', () => {
+    it('keeps both filled telegraphs above the Boss sprite', () => {
       expect(relativeLuminance(cone)).toBeGreaterThan(BOSS_SPRITE_WARM_MEDIAN)
       expect(relativeLuminance(spawn)).toBeGreaterThan(BOSS_SPRITE_WARM_MEDIAN)
+    })
+
+    // The blast is the third telegraph and the one that ranks on its edge
+    // instead of its fill, because it covers up to ten of nineteen hexes and a
+    // fill at cone strength would make most of the arena the warning. So the
+    // bound moves to the line: drawn at the token's own full alpha, it is the
+    // brightest warm thing on the board, well clear of the Boss sprite.
+    //
+    // The wash under it is held to the other half of that bargain — quiet
+    // enough not to compete with a piece or with the spawn telegraph, loud
+    // enough to say which ground is inside the line. Both ends are asserted,
+    // because a wash that drifted up would flood the board and one that
+    // drifted down would leave the line enclosing nothing legible.
+    it('puts the blast’s warning in its edge and keeps the wash under it quiet', () => {
+      const wash = composite(rendered.blastOverlay, TELEGRAPH_ALPHA.blast, rendered.tileFill)
+      expect(relativeLuminance(rendered.blastOverlay)).toBeGreaterThan(relativeLuminance(cone))
+      expect(BLAST_EDGE.alpha).toBe(1)
+      expect(relativeLuminance(wash)).toBeLessThan(BOSS_SPRITE_WARM_MEDIAN)
+      expect(relativeLuminance(wash)).toBeLessThan(relativeLuminance(spawn))
+      expect(relativeLuminance(wash) / relativeLuminance(rendered.tileFill)).toBeGreaterThan(3)
+    })
+
+    // The blast takes the cone's step on purpose: the ramp ranks by imminence,
+    // and a blast going off in the Incoming Row is exactly as imminent as the
+    // breath burning in it. Asserted rather than left to a comment, because
+    // the alternative — quietly drifting onto the spawn's step, or onto a
+    // sixth warm value nobody authored — is what this whole module exists to
+    // catch. What separates the two marks is shape, which a colour test cannot
+    // see; if this pair is ever pulled apart, the reason belongs here.
+    it('gives the blast the cone’s step, and leans on shape to separate them', () => {
+      expect(rendered.blastOverlay).toBe(rendered.coneOverlay)
     })
 
     // Two telegraphs share the board and mean different things. They were 7.5

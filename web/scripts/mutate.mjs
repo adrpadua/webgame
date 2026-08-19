@@ -110,6 +110,20 @@ const MUTATIONS = [
     to: '      succeed(fact)',
   },
   {
+    name: 'the blast outline goes around every tile instead of the footprint',
+    guards: 'D-061: one line around the whole blast, which is what separates it from the cone',
+    file: 'board/layout.ts',
+    from: 'if (!footprint.has(`${across.q},${across.r}`)) {',
+    to: 'if (true) {',
+  },
+  {
+    name: 'the edge-to-neighbour table is rotated one step',
+    guards: 'D-061: the blast outline is drawn on the edges the footprint actually ends at',
+    file: 'board/layout.ts',
+    from: 'export const EDGE_NEIGHBORS: readonly Axial[] = [\n  { q: 1, r: 0 },\n  { q: 0, r: 1 },',
+    to: 'export const EDGE_NEIGHBORS: readonly Axial[] = [\n  { q: 0, r: 1 },\n  { q: 1, r: 0 },',
+  },
+  {
     name: 'Escalation clock starts a Round early',
     guards: 'ADR 0027: automatic ticks alone reach the top exactly at the Clock',
     file: 'engine/escalation.ts',

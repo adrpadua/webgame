@@ -143,7 +143,7 @@ A Minion may also carry a fuse (D-061), authored on the Minion as `explode_damag
 - A detonation is not a Minion Defeat. No damage action removes the piece, so nothing records `target_removed` and no Hero is credited a kill.
 - It gets exactly one end step, on the Round it arrived in, so its creep is what carries the blast into range rather than a deadline of its own.
 - Two answers, and they are not equivalent: killing it inside its single Round answers the demand, while stepping out of the blast only avoids the damage — the Escalation is charged either way (see Acceleration).
-- The pending blast is a projection (`minionDetonations`), live for the whole Round the fuse burns through.
+- The pending blast is a projection (`minionDetonations`), live for the whole Round the fuse burns through, and the board paints its footprint: a quiet wash over the ground with one warm outline around the outside of it. It is read from the live board rather than stored, so clearing the Minion takes the mark with it the same frame.
 
 ## Targeting
 

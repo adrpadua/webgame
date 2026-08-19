@@ -253,7 +253,7 @@ try {
     } vs minion L=${minion?.median.toFixed(4)})`,
   )
 
-  const alphas = /TELEGRAPH_ALPHA = \{ cone: ([\d.]+), spawn: ([\d.]+) \}/.exec(paletteSource)
+  const alphas = /TELEGRAPH_ALPHA = \{ cone: ([\d.]+), blast: ([\d.]+), spawn: ([\d.]+) \}/.exec(paletteSource)
   assert(Boolean(alphas), 'palette.ts declares the telegraph alphas')
   const token = (name) => {
     const hex = new RegExp(`--color-${name}:\\s*#([0-9a-fA-F]{6})`).exec(stylesheet)[1]
@@ -262,10 +262,23 @@ try {
   const over = (tint, alpha, base) => tint.map((c, index) => alpha * c + (1 - alpha) * base[index])
   const tile = token('steel-900')
   const coneL = luminance(over(token('coral-300'), Number(alphas[1]), tile))
-  const spawnL = luminance(over(token('coral-400'), Number(alphas[2]), tile))
+  const spawnL = luminance(over(token('coral-400'), Number(alphas[3]), tile))
   assert(
     bossWarmMedian < Math.min(coneL, spawnL),
-    `both telegraphs outrank the Boss sprite on screen (boss L=${bossWarmMedian.toFixed(4)}, cone ${coneL.toFixed(4)}, spawn ${spawnL.toFixed(4)})`,
+    `both filled telegraphs outrank the Boss sprite on screen (boss L=${bossWarmMedian.toFixed(4)}, cone ${coneL.toFixed(4)}, spawn ${spawnL.toFixed(4)})`,
+  )
+  // The blast telegraph (D-061) is the one that ranks on its outline instead of
+  // its fill, because it covers up to ten of nineteen hexes. Both halves of
+  // that bargain are measured against the shipped sheet: the line clears the
+  // Boss, and the wash under it deliberately does not — a wash that drifted up
+  // to cone strength would turn most of the arena into the warning.
+  const blastEdgeL = luminance(token('coral-300'))
+  const blastWashL = luminance(over(token('coral-300'), Number(alphas[2]), tile))
+  assert(
+    bossWarmMedian < blastEdgeL && blastWashL < bossWarmMedian && ceiling < blastWashL,
+    `the blast outranks the Boss on its edge, and its wash sits between the backdrop and the pieces (boss L=${bossWarmMedian.toFixed(
+      4,
+    )}, edge ${blastEdgeL.toFixed(4)}, wash ${blastWashL.toFixed(4)}, backdrop ceiling ${ceiling.toFixed(4)})`,
   )
 
   await backdropPage.close()

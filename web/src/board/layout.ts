@@ -61,3 +61,42 @@ export function hexCorners(centerX: number, centerY: number, size = HEX_SIZE): P
   }
   return corners
 }
+
+// The neighbour on the far side of each hex edge, indexed the way `hexCorners`
+// indexes corners: edge `i` runs from corner `i` to corner `i + 1`.
+//
+// Corner `i` sits at `60i - 30` degrees, so edge `i` spans `[60i - 30, 60i +
+// 30]` and points out at `60i` — 0, 60, 120, 180, 240, 300. Those are exactly
+// the six directions `axialToPixel` sends these deltas, which is why this list
+// is derived from the layout rather than copied from the facing table: a
+// facing is which way a piece looks, and this is which tile is across a line.
+export const EDGE_NEIGHBORS: readonly Axial[] = [
+  { q: 1, r: 0 },
+  { q: 0, r: 1 },
+  { q: -1, r: 1 },
+  { q: -1, r: 0 },
+  { q: 0, r: -1 },
+  { q: 1, r: -1 },
+]
+
+// Which of one hex's six edges lie on the outer boundary of a set of hexes:
+// the edges whose far side is outside the set. Run over every hex in the set,
+// the result is one closed outline around the whole shape rather than an
+// outline around each tile in it.
+//
+// That difference is the whole point of the function. Two marks on this board
+// are made of the same warm material and mean different things, and what
+// separates them is shape: a Cinder Breath cone outlines each of its tiles, so
+// it reads as a fan of hexes, while a Minion's blast is outlined once, so it
+// reads as one area around the piece at its centre.
+// `footprint` holds the engine's `hexKey` form, `${q},${r}`.
+export function boundaryEdges(footprint: ReadonlySet<string>, coords: Axial): number[] {
+  const edges: number[] = []
+  for (let index = 0; index < EDGE_NEIGHBORS.length; index += 1) {
+    const across = { q: coords.q + EDGE_NEIGHBORS[index].q, r: coords.r + EDGE_NEIGHBORS[index].r }
+    if (!footprint.has(`${across.q},${across.r}`)) {
+      edges.push(index)
+    }
+  }
+  return edges
+}

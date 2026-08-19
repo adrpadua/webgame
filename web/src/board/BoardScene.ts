@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { facingName, guardedFrontHex, hexKey, parseHexKey, type Axial, type EncounterState } from '@/engine'
-import { axialToPixel, hexCorners, pixelToAxial, BOARD_CENTER_X, BOARD_CENTER_Y, BOARD_HEIGHT, BOARD_WIDTH, HEX_SIZE } from './layout'
+import { axialToPixel, boundaryEdges, hexCorners, pixelToAxial, BOARD_CENTER_X, BOARD_CENTER_Y, BOARD_HEIGHT, BOARD_WIDTH, HEX_SIZE } from './layout'
 import { BACKDROP_DEPTH, BACKDROPS, backdropFor } from './backdrop'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 import { idleBobOffset } from './ambience'
@@ -8,7 +8,7 @@ import { BURN_MS, COOL_MS, charProgress, coolProgress, dyingEmbers, emberAlpha, 
 import { easeOutCubic, hexNoiseFor } from './math'
 import { SPAWN_MS, arrivalScale, breakRing, groundHeat, spawnShards } from './spawn'
 import { BOSS_DEFEAT_MS, buckleOffset, groundFlare, heatLoss, slumpScale, ventsOpening } from './defeat'
-import { boardPalette, composite, shade, HOT_SHADE, TELEGRAPH_ALPHA, toneColors } from './palette'
+import { boardPalette, composite, shade, BLAST_EDGE, HOT_SHADE, TELEGRAPH_ALPHA, toneColors } from './palette'
 import {
   guardedFrontOutline,
   GUARDED_FRONT_ARC_WIDTH,
@@ -48,6 +48,10 @@ export interface BoardSnapshot {
   // depends on the facing being drawn rather than the one the state holds:
   // see drawnFacing.
   guardedFront: boolean
+  // The footprint every Minion whose fuse is up will burn when the Incoming
+  // Row resolves (D-061). Rules-derived like the target keys above: the scene
+  // paints the blast but never decides how far one reaches.
+  blastHexKeys: string[]
   // Hexes the scripted first turn is pointing the player at.
   guidedMoveKeys: string[]
   // The hex a dragged move is waiting to be paid for, if any. The player is
@@ -103,6 +107,7 @@ const {
   heroFill: HERO_FILL,
   moveOverlay: MOVE_OVERLAY,
   coneOverlay: CONE_OVERLAY,
+  blastOverlay: BLAST_OVERLAY,
   spawnOverlay: SPAWN_OVERLAY,
   bossFill: BOSS_FILL,
   minionFill: MINION_FILL,
@@ -728,6 +733,7 @@ export class BoardScene extends Phaser.Scene {
     const guidedMoves = new Set(snapshot.guidedMoveKeys)
     const targetableHexes = new Set(snapshot.targetableHexKeys)
     const targetPreviewHexes = new Set(snapshot.targetPreviewHexKeys)
+    const blastHexes = new Set(snapshot.blastHexKeys)
     // The Guarded Front, taken from the facing the board is currently drawing
     // rather than the one the state holds, so the post moves with the Boss
     // coming round instead of ahead of it. The arc is aimed from the Boss's
@@ -856,6 +862,28 @@ export class BoardScene extends Phaser.Scene {
         // reads first anyway.
         graphics.lineStyle(2, warm, 0.9)
         this.strokeHex(graphics, hexCorners(x, y, HEX_SIZE - 6))
+      }
+      // A Minion's fuse, painted for the whole Round it burns through (D-061).
+      // Same material as the cone, because a blast landing in the Incoming Row
+      // is exactly as imminent as the breath landing in it; what separates the
+      // two is shape. The cone edges every tile it covers and reads as a fan
+      // of hexes. The blast is washed and then edged once, around the outside
+      // of the whole footprint, so it reads as one area with a Whelp sitting
+      // inside it — which is what it is, and which is also the shape of the
+      // answer, since stepping over that line is one of the two ways to
+      // survive it. The line is where the warning lives here; see palette.ts
+      // for why the wash under it is deliberately quiet.
+      //
+      // Two overlapping fuses produce one outline around their union rather
+      // than two rings, because the question the line answers is "am I in it",
+      // and a player standing where both reach is not in it twice.
+      if (blastHexes.has(key)) {
+        const corners = hexCorners(x, y, HEX_SIZE - 6)
+        this.fillHex(graphics, corners, BLAST_OVERLAY, TELEGRAPH_ALPHA.blast)
+        graphics.lineStyle(BLAST_EDGE.width, BLAST_OVERLAY, BLAST_EDGE.alpha)
+        for (const edge of boundaryEdges(blastHexes, coords)) {
+          this.strokeOpenPath(graphics, [corners[edge], corners[(edge + 1) % corners.length]])
+        }
       }
       if (legalMoves.has(key)) {
         this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), MOVE_OVERLAY, 0.35)

@@ -4,6 +4,7 @@ import {
   fireTargeting,
   hexKey,
   isLegalMove,
+  minionDetonations,
   neighbors,
   parseHexKey,
   type ContentCatalog,
@@ -61,12 +62,19 @@ function buildSnapshot(
             .map((entity) => hexKey(entity.coords))
         : []
   const playout = usePlayout.getState()
+  // The Minion fuses that will go off in the next Incoming Row (D-061), read
+  // from the live board rather than stored on it. That is what keeps the mark
+  // honest: kill the Whelp in the Quick Window and its footprint is gone the
+  // same frame, because the projection and the resolution ask the same
+  // function the same question.
+  const blastHexKeys = minionDetonations(catalog, state).flatMap((blast) => blast.hexes.map(hexKey))
   return {
     state,
     targetableHexKeys,
     targetPreviewHexKeys: targeting?.previewHexes.map(hexKey) ?? [],
     targetPreviewCenterKey: targeting?.previewHexes.length ? hoveredHexKey : null,
     legalMoveKeys,
+    blastHexKeys,
     guardedFront: marksGuardedFront(catalog, state),
     guidedMoveKeys,
     pendingMoveKey,
