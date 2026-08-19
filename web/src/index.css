@@ -202,6 +202,33 @@ body {
    "Steady Strike". 3px past the offset clears the cut where the content
    actually sits and wins back 14px of title. */
 @utility wb-plate-slot { --wb-off: 9px; --wb-notch: 4px; padding-inline: calc(var(--wb-off) + 3px); }
+/* The Beat Card. Every other size holds one short line, so a symmetric
+   padding-inline is close enough to right: whatever gutter the cut leaves is
+   the same gutter on every row, because there is only one row. This plate is
+   four rows tall, and a raked box read down four rows is a wedge — a vertical
+   text column inside it has a gutter that changes with every line. On the
+   ~99px card that was 3px between "Boss · Instant" and the ember edge at the
+   top and 8px under it at the rules text, and 11px of air right of "Resolve"
+   against 6px where the rules text runs out at the bottom. The text edges
+   read as ragged against the plate because they are: the column is straight
+   and the plate is not.
+   So the clearance is measured at the corner each side is worst at, and both
+   are given the same 10px the other multi-row sizes get. The leading edge is
+   furthest in at the top and carries the 3px accent band on top of the
+   offset; the trailing edge is furthest in at the bottom and carries nothing.
+   Same gutter at the top-left as at the bottom-right, so the wedge is spent
+   on the plate's silhouette rather than on the text.
+   The block padding is measured the same way. The bottom of the face is
+   flat, but the top is notched down by --wb-notch where the leading edge
+   starts, which is exactly where the "Boss · Instant" label sits, so a
+   symmetric padding-block leaves the label a notch short of the air the
+   rules text gets at the bottom. Add the notch back to the top. */
+@utility wb-plate-beat {
+  --wb-off: 7px;
+  --wb-notch: 4px;
+  padding-inline: calc(var(--wb-off) + 13px) calc(var(--wb-off) + 10px);
+  padding-block: calc(var(--wb-notch) + 8px) 8px;
+}
 @utility wb-plate-xl { --wb-off: 16px; --wb-notch: 6px; padding-inline: calc(var(--wb-off) + 12px); } /* ~112px panels */
 /* Faces and accents. The accent is the status channel: gold on the live
    thing, ember on the irreversible one, glass on a player affordance. */

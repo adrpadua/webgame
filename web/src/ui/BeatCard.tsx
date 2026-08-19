@@ -56,7 +56,12 @@ export function BeatCard() {
         data-next-beat={nextBeatTitle ?? ""}
         data-beat-id={found?.beat.id ?? ""}
         onClick={continuePlayout}
-        className={`wb-beat-deal wb-accent-pulse pointer-events-auto wb-plate wb-plate-md wb-face-steel wb-acc-ember flex w-full flex-col gap-1.5 px-3 py-2 text-left shadow-xl ${FOCUS_RING_CLASS}`}
+        // No `px-`/`py-` here, deliberately. A flat Tailwind padding on a
+        // raked plate overrides the clearance the size class derives from the
+        // cut, and 12px was 3px short of what this one needs — which is how
+        // the label came to sit against the ember edge. `wb-plate-beat` is
+        // that clearance, measured per side at the corner it is worst at.
+        className={`wb-beat-deal wb-accent-pulse pointer-events-auto wb-plate wb-plate-beat wb-face-steel wb-acc-ember flex w-full flex-col gap-1.5 text-left shadow-xl ${FOCUS_RING_CLASS}`}
       >
         <span className="flex items-baseline justify-between gap-2">
           <span className="shrink-0 text-[9px] font-semibold tracking-widest text-steel-400 uppercase">
