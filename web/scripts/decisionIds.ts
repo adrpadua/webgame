@@ -21,7 +21,7 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { DECISION_PLACEHOLDER, datedRowCount, parseDecisionRows, planDecisionIds } from '../src/content/decisionIds'
+import { DECISION_PLACEHOLDER, datedRowCount, parseDecisionRows, planDecisionIds, type Reassignment } from '../src/content/decisionIds'
 
 const LOG_PATH = 'docs/content/design-decision-log.md'
 // The branch every branch here merges into. Named once rather than derived:
@@ -100,10 +100,13 @@ if (plan.reassignments.length === 0) {
   process.exit(0)
 }
 
-const describe = (reason: string): string =>
-  reason === 'placeholder' ? `unnumbered (${DECISION_PLACEHOLDER})` : `already taken on ${UPSTREAM}`
+const REASONS: Record<Reassignment['reason'], string> = {
+  placeholder: `unnumbered (${DECISION_PLACEHOLDER})`,
+  taken_upstream: `already taken on ${UPSTREAM}`,
+  duplicate_locally: 'held by an earlier row in this log',
+}
 for (const entry of plan.reassignments) {
-  console.log(`  ${LOG_PATH}:${entry.lineIndex + 1}  ${entry.from} -> ${entry.to}  (${describe(entry.reason)})`)
+  console.log(`  ${LOG_PATH}:${entry.lineIndex + 1}  ${entry.from} -> ${entry.to}  (${REASONS[entry.reason]})`)
 }
 
 if (!FIX) {
@@ -114,13 +117,33 @@ if (!FIX) {
 writeFileSync(logFile, plan.log)
 
 // A row this branch authored can be cited by the same branch's own prose, so a
-// reassignment has to carry those with it. Restricted to files this branch
-// changed: an id being reassigned is one this branch invented, so nothing
-// outside its own diff can legitimately mean it, and a repo-wide replace would
-// rewrite upstream citations of upstream's row of the same number.
-const changed = git('diff', '--name-only', `${baseRef}...HEAD`)
-  .split('\n')
-  .filter((name) => name !== '' && name !== LOG_PATH)
+// reassignment has to carry those with it — but only where the old number
+// unambiguously meant *this* row, and that is decided by why the row moved.
+//
+// `taken_upstream` carries. The number is live on this branch only as this row:
+// upstream's row of that number is not in this working tree, so every mention
+// here is a mention of this one.
+//
+// `duplicate_locally` does not. The number stays on the earlier row, so a
+// citation could mean either, and guessing would silently repoint a correct
+// one. Reported instead, so the author resolves it.
+//
+// `placeholder` has nothing to carry: `D-NEW` is not citable.
+const carry = plan.reassignments.filter((entry) => entry.reason === 'taken_upstream')
+const ambiguous = plan.reassignments.filter((entry) => entry.reason === 'duplicate_locally')
+
+// Working tree against the merge base, not `HEAD` against it, plus untracked
+// files. The common case is authoring the row and the prose that cites it in
+// one uncommitted edit, and diffing commits would have skipped exactly that —
+// the check would report the carry-over done while the citation still pointed
+// at the old number.
+const changed = new Set([
+  ...git('diff', '--name-only', baseRef).split('\n'),
+  ...git('ls-files', '--others', '--exclude-standard').split('\n'),
+])
+changed.delete('')
+changed.delete(LOG_PATH)
+
 const moved: string[] = []
 for (const name of changed) {
   const path = join(repoRoot, name)
@@ -128,13 +151,17 @@ for (const name of changed) {
   try {
     text = readFileSync(path, 'utf8')
   } catch {
-    continue // deleted on this branch, or not a text file we can read
+    continue // deleted on this branch, or not a file we can read
+  }
+  // A sprite that happens to contain these bytes would be silently corrupted by
+  // the replace below, and `web/src/assets` is full of PNGs. A NUL byte is the
+  // cheap, encoding-independent test for "this is not text".
+  if (text.includes('\0')) {
+    continue
   }
   let updated = text
-  for (const entry of plan.reassignments) {
-    if (entry.from !== DECISION_PLACEHOLDER) {
-      updated = updated.split(entry.from).join(entry.to)
-    }
+  for (const entry of carry) {
+    updated = updated.split(entry.from).join(entry.to)
   }
   if (updated !== text) {
     writeFileSync(path, updated)
@@ -145,4 +172,9 @@ for (const name of changed) {
 console.log(`\nlog:ids: assigned ${plan.reassignments.length} id(s) in ${LOG_PATH}${upstreamNote}`)
 if (moved.length > 0) {
   console.log(`log:ids: carried the new ids into ${moved.join(', ')}`)
+}
+for (const entry of ambiguous) {
+  console.log(
+    `log:ids: left citations of ${entry.from} alone — it is still held by an earlier row, so a mention of it could mean either. Check any reference you meant for ${entry.to}.`,
+  )
 }
