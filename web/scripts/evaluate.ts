@@ -18,6 +18,7 @@ import {
   programPredictability,
   cardChargeCap,
   createEncounterState,
+  fireTargeting,
   hexDistance,
   readCounterEvent,
   hexKey,
@@ -42,6 +43,27 @@ const flagValue = (name: string): string | undefined => {
 const SEEDS = Number(flagValue('--seeds') ?? 30)
 const JSON_OUT = flagValue('--json')
 const POLICY = flagValue('--policy')
+// `--deck <id>` runs the sweep against an evaluation deck from `data/decks/`
+// instead of the Encounter's own list. Without it a candidate card could only
+// be measured by promoting it to the default deck first, which is the promotion
+// the rubric says the measurement is supposed to gate. The Encounter is cloned
+// rather than mutated, so one process could measure several decks.
+const DECK = flagValue('--deck')
+const evaluationCatalog = (() => {
+  if (DECK === undefined) {
+    return catalog
+  }
+  const deck = catalog.decks[DECK]
+  if (!deck) {
+    throw new Error(`Unknown evaluation deck ${DECK}; authored decks are ${Object.keys(catalog.decks).join(', ')}`)
+  }
+  if (deck.encounter !== ENCOUNTER_ID) {
+    throw new Error(`Evaluation deck ${DECK} is written for ${deck.encounter}, not ${ENCOUNTER_ID}`)
+  }
+  const variant = structuredClone(catalog)
+  variant.encounters[ENCOUNTER_ID].player_deck = deck.player_deck.map((entry) => ({ ...entry }))
+  return variant
+})()
 
 interface PolicyKnobs {
   // `turtle` is the survival-biased plan (ADR 0027): Iron Guard in the Quick
@@ -59,7 +81,7 @@ interface PolicyKnobs {
   // third horizon falsifiable. It returned a verdict (identical outcomes to two
   // decimal places), the row was removed on that evidence (ADR 0031), and the
   // pair collapsed into the one plan that remains worth sweeping.
-  slotPlan: 'dual_steady' | 'sword_shield' | 'turtle' | 'culler' | 'shover'
+  slotPlan: 'dual_steady' | 'sword_shield' | 'turtle' | 'culler' | 'shover' | 'quencher'
   position: 'far' | 'dodge' | 'stay'
   spike: boolean
 }
@@ -88,7 +110,7 @@ interface RunMetrics {
 // of step capture. Kept self-contained so the committed-scenario generator
 // stays untouched.
 function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
-  let state: EncounterState = createEncounterState(catalog, ENCOUNTER_ID, seed)
+  let state: EncounterState = createEncounterState(evaluationCatalog, ENCOUNTER_ID, seed)
   const bossStartHealth = state.board.entities[state.bossId].health
   const facts: ResolutionFactEntry[] = []
 
@@ -117,6 +139,11 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     turtle: { 0: 'iron_guard', 1: 'fortify' },
     culler: { 0: 'sweeping_blow', 1: 'iron_guard' },
     shover: { 0: 'drive_back', 1: 'fortify' },
+    // A plan per card the sweep needs to exercise. Without one, a new card is
+    // never loaded and the sweep measures deck dilution rather than the card:
+    // Quench's first run cost 22% of Boss damage purely because two Steady
+    // Strike left the deck and nothing played what replaced them.
+    quencher: { 0: 'quench', 1: 'iron_guard' },
   }
   const wanted: Record<number, string> = WANTED_BY_PLAN[knobs.slotPlan]
   const hand = () => state.heroes[heroId].hand
@@ -267,6 +294,21 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
         const target = minionsByRange().find((entity) => hexDistance(entity.coords, here) <= card.range_tiles)
         if (target) {
           submit({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetId: target.id })
+        }
+        continue
+      }
+      // A Card that reads Counters needs the piece it reads them on, and the
+      // engine already knows which pieces are legal — so ask it rather than
+      // re-deriving the rule here, which is how a harness drifts from the
+      // rules it is measuring. The Boss is preferred because it is the piece
+      // a Counter-reading Card is written against; a Minion is the fallback.
+      // Gated on `reads` so every existing Card keeps its existing path and
+      // the baseline is untouched.
+      if (card.reads.length > 0) {
+        const legal = fireTargeting(catalog, state, heroId, slotIndex).legalTargetIds
+        const pick = legal.includes(state.bossId) ? state.bossId : legal[0]
+        if (pick !== undefined) {
+          submit({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetId: pick })
         }
         continue
       }
@@ -435,7 +477,7 @@ if (POLICY) {
   const [slotPlan, position, spike] = POLICY.split(',')
   variants.push({ slotPlan: slotPlan as PolicyKnobs['slotPlan'], position: position as PolicyKnobs['position'], spike: spike === 'true' })
 } else {
-  for (const slotPlan of ['dual_steady', 'sword_shield', 'turtle', 'culler', 'shover'] as const) {
+  for (const slotPlan of ['dual_steady', 'sword_shield', 'turtle', 'culler', 'shover', 'quencher'] as const) {
     for (const position of ['far', 'dodge', 'stay'] as const) {
       for (const spike of [true, false]) {
         variants.push({ slotPlan, position, spike })

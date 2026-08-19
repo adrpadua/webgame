@@ -1,5 +1,6 @@
 import { emptyHexes, facingToward, firstEmptyHexes, forwardCone, frontArc, isGuardedFront, neighbors } from './board'
 import { escalationModifiers } from './escalation'
+import { combatantRef } from './counters'
 import { normalizeFacing } from './facing'
 import { containsHex, hexDistance, hexKey, type Axial } from './hex'
 import { randiRange, shuffle, type RngState } from './rng'
@@ -136,6 +137,10 @@ export function resolveBossBeat(
     // whose effect was nothing at any point, is gone (D-046).
     case 'demand_proximity':
       break
+    // Placement rides an action below, so this arm only has to not fall
+    // through to a pattern it does not have.
+    case 'place_counter':
+      break
   }
   draft.lastPattern = [...patternHexes]
   // Only a Beat that actually connected rewrites the remembered impact, so a
@@ -150,6 +155,20 @@ export function resolveBossBeat(
     draft.previousImpactAbsorbed = false
   }
   const actions: EncounterActionInput[] = []
+  // The Boss marking something (D-051). `self` is pressure the party watches
+  // accrue and may choose to spend cards suppressing; `hero` is the Boss
+  // marking the Party, which is the direction Counters could not previously
+  // run.
+  if (beat.kind === 'place_counter' && beat.counter !== '') {
+    actions.push({
+      kind: 'place_counter',
+      sourceId: bossId,
+      hostRef: combatantRef(beat.counter_target === 'hero' ? draft.primaryHeroId : bossId),
+      counterId: beat.counter,
+      amount: beat.counter_amount,
+      reasonText: beat.title,
+    })
+  }
   if (advanceTiles > 0) {
     actions.push({
       kind: 'displace_piece',
