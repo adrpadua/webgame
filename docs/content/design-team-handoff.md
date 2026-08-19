@@ -166,11 +166,14 @@ closed set the engine switches on:
   target damage, hex-centered Burst damage, Push, Pull, drawing up to three
   cards, and applying one authored Status. Anything else — changing a cost or
   scaling off board state — is new engine code.
-- **Boss Beat kinds.** `turn_toward_player`, `targeted_hit`,
-  `hazard_last_impact`, `forward_cone`, `spawn_minions`, `warning`. A kind
-  names the mechanic; the Beat's `title` and `rules_text` carry the Boss's
-  flavour, and what varies between Bosses — `damage`, `hazard`, `minion`,
-  `count` — is an authored field on the Beat.
+- **Boss Beat kinds.** `turn_toward_player`, `advance_toward_player`,
+  `targeted_hit`, `hazard_last_impact`, `forward_cone`, `spawn_minions`,
+  `demand_proximity`. A kind names the mechanic; the Beat's `title` and
+  `rules_text` carry the Boss's flavour, and what varies between Bosses —
+  `damage`, `hazard`, `minion`, `count`, `range_tiles`, `move_tiles` — is an
+  authored field on the Beat. There is no `warning` kind: a Beat that resolves
+  to nothing is not a Beat (D-046), and rules reminders belong on the Hazard,
+  Beat, or Program they describe.
 - **Status triggers.** `on_round_start`, `on_enter_hex`, `on_damage_taken`,
   `on_slot_fired`.
 - **Target families.** `none`, `hex` (Burst center), `board_slot`, `piece`.

@@ -32,6 +32,10 @@ interface PlayoutStore {
   // what it is about to show, never what it has already shown: the player
   // reads "Raking Claw" and presses to watch the claw land.
   nextBeatTitle: string | null
+  // The same beat by id, so the prompt can be the Beat's own card rather than
+  // its name on a bar (D-047). A title cannot find the authored Beat, and the
+  // card needs its damage, target, reach and counter tags.
+  nextBeatId: string | null
   // True while the playout is paused between moments, waiting for a tap.
   awaitingContinue: boolean
   // True while a prompt-paced (non-auto) playout is running: Next defers to
@@ -94,6 +98,7 @@ const IDLE = {
   outcomeHeld: false,
   activeBeatId: null,
   nextBeatTitle: null,
+  nextBeatId: null,
   awaitingContinue: false,
   paced: false,
   pendingScorchKeys: [],
@@ -111,6 +116,7 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
       overrides: { ...store.overrides, ...moment.gauges },
       activeBeatId: moment.beatId,
       nextBeatTitle: moments[index + 1]?.beatTitle ?? null,
+      nextBeatId: moments[index + 1]?.beatId ?? null,
       awaitingContinue: false,
       momentSeq: store.momentSeq + 1,
       momentEffects: moment.effects,
@@ -175,7 +181,7 @@ export const usePlayout = create<PlayoutStore>((set, get) => {
         fireMoment(0)
         return
       }
-      set({ awaitingContinue: true, nextBeatTitle: opening.beatTitle })
+      set({ awaitingContinue: true, nextBeatTitle: opening.beatTitle, nextBeatId: opening.beatId })
     },
     continuePlayout: () => {
       if (!get().awaitingContinue || momentIndex + 1 >= moments.length) {

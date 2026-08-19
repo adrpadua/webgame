@@ -53,16 +53,6 @@
         "move",
         "interrupt"
       ]
-    },
-    {
-      "id": "ash_warning",
-      "title": "Keep a Safe Hex",
-      "rules_text": "Scorched ground blocks voluntary movement. Leave yourself somewhere to stand.",
-      "kind": "warning",
-      "consequence_tier": "chip",
-      "answer_tags": [
-        "move"
-      ]
     }
   ]
 }

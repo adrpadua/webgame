@@ -129,10 +129,12 @@ export function resolveBossBeat(
         spawnHexes = firstEmptyHexes(draft.spawnCandidates, emptyHexes(draft.board), beat.count + escalated.extraSpawnCount)
       }
       break
-    // Resolves to nothing: its whole effect is the demand it leaves standing at
-    // the Round end, which `escalationActionsForRoundEnd` prices.
+    // Resolves to nothing at Beat time: its whole effect is the demand it
+    // leaves standing at the Round end, which `escalationActionsForRoundEnd`
+    // prices. It is the only Beat kind that does nothing when it plays, and it
+    // earns that by doing something later — which is why the `warning` kind,
+    // whose effect was nothing at any point, is gone (D-046).
     case 'demand_proximity':
-    case 'warning':
       break
   }
   draft.lastPattern = [...patternHexes]

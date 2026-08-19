@@ -222,19 +222,35 @@ try {
     // is a property of the art and takes no scaling.
     return { energy: (summed.total / 6) * scale ** 2, median: summed.median }
   }
-  const boss = await warmEnergy('boss')
+  // Every Boss form, not just the first. A phase sheet is a second piece of
+  // art with its own warm level, and the Whelp is on the board during Phase II
+  // — Brood Call is in both of its programs — so the form that ships hottest
+  // or coldest has to be held against the Minion just as the first one is.
+  const bossKinds = [...sceneSource.matchAll(/^\s{2}(boss\w*): \{ key:/gm)].map((match) => match[1])
+  assert(bossKinds.length > 0, `the scene declares every Boss form it draws (${bossKinds.join(', ') || 'none'})`)
   const minion = await warmEnergy('minion')
+  const bossForms = []
+  for (const kind of bossKinds) {
+    bossForms.push([kind, await warmEnergy(kind)])
+  }
+  const dimmer = bossForms.filter(([, form]) => form === null || minion === null || form.energy <= minion.energy)
   assert(
-    boss !== null && minion !== null && boss.energy > minion.energy,
-    `the Boss commands more warm presence than a Minion (boss ${boss?.energy.toFixed(0)}, minion ${minion?.energy.toFixed(0)})`,
+    dimmer.length === 0,
+    `every Boss form commands more warm presence than a Minion (${
+      bossForms.map(([kind, form]) => `${kind} ${form?.energy.toFixed(0)}`).join(', ')
+    } vs minion ${minion?.energy.toFixed(0)})`,
   )
   // And per pixel, which is the ordering the direction states outright. The
   // Whelp shipped brighter than the Boss until its sheet was graded, and it is
   // built from a contact sheet that is still ungraded — so a rebuild that skips
-  // the grading step reintroduces the inversion, and fails here.
+  // the grading step reintroduces the inversion, and fails here. The Phase II
+  // sheet arrived below the Whelp too and was graded up for the same reason.
+  const paler = bossForms.filter(([, form]) => form === null || minion === null || form.median <= minion.median)
   assert(
-    boss !== null && minion !== null && boss.median > minion.median,
-    `the Boss outranks a Minion per warm pixel too (boss L=${boss?.median.toFixed(4)}, minion L=${minion?.median.toFixed(4)})`,
+    paler.length === 0,
+    `every Boss form outranks a Minion per warm pixel too (${
+      bossForms.map(([kind, form]) => `${kind} L=${form?.median.toFixed(4)}`).join(', ')
+    } vs minion L=${minion?.median.toFixed(4)})`,
   )
 
   const alphas = /TELEGRAPH_ALPHA = \{ cone: ([\d.]+), spawn: ([\d.]+) \}/.exec(paletteSource)
@@ -765,7 +781,14 @@ try {
     'the opening prompt arms before any beat has played',
   )
   const promptText = await page.locator('[data-testid="playout-continue"]').textContent()
-  assert((promptText ?? '').includes('Continue'), `the playout pauses on a Continue prompt (${promptText?.trim()})`)
+  // The property, not the wording. This used to assert the literal word
+  // "Continue", which made the prompt's label load-bearing: the bar became a
+  // Beat card and the verb became "Resolve", and a test that had nothing to
+  // say about pacing failed. What pausing actually means is that a prompt is
+  // up and it names the Beat the press will play — which the loop below then
+  // holds against what really lights.
+  const armed = (await page.locator('[data-testid="playout-continue"]').getAttribute('data-next-beat')) ?? ''
+  assert(armed !== '', `the playout pauses on a prompt naming the beat it will play (${promptText?.trim()})`)
   // The prompt is a trailer, not a caption: the beat it names is the beat
   // the press plays. Naming the beat already on the board made every press
   // read as a skip, so hold each promise against what actually lights. The
@@ -781,6 +804,14 @@ try {
     presses += 1
     assert(promised !== '', `Continue prompt ${presses} names the beat it will play`)
     assert((await prompt.textContent())?.includes(promised), `prompt ${presses} shows that beat's name (${promised})`)
+    // The card resolved the prompt to a real authored Beat rather than falling
+    // back to a bare title. The fallback exists so a card can never throw, and
+    // this is what stops it becoming the silent normal case — a degraded card
+    // still looks like a card, so nothing else would notice.
+    assert(
+      ((await prompt.getAttribute('data-beat-id')) ?? '') !== '',
+      `card ${presses} found the authored Beat behind "${promised}", not just its title`,
+    )
     await prompt.click()
     const playing = ((await page.locator('[data-testid="beat-chip"][data-playing="true"]').first().textContent()) ?? '').trim()
     assert(playing === promised, `Continue ${presses} plays the beat it promised (promised ${promised}, played ${playing})`)

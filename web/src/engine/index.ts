@@ -41,6 +41,7 @@ export {
   FACING_SE,
 } from './facing'
 export { buildProgramSequence, currentProgram } from './timeline'
+export { keywordTitle } from './keywords'
 export { combatantRef, counterCount, readCounterEvent, counterCountByKeyword, getCounters, hexCounterRef, slotRef, type CounterRef } from './counters'
 export { getEntityIdAt, isLegalMove, neighbors, isGuardedFront } from './board'
 export { minionIntent, minionIntents, type MinionIntent } from './minions'

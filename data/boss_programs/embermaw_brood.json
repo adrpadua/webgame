@@ -22,12 +22,12 @@
       "target_selector": "tank",
       "damage": 4,
       "unguarded_bonus": 3,
-      "damage_keywords": [
-        "tank_hit"
-      ],
       "answer_tags": [
         "mitigate",
         "position"
+      ],
+      "damage_keywords": [
+        "tank_hit"
       ]
     }
   ],
@@ -53,16 +53,6 @@
       "minion": "whelp",
       "count": 2,
       "escalation_if_unanswered": 1,
-      "answer_tags": [
-        "kill_adds"
-      ]
-    },
-    {
-      "id": "heat_warning",
-      "title": "Cull the Brood",
-      "rules_text": "A living Whelp is what pulls the collapse forward.",
-      "kind": "warning",
-      "consequence_tier": "chip",
       "answer_tags": [
         "kill_adds"
       ]
