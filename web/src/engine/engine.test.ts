@@ -85,7 +85,7 @@ function startBroodSecond(): EncounterState {
 //
 // Two engine rules — pool-scoped demand pricing (D-041) and Escalation
 // acceleration from a standing Minion (ADR 0027) — need a Minion that can
-// still be on the board at a Round end. Since D-061 no live Minion can be:
+// still be on the board at a Round end. Since D-063 no live Minion can be:
 // a Whelp detonates on the Incoming Row of the Round after it arrives, so it
 // never reaches the Round-end step it used to be billed at. The rules are
 // architecture rather than Embermaw tuning, so they are proven here against
@@ -939,7 +939,7 @@ describe('Demand disclosure (D-041)', () => {
     // The other scope, and the reason it is not one rule: a Minion is on the
     // board regardless of which program runs, so its demand outlives the Beat
     // that spawned it and any priced Beat in the pool sets its cost. Proven
-    // against a Minion that can still be standing at a Round end (D-061).
+    // against a Minion that can still be standing at a Round end (D-063).
     const standing = standingMinionCatalog()
     let state = immortalHero(startBroodSecond())
     let charged = false
@@ -1531,7 +1531,7 @@ describe('Minion end-step intent (D-006)', () => {
     }
 
     // The bite is adjacency-gated, and adjacency is what the creep buys. Since
-    // the fuse (D-061) the arrival Round's end step is the only one a Whelp
+    // the fuse (D-063) the arrival Round's end step is the only one a Whelp
     // gets — it detonates on the next Incoming Row — so a Whelp bites only
     // when it arrives already next to its Hero. Put one there and take that
     // Round's wrap instead.
@@ -1566,7 +1566,7 @@ describe('Minion end-step intent (D-006)', () => {
   })
 })
 
-describe('Minion detonation (D-061)', () => {
+describe('Minion detonation (D-063)', () => {
   // Round 2 is the Brood Round on this seed, so its Slow Window is the board
   // with two freshly arrived Whelps on it — the state every test here starts
   // from. Nine phase steps reach it (D-036: the pinned opener calls no Whelps).
@@ -1722,7 +1722,7 @@ describe('Minion detonation (D-061)', () => {
 
   it('never detonates a Minion with no authored fuse', () => {
     // Both halves are authored (`explode_damage`, `explode_radius`), so a
-    // Minion without them creeps and bites exactly as it did before D-061.
+    // Minion without them creeps and bites exactly as it did before D-063.
     const fuseless = structuredClone(catalog)
     fuseless.minions.whelp.explode_damage = 0
     fuseless.minions.whelp.explode_radius = 0
@@ -2812,7 +2812,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
   })
 
   it('accelerates from an unanswered Whelp, so the collapse arrives early', () => {
-    // Embermaw prices Brood Call at 0, because since D-061 a Whelp detonates
+    // Embermaw prices Brood Call at 0, because since D-063 a Whelp detonates
     // before it can reach a Round end and a demand nothing can leave standing
     // is a price nothing can pay. The mechanism is proven against a catalog
     // variant that both prices the Beat and removes the fuse. Nothing else
@@ -2839,7 +2839,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     // Whelp. State the rule instead, so pricing and answerability can never
     // drift apart.
     //
-    // The answer is the same one D-061 tightened the deadline on: killing the
+    // The answer is the same one D-063 tightened the deadline on: killing the
     // Whelp. Stepping out of its blast dodges the damage but not the price, so
     // the demand the deck has to be able to answer is still "clear the add".
     const encounter = catalog.encounters.embermaw_prototype
@@ -2884,7 +2884,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     // before the Round-end step: counting them would be a second automatic
     // tick rather than earned acceleration.
     //
-    // Against the priced, fuseless variant (D-061): with the live content the
+    // Against the priced, fuseless variant (D-063): with the live content the
     // demand costs 0 and no Minion survives to a Round end, so this Round's
     // zero would be zero whatever the grace rule said.
     const standing = standingMinionCatalog()
@@ -4282,7 +4282,7 @@ describe('Encounter Records (schema_version 2)', () => {
     // The solo ceiling ends on the clock again. It has now flipped three
     // times: to the clock when Brood Call was priced (D-036), back to zero
     // Health when promoting Quench traded two Steady Strike out of the list,
-    // and to the clock again with the Whelp fuse (D-061), because the deepest
+    // and to the clock again with the Whelp fuse (D-063), because the deepest
     // push is a dodging line and a Whelp it steps away from removes itself —
     // it runs out of Rounds a Round before it runs out of Hero. `outcome`
     // stays `defeat` either way; `end_kind` is what distinguishes the two ways

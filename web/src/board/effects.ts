@@ -271,7 +271,7 @@ export function deriveBoardEffects(
       }
 
       case 'detonate_minion': {
-        // The fuse running out (D-061). The blast is drawn in the hazard tone
+        // The fuse running out (D-063). The blast is drawn in the hazard tone
         // rather than the boss tone: it is the ground going up around a piece,
         // the same thing a Cinder Breath cone shows, and the piece it came
         // from is gone by the time it lands.
@@ -326,7 +326,7 @@ export function deriveBoardEffects(
 
 // A fact that owns a moment of the playout: something the player watches
 // happen on its own before the next thing does. A Boss Beat is one, and since
-// D-061 so is a Minion detonating — it resolves in the Incoming Row alongside
+// D-063 so is a Minion detonating — it resolves in the Incoming Row alongside
 // the Beats, and sharing a moment with the Beat that follows it would show a
 // blast the Beat did not cause.
 function ownsMoment(fact: ResolvedActionFact): boolean {

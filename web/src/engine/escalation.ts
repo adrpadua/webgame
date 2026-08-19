@@ -174,7 +174,7 @@ function demandTerms(catalog: ContentCatalog, state: EncounterState, kind: strin
 
 // What one unanswered Minion costs, and which Beat set that cost — the same
 // pool lookup the Round-end step uses, exposed because a Minion with a fuse
-// (D-061) is billed where it goes off rather than where it stands.
+// (D-063) is billed where it goes off rather than where it stands.
 //
 // A Whelp that reaches its fuse is a Whelp the party failed to answer, so it
 // carries the price its spawning Beat authored. Priced per Minion rather than

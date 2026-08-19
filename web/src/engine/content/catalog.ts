@@ -340,7 +340,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     }
   }
   for (const minion of Object.values(catalog.minions)) {
-    // A fuse is two authored halves and neither is usable alone (D-061):
+    // A fuse is two authored halves and neither is usable alone (D-063):
     // damage with no radius is a blast that reaches nothing, and a radius with
     // no damage is a Minion that removes itself for free. Stated both ways so
     // a half-authored fuse fails at load rather than resolving to nothing.

@@ -267,7 +267,7 @@ try {
     bossWarmMedian < Math.min(coneL, spawnL),
     `both filled telegraphs outrank the Boss sprite on screen (boss L=${bossWarmMedian.toFixed(4)}, cone ${coneL.toFixed(4)}, spawn ${spawnL.toFixed(4)})`,
   )
-  // The blast telegraph (D-061) is the one that ranks on its outline instead of
+  // The blast telegraph (D-063) is the one that ranks on its outline instead of
   // its fill, because it covers up to ten of nineteen hexes. Both halves of
   // that bargain are measured against the shipped sheet: the line clears the
   // Boss, and the wash under it deliberately does not — a wash that drifted up

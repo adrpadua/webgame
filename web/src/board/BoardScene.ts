@@ -49,7 +49,7 @@ export interface BoardSnapshot {
   // see drawnFacing.
   guardedFront: boolean
   // The footprint every Minion whose fuse is up will burn when the Incoming
-  // Row resolves (D-061). Rules-derived like the target keys above: the scene
+  // Row resolves (D-063). Rules-derived like the target keys above: the scene
   // paints the blast but never decides how far one reaches.
   blastHexKeys: string[]
   // Hexes the scripted first turn is pointing the player at.
@@ -863,7 +863,7 @@ export class BoardScene extends Phaser.Scene {
         graphics.lineStyle(2, warm, 0.9)
         this.strokeHex(graphics, hexCorners(x, y, HEX_SIZE - 6))
       }
-      // A Minion's fuse, painted for the whole Round it burns through (D-061).
+      // A Minion's fuse, painted for the whole Round it burns through (D-063).
       // Same material as the cone, because a blast landing in the Incoming Row
       // is exactly as imminent as the breath landing in it; what separates the
       // two is shape. The cone edges every tile it covers and reads as a fan

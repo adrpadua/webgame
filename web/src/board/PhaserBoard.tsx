@@ -62,7 +62,7 @@ function buildSnapshot(
             .map((entity) => hexKey(entity.coords))
         : []
   const playout = usePlayout.getState()
-  // The Minion fuses that will go off in the next Incoming Row (D-061), read
+  // The Minion fuses that will go off in the next Incoming Row (D-063), read
   // from the live board rather than stored on it. That is what keeps the mark
   // honest: kill the Whelp in the Quick Window and its footprint is gone the
   // same frame, because the projection and the resolution ask the same

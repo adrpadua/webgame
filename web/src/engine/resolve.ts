@@ -396,7 +396,7 @@ function resolveOne(
       break
     }
     case 'detonate_minion': {
-      // The fuse running out (D-061). The blast is derived here rather than
+      // The fuse running out (D-063). The blast is derived here rather than
       // carried on the action, so the footprint the fact records is the one
       // the hexes were actually taken from.
       const minion = draft.board.entities[action.sourceId]

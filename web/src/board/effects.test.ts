@@ -403,7 +403,7 @@ describe('board effects', () => {
   })
 
   it('blows the ground up around a Whelp whose fuse ran out, and takes the piece with it', () => {
-    // D-061. The detonation resolves in the Incoming Row alongside the Boss
+    // D-063. The detonation resolves in the Incoming Row alongside the Boss
     // Beats, so it has to claim its own moment: sharing one with the Beat that
     // follows would show a blast that Beat did not cause.
     let state = openedRound()

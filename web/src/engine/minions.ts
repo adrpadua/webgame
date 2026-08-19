@@ -10,7 +10,7 @@ export interface MinionIntent {
   destination: Axial | null
 }
 
-// A Minion's fuse, resolved (D-061): where the blast lands, how much every
+// A Minion's fuse, resolved (D-063): where the blast lands, how much every
 // Hero inside it takes, and which Heroes are inside it right now.
 export interface MinionDetonation {
   minionId: string
@@ -73,7 +73,7 @@ export function minionIntents(catalog: ContentCatalog, state: EncounterState): M
     .filter((intent): intent is MinionIntent => intent !== null)
 }
 
-// The Minion fuse (D-061): a Minion carrying an authored blast detonates on
+// The Minion fuse (D-063): a Minion carrying an authored blast detonates on
 // the Incoming Row of the Round AFTER the one it arrived in. One Round of
 // life, so the party gets the Slow Window of its arrival and the Quick Window
 // after it — two windows to kill it or to stand somewhere else.

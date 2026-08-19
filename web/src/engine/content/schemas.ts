@@ -177,7 +177,7 @@ export const minionSchema = z.object({
   rules_text: z.string().default(''),
   max_health: z.number().int().min(1),
   attack_damage: z.number().int().min(0).default(0),
-  // A Minion's fuse (D-061). A Minion authoring a blast detonates on the
+  // A Minion's fuse (D-063). A Minion authoring a blast detonates on the
   // Incoming Row of the Round after it arrived, and the pair is authored here
   // rather than defaulted for the reason a Beat's reach is (D-043): how far a
   // blast reaches is the whole difference between one a step answers and one

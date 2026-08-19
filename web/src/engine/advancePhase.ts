@@ -86,7 +86,7 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
         submit(action)
       }
       submit(advanceAction('quick', 'incoming', draft.round))
-      // The Minion fuses (D-061), before the Boss acts. A Whelp's clock is its
+      // The Minion fuses (D-063), before the Boss acts. A Whelp's clock is its
       // own: it was set when the Whelp arrived, so what the Boss does this
       // Round must not decide when it runs out. Resolving first also means the
       // hexes a blast frees are available to the spawn telegraph re-aimed

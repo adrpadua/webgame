@@ -66,7 +66,7 @@ export interface BoardPalette {
 // Two telegraphs are on the board at once and the cone is the more imminent
 // read, so it takes the brighter step and the spawn telegraph the next.
 //
-// A third telegraph arrived with the Minion fuse (D-061), and it takes the
+// A third telegraph arrived with the Minion fuse (D-063), and it takes the
 // cone's step rather than a new one, because the ramp ranks by imminence and a
 // blast about to go off in the Incoming Row is exactly as imminent as the cone
 // about to burn in it. There is no sixth warm step to give it and it must not
