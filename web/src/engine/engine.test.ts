@@ -17,12 +17,14 @@ import {
   createEncounterState,
   fireTargeting,
   hexDistance,
+  parseHexKey,
   heroRole,
   hexKey,
   isGuardedFront,
   guardedFrontHex,
   neighbors,
   legality,
+  legalActions,
   minionDetonations,
   minionIntents,
   replayRecord,
@@ -312,7 +314,27 @@ describe('content catalog', () => {
         payload: { id: 'short_shove', title: 'Short Shove', speed: 'quick', target_type: 'piece', push_tiles: 1 },
       }
       expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow(
-        'Card short_shove (data/cards/short_shove.json) declares push_tiles but has range_tiles below 1',
+        'Card short_shove (data/cards/short_shove.json) reaches past its Hero (push_tiles, target_type piece) but authors no range_tiles',
+      )
+    })
+
+    // The other half of the same rule, and the one D-067 added: a card that
+    // reaches the Boss has to say how far, and a card that reaches nobody must
+    // not carry a number nothing reads.
+    it('rejects Boss damage with no authored range, and a reach on a card that touches nobody', () => {
+      const rangeless = {
+        source: 'data/cards/long_swing.json',
+        payload: { id: 'long_swing', title: 'Long Swing', speed: 'quick', boss_damage: 2 },
+      }
+      expect(() => buildCatalog({ ...empty, cards: [rangeless] })).toThrow(
+        'Card long_swing (data/cards/long_swing.json) reaches past its Hero (boss_damage) but authors no range_tiles',
+      )
+      const idle = {
+        source: 'data/cards/distant_calm.json',
+        payload: { id: 'distant_calm', title: 'Distant Calm', speed: 'quick', armor_delta: 2, range_tiles: 3 },
+      }
+      expect(() => buildCatalog({ ...empty, cards: [idle] })).toThrow(
+        'Card distant_calm (data/cards/distant_calm.json) authors range_tiles 3 but reaches nothing past its own Hero',
       )
     })
 
@@ -328,6 +350,7 @@ describe('content catalog', () => {
           title: 'Probe Signature',
           speed: 'quick',
           fixed: true,
+          range_tiles: 1,
           boss_damage: 1,
           standing: [grant],
           ...overrides,
@@ -340,7 +363,7 @@ describe('content catalog', () => {
         programs: [{ id: 'probe_program', title: 'Probe Program', instant_beats: [], incoming_beats: [] }],
         cards: [
           signature(),
-          { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1 },
+          { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', range_tiles: 1, boss_damage: 1 },
         ],
         heroes: [
           { id: 'probe_hero', title: 'Probe Hero', max_health: 10, signature_card: signatureCard },
@@ -381,7 +404,7 @@ describe('content catalog', () => {
       it('rejects a full_charge block on a card that is not fixed', () => {
         const bad = {
           source: 'data/cards/probe_strike.json',
-          payload: { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1, full_charge: { places_counter: 'sundered' } },
+          payload: { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', range_tiles: 1, boss_damage: 1, full_charge: { places_counter: 'sundered' } },
         }
         expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow('authors a full_charge block but is not fixed')
       })
@@ -398,7 +421,7 @@ describe('content catalog', () => {
         )
         const named = {
           source: 'data/cards/probe_strike.json',
-          payload: { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1, resource_title: 'Fury' },
+          payload: { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', range_tiles: 1, boss_damage: 1, resource_title: 'Fury' },
         }
         expect(() => buildCatalog({ ...empty, cards: [named] })).toThrow('authors a resource_title but is not fixed')
       })
@@ -426,7 +449,7 @@ describe('content catalog', () => {
       it('rejects an Encounter fielding an unknown Hero, and a Hero naming an unknown signature card', () => {
         const missingHero = {
           ...arena('', [{ card: 'probe_strike', copies: 2 }]),
-          cards: [{ id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1 }],
+          cards: [{ id: 'probe_strike', title: 'Probe Strike', speed: 'quick', range_tiles: 1, boss_damage: 1 }],
           heroes: [],
         }
         expect(() => buildCatalog({ ...empty, ...missingHero })).toThrow(
@@ -1944,8 +1967,8 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
     return variant
   }
 
-  function firedAt(variant: ReturnType<typeof withStatusCard>, cardId: string, targetId?: string) {
-    let state = start()
+  function firedAt(variant: ReturnType<typeof withStatusCard>, cardId: string, targetId?: string, from?: EncounterState) {
+    let state = from ?? start()
     state = stepPhases(state, 2).state
     expect(state.phase).toBe('quick')
     hero(state).hand = [card('t1', cardId), card('t2', 'steady_strike')]
@@ -1977,10 +2000,11 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
     expect(catalog.counters.fortified.max).toBeGreaterThan(1)
   })
 
-  it('lands a Counter on the Boss with no range requirement', () => {
-    // The Boss is selectable for a Counter but never range-gated, which keeps
-    // the positionless `boss_damage` ruling intact.
-    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
+  it('lands a Counter on the Boss, and refuses it from outside the card\'s reach', () => {
+    // The Boss answers the same reach every other Enemy does (D-067). It was
+    // the one target exempt from range, to stay consistent with positionless
+    // `boss_damage`; that ruling is gone, and so is the exemption.
+    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 1 })
     const state = start()
     const fired = firedAt(variant, 'sunder_test', state.bossId)
     expect(fired.facts[0].succeeded).toBe(true)
@@ -1989,10 +2013,24 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
       count: 1,
       readers: [{ when: 'host_takes_damage', effect: 'target_damage', per: 1 }],
     })
+
+    // The same card and the same Boss, from the far side of the arena. The
+    // hex is picked as the furthest one on the board rather than written down,
+    // because Embermaw closes a hex of its own during the Instant Row (D-041)
+    // and a hand-picked hex would only be out of reach until it did.
+    const stepped = structuredClone(state)
+    const bossCoords = stepped.board.entities[stepped.bossId].coords
+    const furthest = Object.keys(stepped.board.hexes)
+      .map(parseHexKey)
+      .sort((left, right) => hexDistance(right, bossCoords) - hexDistance(left, bossCoords))[0]
+    stepped.board.entities[stepped.primaryHeroId].coords = furthest
+    const refused = firedAt(variant, 'sunder_test', stepped.bossId, stepped)
+    expect(refused.facts[0]).toMatchObject({ succeeded: false, reason: "The chosen Enemy is outside the Top Card's range." })
+    expect(refused.state.counters[combatantRef(stepped.bossId)]).toBeUndefined()
   })
 
   it('raises damage the Sundered Boss takes', () => {
-    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 1 })
     const state = start()
     const sundered = firedAt(variant, 'sunder_test', state.bossId).state
     const before = sundered.board.entities[sundered.bossId].health
@@ -2008,7 +2046,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
   })
 
   it('lowers damage a Weakened Enemy deals', () => {
-    const variant = withStatusCard('weaken_test', { places_counter: 'weakened', target_type: 'piece', range_tiles: 0 })
+    const variant = withStatusCard('weaken_test', { places_counter: 'weakened', target_type: 'piece', range_tiles: 1 })
     const state = start()
     const weakened = firedAt(variant, 'weaken_test', state.bossId).state
     const healthBefore = hero(weakened).health
@@ -2025,7 +2063,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
   })
 
   it('refuses a second copy of a max-1 Counter', () => {
-    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 1 })
     let state = stepPhases(start(), 2).state
     expect(state.phase).toBe('quick')
     // Two Slots, same quick-speed card, one window: the Slot activation limit
@@ -2050,7 +2088,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
   })
 
   it('refuses a piece-targeting Counter with no Enemy target', () => {
-    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 1 })
     const fired = firedAt(variant, 'sunder_test', undefined)
     expect(fired.facts[0].succeeded).toBe(false)
     expect(fired.facts[0].reason).toContain('Enemy target')
@@ -2060,7 +2098,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
     // The mechanism was two-sided from D-032, but the Round's tick ran over
     // the Heroes alone: an authored `duration_rounds` meant nothing on an
     // Enemy, so a single Sunder marked the Boss for the rest of the fight.
-    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 1 })
     const opening = start()
     let state = immortalHero(firedAt(variant, 'sunder_test', opening.bossId).state)
     expect(state.counters[combatantRef(state.bossId)]).toHaveLength(1)
@@ -2129,7 +2167,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
   it('drops a Counter held by a piece that has left the board', () => {
     // Belt and braces on the Round's upkeep: whatever removed the piece, the
     // Round start must not carry its afflictions forward.
-    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 1 })
     const opening = start()
     let state = immortalHero(firedAt(variant, 'sunder_test', opening.bossId).state)
     state.counters[combatantRef('ghost_whelp')] = [...state.counters[combatantRef(state.bossId)]]
@@ -3295,6 +3333,102 @@ describe('Raking Claw reach (D-062)', () => {
   })
 })
 
+describe('Authored card reach (D-067)', () => {
+  // The card side of the rule the Beats already answered (D-043): reach is a
+  // property every ability carries, and `boss_damage` no longer resolves from
+  // wherever the Hero happens to stand.
+  //
+  // Steady Strike is the card that made the gap visible. Its rules text is a
+  // melee swing and its data said nothing about distance, so a Guardian parked
+  // three hexes clear of Embermaw hit exactly as hard as one holding the
+  // Guarded Front — the range-camping line D-017 had to answer with authored
+  // Boss pressure because the card itself would not.
+  const strike = catalog.cards.steady_strike
+
+  // Fire a charged Steady Strike from `coords`, with the Boss left where the
+  // Encounter placed it. Phases are stepped first and the Hero is moved
+  // afterwards, so the Instant Row's advance cannot close the distance the
+  // test is measuring.
+  function strikeFrom(coords: { q: number; r: number }) {
+    let state = stepPhases(start(), 2).state
+    expect(state.phase).toBe('quick')
+    state.board.entities[state.primaryHeroId].coords = { ...coords }
+    hero(state).hand = [card('s1', 'steady_strike'), card('s2', 'steady_strike')]
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 's1' }).state
+    state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 's2' }).state
+    return resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+  }
+
+  it('authors a reach on every card that touches anything past its own Hero', () => {
+    // Stated as a property of the deck rather than as a list of card ids, so a
+    // new attack cannot be added without one. The catalog refuses this at load
+    // too; this is the same rule read back off the shipped content.
+    for (const authored of Object.values(catalog.cards)) {
+      const reaches =
+        authored.boss_damage > 0 ||
+        authored.damage > 0 ||
+        authored.push_tiles > 0 ||
+        authored.pull_tiles > 0 ||
+        authored.target_type === 'hex' ||
+        authored.target_type === 'piece'
+      expect(authored.range_tiles >= 1, `${authored.id} reaches: ${reaches}, range_tiles: ${authored.range_tiles}`).toBe(reaches)
+    }
+  })
+
+  it('lands Boss damage from inside the authored reach and from nowhere further out', () => {
+    // Read against `range_tiles` rather than a literal `1`, the contract D-043
+    // wrote for the cone and D-062 for the claw: lengthening Steady Strike's
+    // reach in `data/` has to move the hit with it.
+    const bossCoords = boss(start()).coords
+    let inReachHexes = 0
+    let outOfReachHexes = 0
+    for (const key of Object.keys(start().board.hexes)) {
+      const [q, r] = key.split(',').map(Number)
+      const distance = hexDistance({ q, r }, bossCoords)
+      if (distance === 0) {
+        continue
+      }
+      const fired = strikeFrom({ q, r })
+      const inReach = distance <= strike.range_tiles
+      expect(fired.facts[0].succeeded, `hex ${key} at distance ${distance}`).toBe(inReach)
+      if (inReach) {
+        inReachHexes += 1
+        expect(fired.facts.some((fact) => fact.kind === 'damage' && fact.succeeded)).toBe(true)
+      } else {
+        outOfReachHexes += 1
+        expect(fired.facts[0].reason).toBe("The Boss is outside the Top Card's range.")
+        // A refused fire spends nothing: the Slot keeps its Charge Stack and
+        // may still fire this window from a hex that reaches.
+        expect(fired.state.heroes[fired.state.primaryHeroId].actionBar[0].charges).toHaveLength(1)
+        expect(boss(fired.state).health).toBe(boss(start()).health)
+      }
+    }
+    // Both halves were actually exercised — an arena where every hex is in
+    // reach, or none is, would pass the loop above having proven nothing.
+    expect(inReachHexes).toBeGreaterThan(0)
+    expect(outOfReachHexes).toBeGreaterThan(0)
+  })
+
+  it('offers no fire action from out of reach, so the bar never lights a Slot the rules refuse', () => {
+    // `legalActions` and `fireTargeting` ask the same predicate the resolver
+    // does (ADR 0013), so the Action Bar cannot advertise the shot that
+    // `strikeFrom` above is refused.
+    let state = stepPhases(start(), 2).state
+    const bossCoords = boss(state).coords
+    const furthest = Object.keys(state.board.hexes)
+      .map(parseHexKey)
+      .sort((left, right) => hexDistance(right, bossCoords) - hexDistance(left, bossCoords))[0]
+    expect(hexDistance(furthest, bossCoords)).toBeGreaterThan(strike.range_tiles)
+    state.board.entities[state.primaryHeroId].coords = furthest
+    hero(state).hand = [card('s1', 'steady_strike'), card('s2', 'steady_strike')]
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 's1' }).state
+    state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 's2' }).state
+
+    const fires = legalActions(catalog, state, state.primaryHeroId).filter((action) => action.kind === 'fire_slot' && action.slotIndex === 0)
+    expect(fires).toEqual([])
+  })
+})
+
 describe('impact memory across a missed Beat', () => {
   it('leaves the last connected hit standing for hazard_last_impact when a cone misses', () => {
     // `hazard_last_impact` burns wherever the Boss last actually connected,
@@ -4003,6 +4137,7 @@ describe('card draw effects', () => {
       healing: 0,
       boss_damage: 0,
       damage: 0,
+      range_tiles: 0,
       draw_count: 2,
       burst_radius: 0,
       push_tiles: 0,
@@ -4075,7 +4210,7 @@ describe('card draw effects', () => {
   })
 
   it('emits draws after the Card damage and on-fire Counter consequences', () => {
-    const variant = withDrawCard({ boss_damage: 1, draw_count: 1 })
+    const variant = withDrawCard({ boss_damage: 1, range_tiles: 1, draw_count: 1 })
     const state = readyDraw(variant)
     state.counters[combatantRef(state.primaryHeroId)] = [
       {
@@ -4103,7 +4238,7 @@ describe('card draw effects', () => {
   })
 
   it('finishes the authored draws after lethal Boss damage resolves first', () => {
-    const variant = withDrawCard({ boss_damage: 1, draw_count: 1 })
+    const variant = withDrawCard({ boss_damage: 1, range_tiles: 1, draw_count: 1 })
     const state = readyDraw(variant)
     state.board.entities[state.bossId].health = 1
     const handBefore = hero(state).hand.length

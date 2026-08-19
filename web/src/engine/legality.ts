@@ -107,6 +107,25 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       }
       const hasDisplacement = card.push_tiles > 0 || card.pull_tiles > 0
       let targetVerdict: LegalityVerdict | undefined
+      // The Boss is the one target a card never has to name, and until D-067
+      // it was the one target no card had to reach: `boss_damage` resolved
+      // from anywhere on the board, so Steady Strike read as a melee swing and
+      // played as artillery. It is checked here, ahead of the selected-target
+      // rules, because it is the reach a card asserts by dealing Boss damage
+      // at all — a card aimed at a Whelp still has to stand close enough to
+      // land the half of itself that hits Embermaw.
+      //
+      // Held apart from `targetVerdict` rather than assigned into it: a card
+      // that also names a piece or a hex reports *that* distance to the
+      // surfaces reading `targetRange`, and the selected-target rules below
+      // key off `targetVerdict` still being unset.
+      let bossVerdict: LegalityVerdict | undefined
+      if (card.boss_damage > 0) {
+        bossVerdict = rangeVerdict(state, action.sourceId, state.bossId, card.range_tiles, "The Boss is outside the Top Card's range.")
+        if (!bossVerdict.legal) {
+          return bossVerdict
+        }
+      }
       // Every hex-targeting card needs a reachable on-board hex, not only a
       // Burst: since D-048 a card may also put a Counter on the ground, and
       // ground it cannot reach is the same illegal target either way.
@@ -157,16 +176,19 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
         targetVerdict = verdict
       }
       // A card that places a Counter on a piece, or reads one there, needs an
-      // Enemy, and each kind keeps the targeting rule it already had (D-034,
-      // kept by D-047): a Minion must be in range, the Boss needs none —
-      // requiring one would contradict the positionless `boss_damage` ruling.
+      // Enemy, and every Enemy answers the same reach (D-034 and D-047 chose
+      // one rule per target kind; D-067 collapsed them to one). The Boss was
+      // the exception, exempted to stay consistent with positionless
+      // `boss_damage` — so the exemption went out with the ruling that
+      // justified it, and marking Embermaw now costs the same footwork as
+      // marking a Whelp.
       if (cardNeedsPieceTarget(card)) {
         const targetId = action.targetId ?? ''
         const target = state.board.entities[targetId]
         if (!target || target.team !== 'enemy') {
           return illegal('The Top Card needs an Enemy target.')
         }
-        if (target.kind !== 'boss' && targetVerdict === undefined) {
+        if (targetVerdict === undefined) {
           targetVerdict = rangeVerdict(state, action.sourceId, targetId, card.range_tiles, "The chosen Enemy is outside the Top Card's range.")
           if (!targetVerdict.legal) {
             return targetVerdict
@@ -179,7 +201,7 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       if (!cardGatesPass(catalog, state, card, action)) {
         return illegal('The Top Card needs more Counters than are there.')
       }
-      return targetVerdict ?? legal()
+      return targetVerdict ?? bossVerdict ?? legal()
     }
     case 'move_hero': {
       const hero = state.heroes[action.sourceId]

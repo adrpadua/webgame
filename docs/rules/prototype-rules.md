@@ -155,7 +155,15 @@ Cards currently resolve against one of these target styles:
 - direct damage to the Boss through a card's `boss_damage` effect
 - selected Minion piece on a hex through the current `PIECE` target type
 
-A card's `boss_damage` effect resolves without a range check in the prototype: the Hero's position never blocks it. Counter-pressure against playing at a distance is authored encounter content, not a card range rule. That counter-pressure is a `demand_proximity` Beat (D-041): if no Hero stands within its authored reach at the Round end, Escalation rises — Embermaw's `Within Reach` charges `1`. It is priced in Escalation rather than in Health on purpose, because a Health price is one a camper can simply out-heal or out-armor, while the clock is the thing that ends the fight. A Beat may still carry an `unguarded_bonus` for a hit that reaches past the hex the Boss faces; Raking Claw carried one until it gained a reach of `1`, at which point there was no unbraced hex left for it to price (D-062).
+### Reach
+
+Every card that touches anything past the Hero firing it authors a reach: `range_tiles`, in hexes, measured from the Hero's hex to whatever the card lands on. It is one number for the whole card, and it answers every reaching effect the card has — a selected piece, a selected hex, forced movement, and the Boss a `boss_damage` card never has to name. A card that reaches nothing but its own Hero authors no reach at all, and the content validator refuses both halves of the mismatch (D-067).
+
+Two exemptions were withdrawn to get there. `boss_damage` used to resolve without a range check, so a Hero's position never blocked it; and the Boss was the one Enemy a piece-targeting card could mark from any distance, exempted expressly to stay consistent with the first rule (D-034, kept by D-047). Both are gone: the Boss answers the same reach every other Enemy does. `board_slot` stays reach-free, because an ally's prepared Top Card is not a place on the board and support was chosen adjacency-free (D-009).
+
+The melee vocabulary is authored as `range_tiles: 1` — Steady Strike, Shield Slam, Unyielding Step, Taunting Challenge, Quench, and Elian's Riposte all swing at arm's length, which is what their rules text already said.
+
+Counter-pressure against playing at a distance is now priced twice, in the card and in the encounter, and the encounter half is unchanged. A `demand_proximity` Beat (D-041) raises Escalation if no Hero stands within its authored reach at the Round end — Embermaw's `Within Reach` charges `1`. It is priced in Escalation rather than in Health on purpose, because a Health price is one a camper can simply out-heal or out-armor, while the clock is the thing that ends the fight. A Beat may still carry an `unguarded_bonus` for a hit that reaches past the hex the Boss faces; Raking Claw carried one until it gained a reach of `1`, at which point there was no unbraced hex left for it to price (D-062).
 
 The prototype does not yet provide a selectable generic Enemy target. A future `Enemy` selector must allow both the Boss and Minions, then validate their shared range and targeting rules consistently.
 

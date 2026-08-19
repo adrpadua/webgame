@@ -1,6 +1,6 @@
 # Counter-Pressure Against Boss-Range Camping
 
-Status: shipped (D-017, 2026-08-17)
+Status: shipped (D-017, 2026-08-17); premise amended (D-067, 2026-08-19)
 
 ## Player Problem
 
@@ -72,3 +72,14 @@ across all positions (previously 97% victory for `dual_steady/far` and
 100% enrage survival for `sword_shield/far`); the Scenario generator now
 exits red-flag on any found solo victory, and the committed
 `embermaw_solo_ceiling` Scenario replaces the retired victory line.
+
+On Wednesday, August 19, 2026, the user reported the underlying premise as a
+bug rather than a ruling: Steady Strike reads as a melee swing and fired from
+several hexes away in the Workbench. D-067 gives every card a `range_tiles`
+reach — the Boss included — and authors the melee vocabulary at `1`, so
+`boss_damage` is no longer positionless. The counter-pressure this issue
+shipped is not undone by it: the unguarded bonus and the raised solo health
+still price standing off the Guarded Front and racing the clock. What the
+reach adds is that camping at distance is no longer a damage plan at all —
+every `far` policy in the 48-policy sweep now deals exactly zero Boss damage,
+where `dual_steady/far` averaged 16.6.

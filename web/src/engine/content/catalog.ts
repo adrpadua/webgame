@@ -41,6 +41,34 @@ import { hexDistance } from '../hex'
 // into a compile error at the moment of the rename.
 const RANGED_BEAT_KINDS = new Set<BossBeat['kind']>(['forward_cone', 'demand_proximity', 'targeted_hit'])
 
+// What a Card touches that is not the Hero firing it, named rather than
+// counted so the authoring error can say which field asked for a reach. Every
+// one of these is measured from the Hero's hex at fire time, so every one of
+// them needs `range_tiles` to say how far that measurement may stretch.
+//
+// `boss_damage` is in this list and used not to be. It resolved without a
+// range check under the positionless ruling behind D-017, which meant reach
+// was a property some abilities had and others silently did without.
+function cardReachingEffects(card: Card): string[] {
+  const reaching: string[] = []
+  if (card.boss_damage > 0) {
+    reaching.push('boss_damage')
+  }
+  if (card.damage > 0) {
+    reaching.push('damage')
+  }
+  if (card.push_tiles > 0) {
+    reaching.push('push_tiles')
+  }
+  if (card.pull_tiles > 0) {
+    reaching.push('pull_tiles')
+  }
+  if (card.target_type === 'hex' || card.target_type === 'piece') {
+    reaching.push(`target_type ${card.target_type}`)
+  }
+  return reaching
+}
+
 export interface ContentCatalog {
   cards: Record<string, Card>
   heroes: Record<string, Hero>
@@ -227,8 +255,20 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     if (displacementField !== '' && card.target_type !== 'piece') {
       throw new Error(`${cardAt(card.id)} declares ${displacementField} but does not target a piece`)
     }
-    if (displacementField !== '' && card.range_tiles < 1) {
-      throw new Error(`${cardAt(card.id)} declares ${displacementField} but has range_tiles below 1`)
+    // Both halves of the reach rule, the same pair the ranged Beat kinds
+    // answer below (D-043, extended to cards by D-067): a card that touches
+    // anything past its own Hero authors how far it touches, and a card that
+    // touches nobody must not author a reach nothing reads.
+    //
+    // `board_slot` is deliberately outside the reaching set: an ally's
+    // prepared Slot is not a place on the board, and support was chosen
+    // adjacency-free (D-009).
+    const reaching = cardReachingEffects(card)
+    if (reaching.length > 0 && card.range_tiles < 1) {
+      throw new Error(`${cardAt(card.id)} reaches past its Hero (${reaching.join(', ')}) but authors no range_tiles`)
+    }
+    if (reaching.length === 0 && card.range_tiles > 0) {
+      throw new Error(`${cardAt(card.id)} authors range_tiles ${card.range_tiles} but reaches nothing past its own Hero`)
     }
     for (const modifierId of card.charge_modifiers) {
       if (!catalog.chargeModifiers[modifierId]) {

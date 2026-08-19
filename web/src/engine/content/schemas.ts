@@ -179,7 +179,21 @@ export const cardSchema = z.object({
   armor_next_round: z.number().int().min(0).default(0),
   healing: z.number().int().default(0),
   boss_damage: z.number().int().default(0),
-  range_tiles: z.number().int().default(0),
+  // How far this card reaches, in hexes, measured from the firing Hero to
+  // whatever it lands on — a selected piece, a selected hex, or the Boss a
+  // `boss_damage` card never has to name (D-067). `0` is a card that reaches
+  // nothing but its own Hero, and the catalog refuses both halves of the
+  // mismatch: a card that reaches without a reach, and a reach on a card that
+  // touches nobody.
+  //
+  // It was here from the start and only some of the reaching effects read it.
+  // `boss_damage` was deliberately exempt — the positionless ruling behind
+  // D-017 — which made Steady Strike a melee swing in its rules text and an
+  // artillery piece in the Workbench: a Guardian standing three hexes clear of
+  // Embermaw hit exactly as hard as one holding the Guarded Front. Reach is now
+  // one property that every ability answers, the same way every reaching Beat
+  // does.
+  range_tiles: z.number().int().min(0).default(0),
   damage: z.number().int().default(0),
   draw_count: z.number().int().min(0).max(3).default(0),
   burst_radius: z.number().int().min(0).default(0),

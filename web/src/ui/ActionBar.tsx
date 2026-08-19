@@ -125,7 +125,7 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
   const card = slot.topCard ? catalog.cards[slot.topCard.cardId] : null
   const chargeCap = card ? cardChargeCap(card) : 0
   const stateName = slotStateName(slot, chargeCap)
-  const canFire = slotCanFire(catalog, state, slot)
+  const canFire = slotCanFire(catalog, state, slotIndex)
   // A Slot whose Top Card fires in the other window is off for this one: it
   // cannot fire however charged it is, so its plate goes dim rather than
   // sitting lit beside the Slot that can. Off, not dead — it still takes

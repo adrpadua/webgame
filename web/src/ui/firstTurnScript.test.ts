@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
-import { advancePhase, createEncounterState, parseHexKey, resolve, type EncounterActionInput, type EncounterState } from '@/engine'
+import { advancePhase, createEncounterState, hexDistance, parseHexKey, resolve, type EncounterActionInput, type EncounterState } from '@/engine'
 import { blocksTarget, firstTurnStep, type FirstTurnStep } from './firstTurnScript'
 
 // The scripted first turn is a promise about a specific authored Encounter:
@@ -109,6 +109,41 @@ describe('scripted first turn', () => {
     expect(blocksTarget(step, 'next')).toBe(true)
     // With no script running, nothing is gated.
     expect(blocksTarget(null, 'next')).toBe(false)
+  })
+
+  it('offers only dodges that keep the prepared Slots in reach (D-067)', () => {
+    // Every ability carries a reach now, so the cone's exits are no longer
+    // interchangeable: one of them leaves Unyielding Step unable to land and
+    // would teach the Slow Window lesson by showing the Slot go dark. The
+    // guarantee is over *every* offered hex, not the one the test happens to
+    // take — a player taps whichever they like.
+    let state = createEncounterState(catalog, FIRST_TURN_ENCOUNTER_ID)
+    let offered: string[] = []
+    for (let guard = 0; guard < 40; guard += 1) {
+      const step = firstTurnStep(catalog, state)
+      if (step === null) {
+        break
+      }
+      if (step.id === 'move-away') {
+        offered = step.safeHexKeys
+        break
+      }
+      const action = actionForStep(state, step)
+      state = (action === 'advance' ? advancePhase(catalog, state) : resolve(catalog, state, action)).state
+    }
+    expect(offered.length).toBeGreaterThan(0)
+    const bossCoords = state.board.entities[state.bossId].coords
+    const reaching = state.heroes[state.primaryHeroId].actionBar.filter(
+      (slot) => slot.topCard !== null && slot.activatedWindow === null && catalog.cards[slot.topCard.cardId].range_tiles > 0,
+    )
+    expect(reaching.length).toBeGreaterThan(0)
+    for (const key of offered) {
+      for (const slot of reaching) {
+        expect(hexDistance(parseHexKey(key), bossCoords), `${key} must keep ${slot.topCard!.cardId} in reach`).toBeLessThanOrEqual(
+          catalog.cards[slot.topCard!.cardId].range_tiles,
+        )
+      }
+    }
   })
 
   it('names a quick card that needs no Minion target', () => {

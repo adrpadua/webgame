@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
-import { createEncounterState, type CardInstance, type EncounterState, type Phase, type SlotState } from '@/engine'
-import { slotOutOfWindow, slotTakesCharge, slotWantedKeywords } from './slots'
+import { createEncounterState, hexDistance, parseHexKey, type CardInstance, type EncounterState, type Phase, type SlotState } from '@/engine'
+import { slotCanFire, slotOutOfWindow, slotTakesCharge, slotWantedKeywords } from './slots'
 
 // The Slot's two offers, held apart on purpose: what its Top Card is hunting
 // for is a fact about the card and holds all window long, while whether it
@@ -94,5 +94,51 @@ describe('slot out of window', () => {
   it('is never off for an empty Slot, or once the Encounter ends', () => {
     expect(slotOutOfWindow(catalog, opening('slow'), slotState({}))).toBe(false)
     expect(slotOutOfWindow(catalog, { ...opening('slow'), active: false }, quickSlot)).toBe(false)
+  })
+})
+
+describe('slot can fire', () => {
+  // A charged, in-window Slot standing next to Embermaw.
+  function armed(cardId: string, phase: Phase = 'quick'): EncounterState {
+    const state = opening(phase)
+    state.heroes[state.primaryHeroId].actionBar[0] = slotState({
+      topCard: instance(cardId, 'top'),
+      charges: [instance('iron_guard', 'a')],
+    })
+    return state
+  }
+
+  it('lights a charged Slot whose Top Card matches the window', () => {
+    expect(slotCanFire(catalog, armed('steady_strike'), 0)).toBe(true)
+  })
+
+  it('leaves it dark from outside the Top Card\'s reach (D-067)', () => {
+    // Reach is a rule about where the Hero stands, so the same charged Slot
+    // answers differently from two hexes. The plate has to follow it, or it
+    // asserts a shot the resolver refuses.
+    const state = armed('steady_strike')
+    const bossCoords = state.board.entities[state.bossId].coords
+    const furthest = Object.keys(state.board.hexes)
+      .map(parseHexKey)
+      .sort((left, right) => hexDistance(right, bossCoords) - hexDistance(left, bossCoords))[0]
+    expect(hexDistance(furthest, bossCoords)).toBeGreaterThan(catalog.cards.steady_strike.range_tiles)
+    state.board.entities[state.primaryHeroId].coords = furthest
+    expect(slotCanFire(catalog, state, 0)).toBe(false)
+  })
+
+  it('leaves a Minion-seeking Slot dark while the board holds no Minion to hit', () => {
+    // The other half of the same predicate, and the one that was always true:
+    // Sweeping Blow needs a piece, and the opening board has none.
+    expect(slotCanFire(catalog, armed('sweeping_blow'), 0)).toBe(false)
+  })
+
+  it('leaves it dark out of window, uncharged, or already fired', () => {
+    expect(slotCanFire(catalog, armed('steady_strike', 'slow'), 0)).toBe(false)
+    const uncharged = armed('steady_strike')
+    uncharged.heroes[uncharged.primaryHeroId].actionBar[0].charges = []
+    expect(slotCanFire(catalog, uncharged, 0)).toBe(false)
+    const spent = armed('steady_strike')
+    spent.heroes[spent.primaryHeroId].actionBar[0].activatedWindow = 'quick'
+    expect(slotCanFire(catalog, spent, 0)).toBe(false)
   })
 })

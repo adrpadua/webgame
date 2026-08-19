@@ -101,6 +101,18 @@ interface PolicyKnobs {
   // is anything to cool. Neither is how the card would be played, and the gap
   // between them is the whole value of the card.
   slotPlan: 'dual_steady' | 'sword_shield' | 'turtle' | 'culler' | 'shover' | 'quencher' | 'banker' | 'reactive_quench'
+  // Where the Tank stands. `far` parks at distance 3+, out of the Cinder
+  // Breath cone; `dodge` steps off telegraphed hexes; `stay` holds the Guarded
+  // Front.
+  //
+  // `far` changed meaning under D-067 and its rows should be read with that in
+  // mind: every card now carries a reach, so a policy parked at distance 3
+  // cannot land a single point of Boss damage — its `bossDmg` column is `0.00`
+  // by construction and its `rejected` column counts the shots it keeps trying
+  // to take. That is the measurement, not a broken policy: `far` is kept
+  // precisely so the sweep keeps showing what camping now costs. Before D-067
+  // the same rows read 16.6 (`dual_steady/far`), 14.1 (`reactive_quench/far`)
+  // and 11.0 (`sword_shield/far`).
   position: 'far' | 'dodge' | 'stay'
   spike: boolean
 }

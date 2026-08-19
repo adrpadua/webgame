@@ -719,11 +719,16 @@ try {
     await page.mouse.up()
   }
   const stepsBeforeDrag = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
-  await dragHero(-1, 0)
+  // East, to (1, 0), which is one of the hexes the script is pointing at.
+  // Since D-067 the cone's exits are not interchangeable: (-1, 0) dodges the
+  // breath and steps out of the slow Slot's reach, so the Round would end with
+  // Unyielding Step unfired and the Slow Window lesson untaught. (1, 0) dodges
+  // and stays in the fight, which is what the script highlights.
+  await dragHero(1, 0)
   await page.waitForSelector('[data-testid="move-payment-cue"]')
   assert(
-    (await page.locator('[data-testid="move-payment-cue"]').getAttribute('data-direction')) === 'W',
-    'dragging the Hero west asks for the step west',
+    (await page.locator('[data-testid="move-payment-cue"]').getAttribute('data-direction')) === 'E',
+    'dragging the Hero east asks for the step east',
   )
   // Two dock members at once: the step's prompt and whatever stat panel is
   // open behind it. The panel rides above the prompt rather than under it,
@@ -755,7 +760,7 @@ try {
   // Held over a hex the Hero can step to, with nothing committed yet, every
   // card in hand is one Stamina and nothing else — and the Hand says so
   // while the card is still in flight.
-  const dropAt = await hexPosition(boardCanvas, -1, 0)
+  const dropAt = await hexPosition(boardCanvas, 1, 0)
   const cardBox = await scriptedCard().boundingBox()
   await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2)
   await page.mouse.down()
@@ -767,7 +772,7 @@ try {
   assert((await handFace()) === 'keywords', 'the Hand returns to its Keyword face once the move lands')
   assert((await page.locator('[data-testid="hand-card"]').count()) === handBeforeMove - 1, 'the Stamina discard left the Hand')
   const factLog = await page.locator('[data-testid="fact-log"]').textContent()
-  assert(factLog?.includes('Move to (-1, 0)'), 'the fact log records the Hero move')
+  assert(factLog?.includes('Move to (1, 0)'), 'the fact log records the Hero move')
 
   await next()
   assert((await phase()) === 'incoming', 'the Quick Window ends and Boss Incoming opens with its beats replaying')
@@ -779,9 +784,9 @@ try {
   // Incoming Row is the cone and nothing else.
   assert(incomingLog?.includes('Boss Beat: Cinder Breath'), 'the Incoming Row replayed Cinder Breath')
   assert(!incomingLog?.includes('Spawn whelp'), 'the opening Round called no Whelps')
-  // The Hero stepped to (-1, 0); the frame needs no reopening — it is
+  // The Hero stepped to (1, 0); the frame needs no reopening — it is
   // already up, and the moved Hero's tap still lands on the frame's pulse.
-  await tapHeroTile(-1, 0)
+  await tapHeroTile(1, 0)
   assert((await page.locator('[data-testid="entity-inspect"]').count()) === 0, 'the moved Hero still opens no panel')
   const heroAfterBreath = await page.locator('[data-testid="hero-health"]').textContent()
   assert(heroAfterBreath?.includes('30'), `the dodged Cinder Breath dealt nothing (${heroAfterBreath?.trim()})`)

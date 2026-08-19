@@ -13,7 +13,8 @@ Every player card has these authored fields:
 | `rules_text` | Complete, encounter-neutral mechanical text. It is the canonical card rules text. |
 | `speed` | `quick` for basics, setup, movement-adjacent effects, and low-commitment responses; `slow` for larger commitments and signature effects. |
 | `max_charge` | The Top Card's Charge Value: the maximum number of tucked cards it can hold. The engine default is `2`; the foundation cards `Steady Strike` and `Iron Guard` use `3`. |
-| `target_type` and `range_tiles` | Define what must be selected and where it is legal to use the card. `none` needs no selection, `piece` selects a Minion, `hex` selects an on-board hex (including empty ground) for a Burst, and `board_slot` selects an ally's Top Card. Never imply a target in text that the data model does not enforce. |
+| `target_type` | What must be selected. `none` needs no selection, `piece` selects an Enemy, `hex` selects an on-board hex (including empty ground) for a Burst, and `board_slot` selects an ally's Top Card. Never imply a target in text that the data model does not enforce. |
+| `range_tiles` | How far the card reaches, in hexes from the firing Hero to whatever it lands on (D-067). One number for the whole card: it answers the selected piece, the selected hex, forced movement, *and* the Boss a `boss_damage` card never names. Author `1` for a melee swing. A card that touches anything past its own Hero must carry a reach, and a card that touches nobody must not — the build refuses both. `board_slot` is the exception: an ally's Top Card is not a place on the board, and support is adjacency-free (D-009). |
 | Effect fields | State the base effect in the corresponding data field: Boss damage, Armor, healing, targeted Minion damage, Push/Pull distance, or a Burst radius. A positive `burst_radius` requires positive `damage` and `target_type: hex`. |
 | `places_counter` | A Counter id from `data/counters/` (D-033, D-047). Where it lands follows `target_type`, which must be able to supply the Counter's host (D-048): `none` or `piece` for a `combatant` Counter, `hex` for a `hex` Counter, `board_slot` for a `slot` Counter. Place an existing Counter rather than authoring a near-duplicate — a second Sundered with different text is how a shared vocabulary stops being shared. |
 | `damage_keywords` | What this card's damage is made of and who it is aimed at, as registered `damage_type` Keyword ids (D-049). A Counter Reader can narrow itself to one of these, so keywording a card's damage is what lets a Counter answer it. A card declaring these must actually deal damage. |
@@ -143,6 +144,7 @@ The deck tests the choice between firing a reusable Top Card immediately and sav
 - [ ] The first sentence explains the uncharged effect.
 - [ ] The charge sentence states its exact per-card benefit.
 - [ ] The text agrees with the card's target, range, speed, Charge Value, and effect data.
+- [ ] `range_tiles` matches the reach the rules text implies: a card that swings, strikes, or slams is `1`, and a card that reaches further says so in its text.
 - [ ] The primary job is obvious from the title and first sentence.
 - [ ] The Compact Card can be scanned from title, timing, and Charge Value alone.
 - [ ] Card Inspection contains the same canonical rules text.
