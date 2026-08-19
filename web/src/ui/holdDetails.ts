@@ -1,8 +1,6 @@
 import {
   cardChargeCap,
   cardWindowSpeed,
-  type BossBeat,
-  type BossProgram,
   type Card,
   type ContentCatalog,
   type EncounterState,
@@ -112,63 +110,11 @@ export function phaseDetail(phase: Phase, active: boolean): HoldDetail {
   }
 }
 
-// The whole Boss Program in one popup: both tracks, in resolution order,
-// each beat with the number that matters. Held from the program strip.
-export function programDetail(program: BossProgram): HoldDetail {
-  const line = (beat: BossBeat): { label: string; value: string } => {
-    const parts: string[] = []
-    if (beat.damage > 0) {
-      parts.push(`${beat.damage} dmg`)
-    }
-    if (beat.minion !== undefined) {
-      parts.push(`${beat.count} ${beat.minion}`)
-    }
-    if (beat.hazard !== undefined) {
-      parts.push(beat.hazard)
-    }
-    return { label: beat.title, value: parts.length > 0 ? parts.join(' · ') : '—' }
-  }
-  return {
-    id: `program:${program.id}`,
-    title: program.title,
-    badge: 'Boss program',
-    tone: 'boss',
-    stats: [
-      { label: 'INSTANT', value: 'resolves now' },
-      ...program.instant_beats.map(line),
-      { label: 'INCOMING', value: 'after your Quick' },
-      ...program.incoming_beats.map(line),
-    ],
-    text: program.rules_text,
-  }
-}
-
-// One beat on its own: what it does, what it leaves behind, what answers
-// it. Hovered from a chip in the program strip.
-export function beatDetail(beat: BossBeat, track: 'instant' | 'incoming'): HoldDetail {
-  const stats: { label: string; value: string }[] = []
-  if (beat.damage > 0) {
-    stats.push({ label: 'Damage', value: String(beat.damage) })
-  }
-  if (beat.target_selector !== '') {
-    stats.push({ label: 'Target', value: beat.target_selector })
-  }
-  if (beat.minion !== undefined) {
-    stats.push({ label: 'Spawns', value: `${beat.count} ${beat.minion}` })
-  }
-  if (beat.hazard !== undefined) {
-    stats.push({ label: 'Leaves', value: `${beat.hazard} · ${beat.duration_rounds} round${beat.duration_rounds === 1 ? '' : 's'}` })
-  }
-  return {
-    id: `beat:${track}:${beat.id}`,
-    title: beat.title,
-    badge: track === 'instant' ? 'Instant' : 'Incoming',
-    tone: 'boss',
-    stats,
-    text: beat.rules_text,
-    tags: beat.answer_tags,
-  }
-}
+// The Boss Program's own popup and the per-Beat popup both left with the
+// program strip that held them (D-060). A Beat's numbers, reach, rules text
+// and answers are printed on its Beat Card as it resolves, which is the one
+// moment they are worth reading; the program's name survives as the badge on
+// the Boss's Stat Panel.
 
 export const HERO_STAT_DETAILS: Record<'health' | 'armor' | 'cards', Omit<HoldDetail, 'stats'>> = {
   health: {

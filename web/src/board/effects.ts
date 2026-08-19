@@ -217,7 +217,7 @@ export function deriveBoardEffects(
           break
         }
         // The beat announces itself: the Boss pulses and the beat's name
-        // floats up, tying each moment of feedback to a chip on the strip.
+        // floats up, tying each moment of feedback to the card that dealt it.
         const title = detailString(fact, 'beatTitle') !== '' ? detailString(fact, 'beatTitle') : (beat?.title ?? '')
         add({ kind: 'cast', entityId: before.bossId, at: bossCoords, label: title === '' ? undefined : title, tone: 'boss' })
         if (beat?.kind === 'turn_toward_player') {

@@ -95,19 +95,24 @@ same way, with `VITE_BASE` set to that host's serving path.
 Touch is first-class on iPadOS Safari: drag Compact Cards with a finger to
 prepare, charge, or move; press the Hero to preview routes, or drag it onto a
 legal hex — the Hand then lifts its cards and the one tapped pays for the
-step; tap the program strip to expand or collapse it. Every drag also has a tap path — tap a Compact Card
+step. Every drag also has a tap path — tap a Compact Card
 to select it, then tap a Slot or a move-pad direction — and replacing an
 occupied Slot always asks for confirmation, since it discards the Top Card and
 its Charge Stack.
 
-Press and hold anything named on the HUD — a Compact Card, a Slot, a boss
-beat chip, a Hero stat, the round track, the boss bar — for a Detail Popup
-with that object's numbers and full authored text. The HUD itself stays down
-to names, numbers, and colour; the sentences live one gesture away. On a
-desktop the same popups open on hover, one element at a time, so hovering a
-single boss beat explains that beat while holding the strip on a phone gives
-the whole two-track program. Holding `Enter` or `Space` on a focused control
+Press and hold anything named on the HUD — a Compact Card, a Slot, a phase
+mark, the round track, the Escalation gauge, a Hero stat, the boss bar — for a
+Detail Popup with that object's numbers and full authored text. The HUD itself
+stays down to names, numbers, and colour; the sentences live one gesture away.
+On a desktop the same popups open on hover, one element at a time, so hovering
+a single phase mark explains that window while holding the track on a phone
+draws the whole Round. Holding `Enter` or `Space` on a focused control
 does the same thing from a keyboard.
+
+A Boss Beat's own numbers arrive on its Beat Card, which the Row deals one beat
+at a time and which is the control that resolves it. There is no persistent
+Boss Program strip (D-060): the fight above the board is two lines — the Round
+track, and the Escalation gauge under it.
 
 A first visit opens the `embermaw_first_turn` Encounter with the scripted
 first turn running: a single guided Round that walks preparing both Slots,
