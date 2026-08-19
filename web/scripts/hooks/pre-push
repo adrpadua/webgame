@@ -34,5 +34,9 @@ if [ ! -d node_modules ]; then
   exit 1
 fi
 
+# Fail on a missing browser here, with the command that fixes it, rather than
+# letting the build run for a minute and then dying inside Playwright.
+node scripts/check-browser.mjs
+
 echo "pre-push: running the browser gate (npm run verify:local)"
 npm run verify:local
