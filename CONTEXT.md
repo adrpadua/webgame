@@ -98,18 +98,26 @@ _Avoid_: Hostile target, foe
 A player Card effect centered on a selected on-board hex within Range of the firing Hero. The center may be empty. Every Enemy whose hex lies within the authored radius — including the Boss and all Minions, but never Heroes or allies — receives one ordinary damage action, with Minions in stable entity order and the Boss last (ADR 0030). The firing action records the center and its ordered on-board footprint so preview and resolution share one geometry result.
 _Avoid_: Piece-targeted area attack, splash estimate, friendly fire
 
-**Status Effect**:
-A temporary rule attached to one combatant — a Hero **or** an Enemy — that responds to an explicit trigger, such as the start of a Round, taking damage, or firing a Slot (D-032). The mechanism is identical on both sides; only which payload fields matter differs, so an Enemy-facing status uses `damageTakenBonus` and `damageDealtPenalty` where a Hero-facing one uses Armor and Boss-damage fields. Status definitions are authored content in `data/statuses/` and each one states whether it stacks (D-033). Every Status Effect is visible to the whole Party. A Status Effect may never redirect a Boss Beat's target or change what that Beat is.
-_Avoid_: Passive, invisible buff, Enemy Status
+**Counter**:
+A named, counted marker carrying a count, a cap, and optionally a clock (D-032, D-047). A Counter is held by a **host**: a combatant (a Hero **or** an Enemy), a hex, or a prepared Slot (D-048). A Slot host is D-035's Top Card attachment; solo it can only be one of the firing Hero's own Slots, because there is no ally to attach to yet. Ground outlives whoever stands on it, so a hex Counter is a mark on the arena rather than on a piece; a Slot Counter rides the prepared Top Card, so re-loading that Slot drops it. Only a combatant host may carry Readers, because every Reader event is something that happens to a combatant. A Counter never outlives its host. A Counter does nothing on its own. Everything it does is a **Reader**: an authored entry saying which event it answers (`round_start`, `host_takes_damage`, `host_deals_damage`, `slot_fired`) and what it adds per Counter held. A damage Reader may narrow itself to one `event_keyword`, answering only blows carrying that Keyword; naming none answers every blow of its kind (D-049). So a Counter never declares which side it is "for" — Sundered raises what its host takes and Weakened lowers what its host deals, and either would work on either side. Counters are authored in `data/counters/`, and a card may only place one whose host its own `target_type` can supply; `max: 1` is the old non-stacking rule, and anything higher accumulates, which is how Fortified's banked Armor is simply its count. A Counter is temporary on every combatant alike: one carrying a duration ticks down at each Round start, and one whose host leaves the board leaves with it (D-045). Every Counter is visible to the whole Party, read on the Stat Panel of whichever piece holds it. A Counter may never redirect a Boss Beat's target or change what that Beat is.
+_Avoid_: Status effect, passive, invisible buff, stack
+
+**Damage Keyword**:
+What a blow is made of and who it is aimed at, authored on a Boss Beat or a Card as `damage_keywords` and carried on the damage's Resolution Fact (D-049). Plural on purpose: a blow may be a `Tank Hit` **and** an element, and one string holding both axes is the category error the Keyword `kind` exists to prevent. `Tank Hit` is the Keyword the rules themselves read — absorbing one cleanly on the Guarded Front is what grants Riposte Ready. A Counter's Reader may narrow itself to one of these, which is how a Counter answers one kind of blow rather than all damage.
+_Avoid_: Damage type field, classification string, element tag
+
+**Reader**:
+The only path from a Counter's count to a number (D-047). A Counter's own Readers say what holding it does; a Card's `reads` say what firing it does with Counters, through three verbs — `gate` (refuse unless the count qualifies), `scale` (add per Counter held), and `spend` (remove Counters, as a cost paid before the Card's effects are computed, or at resolution after). A Reader names one Counter or one Keyword, never both, and reads one of two subjects: the firing Hero or the Card's chosen piece. Readers do not compose with boolean logic — every `gate` must pass, and that is the entire grammar. A mechanic that needs more than this belongs in engine code, which is where Riposte Ready's graded consumption stays (D-015, D-033).
+_Avoid_: Trigger, effect script, condition
 
 **Riposte Ready**:
-A non-stacking, non-refreshing Elian Voss Status Effect. When a Boss Tank Hit resolves against Captain Elian Voss while they occupy the Guarded Front and causes `0` Health loss, grant Riposte Ready if they do not already have it. It expires at the end of the first Quick Window after that qualifying hit, whether the hit occurred in an Instant Row or an Incoming Row. The first card that deals Boss damage while it is active consumes it: a legal Shield Slam gains `2` additional Boss damage, and any other Boss-damage card gains `1` (D-015). Cards that deal no Boss damage never consume it. The effect must show its qualifying trigger, expiry, and consumption; it is not a general posture category or a resource meter.
+A `max: 1` Elian Voss Counter, built by engine code rather than authored, because its graded consumption is what the Reader vocabulary models worst (D-033, D-047). When a Boss Tank Hit resolves against Captain Elian Voss while they occupy the Guarded Front and causes `0` Health loss, grant Riposte Ready if they do not already have it. It expires at the end of the first Quick Window after that qualifying hit, whether the hit occurred in an Instant Row or an Incoming Row. The first card that deals Boss damage while it is active consumes it: a legal Shield Slam gains `2` additional Boss damage, and any other Boss-damage card gains `1` (D-015). Cards that deal no Boss damage never consume it. The effect must show its qualifying trigger, expiry, and consumption; it is not a general posture category or a resource meter.
 
 The same qualifying hit also decides where that Beat's Hazard falls (D-039): absorbed cleanly, the ash spills to a hex further from the Boss instead of underfoot. One predicate, two rewards — throughput for a Party that can spend it, standing room for a line that cannot. Neither reward ever reduces what the Beat costs; they only change where the cost lands.
 _Avoid_: Awakening, stacking buff, generic stance
 
 **Fortified**:
-An Elian Voss Status Effect created by firing Fortify in the Slow Window (D-019). It is a Status Effect with delayed onset, not a `Commitment`: it prepares for whatever the next Round opens with rather than for a named Beat, so it has no Beat to bind to. Its definition is authored in `data/statuses/`; the Armor amount comes from the card. At the start of the next Round, immediately after the Armor wipe, it grants its stored Armor and expires; the granted Armor is ordinary Armor thereafter. Multiple Fortified commitments stack additively. Because it lands before the next Instant Row, it is the one way to pre-block Instant-row pressure.
+An Elian Voss Counter placed by firing Fortify in the Slow Window (D-019). It is a Counter with delayed onset, not a `Commitment`: it prepares for whatever the next Round opens with rather than for a named Beat, so it has no Beat to bind to. Its definition is authored in `data/counters/`, and the banked Armor is the count — Fortify places one Counter per Armor stored, so the amount still rides the card (D-047). Its Reader pays one Armor per Counter at the start of the next Round, immediately after the Armor wipe, and the Counter then expires; the granted Armor is ordinary Armor thereafter. Multiple Fortified commitments stack additively, which with a count is simply addition. Because it lands before the next Instant Row, it is the one way to pre-block Instant-row pressure.
 _Avoid_: Delayed buff, second Armor pool
 
 **Hazard**:
@@ -163,8 +171,16 @@ The shared simultaneous player phase after the `Incoming Row` resolves. It is fo
 _Avoid_: Power phase, cast phase
 
 **Action Bar**:
-The persistent set of player action slots that hold prepared abilities. Players slide cards under slotted abilities to charge them over multiple rounds.
+The persistent set of player action slots that hold prepared abilities. Players slide cards under slotted abilities to charge them over multiple rounds. It also carries the two `Action Bar Rail` controls that pace the fight, one on each side of the Slots.
 _Avoid_: Hand row, toolbar
+
+**Action Bar Rail**:
+One of the two narrow controls flanking the Slots in the `Bottom Interaction Zone`: `Undo` on the left, and on the right the single control that moves the fight forward — playing the next Boss Beat while a Boss Row is being told, closing the window otherwise, and restarting once the Encounter has ended. A rail is a control rather than a readout, which is what earns it a place in the thumb's reach; the Round's state is read from the Round track, which carries no controls at all.
+_Avoid_: Toolbar button, Next button, footer control
+
+**Undo**:
+Taking back the Hero's last action inside the window it was taken in — a Slot loaded or fired, a Charge tucked, a step paid for. It reaches the actions still standing above the last phase advance and no further: a Boss Beat and the advance that closed a window are not the Party's to rewind, because the Round is the Boss's clock and an `Escalation` that can be walked backwards is not a clock. An action that was refused changed nothing and is stepped over rather than taken back, so one press always takes back one thing that happened.
+_Avoid_: Rewind, time travel, take-back of a Boss Beat
 
 **Slot**:
 A single action bar position that holds one prepared ability and its charge stack. A slot is the smallest player planning unit that persists across rounds.
@@ -223,8 +239,8 @@ An explicit Top Card rule that changes its effect according to the Keywords on c
 _Avoid_: Default charge bonus, hidden synergy
 
 **Keyword**:
-A reusable mechanical label on a Card. A card may have multiple Keywords. It contributes one Charge when tucked, and counts once for every explicit matching Charge Modifier on the Top Card.
-_Avoid_: Card type, flavor tag
+A reusable mechanical label, authored in `data/keywords/` and referenced by id. Keywords are the game's one tag namespace: a Card's tags, the Role a Boss Beat selects, the kind of damage a Beat deals, and the answers a Boss Program demands are all Keywords, so anything that pivots on a label pivots on the same vocabulary (D-046). Each Keyword declares a `kind` — `role`, `trait`, `damage_type`, or `answer` — and every reference is checked against both the id and the kind it is allowed to name, because a reference that resolves to the wrong sort of Keyword is an error the id alone cannot catch. A Keyword carries no behaviour of its own; it is a join key, and what reads it decides what it means. A card may have multiple Keywords: it contributes one Charge when tucked, and counts once for every explicit matching Charge Modifier on the Top Card. A Keyword of kind `role` marks whose deck a card belongs to, so every card in a Hero's deck carries it and the glance surfaces leave it off.
+_Avoid_: Card type, flavor tag, tag string
 
 **Top Card**:
 The visible card occupying a Slot and defining that Slot's actual ability. The Top Card determines range, Charge Value, timing, and effect text.
@@ -247,7 +263,7 @@ The temporary reading surface for any named HUD object — a Compact Card, a Slo
 _Avoid_: Tooltip, card menu, help screen
 
 **Stat Panel**:
-The persistent readout for one piece on the board — the Boss, a Hero, or a Minion — opened by tapping that piece's tile and floated over the board's lower edge. It carries the piece's gauges: health for every piece, plus armor, deck, and Status Effects for a Hero. The panel follows the piece rather than the hex and shows the staggered playout values while a Boss Row replays, so it reads as a live gauge; it closes from its own control, a tap on an empty hex, or a session transition, and stays up through ordinary play. Unlike a Detail Popup it persists instead of dismissing on release. Presentation only: it is never a rules surface.
+The persistent readout for one piece on the board — the Boss, a Hero, or a Minion — opened by tapping that piece's tile and floated over the board's lower edge. It carries the piece's gauges: health and Counters for every piece, plus armor and deck for a Hero. A Counter chip shows its count whenever more than one is held, because a count the player cannot see is a count they cannot spend deliberately. The panel follows the piece rather than the hex and shows the staggered playout values while a Boss Row replays, so it reads as a live gauge; it closes from its own control, a tap on an empty hex, or a session transition, and stays up through ordinary play. Unlike a Detail Popup it persists instead of dismissing on release. Presentation only: it is never a rules surface.
 _Avoid_: Tooltip, Detail Popup, HUD gauge, unit frame
 
 **Scripted First Turn**:

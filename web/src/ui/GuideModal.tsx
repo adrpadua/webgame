@@ -89,8 +89,22 @@ export function GuideModal() {
 
   const steps = [
     {
-      title: boss ? `Defeat ${boss.title}` : 'Defeat the Boss',
-      body: `You are ${hero?.title ?? 'the party tank'}. Bring the boss to zero within ${state.roundLimit} Rounds — before it does the same to you.`,
+      // This step used to open on "Defeat Embermaw — bring the boss to zero
+      // within 8 Rounds", and both halves were false. D-016 makes a solo Boss
+      // kill a tuning defect rather than a goal ("Boss defeat belongs to a
+      // Party"), and the sweep holds it: `victory%` is 0 across 1,200 runs,
+      // every one of them ending at Escalation rather than at Boss Health.
+      // The 8 Rounds went the same way — ADR 0027 retired the round limit, so
+      // the clock is the gauge on the Boss's strip, which arrives sooner when
+      // a demand goes unanswered.
+      //
+      // So the premise names the real one. Hold, rather than kill: it is what
+      // the slice actually asks, it is Elian Voss's own word (D-012's Hold,
+      // Brace, Cover, Clear, Advance), and it points a first-time player at
+      // the clock they are actually racing. "Coral" is deliberate — the next
+      // step teaches that coral is the Boss, and this is the same bar.
+      title: boss ? `Hold the line against ${boss.title}` : 'Hold the line',
+      body: `You are ${hero?.title ?? 'the party tank'}, alone. Bringing a boss down takes a party — your fight is the coral bar top right. It fills every Round, and faster when a demand goes unanswered.`,
       diagram: (
         <div className="flex items-center justify-center gap-6 bg-navy-950 px-3 py-5">
           <div className="flex flex-col items-center gap-1">

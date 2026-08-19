@@ -80,6 +80,9 @@ export interface WorkbenchStore {
   restart: (seed?: number) => void
   loadScenario: (scenarioId: string) => void
   timeTravelTo: (index: number) => void
+  // Takes back the player's own last action, within the window they took it
+  // in. See selectUndoTarget.
+  undo: () => void
   exportScenario: () => string
   exportRecord: () => Promise<string>
   fireSlot: (slotIndex: number) => void
@@ -106,6 +109,37 @@ const catalog = loadCatalog()
 export type WorkbenchCatalog = ReturnType<typeof loadCatalog>
 
 export const selectState = (store: WorkbenchStore): EncounterState => store.entries[store.index].state
+
+// Where an undo would land, or null when there is nothing of the player's
+// own left to take back.
+//
+// The rule is a window, not a step count. A Boss Row's beats and a phase
+// advance are not the player's to rewind — the Round is the Boss's clock and
+// taking a beat back would make the Escalation it drives negotiable — so the
+// walk stops the moment it reaches the entry an advance produced, and the
+// rail greys there. That entry is also the window's own floor, which is why
+// no phase bookkeeping is needed: an action still on the timeline above the
+// last advance is by definition an action taken in the open window.
+//
+// A refused action left the state exactly as it found it, so the walk steps
+// over it rather than spending a press on it: one press takes back one thing
+// that actually happened.
+export function selectUndoTarget(store: Pick<WorkbenchStore, 'entries' | 'index'>): number | null {
+  let target = store.index
+  while (target > 0) {
+    const entry = store.entries[target]
+    if (entry.step === null || !('action' in entry.step)) {
+      return null
+    }
+    target -= 1
+    if (entry.facts.some((fact) => fact.succeeded)) {
+      return target
+    }
+  }
+  return null
+}
+
+export const selectCanUndo = (store: Pick<WorkbenchStore, 'entries' | 'index'>): boolean => selectUndoTarget(store) !== null
 
 const SCENARIO_STEP_KINDS = new Set(['load_slot', 'charge_slot', 'fire_slot', 'move_hero', 'discard_for_stamina'])
 
@@ -239,6 +273,20 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
       const { entries } = get()
       const clamped = Math.max(0, Math.min(index, entries.length - 1))
       set({ index: clamped, inspectedEntityId: null, ...CLEARED_INTERACTION })
+    },
+
+    // Undo rides the same seam time travel does: move the index back and the
+    // next action truncates the branch, which is what taking something back
+    // is. Unlike time travel it keeps the Stat Panel open — a player undoing
+    // a shot is usually watching the bar it moved, and closing the readout
+    // would hide the thing the press was about. A panel whose piece the
+    // rewind removed from the board closes itself.
+    undo: () => {
+      const target = selectUndoTarget(get())
+      if (target === null) {
+        return
+      }
+      set({ index: target, ...CLEARED_INTERACTION })
     },
 
     // The current session up to the viewed position, as a Scenario payload:

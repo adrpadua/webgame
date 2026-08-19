@@ -1,17 +1,16 @@
-import { useState } from 'react'
-import { usePlayout } from '@/store/playout'
-import { selectState, useWorkbench, type WorkbenchStore } from '@/store/workbench'
-import type { EncounterState } from '@/engine'
-import { blocksTarget } from './firstTurnScript'
-import { useFirstTurnStep } from './useFirstTurn'
+import { selectState, useWorkbench } from '@/store/workbench'
 import { encounterTerms, phaseDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
-import { Modal } from './Modal'
 import { PHASE_TRACK, roundTrackDetail, type PhaseMark } from './phaseTrack'
-import { slotCanFire } from './slots'
-import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS } from './theme'
+import { FOCUS_RING_CLASS } from './theme'
 
-// The Round track plus the one control that moves it.
+// The Round track and the Encounter Clock beside it: what the Round is
+// doing, and nothing that does it.
+//
+// The one control that moved the Round used to sit here too. It went to the
+// Action Bar's right rail (AdvanceControl), which is where the thumb already
+// is — leaving this band a readout, which is the direction the interface
+// wants for it (docs/content/oathcraft-interface-direction.md).
 //
 // The track is five flat marks, one per window, in the phase tones (see
 // phaseTrack.tsx). It used to be five labelled chips, and five words never
@@ -23,66 +22,6 @@ import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS } from './theme'
 // has. Hovering a mark names its window and explains it; holding anywhere
 // on the track draws the whole Round in order with the live window lit,
 // which is the reading a finger cannot assemble a mark at a time.
-
-// The actions Next would leave on the table, phrased for the window being
-// skipped. Advisory only: "Skip anyway" always goes through.
-interface SkipWarning {
-  title: string
-  body: string
-}
-
-const PLAYER_ACTION_KINDS = new Set(['load_slot', 'charge_slot', 'fire_slot', 'move_hero', 'discard_for_stamina'])
-
-function skipWarning(store: WorkbenchStore, state: EncounterState): SkipWarning | null {
-  const hero = state.heroes[state.primaryHeroId]
-  if (!hero) {
-    return null
-  }
-  if (state.phase === 'loadout') {
-    // An empty Slot does nothing all Round — but only warn while a hand
-    // card could still fill it.
-    if (hero.actionBar.some((slot) => slot.topCard === null) && hero.hand.length > 0) {
-      return {
-        title: 'Leave a Slot empty?',
-        body: 'A Slot is still empty. A card prepared now can take Charge and fire later — an empty Slot does nothing all Round.',
-      }
-    }
-    return null
-  }
-  if (state.phase !== 'quick' && state.phase !== 'slow') {
-    return null
-  }
-  // Did the player do anything at all with this window? Facts carry their
-  // round and phase, so the current window's actions are on the timeline.
-  const acted = store.entries
-    .slice(0, store.index + 1)
-    .some((entry) =>
-      entry.facts.some(
-        (fact) =>
-          fact.succeeded &&
-          fact.round === state.round &&
-          fact.phase === state.phase &&
-          fact.sourceId === state.primaryHeroId &&
-          PLAYER_ACTION_KINDS.has(fact.kind),
-      ),
-    )
-  if (acted) {
-    return null
-  }
-  // ...and is anything still possible? A fireable Slot or any hand card
-  // (Charge, or a paid step during the Quick Window) counts.
-  const canFire = hero.actionBar.some((slot) => slotCanFire(store.catalog, state, slot))
-  if (!canFire && hero.hand.length === 0) {
-    return null
-  }
-  const windowName = state.phase === 'quick' ? 'Quick Window' : 'Slow Window'
-  return {
-    title: `Skip the ${windowName}?`,
-    body: canFire
-      ? `You haven't used the ${windowName}: a Slot can fire right now, and a hand card could add Charge. The window closes when you move on.`
-      : `You haven't used the ${windowName}: a hand card could still add Charge${state.phase === 'quick' ? ' or pay for a step' : ''}. The window closes when you move on.`,
-  }
-}
 
 // One window's mark. It carries its own detail so a mouse can learn the row
 // a mark at a time; the track underneath it holds for touch.
@@ -109,9 +48,6 @@ function PhaseWindowMark({ mark, active }: { mark: PhaseMark; active: boolean })
 export function PhaseControl() {
   const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)
-  const advance = useWorkbench((store) => store.advance)
-  const restart = useWorkbench((store) => store.restart)
-  const step = useFirstTurnStep()
   // Hover belongs to whichever mark the mouse is actually over; the track
   // itself answers a touch hold — and it answers with the whole Round.
   //
@@ -123,53 +59,27 @@ export function PhaseControl() {
   // with the thing a finger cannot get any other way: every window, in
   // order, with this one marked.
   const hold = useHold(roundTrackDetail(state.phase), { hover: false })
-  // The Encounter Clock, compact: the Boss line left the HUD, so the Round
-  // count rides the phase row and the Encounter's terms are a hold away.
+  // The Round mark. It used to read `2/8`, and the denominator was a rule
+  // that no longer exists: ADR 0027 made Escalation the encounter's only
+  // clock, and nothing in the engine ends an Encounter at `roundLimit` any
+  // more — it survives as the authored budget the tick start derives from.
+  // Worse than retired, it was misleading: since D-036 priced Brood Call, a
+  // line that ignores its adds dies around Round 6, so `2/8` promised six
+  // more Rounds to a party that had three. The clock is the Escalation gauge
+  // on the Boss's own strip, which is the only readout that answers to
+  // acceleration; this is a coordinate — which Round the Forecast, the
+  // program pool, and every fact-log line are talking about.
+  //
+  // The nominal budget keeps its seat in the popup, where a qualifier fits:
+  // `ticks alone` is what makes the number honest, because it says out loud
+  // that nothing here has accelerated.
   const clockHold = useHold({
     ...encounterTerms(catalog, state),
     id: 'clock',
     title: 'Encounter Clock',
-    badge: `Round ${state.round} of ${state.roundLimit}`,
+    badge: `Round ${state.round}`,
+    stats: [{ label: 'Ticks alone reach the wipe', value: `Round ${state.roundLimit}` }],
   })
-  const nextGated = blocksTarget(step, 'next')
-  const nextSpotlit = step !== null && step.targets.includes('next')
-  // While a fatal batch is still replaying, the Restart control would give
-  // the ending away; Next stays up (and inert — advance no-ops on an ended
-  // Encounter) until the outcome reveal lands.
-  const outcomeHeld = usePlayout((store) => store.outcomeHeld)
-  // A Next that would waste the window parks here until the player decides.
-  const [pendingSkip, setPendingSkip] = useState<SkipWarning | null>(null)
-
-  // The scripted first turn narrates every press itself, so its Nexts skip
-  // the warning.
-  const onNext = () => {
-    // While a Boss Row is replaying, Next serves the playout: it stands in
-    // for the Continue bar — before the opening beat as well as between
-    // moments — and waits out a moment still playing, in either pacing
-    // mode. The beats resolve as their window opens, and Next must never
-    // silently fast-forward the telling.
-    const playout = usePlayout.getState()
-    if (playout.awaitingContinue) {
-      playout.continuePlayout()
-      return
-    }
-    if (playout.activeBeatId !== null) {
-      return
-    }
-    if (step === null && state.active) {
-      const warning = skipWarning(useWorkbench.getState(), state)
-      if (warning) {
-        setPendingSkip(warning)
-        return
-      }
-    }
-    advance()
-  }
-  const confirmSkip = () => {
-    setPendingSkip(null)
-    advance()
-  }
-
   return (
     <div className="flex items-center gap-2 border-b border-steel-800 bg-steel-950/60 px-3 py-1.5" data-phase={state.phase}>
       <button
@@ -190,64 +100,11 @@ export function PhaseControl() {
         type="button"
         {...clockHold.holdProps}
         data-testid="round-display"
-        aria-label={`Round ${state.round} of ${state.roundLimit}`}
+        aria-label={`Round ${state.round}`}
         className={`min-h-11 min-w-11 shrink-0 text-[11px] font-semibold text-steel-400 ${FOCUS_RING_CLASS}`}
       >
-        {state.round}/{state.roundLimit}
+        R{state.round}
       </button>
-      {state.active || outcomeHeld ? (
-        <button
-          type="button"
-          data-testid="next-phase"
-          onClick={onNext}
-          className={`wb-plate wb-plate-sm wb-face-gold wb-acc-gold min-h-12 shrink-0 text-sm font-bold text-gold-950 transition hover:brightness-110 active:translate-y-px ${FOCUS_RING_CLASS} ${
-            nextSpotlit ? SPOTLIGHT_CLASS : ''
-          } ${nextGated ? GATED_CLASS : ''}`}
-        >
-          Next
-        </button>
-      ) : (
-        <button
-          type="button"
-          data-testid="restart"
-          onClick={() => restart()}
-          className={`wb-plate wb-plate-sm wb-face-gold wb-acc-gold min-h-12 shrink-0 text-sm font-bold text-gold-950 transition hover:brightness-110 active:translate-y-px ${FOCUS_RING_CLASS}`}
-        >
-          Restart
-        </button>
-      )}
-      {pendingSkip !== null && (
-        <Modal
-          onDismiss={() => setPendingSkip(null)}
-          labelledBy="phase-skip-title"
-          accentBorderClass="wb-acc-ember"
-          testId="phase-skip-confirm"
-        >
-          <h2 id="phase-skip-title" className="text-sm font-bold text-ember-300">
-            {pendingSkip.title}
-          </h2>
-          <p className="mt-3 text-xs leading-relaxed text-ceramic-300">{pendingSkip.body}</p>
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              autoFocus
-              data-testid="cancel-skip"
-              onClick={() => setPendingSkip(null)}
-              className={`wb-plate wb-plate-sm wb-face-gold wb-acc-gold min-h-12 flex-1 text-sm font-bold text-gold-950 transition hover:brightness-110 ${FOCUS_RING_CLASS}`}
-            >
-              Stay
-            </button>
-            <button
-              type="button"
-              data-testid="confirm-skip"
-              onClick={confirmSkip}
-              className={`wb-plate wb-plate-sm wb-face-steel wb-acc-none min-h-12 flex-1 text-sm font-bold text-ceramic-200 transition hover:brightness-125 ${FOCUS_RING_CLASS}`}
-            >
-              Skip anyway
-            </button>
-          </div>
-        </Modal>
-      )}
     </div>
   )
 }

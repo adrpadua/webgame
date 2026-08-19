@@ -28,7 +28,7 @@ export function createEncounterState(catalog: ContentCatalog, encounterId: strin
     enrageText: encounter.enrage_text,
     board: createBoard(encounter.board_radius),
     heroes: {},
-    statusEffects: {},
+    counters: {},
     bossId: encounter.boss_id,
     primaryHeroId: encounter.primary_hero_id,
     programIds: [...encounter.boss_programs],

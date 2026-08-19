@@ -8,22 +8,22 @@
       "title": "Stalk the Guardian",
       "rules_text": "Embermaw turns to the guardian.",
       "kind": "turn_toward_player",
-      "counter_tags": [
-        "Position"
-      ],
-      "consequence_tier": "chip"
+      "consequence_tier": "chip",
+      "answer_tags": [
+        "position"
+      ]
     },
     {
       "id": "ember_scar",
       "title": "Ember Scar",
       "rules_text": "The ground under the last pattern stays Scorched.",
       "kind": "hazard_last_impact",
-      "counter_tags": [
-        "Move"
-      ],
       "consequence_tier": "structural",
       "duration_rounds": 1,
-      "hazard": "scorched"
+      "hazard": "scorched",
+      "answer_tags": [
+        "move"
+      ]
     }
   ],
   "incoming_beats": [
@@ -32,27 +32,27 @@
       "title": "Within Reach",
       "rules_text": "If no hero stands adjacent to Embermaw at the end of this Round, Escalation rises by 1.",
       "kind": "demand_proximity",
-      "counter_tags": [
-        "Position"
-      ],
       "consequence_tier": "severe",
       "range_tiles": 1,
-      "escalation_if_unanswered": 1
+      "escalation_if_unanswered": 1,
+      "answer_tags": [
+        "position"
+      ]
     },
     {
       "id": "cinder_breath",
       "title": "Cinder Breath",
       "rules_text": "Forward cone, range 1-2. Deal 10 damage.",
       "kind": "forward_cone",
-      "counter_tags": [
-        "Move",
-        "Interrupt"
-      ],
       "consequence_tier": "structural",
       "range_tiles": 2,
       "damage": 10,
       "duration_rounds": 1,
-      "hazard": "scorched"
+      "hazard": "scorched",
+      "answer_tags": [
+        "move",
+        "interrupt"
+      ]
     }
   ]
 }

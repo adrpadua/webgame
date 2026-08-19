@@ -194,6 +194,14 @@ body {
    at the pips. The corners themselves hold no content. */
 @utility wb-plate-card { --wb-off: 7px; --wb-notch: 4px; padding-inline: 8px; }
 @utility wb-plate-lg { --wb-off: 9px; --wb-notch: 4px; padding-inline: calc(var(--wb-off) + 10px); }  /* ~62px slots */
+/* The Action Bar Slot. Same rake as wb-plate-lg, less breathing room, for
+   the reason wb-plate-card gives: the cut is furthest in on one side per row
+   and the padding does not have to clear it on both. The bar's twelve-unit
+   ladder (2 | 4 | 4 | 2) gives a Slot four units — about 120px at 390 — and
+   the symmetric clearance spent 38 of them on the cut, which truncated
+   "Steady Strike". 3px past the offset clears the cut where the content
+   actually sits and wins back 14px of title. */
+@utility wb-plate-slot { --wb-off: 9px; --wb-notch: 4px; padding-inline: calc(var(--wb-off) + 3px); }
 @utility wb-plate-xl { --wb-off: 16px; --wb-notch: 6px; padding-inline: calc(var(--wb-off) + 12px); } /* ~112px panels */
 /* Faces and accents. The accent is the status channel: gold on the live
    thing, ember on the irreversible one, glass on a player affordance. */

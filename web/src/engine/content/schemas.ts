@@ -9,16 +9,30 @@ export const axialSchema = z.object({
   r: z.number().int(),
 })
 
+// The one tag namespace. Everything taggable joins here — card tags, the Role
+// a Beat selects, the kind of damage a Beat deals, the answers a Program
+// demands — so a pivot can be written against any of them and the validator
+// can check every reference. Keywords carry no behaviour and never will: a
+// Keyword is a join key, and the moment one grows a mechanical field the
+// payload is welded to the marker again.
 export const keywordSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   rules_text: z.string().default(''),
-  // A Keyword that marks which Role a card belongs to rather than what it
-  // does. Every card in a Hero's deck carries theirs, so it distinguishes
-  // nothing between two cards in hand and the HUD leaves it off the glance
-  // surfaces. It is still an ordinary Keyword to the rules: a Charge Modifier
-  // may name it, and the Detail Popup still lists it.
-  role_marker: z.boolean().default(false),
+  // One namespace lets anything join on anything; the discriminator is what
+  // still catches a category error. `damage_classification: "guard"` is
+  // spelled correctly and remains nonsense, and only `kind` can say so.
+  //
+  // `role`       — the Role a card belongs to, and what a Beat may select.
+  // `trait`      — what a card does; the axis a Charge Modifier matches on.
+  // `damage_type`— what kind of blow a damage action is.
+  // `answer`     — the response a Boss Program demands, shown in the Forecast.
+  //
+  // A Role Keyword replaces the old `role_marker` flag: every card in a Hero's
+  // deck carries their Role, so it distinguishes nothing between two cards in
+  // hand and the glance surfaces leave it off. That is a consequence of being
+  // a Role, not a separate fact to keep in sync.
+  kind: z.enum(['role', 'trait', 'damage_type', 'answer']),
 })
 
 export const chargeModifierSchema = z.object({
@@ -28,6 +42,82 @@ export const chargeModifierSchema = z.object({
   keyword_id: z.string().default(''),
   effect: z.enum(['armor', 'healing', 'boss_damage', 'target_damage']),
   amount_per_match: z.number().int().min(1),
+})
+
+// What a Counter does while it is held, and when it does it (D-047). A
+// Counter is inert on its own — a named, counted marker — and a Reader is the
+// only thing that turns a count into an effect. The payload lives here rather
+// than on the marker, so what a Counter *means* is decided by what reads it.
+// That is the whole reason a marker is worth having: three cards may place
+// Ash, and the cards that read Ash decide what Ash is worth.
+export const counterReaderSchema = z.object({
+  when: z.enum(['round_start', 'host_takes_damage', 'host_deals_damage', 'slot_fired']),
+  // Narrows a damage Reader to blows carrying one Keyword (D-049): empty
+  // answers every blow, `raid_hit` answers only a Minion's bite. This is the
+  // Reader reading the *event* rather than the host — the fact stream already
+  // carried these Keywords, and this is what lets content read them.
+  event_keyword: z.string().default(''),
+  effect: z.enum(['armor', 'healing', 'boss_damage', 'target_damage']),
+  // Signed, and applied once per Counter held: Sundered raises what its host
+  // takes at `1`, Weakened lowers what its host deals at `-1`, and Fortified
+  // banks Armor at `1` per Counter so the count *is* the stored Armor. Zero is
+  // refused by the catalog rather than allowed as a Reader that does nothing.
+  per: z.number().int().default(1),
+})
+
+// A Counter: identity, host, bounds, and what reads it. Counters replace the
+// Status Effect definition entirely (D-047). The two named payload fields
+// D-034 chose are gone — an Enemy-facing Counter is one whose Readers happen
+// to fire on an Enemy's events, not a separate kind of thing with its own
+// schema.
+export const counterSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  rules_text: z.string().default(''),
+  keywords: z.array(z.string()).default([]),
+  // What holds this Counter. A combatant is the Boss, a Hero, or a Minion; a
+  // `hex` is ground, which outlives whoever is standing on it; a `slot` is a
+  // prepared Top Card, which is D-035's ally attachment finally reachable.
+  // `encounter` is deliberately absent — Escalation is the encounter-wide
+  // counter, and its band effects are not `per`-count modifiers (D-048).
+  host: z.enum(['combatant', 'hex', 'slot']).default('combatant'),
+  // The stacking rule, as a number. `1` is the old non-stacking behaviour: a
+  // second placement is refused rather than refreshing. Anything higher
+  // accumulates, which is how Fortified's additive stacking (D-019) survives
+  // without a `stacking` flag.
+  max: z.number().int().min(1).default(1),
+  // `0` means no clock — the Counter sits until something spends it. That is
+  // the axis a duration cannot express, and the more interesting one.
+  duration_rounds: z.number().int().min(0).default(0),
+  readers: z.array(counterReaderSchema).default([]),
+})
+
+// What a Card does with Counters when it fires. Three verbs, and no way to
+// combine them with boolean logic: every `gate` has to pass, and that is the
+// entire grammar. The moment this wants `or`, what is being written is an
+// interpreter, and the mechanic belongs in engine code instead — the escape
+// hatch a Beat kind already provides.
+export const cardReaderSchema = z.object({
+  // gate:  refuse the fire unless the count qualifies.
+  // scale: add `per` to an effect for each Counter held.
+  // spend: remove Counters.
+  verb: z.enum(['gate', 'scale', 'spend']),
+  // Exactly one of these names what is read. `counter_keyword` matches every
+  // Counter carrying that Keyword, which is the Charge Modifier's
+  // match-by-keyword generalised off the Charge Stack.
+  counter: z.string().default(''),
+  counter_keyword: z.string().default(''),
+  // A closed set of subjects, never a path expression. Phase 1 reads the
+  // firing Hero or the Card's chosen target and nothing else.
+  on: z.enum(['self', 'target']).default('target'),
+  effect: z.enum(['armor', 'healing', 'boss_damage', 'target_damage']).default('target_damage'),
+  at_least: z.number().int().min(1).default(0),
+  per: z.number().int().default(0),
+  amount: z.number().int().min(1).default(0),
+  // A cost is paid before the Card's effects are computed and is not refunded
+  // if they come to nothing; a resolution spend happens after. The difference
+  // is visible whenever a Card both scales off a Counter and spends it.
+  timing: z.enum(['cost', 'resolution']).default('cost'),
 })
 
 export const cardSchema = z.object({
@@ -49,11 +139,20 @@ export const cardSchema = z.object({
   pull_tiles: z.number().int().min(0).default(0),
   tags: z.array(z.string()).default([]),
   charge_modifiers: z.array(z.string()).default([]),
-  // The status this card applies, if any (D-033). Where it lands comes from
-  // `target_type`, which this finally makes load-bearing: `none` applies to
-  // the firing Hero, `piece` to a selected Enemy, `board_slot` to an ally's
-  // Top Card.
-  applies_status: z.string().default(''),
+  // The Counter this card places, if any. Where it lands comes from
+  // `target_type`, which D-033 made load-bearing and D-047 leaves alone:
+  // `none` places on the firing Hero, `piece` on a selected piece,
+  // `board_slot` on a prepared Slot — solo, one of the firing Hero's own,
+  // since D-035's ally has no seat at the table yet.
+  places_counter: z.string().default(''),
+  counter_amount: z.number().int().min(1).default(1),
+  // What this card's damage is made of, so a Counter can answer it (D-049).
+  // The party's damage was unkeyworded while only Boss Beats classified
+  // theirs, which left "increase fire damage by 1" authorable in one
+  // direction only.
+  damage_keywords: z.array(z.string()).default([]),
+  // What this card reads before and while it resolves (D-047).
+  reads: z.array(cardReaderSchema).default([]),
 })
 
 export const hazardSchema = z.object({
@@ -71,28 +170,6 @@ export const minionSchema = z.object({
   rules_text: z.string().default(''),
   max_health: z.number().int().min(1),
   attack_damage: z.number().int().min(0).default(0),
-})
-
-// A Status Effect definition (D-033). Statuses were engine-only until now:
-// Riposte Ready and Fortified were constructed in code at hardcoded moments.
-// Authoring them here makes them shared vocabulary — one Sundered, with one
-// title, one rules text, and one answer to whether it stacks.
-export const statusSchema = z.object({
-  id: z.string().min(1),
-  title: z.string().min(1),
-  rules_text: z.string().default(''),
-  // Which side of the fight the payload is written for. The mechanism is the
-  // same for both; only the fields that matter differ (D-032).
-  applies_to: z.enum(['hero', 'enemy']),
-  triggers: z.array(z.enum(['on_round_start', 'on_enter_hex', 'on_damage_taken', 'on_slot_fired'])).default([]),
-  // Per-status rather than one global rule, because canon already holds both
-  // behaviours: Riposte Ready never stacks, Fortified stacks additively.
-  stacking: z.boolean().default(false),
-  duration_rounds: z.number().int().min(1).default(1),
-  // Enemy-facing payload (D-034). Two named fields rather than a general
-  // effect list, following the ADR 0021 precedent.
-  damage_taken_bonus: z.number().int().min(0).default(0),
-  damage_dealt_penalty: z.number().int().min(0).default(0),
 })
 
 export const bossBeatSchema = z.object({
@@ -114,7 +191,7 @@ export const bossBeatSchema = z.object({
     'forward_cone',
     'spawn_minions',
   ]),
-  counter_tags: z.array(z.string()).default([]),
+  answer_tags: z.array(z.string()).default([]),
   // Consequence Tier (ADR 0031). It once set the earliest horizon a Beat could
   // appear in, which the Forecast Row's removal retired. What it sets now is
   // where a Beat may *open*: `severe` marks a Beat that can end a run, and no
@@ -123,7 +200,11 @@ export const bossBeatSchema = z.object({
   // validated — see the ladder tests.
   consequence_tier: z.enum(['chip', 'structural', 'severe']).default('chip'),
   target_selector: z.string().default(''),
-  damage_classification: z.string().default(''),
+  // The Keywords this Beat's damage carries (D-049). Plural because "who it
+  // is aimed at" and "what it is made of" are two axes: a blow can be a Tank
+  // Hit *and* fire, and one string holding both would be the category error
+  // the `kind` discriminator exists to prevent.
+  damage_keywords: z.array(z.string()).default([]),
   damage: z.number().int().default(0),
   unguarded_bonus: z.number().int().min(0).default(0),
   // Escalation acceleration (ADR 0027): what it costs to leave this Beat's
@@ -276,7 +357,9 @@ export type ChargeModifier = z.infer<typeof chargeModifierSchema>
 export type Card = z.infer<typeof cardSchema>
 export type Hazard = z.infer<typeof hazardSchema>
 export type Minion = z.infer<typeof minionSchema>
-export type StatusDefinition = z.infer<typeof statusSchema>
+export type CounterDefinition = z.infer<typeof counterSchema>
+export type CounterReader = z.infer<typeof counterReaderSchema>
+export type CardReader = z.infer<typeof cardReaderSchema>
 export type EscalationThreshold = z.infer<typeof escalationThresholdSchema>
 export type BossBeat = z.infer<typeof bossBeatSchema>
 export type BossProgram = z.infer<typeof bossProgramSchema>

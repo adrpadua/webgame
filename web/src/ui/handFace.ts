@@ -68,15 +68,18 @@ export function handFace(state: EncounterState, prepped: boolean): HandFace {
 }
 
 // The Keywords worth drawing on a card in hand: the authored order, minus the
-// Role markers. Every card in a Hero's deck carries their Role's Keyword, so
-// its mark appears on all of them at once and separates none of them — it
-// costs a glyph's worth of the face to say what the Hero already says. The
-// full list stays on the Detail Popup, which is a read rather than a glance.
+// Roles. Every card in a Hero's deck carries their Role's Keyword, so its mark
+// appears on all of them at once and separates none of them — it costs a
+// glyph's worth of the face to say what the Hero already says. The full list
+// stays on the Detail Popup, which is a read rather than a glance.
 //
-// A card that is nothing but its Role marker keeps it: an empty row would
-// read as a card with no Keywords at all, which is a different claim.
+// Read off `kind` rather than a separate flag: being a Role is the reason it
+// says nothing here, so the two were never independent facts to keep in sync.
+//
+// A card that is nothing but its Role keeps it: an empty row would read as a
+// card with no Keywords at all, which is a different claim.
 export function shownKeywords(catalog: ContentCatalog, tags: string[]): string[] {
-  const shown = tags.filter((tag) => !catalog.keywords[tag]?.role_marker)
+  const shown = tags.filter((tag) => catalog.keywords[tag]?.kind !== 'role')
   return shown.length > 0 ? shown : tags
 }
 

@@ -28,7 +28,11 @@ import { slotCanFire } from './slots'
 // The controls a step leaves live. Everything else on the play surface is
 // dimmed and inert while the script runs, so there is exactly one thing to
 // press at any moment.
-export type FirstTurnTarget = 'hand' | 'slot-0' | 'slot-1' | 'next' | 'board'
+// `undo` is in the union and in no step's targets, which is the point: the
+// scripted turn keeps one live control at a time, and a script that can be
+// walked backwards is not a script. Naming it here is what makes
+// blocksTarget gate it.
+export type FirstTurnTarget = 'hand' | 'slot-0' | 'slot-1' | 'next' | 'undo' | 'board'
 
 export interface FirstTurnStep {
   id: string

@@ -14,10 +14,14 @@ npm run dev      # Workbench at http://localhost:5173 with HMR
 npm test         # Encounter Engine Vitest suite
 npm run lint     # includes the engine-purity boundary rule
 npm run build
-node scripts/smoke.mjs   # after build: the scripted first turn, ordinary
-                         # round play, Scenario replay, time travel, headless
-                         # record verification, and a 390x844 portrait guard
-                         # (whole board on screen, 44px targets, no scroll)
+npm run hooks:install    # once per clone: installs the pre-push gate below
+npm run verify:local     # build + smoke. The browser half of the gate: the
+                         # scripted first turn, ordinary round play, Scenario
+                         # replay, time travel, headless record verification,
+                         # the notification zones, and a 390x844 portrait
+                         # guard (whole board on screen, 44px targets, no
+                         # scroll). Runs automatically on push once the hook
+                         # is installed; `git push --no-verify` skips it.
 npm run headless -- --scenario embermaw_solo_ceiling   # headless Scenario run
 npm run headless -- --replay <record.json>             # verify a v2 record
 npm run film -- --shot hazard   # after build: film a board effect frame by
@@ -53,9 +57,13 @@ Output lands in `web/film/<shot>/` and is ignored by git.
 
 The Workbench is a fully static build, so it deploys to GitHub Pages via
 `.github/workflows/deploy-workbench.yml` after every merge to `main`. Pull
-requests run the full test, lint, build, and browser-smoke validation suite;
-the post-merge deployment only installs dependencies, creates the Pages build,
-and publishes it.
+requests run the test, mutation-audit, lint, and build gates in CI; the
+browser smoke runs locally instead, on push, via the pre-push hook
+(`npm run hooks:install`). It was in CI until 2026-08-19 and could not be
+relied on there — `playwright install --with-deps` shells out to apt-get on a
+hosted runner, and a slow Ubuntu mirror failed the check for reasons no author
+could act on. The post-merge deployment only installs dependencies, creates
+the Pages build, and publishes it.
 
 Pages is enabled for this repository (Settings → Pages → Source: "GitHub
 Actions"), so every deploy lands at `https://adrpadua.github.io/webgame/` —

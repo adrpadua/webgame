@@ -8,25 +8,27 @@
       "title": "Turn to the Tank",
       "rules_text": "Embermaw faces the guardian.",
       "kind": "turn_toward_player",
-      "counter_tags": [
-        "Position"
-      ],
-      "consequence_tier": "chip"
+      "consequence_tier": "chip",
+      "answer_tags": [
+        "position"
+      ]
     },
     {
       "id": "raking_claw",
       "title": "Raking Claw",
       "rules_text": "Target: Tank. Deal 6 damage. Movement does not evade this hit. An unheld Guarded Front suffers +5.",
       "kind": "targeted_hit",
-      "counter_tags": [
-        "Mitigate",
-        "Position"
-      ],
       "consequence_tier": "chip",
       "target_selector": "tank",
-      "damage_classification": "tank_hit",
       "damage": 6,
-      "unguarded_bonus": 5
+      "unguarded_bonus": 5,
+      "answer_tags": [
+        "mitigate",
+        "position"
+      ],
+      "damage_keywords": [
+        "tank_hit"
+      ]
     }
   ],
   "incoming_beats": [
@@ -35,25 +37,25 @@
       "title": "Within Reach",
       "rules_text": "If no hero stands adjacent to Embermaw at the end of this Round, Escalation rises by 1.",
       "kind": "demand_proximity",
-      "counter_tags": [
-        "Position"
-      ],
       "consequence_tier": "severe",
       "range_tiles": 1,
-      "escalation_if_unanswered": 1
+      "escalation_if_unanswered": 1,
+      "answer_tags": [
+        "position"
+      ]
     },
     {
       "id": "brood_call",
       "title": "Brood Call",
       "rules_text": "Whelps emerge at the marked edge hexes. Any Whelp still standing at the next Round end raises Escalation by 1.",
       "kind": "spawn_minions",
-      "counter_tags": [
-        "Kill Adds"
-      ],
       "consequence_tier": "severe",
       "minion": "whelp",
       "count": 2,
-      "escalation_if_unanswered": 1
+      "escalation_if_unanswered": 1,
+      "answer_tags": [
+        "kill_adds"
+      ]
     }
   ]
 }

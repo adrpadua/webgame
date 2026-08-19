@@ -186,6 +186,57 @@ export function HourglassIcon({ className }: IconProps) {
   )
 }
 
+// The Action Bar's two rails. Both are flat filled marks rather than words:
+// at two units of a twelve-unit bar there is room for a glyph and not for a
+// label, and these three are the only things either rail ever says.
+//
+// The two forward marks are deliberately different shapes. Playing the next
+// beat of a Boss Row and closing the window are different moves — the code
+// has always insisted on that, and "Up next" exists precisely so the paced
+// press never reads as the phase press. A bare triangle plays; a triangle
+// against a bar runs to the end of the window and stops there.
+
+// Continue: play the next beat of the Boss Row that is being told.
+export function PlayIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} aria-hidden="true" fill="currentColor">
+      <path d="M5.5 3.2 16 10 5.5 16.8V3.2Z" />
+    </svg>
+  )
+}
+
+// Next: close this window and move the Round on.
+export function AdvanceIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} aria-hidden="true" fill="currentColor">
+      <path d="M3.5 3.2 13 10 3.5 16.8V3.2Z" />
+      <path d="M14.6 3.2h2.2v13.6h-2.2z" />
+    </svg>
+  )
+}
+
+// Undo: take back the action you just took, in the window you took it in.
+export function UndoIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {/* The hook returns to the left, because that is the direction the
+          timeline runs and the side of the bar this rail sits on. */}
+      <path d="M4 8.5h8.2a4 4 0 0 1 0 8H8" />
+      <path d="M7.4 4.6 3.6 8.5l3.8 3.9" />
+    </svg>
+  )
+}
+
+// Restart: the Encounter is over and the only move left is to run it again.
+export function RestartIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16.2 10a6.2 6.2 0 1 1-1.9-4.5" />
+      <path d="M16.6 2.6v4.2h-4.2" />
+    </svg>
+  )
+}
+
 // The dominant effect a card has, in display-priority order. Drives both the
 // stat line and the vignette so a card's art always matches what it does.
 export type CardEffect = 'attack' | 'guard' | 'heal' | 'utility'

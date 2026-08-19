@@ -1,5 +1,6 @@
 {
   "id": "threat",
   "title": "Threat",
+  "kind": "trait",
   "rules_text": "Marks cards that influence enemy attention."
 }

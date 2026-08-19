@@ -166,7 +166,7 @@ export function beatDetail(beat: BossBeat, track: 'instant' | 'incoming'): HoldD
     tone: 'boss',
     stats,
     text: beat.rules_text,
-    tags: beat.counter_tags,
+    tags: beat.answer_tags,
   }
 }
 

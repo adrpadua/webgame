@@ -8,49 +8,51 @@
       "title": "Turn to the Tank",
       "rules_text": "Embermaw faces the nearest guardian.",
       "kind": "turn_toward_player",
-      "counter_tags": [
-        "Position"
-      ],
-      "consequence_tier": "chip"
+      "consequence_tier": "chip",
+      "answer_tags": [
+        "position"
+      ]
     },
     {
       "id": "close_the_gap",
       "title": "Close the Gap",
       "rules_text": "Embermaw advances one hex toward the guardian. Distance is not an answer for long.",
       "kind": "advance_toward_player",
-      "counter_tags": [
-        "Position"
-      ],
       "consequence_tier": "chip",
-      "move_tiles": 1
+      "move_tiles": 1,
+      "answer_tags": [
+        "position"
+      ]
     },
     {
       "id": "raking_claw",
       "title": "Raking Claw",
       "rules_text": "Target: Tank. Deal 4 damage. Movement does not evade this hit. An unheld Guarded Front suffers +3.",
       "kind": "targeted_hit",
-      "counter_tags": [
-        "Mitigate",
-        "Position"
-      ],
       "consequence_tier": "chip",
       "target_selector": "tank",
-      "damage_classification": "tank_hit",
       "damage": 4,
-      "unguarded_bonus": 3
+      "unguarded_bonus": 3,
+      "answer_tags": [
+        "mitigate",
+        "position"
+      ],
+      "damage_keywords": [
+        "tank_hit"
+      ]
     },
     {
       "id": "claw_scorch",
       "title": "Ash Trail",
       "rules_text": "The ground the claw struck burns away for good. Absorb the hit cleanly and the ash falls behind you instead.",
       "kind": "hazard_last_impact",
-      "counter_tags": [
-        "Mitigate",
-        "Move"
-      ],
       "consequence_tier": "structural",
       "hazard": "scorched",
-      "permanent": true
+      "permanent": true,
+      "answer_tags": [
+        "mitigate",
+        "move"
+      ]
     }
   ],
   "incoming_beats": [
@@ -59,15 +61,15 @@
       "title": "Cinder Breath",
       "rules_text": "Forward cone, range 1-2.",
       "kind": "forward_cone",
-      "counter_tags": [
-        "Move",
-        "Interrupt"
-      ],
       "consequence_tier": "structural",
       "range_tiles": 2,
       "damage": 5,
       "duration_rounds": 1,
-      "hazard": "scorched"
+      "hazard": "scorched",
+      "answer_tags": [
+        "move",
+        "interrupt"
+      ]
     }
   ]
 }

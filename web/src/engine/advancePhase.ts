@@ -4,7 +4,8 @@ import { applyAction, checkResolution } from './resolve'
 import { ESCALATION_MAX, escalationActionsForRoundEnd, escalationModifiers } from './escalation'
 import { minionIntent } from './minions'
 import { actionsForTrack, refreshTelegraphs } from './timeline'
-import { getStatuses, statusEvent } from './statuses'
+import { getCounters, counterEvent, refEntityId, type CounterRef } from './counters'
+import { RAID_HIT } from './keywords'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
 import type { EncounterState, Phase, ResolveResult, ResolvedActionFact } from './types'
 
@@ -27,20 +28,22 @@ function cleanupActions(catalog: ContentCatalog, draft: EncounterState, window: 
   return actions
 }
 
-function statusExpiryActions(draft: EncounterState, window: Phase): EncounterActionInput[] {
+function counterExpiryActions(draft: EncounterState, window: Phase): EncounterActionInput[] {
   const actions: EncounterActionInput[] = []
-  for (const entityId of Object.keys(draft.statusEffects)) {
-    for (const effect of getStatuses(draft, entityId)) {
-      if (effect.expiresAtWindowEnd !== window) {
+  for (const ref of Object.keys(draft.counters) as CounterRef[]) {
+    for (const counter of getCounters(draft, ref)) {
+      if (counter.expiresAtWindowEnd !== window) {
         continue
       }
       actions.push({
-        kind: 'expire_status',
-        sourceId: entityId,
-        targetId: entityId,
-        statusId: effect.id,
+        kind: 'expire_counter',
+        // The host is the ref, not an entity: ground and prepared cards hold
+        // Counters too, and only the ref can say which one expired.
+        sourceId: refEntityId(ref) === '' ? ENCOUNTER_SOURCE : refEntityId(ref),
+        hostRef: ref,
+        counterId: counter.id,
         window,
-        statusEvent: statusEvent(effect, 'expired', 'expiry_window_ended'),
+        counterEvent: counterEvent(counter, 'expired', 'expiry_window_ended'),
       })
     }
   }
@@ -76,7 +79,7 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
       refreshTelegraphs(catalog, draft)
       break
     case 'quick':
-      for (const action of statusExpiryActions(draft, 'quick')) {
+      for (const action of counterExpiryActions(draft, 'quick')) {
         submit(action)
       }
       for (const action of cleanupActions(catalog, draft, 'quick')) {
@@ -122,7 +125,7 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
             reasonText: `${draft.board.entities[minionId].title} bites`,
             factContext: {
               minion_intent: true,
-              damage_classification: 'raid_hit',
+              damage_keywords: [RAID_HIT],
               ...(escalationBonus > 0 ? { escalation_bonus: escalationBonus } : {}),
             },
           })

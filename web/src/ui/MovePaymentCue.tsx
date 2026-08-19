@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { axialAdd, axialDeltaFor, axialEquals, facingName, VALID_FACINGS } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
+import { Notify } from './NotificationLayer'
 import { FOCUS_RING_CLASS } from './theme'
 
 // Dragging the Hero to a legal hex agrees where to go and says nothing about
@@ -32,33 +33,33 @@ export function MovePaymentCue() {
     return null
   }
   const heroCoords = state.board.entities[state.primaryHeroId]?.coords
-  // The destination as a hex edge — the vocabulary the MovePad and the piece
-  // labels already use, rather than a pair of coordinates the player never
-  // sees anywhere else.
+  // The destination as a hex edge — the vocabulary the piece labels already
+  // use, rather than a pair of coordinates the player never sees anywhere
+  // else.
   const direction =
     heroCoords === undefined
       ? undefined
       : VALID_FACINGS.find((facing) => axialEquals(axialAdd(heroCoords, axialDeltaFor(facing)), pendingMove.destination))
 
-  // Rendered inside the guidance stack over the board's top edge, with the
-  // scripted cue and the playout's Continue bar: transient bars appearing
-  // and disappearing must never resize the board mid-Encounter, and stacking
-  // them is what keeps two live prompts from landing on top of each other.
+  // Docked, because the card that answers it is in the Hand directly below:
+  // the prompt and the row it points at are read in one glance.
   return (
-    <div
-      className="wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-glass flex min-h-12 items-center justify-between gap-2 py-2 text-xs font-semibold text-glass-200 shadow-lg"
-      data-testid="move-payment-cue"
-      data-direction={direction === undefined ? '' : facingName(direction)}
-    >
-      <span className="truncate">Tap a card to step {direction === undefined ? '' : facingName(direction)}</span>
-      <button
-        type="button"
-        data-testid="cancel-move"
-        onClick={cancelMove}
-        className={`wb-plate wb-plate-sm wb-face-steel wb-acc-none pointer-events-auto min-h-11 shrink-0 font-bold text-ceramic-200 ${FOCUS_RING_CLASS}`}
+    <Notify id="move-payment">
+      <div
+        className="wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-glass flex min-h-12 items-center justify-between gap-2 py-2 text-xs font-semibold text-glass-200 shadow-lg"
+        data-testid="move-payment-cue"
+        data-direction={direction === undefined ? '' : facingName(direction)}
       >
-        Stay put
-      </button>
-    </div>
+        <span className="truncate">Tap a card to step {direction === undefined ? '' : facingName(direction)}</span>
+        <button
+          type="button"
+          data-testid="cancel-move"
+          onClick={cancelMove}
+          className={`wb-plate wb-plate-sm wb-face-steel wb-acc-none pointer-events-auto min-h-11 shrink-0 font-bold text-ceramic-200 ${FOCUS_RING_CLASS}`}
+        >
+          Stay put
+        </button>
+      </div>
+    </Notify>
   )
 }

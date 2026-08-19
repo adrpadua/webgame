@@ -1,9 +1,22 @@
 name: Verify Encounter Workbench
 
-# The pre-merge gate for the repository. Runs the Vitest suite, the lint pass (which
-# includes the engine-purity boundary rule), and the browser smoke suite —
-# the only coverage for the 390x844 portrait contract, the 44px target
-# contract, and deterministic record replay through a real browser.
+# The pre-merge gate for the repository. Runs the Vitest suite, the mutation
+# audit, the lint pass (which includes the engine-purity boundary rule), and
+# the build.
+#
+# The browser smoke suite is deliberately NOT here. It needs a Chromium, and
+# `playwright install --with-deps` shells out to apt-get on a hosted runner:
+# on 2026-08-18 that wedged three runs in a row for 14 to 24 minutes each, and
+# it went on doing it after a 10-minute bound was added — the bound only
+# converted a hang into a red check. Every one of those failures was the
+# Ubuntu mirror, never the diff, which is the worst kind of gate: it fails for
+# reasons the author cannot act on and teaches everyone to ignore it.
+#
+# The suite still runs, and still gates a pull request — it runs locally
+# before one is opened. `npm run verify:local` is the whole gate, and
+# `web/scripts/install-hooks.sh` installs it as a pre-push hook so it is hard
+# to skip by accident. What CI keeps is everything that needs no browser, and
+# those steps are fast and honest.
 #
 # Automatic validation runs only for pull requests. Merges to main are assumed
 # to have passed this gate, so deploy-workbench.yml does not repeat the suite.
@@ -59,33 +72,3 @@ jobs:
         working-directory: web
         run: npm run build
 
-      # What is cached is a browser build, and the only thing that decides
-      # which build that is, is Playwright's own version. Keying on the
-      # lockfile hash threw the cache away whenever anything else in it moved
-      # — merging main into a branch was enough — so the branch that had just
-      # done so paid a cold install while main, one commit behind, did not.
-      - name: Resolve Playwright version
-        id: playwright
-        working-directory: web
-        run: echo "version=$(node -p "require('./node_modules/playwright/package.json').version")" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-
-      # `--with-deps` shells out to apt-get, and on 2026-08-18 that wedged
-      # three runs in a row for 14 to 24 minutes each. A step with no bound of
-      # its own inherits the job's, which is six hours, so a hung install
-      # reads as a slow one until someone gives up waiting. Ten minutes is
-      # several times the cold-install cost and well clear of a cache hit.
-      - name: Install Chromium
-        working-directory: web
-        timeout-minutes: 10
-        run: npx playwright install --with-deps chromium
-
-      - name: Smoke
-        working-directory: web
-        run: node scripts/smoke.mjs
