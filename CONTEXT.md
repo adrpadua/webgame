@@ -31,7 +31,7 @@ A counted Boss value on one fixed scale from `0` to `5`, identical on every Boss
 _Avoid_: Enrage timer, dread meter, per-boss scale
 
 **Escalation Threshold**:
-The authored effect a Boss applies on reaching one Escalation value. Values `1` through `4` change how the fight behaves; the threshold at `5` is the hard wipe. A threshold is preferably **structural** — permanently closing part of the arena — rather than numeric, so the collapse is felt as space running out rather than as another damage number (D-031). No structural threshold may touch a hex adjacent to the Boss, because burning the `Guarded Front` would remove the Tank's own answer. A Beat that can add Escalation must disclose it in the Forecast Row, which makes that Beat `Severe`.
+The authored effect a Boss applies on reaching one Escalation value. Values `1` through `4` change how the fight behaves; the threshold at `5` is the hard wipe. A threshold is preferably **structural** — permanently closing part of the arena — rather than numeric, so the collapse is felt as space running out rather than as another damage number (D-031). No structural threshold may touch a hex adjacent to the Boss, because burning the `Guarded Front` would remove the Tank's own answer. A Beat that can add Escalation is `Severe`, which keeps it out of the first program of any phase (D-036).
 _Avoid_: Soft enrage stage, phase trigger
 
 **Encounter Clock**:
@@ -43,15 +43,15 @@ The effect a Boss applies at its top Escalation Threshold. Different bosses may 
 _Avoid_: Global enrage rule, overtime, parallel timer
 
 **Boss Timeline**:
-The visible sequence of boss actions arranged into three horizons: the `Forecast` row, the `Instant` row, and the `Incoming` row. Row names state when, never how much is known. The boss timeline is mostly scripted rather than random.
+The visible sequence of boss actions arranged into two horizons: the `Instant` row and the `Incoming` row, both belonging to the current Round. Row names state when, never how much is known. A third horizon, the `Forecast` row, existed until ADR 0031 removed it: next Round's schedule is now learned by playing rather than shown. The boss timeline is mostly scripted rather than random.
 _Avoid_: Deck, queue, stack
 
 **Boss Program**:
-The authored pair of ordered Instant and Incoming rows used by the Boss for one Round. An Encounter's authored program list is a **pool**, not a script: the running order is drawn from the Raid Seed at setup, with Round `1` pinned to the authored opener and the remainder dealt from reshuffled bags of the whole pool, so each program appears about as often as a fixed rotation would while the Round it lands on varies (ADR 0028). The Boss's learnable spine is therefore the *set* of programs and what each one demands, not the order they arrive in. Two programs may not be mechanically identical: each must ask for a distinguishable answer, or the Forecast Row has nothing to disclose (D-036).
+The authored pair of ordered Instant and Incoming rows used by the Boss for one Round. An Encounter's authored program list is a **pool**, not a script: the running order is drawn from the Raid Seed at setup, with Round `1` pinned to the authored opener and the remainder dealt from reshuffled bags of the whole pool, so each program appears about as often as a fixed rotation would while the Round it lands on varies (ADR 0028). The Boss's learnable spine is therefore the *set* of programs and what each one demands, not the order they arrive in. Two programs may not be mechanically identical: each must ask for a distinguishable answer, or there is nothing for a player to learn by meeting them (D-036).
 _Avoid_: Boss card, turn script
 
 **Module Slot**:
-The one position a Boss Program may declare for bounded variation, filled by one of several authored Beat groups. The spine stays learnable while the filling varies; the Raid Seed chooses the filling, and the choice is settled before the Forecast Row announces that module's family. Modules are validated in combination, never one at a time, because module interactions are where difficulty actually comes from.
+The one position a Boss Program may declare for bounded variation, filled by one of several authored Beat groups. The spine stays learnable while the filling varies; the Raid Seed chooses the filling, and the choice is settled at setup so replay from the seed stays deterministic (ADR 0025). Modules are validated in combination, never one at a time, because module interactions are where difficulty actually comes from.
 _Avoid_: Random beat, shuffled program, per-beat randomization
 _Not yet in the engine_
 
@@ -71,15 +71,15 @@ _Avoid_: Run ID, random seed, save code
 _Not yet in the engine_
 
 **Boss Beat**:
-One ordered authored action inside a Boss Program row. A Boss Beat discloses in stages (ADR 0026): its family and counter tags while its Program sits in the Forecast Row, then every parameter needed by its resolution — target, magnitude, hexes, and Resources such as a Hazard or Minion — once that Program reaches the Incoming or Instant Row. A Beat is therefore legally incomplete in the Forecast Row and never incomplete anywhere else.
+One ordered authored action inside a Boss Program row. A Boss Beat discloses completely: target, magnitude, hexes, and Resources such as a Hazard or Minion are all stated in the row it occupies. The staged disclosure of ADR 0026 — family-level in a Forecast Row, complete on arrival — is retired with that row (ADR 0031); a Beat is never legally incomplete anywhere.
 _Avoid_: Event, command, hidden trigger
 
 **Consequence Tier**:
-The authored severity band that sets a Boss Beat's earliest legal horizon: `Chip` may originate in any row, `Structural` appears no later than the Incoming Row, and `Severe` must appear in the Forecast Row first. A Beat that can down a Hero **from full health**, or cross an Escalation Threshold, is `Severe`, with no justification clause available. The full-health floor is what keeps the band a property of the Beat: lethality at whatever health attrition has left behind is a property of the moment, not the Beat.
+The authored severity band naming what a Boss Beat can cost. A Beat that can down a Hero **from full health**, or cross an Escalation Threshold, is `Severe`, with no justification clause available. The full-health floor is what keeps the band a property of the Beat: lethality at whatever health attrition has left behind is a property of the moment, not the Beat. The band once set a Beat's earliest legal horizon, which ADR 0031 retired along with the Forecast Row. What it governs now is fairness at the start: **the first program of every phase carries no `Severe` Beat** (D-036), so the one Round nobody can have learned yet cannot be the Round that ends the run.
 _Avoid_: Damage tier, priority, threat level
 
 **Encounter Briefing**:
-The pre-fight reference that shows a Boss's possible moves, each move's pattern and counterplay, its Module Slots and the families that can fill them, and phase themes. The Briefing is the catalog of what a Boss can do; the Forecast Row is the schedule. It never states rotation order, so first-attempt discovery survives.
+The pre-fight reference that shows a Boss's possible moves, each move's pattern and counterplay, its Module Slots and the families that can fill them, and phase themes. The Briefing is the catalog of what a Boss can do; the schedule is not published anywhere and is learned across attempts (ADR 0031). It never states rotation order, so first-attempt discovery survives. The Briefing is also where a fuller boss guide belongs when menus exist — outside the fight, never on the play surface.
 _Avoid_: Full script, surprise-only tutorial, schedule
 
 **Phase Reveal**:
@@ -144,12 +144,8 @@ _Avoid_: Delayed despawn, end-of-turn cleanup, defeated-but-blocking
 The visible end-step action a living Minion will take: advance one hex toward its nearest Hero, or bite for its authored attack once adjacent. Intent is derived deterministically from the live board, resolves after the Slow Window before the Round wraps, and Minion damage is a Raid Hit — never a Tank Hit and never a Riposte Ready trigger.
 _Avoid_: Hidden AI, random wander, aggro table
 
-**Forecast Row**:
-The horizon that previews the next Round's whole Boss Program at family level: its title and the union of its counter tags. It tells the party what kind of raid problem is developing, so resources can be reserved for a category before a specific hit can be answered. It also carries the program's highest Consequence Tier, so the party can size the reserve. A Forecast Row never resolves — it is next Round's program shown early, not a fourth resolution step — so it leaves the per-Round event order untouched. Round `1` is not forecast: at the pull there is no earlier Round to have shown it, which is why a first program may carry no `Severe` Beat. A Phase Break is unforecast for the same reason, so the first program of *every* phase must be free of `Severe` Beats. Because the order is resolved at setup rather than at the Round boundary, reading one Round ahead is a lookup and never a roll — which is what keeps the row compliant with ADR 0025.
-_Avoid_: Preview row, hidden row, T+2
-
 **Commitment**:
-An authored card effect bound to one named Boss Beat, visible to the Party, resolving when that Beat resolves (D-028). A Commitment may only bind to a Beat whose parameters are disclosed — one in the `Incoming Row` or `Instant Row` — never to a `Forecast Row` entry, because a family-level entry states no parameters and a Commitment there would be a bet rather than a plan. Commitments prepare for a named future problem; they may never redirect its target or change what it is, and that ban is effect-level — it binds any mechanism that could produce the same effect. Nothing implements a Commitment yet: Fortify was reclassified as one and the reclassification was retracted, because it prepares for whatever the next Round opens with rather than for a named Beat.
+An authored card effect bound to one named Boss Beat, visible to the Party, resolving when that Beat resolves (D-028). A Commitment may only bind to a Beat whose parameters are disclosed — one in the `Incoming Row` or `Instant Row`. With the Forecast Row gone (ADR 0031) every visible Beat qualifies, so the constraint now bites in a different place: there is no surface naming a *future* Beat, which is what the mechanism was designed to bind to. Commitments prepare for a named future problem; they may never redirect its target or change what it is, and that ban is effect-level — it binds any mechanism that could produce the same effect. Nothing implements a Commitment yet: Fortify was reclassified as one and the reclassification was retracted, because it prepares for whatever the next Round opens with rather than for a named Beat.
 _Avoid_: Attachment, counterspell, reaction
 _Not yet in the engine_
 

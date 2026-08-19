@@ -37,6 +37,13 @@ const MUTATIONS = [
     to: 'const target = 1',
   },
   {
+    name: 'opening bag dealt in authored order, so Round 2 is a constant',
+    guards: 'ADR 0031: the schedule is learnable only if it is not fixed',
+    file: 'timeline.ts',
+    from: '  shuffle(rng, remainder, `${label}_opening`)\n',
+    to: '',
+  },
+  {
     name: 'no-repeat rule disabled entirely',
     guards: 'ADR 0028: no program repeats back to back',
     file: 'timeline.ts',

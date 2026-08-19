@@ -41,9 +41,9 @@ export {
   FACING_SE,
 } from './facing'
 export { buildProgramSequence, currentProgram } from './timeline'
-export { combatantRef, counterCount, counterCountByKeyword, getCounters, hexCounterRef, slotRef, type CounterRef } from './counters'
+export { combatantRef, counterCount, readCounterEvent, counterCountByKeyword, getCounters, hexCounterRef, slotRef, type CounterRef } from './counters'
 export { getEntityIdAt, isLegalMove, neighbors, isGuardedFront } from './board'
 export { minionIntent, minionIntents, type MinionIntent } from './minions'
 export { ESCALATION_MAX, escalationModifiers, escalationStartRound, type EscalationModifiers } from './escalation'
-export { forecast, highestTier, nextProgramId, programAnswerTags, type ConsequenceTier, type Forecast } from './forecast'
+export { highestTier, programAnswerTags, type ConsequenceTier } from './consequence'
 export { programPredictability, type ProgramPredictability, type RoundPredictability } from './predictability'

@@ -1,26 +1,26 @@
 import { useState } from 'react'
-import { currentProgram, forecast, type BossBeat, type BossProgram, type Forecast } from '@/engine'
+import { currentProgram, type BossBeat, type BossProgram } from '@/engine'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { EscalationGauge } from './EscalationGauge'
-import { beatDetail, forecastDetail, programDetail } from './holdDetails'
+import { beatDetail, programDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
 import { FOCUS_RING_CLASS } from './theme'
 
-// The boss-program strip: three horizons, in the order they arrive.
+// The boss-program strip: this Round's two horizons, in the order they arrive.
 //
-// `Instant` and `Incoming` carry this Round's named beats, complete;
-// `Forecast` previews next Round's whole program as one chip — a title and the
-// counter tags it will want — because the disclosure contract says the outer
-// horizon names the KIND of problem and nothing more (ADR 0026). Per-beat
-// forecasting would reveal the whole next Round and leave the complete
-// disclosure state with no job.
+// `Instant` and `Incoming` carry this Round's named beats, complete. There was
+// a third row — `Forecast`, next Round's program at family level — and it is
+// gone (ADR 0031). ADR 0026 shipped it with an explicit acceptance gate,
+// "whether the row is actionable information or decorative UI", and the sweep
+// answered: a policy that read the row and one blind to it finished the fight
+// in the same Round to two decimal places. The schedule is learned by playing
+// now, and what a Boss can do belongs in a guide outside the fight rather than
+// on the play surface.
 //
-// The rows read top to bottom in play order (Instant resolves, your Quick
-// Window, then Incoming, then next Round) rather than outermost-horizon
-// first. Putting Forecast on top spent the strip's brightest position — the
-// one the eye lands on — on the one row that is deliberately vague, and made
-// the reader re-sort three rows into time before any of them could be used.
+// The rows read top to bottom in play order (Instant resolves, then your Quick
+// Window, then Incoming), which is the order that survived removing the row
+// above them unchanged — it was always the reason for this arrangement.
 //
 // Only one horizon is ever the live one, and the strip says so with weight
 // rather than with six identical frames. The resolving beat wears a plate;
@@ -83,7 +83,6 @@ export function ProgramStrip() {
   const catalog = useWorkbench((store) => store.catalog)
   const [expanded, setExpanded] = useState(true)
   const program = currentProgram(catalog, state)
-  const ahead = forecast(catalog, state)
   const detail = program ? programDetail(program) : null
   const headerHold = useHold(detail)
   // The rows hold for touch only: hovering here belongs to whichever beat
@@ -119,7 +118,6 @@ export function ProgramStrip() {
         <div className="pb-0.5" {...rowsHold.holdProps}>
           <Track program={program} track="instant" label="Instant" active={state.phase === 'instant'} />
           <Track program={program} track="incoming" label="Incoming" active={state.phase === 'incoming'} />
-          {ahead && <ForecastRow ahead={ahead} />}
         </div>
       )}
     </div>
@@ -133,42 +131,6 @@ export function ProgramStrip() {
 // The tags used to be set in tracked capitals, which made a five-tag union the
 // widest and loudest thing in the strip while saying the least: it is a
 // reserve-this list, not a heading. Sentence case at the quiet-label step puts
-// it back underneath the beats it is meant to be read after.
-//
-// The dashed border is what marks this row as not-yet-real, NOT a dimmer text
-// colour. The first version reached for steel-600 to make Forecast the faintest
-// row on the strip and landed at 2.35:1, well under WCAG AA; steel-500 is the
-// palette's quiet-label step precisely because it is the dimmest value that
-// still clears 4.5:1. A hierarchy built out of unreadable text is not a
-// hierarchy.
-function ForecastRow({ ahead }: { ahead: Forecast }) {
-  const hold = useHold(forecastDetail(ahead))
-  const severe = ahead.tier === 'severe'
-  return (
-    <div className="flex items-baseline gap-2 pt-0.5" data-testid="forecast-row">
-      <RowLabel>Forecast</RowLabel>
-      <div
-        {...hold.holdProps}
-        data-testid="forecast-chip"
-        data-tier={ahead.tier}
-        aria-label={`Next Round: ${ahead.title}. Answers wanted: ${ahead.answerTags.join(', ')}.`}
-        className="flex min-w-0 flex-wrap items-baseline gap-x-2"
-      >
-        <span
-          // px-2.5 plus the 1px dashed border comes to the same 11px the
-          // beats above reserve, so the three rows share one left edge.
-          className={`rounded border border-dashed px-2.5 text-[11px] ${
-            severe ? 'border-coral-700/80 text-coral-300' : 'border-steel-700 text-steel-400'
-          }`}
-        >
-          {ahead.title}
-        </span>
-        {ahead.answerTags.length > 0 && <span className="text-[10px] text-steel-500">{ahead.answerTags.join(' · ')}</span>}
-      </div>
-    </div>
-  )
-}
-
 function Track({ program, track, label, active }: { program: BossProgram; track: 'instant' | 'incoming'; label: string; active: boolean }) {
   const beats = track === 'instant' ? program.instant_beats : program.incoming_beats
   return (

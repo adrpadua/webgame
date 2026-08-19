@@ -272,6 +272,22 @@ export function roundUpkeep(state: EncounterState): { ref: CounterRef; counter: 
   return expired
 }
 
+// Reading a Counter event back off a Resolution Fact. The evaluation harness
+// needs this too, and across this branch it silently desynced from the fact
+// keys three separate times: `scripts/` sits outside the typecheck, and a key
+// read off a `Record<string, unknown>` is legal whatever it is called, so a
+// rename breaks the metric without breaking the build. Both sides now go
+// through one reader, so the keys are named in exactly one place.
+export function readCounterEvent(
+  resolutionFact: Record<string, unknown> | undefined,
+): { counterId: string; event: string; reason: string } | null {
+  const raw = resolutionFact?.counter_event as Record<string, unknown> | undefined
+  if (raw === undefined || typeof raw.counter_id !== 'string') {
+    return null
+  }
+  return { counterId: raw.counter_id, event: String(raw.event ?? ''), reason: String(raw.reason ?? '') }
+}
+
 export function counterEvent(counter: CounterInstance, event: string, reason: string): Record<string, unknown> {
   return {
     counter_id: counter.id,

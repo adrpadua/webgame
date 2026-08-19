@@ -193,10 +193,12 @@ export const bossBeatSchema = z.object({
     'warning',
   ]),
   answer_tags: z.array(z.string()).default([]),
-  // Consequence Tier (ADR 0026): sets the earliest horizon this Beat may
-  // appear in. `chip` anywhere, `structural` no later than Incoming, `severe`
-  // in the Forecast Row first. Authored rather than derived, and validated —
-  // see the ladder tests.
+  // Consequence Tier (ADR 0031). It once set the earliest horizon a Beat could
+  // appear in, which the Forecast Row's removal retired. What it sets now is
+  // where a Beat may *open*: `severe` marks a Beat that can end a run, and no
+  // phase's first program may carry one, because the opening Round is the one
+  // nobody can have learned yet (D-036). Authored rather than derived, and
+  // validated — see the ladder tests.
   consequence_tier: z.enum(['chip', 'structural', 'severe']).default('chip'),
   target_selector: z.string().default(''),
   // The Keywords this Beat's damage carries (D-049). Plural because "who it
