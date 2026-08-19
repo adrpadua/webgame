@@ -145,6 +145,27 @@ const MUTATIONS = [
     to: '        if (false && asked.size > 1) {',
   },
   {
+    name: 'the merge base is ignored, so every shared row looks like a collision',
+    guards: 'D-NEW authoring: a row that merged weeks ago must never be renumbered',
+    file: 'content/decisionIds.ts',
+    from: 'upstream.has(row.id) && !base.has(row.id)',
+    to: 'upstream.has(row.id)',
+  },
+  {
+    name: 'a reassigned id lands on a number a later row already holds',
+    guards: 'D-NEW authoring: assigning an id must not create the duplicate it exists to prevent',
+    file: 'content/decisionIds.ts',
+    from: '  const used = new Set([...input.baseIds, ...input.upstreamIds, ...rows.map((row) => row.id)])',
+    to: '  const used = new Set([...input.baseIds, ...input.upstreamIds])',
+  },
+  {
+    name: 'the id rewrite is global, so citations inside a row body move too',
+    guards: 'D-NEW authoring: only the ID column is the row\'s own number',
+    file: 'content/decisionIds.ts',
+    from: 'lines[row.lineIndex] = lines[row.lineIndex].replace(ROW, (match) => match.replace(row.id, to))',
+    to: 'lines[row.lineIndex] = lines[row.lineIndex].split(row.id).join(to)',
+  },
+  {
     name: 'a Beat kind that asks no distance question may quietly gain a reach',
     guards: 'ADR 0020: a reach nothing reads is a number an author can set and watch do nothing',
     file: 'engine/content/catalog.ts',
