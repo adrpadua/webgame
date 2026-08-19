@@ -1,0 +1,155 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+:root {
+  --glass-100:#d6f4f9; --glass-200:#a6e6f0; --glass-300:#7fdbe9; --glass-400:#62d2e6;
+  --glass-500:#3fb9cf; --glass-600:#2a94a8; --glass-700:#1e6d7c; --glass-900:#0f3a44; --glass-950:#0a2730;
+  --gold-100:#f7ebc9; --gold-200:#ecd48f; --gold-300:#dcbd60; --gold-400:#c8a344;
+  --gold-500:#ad8b34; --gold-600:#8a6e26; --gold-700:#64501c; --gold-900:#3a2e12; --gold-950:#261e0c;
+  --cloth-100:#d5e3f0; --cloth-300:#7ea3c6; --cloth-400:#4f7ba6; --cloth-500:#2f5680;
+  --cloth-700:#22405f; --cloth-950:#101c2c;
+  --ceramic-100:#f7f9fb; --ceramic-200:#edf0f5; --ceramic-300:#e4e8ee; --ceramic-400:#c9d2e0;
+  --ceramic-500:#a9b7cc; --ceramic-950:#1a2230;
+  --ember-100:#f6c9be; --ember-300:#ec8b73; --ember-400:#e2603f; --ember-500:#d9482f;
+  --ember-600:#b53a24; --ember-950:#2c110c;
+  --coral-100:#f8d5c4; --coral-200:#f3b394; --coral-300:#ec9569; --coral-400:#e0703b;
+  --coral-500:#c4522a; --coral-700:#7e3519; --coral-900:#45200f; --coral-950:#2c150a;
+  --navy-950:#080d16;
+  --steel-400:#91a3bf; --steel-500:#7a8fb2; --steel-600:#415371; --steel-700:#37465f;
+  --steel-800:#24304a; --steel-900:#1b2434; --steel-950:#0f1622;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--navy-950); color:var(--ceramic-200);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue","Noto Sans",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+/* The gauge language, written once (web/src/ui/theme.ts): a dark track, a
+   fill measured from the left, the number overlaid with a shadow so it stays
+   crisp where it straddles the fill edge. */
+.gauge{position:relative;display:block;height:18px;overflow:hidden;border-radius:2px;background:var(--steel-950)}
+.gauge-fill{position:absolute;top:0;bottom:0;left:0}
+.gauge-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:4px;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+.row{display:flex;align-items:center}
+.col{display:flex;flex-direction:column}
+
+
+/* The plate geometry from docs/content/oathcraft-interface-direction.md: a
+   parallelogram raked 8deg from vertical, top-left corner notched out, the
+   leading edge carrying a 3px accent that runs the full cut. Drawn on ::before
+   and ::after so the element keeps its focus ring, shadow and border. */
+.plate{
+  position:relative; isolation:isolate; background:transparent; border:0;
+  --off:5px; --notch:3px; --gutter:8px; --inset:var(--off);
+  --face:var(--steel-900); --edge:var(--steel-700); --acc:var(--steel-700);
+  /* The one padding rule, derived and never re-declared: --inset is how deep
+     the cut reaches this plate's content, --gutter is the breathing room past
+     it — the only figure tuned by eye. */
+  padding-inline:calc(var(--inset) + var(--gutter));
+}
+.plate::before{
+  content:''; position:absolute; inset:0; z-index:-1; background:var(--face);
+  box-shadow:inset 0 0 0 1px var(--edge), inset 0 1px 0 rgb(255 255 255/.06), inset 0 -1px 0 rgb(0 0 0/.5);
+  clip-path:polygon(calc(var(--off) + var(--notch)) 0, 100% 0, calc(100% - var(--off)) 100%, 0 100%, var(--off) var(--notch));
+}
+.plate::after{
+  content:''; position:absolute; inset:0; z-index:-1; background:var(--acc);
+  clip-path:polygon(var(--off) var(--notch), calc(var(--off) + 3px) var(--notch), 3px 100%, 0 100%);
+}
+/* Sizes carry the rake and, where the plate is width-starved, a tighter
+   gutter. Offset = height x tan(8deg) at the class's nominal height. */
+.p-xs{--off:3px;--notch:2px}
+.p-sm{--off:5px;--notch:3px;--gutter:10px}
+.p-md{--off:7px;--notch:4px}
+.p-card{--off:7px;--notch:4px;--gutter:4px}
+.p-lg{--off:9px;--notch:4px}
+.p-slot{--off:9px;--notch:4px;--gutter:3px}
+.p-xl{--off:16px;--notch:6px;--gutter:12px}
+/* Content held to the plate's vertical middle meets each cut at half depth. */
+.p-centered{--inset:calc(var(--off) / 2)}
+/* A plate carrying a text column measures each side at the corner that side
+   is worst at, and adds the notch back on top. */
+.p-raked{
+  padding-inline:calc(var(--off) + 13px) calc(var(--off) + 10px);
+  padding-block:calc(var(--notch) + var(--gutter-block,8px)) var(--gutter-block,8px);
+}
+/* Faces and accents. The accent is the status channel: gold on the live
+   thing, ember on the irreversible one, glass on a player affordance. */
+.f-steel{--face:var(--steel-900);--edge:var(--steel-700)}
+.f-ceramic{--face:var(--ceramic-300);--edge:var(--ceramic-500)}
+.f-gold{--face:var(--gold-500);--edge:var(--gold-400)}
+.f-dim{--face:var(--steel-950);--edge:var(--steel-800)}
+.f-coral{--face:var(--coral-400);--edge:var(--coral-300)}
+.f-glass{--face:var(--glass-400);--edge:var(--glass-300)}
+.a-gold{--acc:var(--gold-400)}
+.a-glass{--acc:var(--glass-400)}
+.a-ember{--acc:var(--ember-500)}
+.a-cloth{--acc:var(--cloth-500)}
+.a-none{--acc:transparent}
+
+
+/* The bar is a twelve-unit ladder: 2 | 4 | 4 | 2. The rails take two units
+   each and the replaceable Slots share the eight between them. The Signature
+   Slot never renders here — its face is the Hero Frame's control (D-065). */
+.action-bar{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;border-top:1px solid var(--steel-800);background:rgba(15,22,34,.8);padding:8px}
+.rail{grid-column:span 2;display:flex;align-items:center;justify-content:center;min-height:80px}
+.slot{grid-column:span 4;min-height:80px;min-width:0;padding-top:8px;padding-bottom:8px;text-align:left;display:block}
+.slot-title{display:block;font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ceramic-200)}
+.slot-row{margin-top:6px;display:flex;align-items:center;gap:6px}
+.lock{height:16px;width:16px;flex-shrink:0}
+/* Charge tumblers: separate raked pins with gaps while charging; when the
+   last one seats the gaps close and they read as one continuous bar. */
+.tumblers{display:flex;align-items:center;gap:3px}
+.tumblers.seated{gap:0}
+.pin{height:5px;width:14px;transform:skewX(-8deg);background:var(--steel-950);box-shadow:inset 0 1px 0 rgba(0,0,0,.6)}
+.pin.lit{background:var(--gold-400);box-shadow:none}
+.pin.spent{background:var(--gold-700);box-shadow:none}
+.dot{margin-left:auto;height:8px;width:8px;flex-shrink:0;border-radius:9999px}
+.want{display:flex;flex-shrink:0;align-items:center;gap:4px}
+.i16{height:16px;width:16px}
+.slot-sub{margin-top:4px;font-size:10px;font-weight:600;letter-spacing:.025em;text-transform:uppercase}
+.slot-empty{display:flex;height:100%;align-items:center;justify-content:center;font-size:24px;line-height:1;font-weight:300;color:var(--steel-700)}
+.i28{height:28px;width:28px}
+
+.artboard{width:440px;background:var(--navy-950);padding:24px;overflow:hidden}
+.legend{font-size:11px;line-height:1.5;color:var(--steel-400)}
+.legend b{color:var(--ceramic-300);font-weight:600}
+.head{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ceramic-200)}
+.sub{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel-500);margin-top:2px}
+.rule{height:1px;background:var(--steel-800);margin:14px 0}
+.tile{background:rgba(15,22,34,.55);border:1px solid var(--steel-800);border-radius:4px;padding:12px}
+.tile-label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel-500);margin-bottom:8px}
+</style>
+</helmet>
+<section class="artboard">
+<div class="head">The Action Bar</div>
+<div class="sub">A twelve-unit ladder: 2 | 4 | 4 | 2</div>
+<div class="legend" style="margin-top:12px;max-width:380px">
+The rails take two units each and the replaceable Slots share the eight between them. Undo and the advance
+control are the two most-pressed things in the interface, and the ladder exists to put them under the thumb.
+A grid rather than a flex row because the ladder is the contract: the Slots must not resize when a rail
+changes what it is. <b>The Signature Slot never renders here</b> — its face is the Hero Frame's control (D-065),
+so the bar carries exactly the Slots a hand card can reach.
+</div>
+<div class="rule"></div>
+<div style="margin-bottom:16px"><div class="tile-label">Empty — nothing prepared</div><div style="width:390px;background:var(--steel-950)"><div class="action-bar"><button class="plate p-lg p-centered f-dim a-none rail" style="color:var(--steel-500)"><svg viewBox="0 0 20 20" class="i28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h8.2a4 4 0 0 1 0 8H8"/><path d="M7.4 4.6 3.6 8.5l3.8 3.9"/></svg></button><button class="plate p-slot p-lg f-dim a-none slot" style="opacity:.8"><span class="slot-empty">+</span></button><button class="plate p-slot p-lg f-dim a-none slot" style="opacity:.8"><span class="slot-empty">+</span></button><button class="plate p-lg p-centered f-gold a-gold rail" style="color:var(--gold-950)"><svg viewBox="0 0 20 20" class="i28" fill="currentColor" aria-hidden="true"><path d="M3.5 3.2 13 10 3.5 16.8V3.2Z"/><path d="M14.6 3.2h2.2v13.6h-2.2z"/></svg></button></div></div></div><div style="margin-bottom:16px"><div class="tile-label">Loaded — a Top Card, no Charge</div><div style="width:390px;background:var(--steel-950)"><div class="action-bar"><button class="plate p-lg p-centered f-steel a-glass rail" style="color:var(--glass-200)"><svg viewBox="0 0 20 20" class="i28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h8.2a4 4 0 0 1 0 8H8"/><path d="M7.4 4.6 3.6 8.5l3.8 3.9"/></svg></button><button class="plate p-slot p-lg f-steel a-none slot"><span class="slot-title" style="color:var(--ceramic-200)">Iron Guard</span><div class="slot-row"><svg viewBox="0 0 22 22" class="lock" aria-hidden="true"><circle cx="11" cy="11" r="8.4" fill="none" stroke="#5e6b82" stroke-width="1.5" stroke-dasharray="7 5"/><circle cx="11" cy="11" r="6.2" fill="#6e7b93"/><path d="M11 7.6a1.7 1.7 0 0 0-.8 3.2l-.7 3.4h3l-.7-3.4A1.7 1.7 0 0 0 11 7.6Z" fill="#141b27"/></svg><div class="tumblers"><span class="pin"></span><span class="pin"></span><span class="pin"></span></div><span class="dot" style="background:var(--glass-400)"></span><span class="want" style="color:var(--gold-400)"><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12v7c0 3-2.6 4.7-6 5.5C6.6 15.7 4 14 4 11V4Z"/><path d="M10 4v12.2"/></svg><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16V8a3 3 0 0 1 6 0v8"/><path d="M3.5 16h13"/></svg></span></div></button><button class="plate p-slot p-lg f-steel a-none slot"><span class="slot-title" style="color:var(--ceramic-200)">Steady Strike</span><div class="slot-row"><svg viewBox="0 0 22 22" class="lock" aria-hidden="true"><circle cx="11" cy="11" r="8.4" fill="none" stroke="#5e6b82" stroke-width="1.5" stroke-dasharray="7 5"/><circle cx="11" cy="11" r="6.2" fill="#6e7b93"/><path d="M11 7.6a1.7 1.7 0 0 0-.8 3.2l-.7 3.4h3l-.7-3.4A1.7 1.7 0 0 0 11 7.6Z" fill="#141b27"/></svg><div class="tumblers"><span class="pin"></span><span class="pin"></span></div><span class="dot" style="background:var(--glass-400)"></span><span class="want" style="color:var(--gold-400)"><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="3.2"/><path d="M10 2.6v2.4M10 15v2.4M2.6 10H5M15 10h2.4M4.8 4.8 6.5 6.5M13.5 13.5l1.7 1.7M15.2 4.8 13.5 6.5M6.5 13.5l-1.7 1.7"/></svg></span></div></button><button class="plate p-lg p-centered f-gold a-gold rail" style="color:var(--gold-950)"><svg viewBox="0 0 20 20" class="i28" fill="currentColor" aria-hidden="true"><path d="M3.5 3.2 13 10 3.5 16.8V3.2Z"/><path d="M14.6 3.2h2.2v13.6h-2.2z"/></svg></button></div></div></div><div style="margin-bottom:16px"><div class="tile-label">Charged — the stack building</div><div style="width:390px;background:var(--steel-950)"><div class="action-bar"><button class="plate p-lg p-centered f-steel a-glass rail" style="color:var(--glass-200)"><svg viewBox="0 0 20 20" class="i28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h8.2a4 4 0 0 1 0 8H8"/><path d="M7.4 4.6 3.6 8.5l3.8 3.9"/></svg></button><button class="plate p-slot p-lg f-steel a-none slot"><span class="slot-title" style="color:var(--ceramic-200)">Iron Guard</span><div class="slot-row"><svg viewBox="0 0 22 22" class="lock" aria-hidden="true"><circle cx="11" cy="11" r="8.4" fill="none" stroke="#c8a344" stroke-width="1.5" stroke-dasharray="8 4"/><circle cx="11" cy="11" r="6.2" fill="#a98b39"/><path d="M11 7.6a1.7 1.7 0 0 0-.8 3.2l-.7 3.4h3l-.7-3.4A1.7 1.7 0 0 0 11 7.6Z" fill="#141b27"/></svg><div class="tumblers"><span class="pin lit"></span><span class="pin lit"></span><span class="pin"></span></div><span class="dot" style="background:var(--glass-400)"></span><span class="want" style="color:var(--gold-400)"><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12v7c0 3-2.6 4.7-6 5.5C6.6 15.7 4 14 4 11V4Z"/><path d="M10 4v12.2"/></svg><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16V8a3 3 0 0 1 6 0v8"/><path d="M3.5 16h13"/></svg></span></div><div class="slot-sub" style="color:var(--steel-400)">Charged</div></button><button class="plate p-slot p-lg f-steel a-none slot"><span class="slot-title" style="color:var(--ceramic-200)">Steady Strike</span><div class="slot-row"><svg viewBox="0 0 22 22" class="lock" aria-hidden="true"><circle cx="11" cy="11" r="8.4" fill="none" stroke="#c8a344" stroke-width="1.5" stroke-dasharray="8 4"/><circle cx="11" cy="11" r="6.2" fill="#a98b39"/><path d="M11 7.6a1.7 1.7 0 0 0-.8 3.2l-.7 3.4h3l-.7-3.4A1.7 1.7 0 0 0 11 7.6Z" fill="#141b27"/></svg><div class="tumblers"><span class="pin lit"></span><span class="pin"></span></div><span class="dot" style="background:var(--glass-400)"></span><span class="want" style="color:var(--gold-400)"><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="3.2"/><path d="M10 2.6v2.4M10 15v2.4M2.6 10H5M15 10h2.4M4.8 4.8 6.5 6.5M13.5 13.5l1.7 1.7M15.2 4.8 13.5 6.5M6.5 13.5l-1.7 1.7"/></svg></span></div><div class="slot-sub" style="color:var(--steel-400)">Charged</div></button><button class="plate p-lg p-centered f-gold a-gold rail" style="color:var(--gold-950)"><svg viewBox="0 0 20 20" class="i28" fill="currentColor" aria-hidden="true"><path d="M3.5 3.2 13 10 3.5 16.8V3.2Z"/><path d="M14.6 3.2h2.2v13.6h-2.2z"/></svg></button></div></div></div><div style="margin-bottom:16px"><div class="tile-label">Full — the ward ring closes, the gaps shut</div><div style="width:390px;background:var(--steel-950)"><div class="action-bar"><button class="plate p-lg p-centered f-steel a-glass rail" style="color:var(--glass-200)"><svg viewBox="0 0 20 20" class="i28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h8.2a4 4 0 0 1 0 8H8"/><path d="M7.4 4.6 3.6 8.5l3.8 3.9"/></svg></button><button class="plate p-slot p-lg f-steel a-gold slot"><span class="slot-title" style="color:var(--ceramic-200)">Iron Guard</span><div class="slot-row"><svg viewBox="0 0 22 22" class="lock" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="none" stroke="#c8a344" stroke-width="1" opacity="0.34"/><circle cx="11" cy="11" r="8.4" fill="none" stroke="#c8a344" stroke-width="1.5"/><circle cx="11" cy="11" r="6.2" fill="#c8a344"/><path d="M11 7.6a1.7 1.7 0 0 0-.8 3.2l-.7 3.4h3l-.7-3.4A1.7 1.7 0 0 0 11 7.6Z" fill="#141b27"/></svg><div class="tumblers seated"><span class="pin lit"></span><span class="pin lit"></span><span class="pin lit"></span></div><span class="dot" style="background:var(--glass-400)"></span><span class="want" style="color:var(--steel-600)"><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12v7c0 3-2.6 4.7-6 5.5C6.6 15.7 4 14 4 11V4Z"/><path d="M10 4v12.2"/></svg><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16V8a3 3 0 0 1 6 0v8"/><path d="M3.5 16h13"/></svg></span></div><div class="slot-sub" style="color:var(--gold-400)">Full</div></button><button class="plate p-slot p-lg f-steel a-gold slot"><span class="slot-title" style="color:var(--ceramic-200)">Steady Strike</span><div class="slot-row"><svg viewBox="0 0 22 22" class="lock" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="none" stroke="#c8a344" stroke-width="1" opacity="0.34"/><circle cx="11" cy="11" r="8.4" fill="none" stroke="#c8a344" stroke-width="1.5"/><circle cx="11" cy="11" r="6.2" fill="#c8a344"/><path d="M11 7.6a1.7 1.7 0 0 0-.8 3.2l-.7 3.4h3l-.7-3.4A1.7 1.7 0 0 0 11 7.6Z" fill="#141b27"/></svg><div class="tumblers seated"><span class="pin lit"></span><span class="pin lit"></span></div><span class="dot" style="background:var(--glass-400)"></span><span class="want" style="color:var(--steel-600)"><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="3.2"/><path d="M10 2.6v2.4M10 15v2.4M2.6 10H5M15 10h2.4M4.8 4.8 6.5 6.5M13.5 13.5l1.7 1.7M15.2 4.8 13.5 6.5M6.5 13.5l-1.7 1.7"/></svg></span></div><div class="slot-sub" style="color:var(--gold-400)">Full</div></button><button class="plate p-lg p-centered f-gold a-gold rail" style="color:var(--gold-950)"><svg viewBox="0 0 20 20" class="i28" fill="currentColor" aria-hidden="true"><path d="M3.5 3.2 13 10 3.5 16.8V3.2Z"/><path d="M14.6 3.2h2.2v13.6h-2.2z"/></svg></button></div></div></div><div style="margin-bottom:16px"><div class="tile-label">Fired — spent this window, glass strike on the head</div><div style="width:390px;background:var(--steel-950)"><div class="action-bar"><button class="plate p-lg p-centered f-steel a-glass rail" style="color:var(--glass-200)"><svg viewBox="0 0 20 20" class="i28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h8.2a4 4 0 0 1 0 8H8"/><path d="M7.4 4.6 3.6 8.5l3.8 3.9"/></svg></button><button class="plate p-slot p-lg f-dim a-none slot"><span class="slot-title" style="color:var(--steel-400)">Iron Guard</span><div class="slot-row"><svg viewBox="0 0 22 22" class="lock" aria-hidden="true"><circle cx="11" cy="11" r="8.4" fill="none" stroke="#5a5238" stroke-width="1.5" stroke-dasharray="7 5"/><circle cx="11" cy="11" r="6.2" fill="#6a5a2e"/><path d="M11 7.6a1.7 1.7 0 0 0-.8 3.2l-.7 3.4h3l-.7-3.4A1.7 1.7 0 0 0 11 7.6Z" fill="#141b27"/><path d="M4 18 18 4" stroke="#62d2e6" stroke-width="1.4" opacity="0.85"/></svg><div class="tumblers seated"><span class="pin spent"></span><span class="pin spent"></span><span class="pin spent"></span></div><span class="dot" style="background:var(--glass-400)"></span><span class="want" style="color:var(--steel-600)"><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12v7c0 3-2.6 4.7-6 5.5C6.6 15.7 4 14 4 11V4Z"/><path d="M10 4v12.2"/></svg><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16V8a3 3 0 0 1 6 0v8"/><path d="M3.5 16h13"/></svg></span></div><div class="slot-sub" style="color:var(--steel-500)">Fired</div></button><button class="plate p-slot p-lg f-dim a-none slot"><span class="slot-title" style="color:var(--steel-400)">Steady Strike</span><div class="slot-row"><svg viewBox="0 0 22 22" class="lock" aria-hidden="true"><circle cx="11" cy="11" r="8.4" fill="none" stroke="#5a5238" stroke-width="1.5" stroke-dasharray="7 5"/><circle cx="11" cy="11" r="6.2" fill="#6a5a2e"/><path d="M11 7.6a1.7 1.7 0 0 0-.8 3.2l-.7 3.4h3l-.7-3.4A1.7 1.7 0 0 0 11 7.6Z" fill="#141b27"/><path d="M4 18 18 4" stroke="#62d2e6" stroke-width="1.4" opacity="0.85"/></svg><div class="tumblers seated"><span class="pin spent"></span><span class="pin spent"></span></div><span class="dot" style="background:var(--glass-400)"></span><span class="want" style="color:var(--steel-600)"><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="3.2"/><path d="M10 2.6v2.4M10 15v2.4M2.6 10H5M15 10h2.4M4.8 4.8 6.5 6.5M13.5 13.5l1.7 1.7M15.2 4.8 13.5 6.5M6.5 13.5l-1.7 1.7"/></svg></span></div><div class="slot-sub" style="color:var(--steel-500)">Fired</div></button><button class="plate p-lg p-centered f-gold a-gold rail" style="color:var(--gold-950)"><svg viewBox="0 0 20 20" class="i28" fill="currentColor" aria-hidden="true"><path d="M3.5 3.2 13 10 3.5 16.8V3.2Z"/><path d="M14.6 3.2h2.2v13.6h-2.2z"/></svg></button></div></div></div><div style="margin-bottom:16px"><div class="tile-label">Out of window — Full's gold cannot claim “can fire”</div><div style="width:390px;background:var(--steel-950)"><div class="action-bar"><button class="plate p-lg p-centered f-steel a-glass rail" style="color:var(--glass-200)"><svg viewBox="0 0 20 20" class="i28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h8.2a4 4 0 0 1 0 8H8"/><path d="M7.4 4.6 3.6 8.5l3.8 3.9"/></svg></button><button class="plate p-slot p-lg f-dim a-none slot"><span class="slot-title" style="color:var(--steel-400)">Fortify</span><div class="slot-row"><svg viewBox="0 0 22 22" class="lock" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="none" stroke="#c8a344" stroke-width="1" opacity="0.34"/><circle cx="11" cy="11" r="8.4" fill="none" stroke="#c8a344" stroke-width="1.5"/><circle cx="11" cy="11" r="6.2" fill="#c8a344"/><path d="M11 7.6a1.7 1.7 0 0 0-.8 3.2l-.7 3.4h3l-.7-3.4A1.7 1.7 0 0 0 11 7.6Z" fill="#141b27"/></svg><div class="tumblers seated"><span class="pin lit"></span><span class="pin lit"></span></div><span class="dot" style="background:var(--gold-400)"></span><span class="want" style="color:var(--steel-600)"><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12v7c0 3-2.6 4.7-6 5.5C6.6 15.7 4 14 4 11V4Z"/><path d="M10 4v12.2"/></svg></span></div><div class="slot-sub" style="color:var(--steel-500)">Full</div></button><button class="plate p-slot p-lg f-dim a-none slot"><span class="slot-title" style="color:var(--steel-400)">Quench</span><div class="slot-row"><svg viewBox="0 0 22 22" class="lock" aria-hidden="true"><circle cx="11" cy="11" r="8.4" fill="none" stroke="#c8a344" stroke-width="1.5" stroke-dasharray="8 4"/><circle cx="11" cy="11" r="6.2" fill="#a98b39"/><path d="M11 7.6a1.7 1.7 0 0 0-.8 3.2l-.7 3.4h3l-.7-3.4A1.7 1.7 0 0 0 11 7.6Z" fill="#141b27"/></svg><div class="tumblers"><span class="pin lit"></span><span class="pin"></span></div><span class="dot" style="background:var(--gold-400)"></span><span class="want" style="color:var(--steel-600)"><svg viewBox="0 0 20 20" class="i16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.6 7.4A6 6 0 1 0 16 10"/><path d="M15.6 3.8v3.6H12"/><circle cx="10" cy="10" r="1.4"/></svg></span></div><div class="slot-sub" style="color:var(--steel-500)">Charged</div></button><button class="plate p-lg p-centered f-gold a-gold rail" style="color:var(--gold-950)"><svg viewBox="0 0 20 20" class="i28" fill="currentColor" aria-hidden="true"><path d="M3.5 3.2 13 10 3.5 16.8V3.2Z"/><path d="M14.6 3.2h2.2v13.6h-2.2z"/></svg></button></div></div></div>
+<div class="rule"></div>
+<div class="legend" style="max-width:380px">
+A Slot's state lives in two channels at once. The <b>leading-edge accent</b> is the status channel every plate
+shares. The <b>lock head</b> is the glance-distance signal: its ward ring is broken while charging and closed at
+full stack with a second faint ring outside it — a ring closing is a shape change, so it reads in peripheral
+vision and without colour. The tumblers say the same thing a second way: separate raked pins with gaps while
+charging, and when the last one seats the gaps close and they read as one continuous bar.
+</div>
+</section>
+</x-dc>
+</body>
+</html>

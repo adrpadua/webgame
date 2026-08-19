@@ -1,0 +1,122 @@
+{
+  "play-surface": {
+    "w": 390,
+    "h": 844,
+    "x": 0,
+    "y": 0,
+    "pad": "0px",
+    "gap": "normal"
+  },
+  "phase-band": {
+    "w": 390,
+    "h": 101,
+    "x": 0,
+    "y": 0,
+    "pad": "6px 12px",
+    "gap": "normal"
+  },
+  "phase-track": {
+    "w": 314,
+    "h": 44,
+    "x": 12,
+    "y": 6,
+    "pad": "0px",
+    "gap": "4px"
+  },
+  "round-display": {
+    "w": 44,
+    "h": 44,
+    "x": 334,
+    "y": 6,
+    "pad": "0px",
+    "gap": "normal"
+  },
+  "escalation-gauge": {
+    "w": 366,
+    "h": 44,
+    "x": 12,
+    "y": 50,
+    "pad": "0px",
+    "gap": "normal"
+  },
+  "action-bar": {
+    "w": 390,
+    "h": 97,
+    "x": 0,
+    "y": 626,
+    "pad": "8px",
+    "gap": "6px"
+  },
+  "slot-0": {
+    "w": 120.67,
+    "h": 80,
+    "x": 71.33,
+    "y": 635,
+    "pad": "8px 12px",
+    "gap": "normal"
+  },
+  "slot-1": {
+    "w": 120.66,
+    "h": 80,
+    "x": 198,
+    "y": 635,
+    "pad": "8px 12px",
+    "gap": "normal"
+  },
+  "undo": {
+    "w": 57.33,
+    "h": 80,
+    "x": 8,
+    "y": 635,
+    "pad": "0px 12.5px",
+    "gap": "normal"
+  },
+  "next-phase": {
+    "w": 57.33,
+    "h": 80,
+    "x": 324.66,
+    "y": 635,
+    "pad": "0px 12.5px",
+    "gap": "normal"
+  },
+  "hand": {
+    "w": 390,
+    "h": 121,
+    "x": 0,
+    "y": 723,
+    "pad": "12px 8px",
+    "gap": "4px"
+  },
+  "hand-card": {
+    "w": 90.5,
+    "h": 96,
+    "x": 8,
+    "y": 736,
+    "pad": "6px 11px",
+    "gap": "normal"
+  },
+  "hero-frame": {
+    "w": 208,
+    "h": 61,
+    "x": 8,
+    "y": 561,
+    "pad": "2px 17px",
+    "gap": "2px"
+  },
+  "hero-health": {
+    "w": 174,
+    "h": 18,
+    "x": 25,
+    "y": 579,
+    "pad": "0px",
+    "gap": "normal"
+  },
+  "signature-resource": {
+    "w": 174,
+    "h": 7,
+    "x": 25,
+    "y": 599,
+    "pad": "1px",
+    "gap": "2px"
+  }
+}
