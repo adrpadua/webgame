@@ -179,6 +179,20 @@ Nothing may leave the body's outline. No drifting embers, falling ash, smoke, sp
 
 Composed and ready to send in [embermaw-sprite-prompts.md](embermaw-sprite-prompts.md). Save the accepted sheet as `assets/art/characters/embermaw/idle-contact-sheet-phase-two.png` and build it to `web/src/assets/embermaw-phase-two-idle.png`.
 
+## How Far A Diagonal Should Turn
+
+A diagonal facing sits 60 degrees off the profile, so the directional feature should land at roughly **half** the offset it has in `E` — `cos 60°`. That number is worth knowing because both Embermaw sheets miss it in opposite directions and both were accepted anyway:
+
+| Sheet | `SE` turn, as a share of the full `E` profile |
+| --- | --- |
+| Phase I | 20% — under-turned |
+| Phase II | 75% — over-turned |
+| Geometry | ~50% |
+
+Accepted deliberately at prototype stage. What it costs is that a Boss facing `SE` visibly rotates when the Phase Break swaps its sheet, which is the one thing the phase-variant block asks not to happen. Worth a re-roll of both diagonals when the art is next touched for its own sake; not worth one on its own.
+
+The failure that is *not* acceptable is the one this replaced: Phase II first came back at 5%, drawn head-on, so `SE` and its mirrored `SW` were indistinguishable. Embermaw's facing tells a player which way the Cinder Breath cone will go, so two southern facings that look identical cost real information rather than polish.
+
 ## The Label Gutter Is Not Evidence
 
 The facing labels down the left edge say what a row was *asked* for, not what was drawn. On both Embermaw sheets the generator swapped the compass on every diagonal: the band labelled `SE` faces down-left, `NE` faces up-left, and only `E` and `W` came back pointing where their labels claimed.

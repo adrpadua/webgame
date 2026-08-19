@@ -52,7 +52,7 @@ export const SHEETS: Record<string, SheetSpec> = {
   // the Boss does, not how much hex it takes up.
   // Kept on one line like its siblings: the smoke parses this table with a
   // per-line regex, and an entry it cannot see is an entry it cannot check.
-  bossPhaseTwo: { key: 'embermaw-phase-two-idle', url: bossPhaseTwoIdleUrl, frameWidth: 322, frameHeight: 238, targetHeight: 80, footOffset: 22 },
+  bossPhaseTwo: { key: 'embermaw-phase-two-idle', url: bossPhaseTwoIdleUrl, frameWidth: 326, frameHeight: 240, targetHeight: 80, footOffset: 22 },
   minion: { key: 'whelp-idle', url: minionIdleUrl, frameWidth: 178, frameHeight: 164, targetHeight: 40, footOffset: 10 },
 }
 
