@@ -68,8 +68,8 @@ When Party-scale encounters are authored, each encounter must name which Beats a
 - **Pattern:** the three hexes in Embermaw's forward arc, range 1.
 - **Origin:** Embermaw's current facing.
 - **Answer:** tank occupies the center-front hex (the Guarded Front) and mitigates; other party members leave the arc.
-- **Failure:** the frontmost target takes a Tank Hit; every additional target in the arc takes a Raid Hit. If no Hero holds the Guarded Front, the targeted Tank Hit rakes deeper for `+3` (D-017) — the claw cannot be outrun, only braced.
-- **Teaching value:** facing defines a front, position changes who is responsible for the hit, and abandoning the front has a price.
+- **Failure:** the frontmost target takes a Tank Hit; every additional target in the arc takes a Raid Hit. A Hero standing outside the claw's authored reach is not hit at all (D-061) — what standing there costs is charged by `Within Reach` in Escalation, never by the claw in Health.
+- **Teaching value:** facing defines a front, position changes who is responsible for the hit, and stepping out of reach answers the blow while starting a different clock.
 
 This is the baseline tank check. It is deliberately survivable in the one-player demo, where Elian Voss is always the frontmost target.
 

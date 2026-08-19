@@ -49,6 +49,19 @@ describe('board effects', () => {
     expect(effects.some((effect) => effect.kind === 'scorch')).toBe(true)
   })
 
+  it('plays no lunge for a claw that reached nothing', () => {
+    // Board Feedback is derived from Resolution Facts so the board can never
+    // show a blow the Encounter did not resolve. Since D-061 a claw can come up
+    // short, and a lunge is what a landed hit looks like — playing one anyway
+    // would tell the player they were struck on a Round they stepped clear.
+    const state = openedRound()
+    const away = { q: -2, r: 2 }
+    state.board.entities[state.primaryHeroId].coords = { ...away }
+    const { effects } = advance(state)
+    expect(effects.some((effect) => effect.kind === 'strike')).toBe(false)
+    expect(effects.some((effect) => effect.kind === 'hit' && effect.entityId === state.primaryHeroId)).toBe(false)
+  })
+
   it('plays a boss track out one beat at a time: announced, staggered, and in program order', () => {
     const state = openedRound()
     const { effects } = advance(state)

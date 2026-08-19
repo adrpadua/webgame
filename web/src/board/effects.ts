@@ -1,4 +1,4 @@
-import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type ResolvedActionFact } from '@/engine'
+import { hexDistance, parseHexKey, type Axial, type ContentCatalog, type EncounterState, type ResolvedActionFact } from '@/engine'
 import { BOSS_DEFEAT_MS } from './defeat'
 
 // Resolution Facts are the only thing the board animates from. Every beat of
@@ -227,7 +227,13 @@ export function deriveBoardEffects(
             add({ kind: 'turn', entityId: before.bossId, at: bossCoords, fromFacing, tone: 'boss' })
           }
         } else if (beat?.kind === 'targeted_hit') {
-          add({ kind: 'strike', entityId: before.bossId, at: bossCoords, toward: heroCoords ?? undefined, tone: 'boss' })
+          // Only when it connected. Board Feedback is derived from Resolution
+          // Facts precisely so the board can never show a blow the Encounter
+          // did not resolve, and since D-061 a claw can reach nothing at all —
+          // a lunge is what a landed hit looks like, not what a miss does.
+          if (heroCoords && hexDistance(heroCoords, bossCoords) <= beat.range_tiles) {
+            add({ kind: 'strike', entityId: before.bossId, at: bossCoords, toward: heroCoords, tone: 'boss' })
+          }
         } else if (beat?.kind === 'forward_cone') {
           const hexes = telegraphedCone(before)
           if (hexes.length > 0) {
