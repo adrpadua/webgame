@@ -177,6 +177,16 @@ export const minionSchema = z.object({
   rules_text: z.string().default(''),
   max_health: z.number().int().min(1),
   attack_damage: z.number().int().min(0).default(0),
+  // A Minion's fuse (D-061). A Minion authoring a blast detonates on the
+  // Incoming Row of the Round after it arrived, and the pair is authored here
+  // rather than defaulted for the reason a Beat's reach is (D-043): how far a
+  // blast reaches is the whole difference between one a step answers and one
+  // it does not, and ADR 0020 puts that decision in `data/`.
+  //
+  // Both or neither, enforced in the catalog: damage with no radius is a blast
+  // that hits nothing, and a radius with no damage is a fuse that does nothing.
+  explode_damage: z.number().int().min(0).default(0),
+  explode_radius: z.number().int().min(0).max(3).default(0),
 })
 
 export const bossBeatSchema = z.object({

@@ -24,6 +24,11 @@ export type EncounterActionInput =
   | { kind: 'apply_hazard'; sourceId: string; coords: Axial; hazardId: string | null; fallbackDurationRounds: number; permanent?: boolean }
   | { kind: 'spawn_minion'; sourceId: string; minionId: string; coords: Axial; minionContentId?: string }
   | { kind: 'move_minion'; sourceId: string; destination: Axial }
+  // A Minion's fuse running out (D-061). It carries only the Minion, because
+  // where the blast lands and how far it reaches are read from the live board
+  // and the authored Minion at resolution — a footprint carried on the action
+  // could disagree with the hex the Minion is actually standing on.
+  | { kind: 'detonate_minion'; sourceId: string }
   | { kind: 'damage'; sourceId: string; targetId: string; amount: number; reasonText: string; factContext?: Record<string, unknown> }
   | { kind: 'discard_for_stamina'; sourceId: string; cardInstanceId: string }
   // A Boss Beat placing a Counter (D-051). It rides an action like every other

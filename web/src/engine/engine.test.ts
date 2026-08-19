@@ -21,6 +21,7 @@ import {
   hexKey,
   isGuardedFront,
   legality,
+  minionDetonations,
   minionIntents,
   replayRecord,
   ESCALATION_MAX,
@@ -30,6 +31,7 @@ import {
   programPredictability,
   resolve,
   runScenario,
+  type ContentCatalog,
   type EncounterState,
   type ResolvedActionFact,
   type Scenario,
@@ -75,6 +77,30 @@ function startBroodSecond(): EncounterState {
   // rather than in whichever Whelp test happens to run first.
   expect(state.programSequence[1]).toBe('embermaw_brood')
   return state
+}
+
+// A catalog whose Whelps have no fuse and whose Brood Calls are priced.
+//
+// Two engine rules — pool-scoped demand pricing (D-041) and Escalation
+// acceleration from a standing Minion (ADR 0027) — need a Minion that can
+// still be on the board at a Round end. Since D-061 no live Minion can be:
+// a Whelp detonates on the Incoming Row of the Round after it arrives, so it
+// never reaches the Round-end step it used to be billed at. The rules are
+// architecture rather than Embermaw tuning, so they are proven here against
+// content that still exercises them, exactly as the acceleration mechanism was
+// proven against a priced variant while Embermaw authored the price at 0.
+function standingMinionCatalog(): ContentCatalog {
+  const variant = structuredClone(catalog)
+  variant.minions.whelp.explode_damage = 0
+  variant.minions.whelp.explode_radius = 0
+  for (const program of Object.values(variant.programs)) {
+    for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
+      if (beat.kind === 'spawn_minions') {
+        beat.escalation_if_unanswered = 1
+      }
+    }
+  }
+  return variant
 }
 
 function stepPhases(state: EncounterState, count: number): { state: EncounterState; facts: ResolvedActionFact[] } {
@@ -880,14 +906,16 @@ describe('Demand disclosure (D-041)', () => {
   it('still charges a standing Minion whichever program is up', () => {
     // The other scope, and the reason it is not one rule: a Minion is on the
     // board regardless of which program runs, so its demand outlives the Beat
-    // that spawned it and any priced Beat in the pool sets its cost.
+    // that spawned it and any priced Beat in the pool sets its cost. Proven
+    // against a Minion that can still be standing at a Round end (D-061).
+    const standing = standingMinionCatalog()
     let state = immortalHero(startBroodSecond())
     let charged = false
     let guard = 0
     while (state.active && guard < 40) {
       guard += 1
-      const program = catalog.programs[state.currentProgramId ?? '']
-      const result = advancePhase(catalog, state)
+      const program = standing.programs[state.currentProgramId ?? '']
+      const result = advancePhase(standing, state)
       if (chargedReasons(result).includes('unanswered_minions')) {
         charged = true
         if (![...program.instant_beats, ...program.incoming_beats].some((beat) => beat.kind === 'spawn_minions')) {
@@ -1431,7 +1459,7 @@ describe('phase cycle', () => {
 })
 
 describe('Minion end-step intent (D-006)', () => {
-  it('a distant Whelp advances toward its Hero; an arrived Whelp bites', () => {
+  it('a distant Whelp advances toward its Hero; an adjacent Whelp bites', () => {
     // Brood Pattern's Incoming Row spawns two Whelps at distance 2. It runs on
     // Round 2 for this seed, so reach that Round's Slow Window (D-036: the
     // pinned opener calls no Whelps).
@@ -1461,17 +1489,23 @@ describe('Minion end-step intent (D-006)', () => {
       expect(hexDistance(state.board.entities[id].coords, heroCoords)).toBe(1)
     }
 
-    // The following Round: the arrived Whelps bite.
-    state = stepPhases(state, 4).state
-    expect(state.phase).toBe('slow')
-    const round2Health = hero(state).health
-    const wrap2 = advancePhase(catalog, state)
+    // The bite is adjacency-gated, and adjacency is what the creep buys. Since
+    // the fuse (D-061) the arrival Round's end step is the only one a Whelp
+    // gets — it detonates on the next Incoming Row — so a Whelp bites only
+    // when it arrives already next to its Hero. Put one there and take that
+    // Round's wrap instead.
+    let adjacent = stepPhases(immortalHero(startBroodSecond()), 9).state
+    const biter = Object.values(adjacent.board.entities).filter((entity) => entity.kind === 'minion')[0]
+    adjacent.board.entities[biter.id].coords = { q: heroCoords.q + 1, r: heroCoords.r }
+    const biteHealth = hero(adjacent).health
+    const wrap2 = advancePhase(catalog, adjacent)
+    adjacent = wrap2.state
     const bites = wrap2.facts.filter((fact) => fact.kind === 'damage' && fact.resolutionFact?.minion_intent === true)
-    expect(bites).toHaveLength(2)
+    expect(bites).toHaveLength(1)
     expect(bites.every((fact) => ((fact.resolutionFact?.damage_keywords as string[]) ?? []).includes('raid_hit'))).toBe(true)
-    expect(hero(wrap2.state).health).toBe(round2Health - 2)
+    expect(hero(adjacent).health).toBe(biteHealth - 1)
     // A Raid Hit from a Minion never grants Riposte Ready.
-    expect((wrap2.state.counters[combatantRef(state.primaryHeroId)] ?? []).some((effect) => effect.id === 'riposte_ready')).toBe(false)
+    expect((adjacent.counters[combatantRef(adjacent.primaryHeroId)] ?? []).some((effect) => effect.id === 'riposte_ready')).toBe(false)
   })
 
   it('a cleared Whelp takes no end-step action', () => {
@@ -1488,6 +1522,175 @@ describe('Minion end-step intent (D-006)', () => {
     const moves = wrap.facts.filter((fact) => fact.kind === 'move_minion')
     expect(moves).toHaveLength(1)
     expect(moves[0].sourceId).toBe(whelps[1].id)
+  })
+})
+
+describe('Minion detonation (D-061)', () => {
+  // Round 2 is the Brood Round on this seed, so its Slow Window is the board
+  // with two freshly arrived Whelps on it — the state every test here starts
+  // from. Nine phase steps reach it (D-036: the pinned opener calls no Whelps).
+  function arrivalRound(): EncounterState {
+    const state = stepPhases(immortalHero(startBroodSecond()), 9).state
+    expect(state.round).toBe(2)
+    expect(state.phase).toBe('slow')
+    expect(Object.values(state.board.entities).filter((entity) => entity.kind === 'minion')).toHaveLength(2)
+    return state
+  }
+
+  // From the arrival Round's Slow Window to the Quick Window of the Round
+  // after it: the last window the party has before the fuses run out.
+  function fuseWindow(state: EncounterState): EncounterState {
+    const next = stepPhases(state, 3).state
+    expect(next.round).toBe(3)
+    expect(next.phase).toBe('quick')
+    return next
+  }
+
+  it('holds its fuse through the Round it arrives in', () => {
+    const state = arrivalRound()
+    // Nothing is due yet: the Whelps arrived this Round, so the projection is
+    // empty and the Round's own wrap detonates nothing.
+    expect(minionDetonations(catalog, state)).toHaveLength(0)
+    const wrap = advancePhase(catalog, state)
+    expect(wrap.facts.filter((fact) => fact.kind === 'detonate_minion')).toHaveLength(0)
+    expect(Object.values(wrap.state.board.entities).filter((entity) => entity.kind === 'minion')).toHaveLength(2)
+  })
+
+  it('detonates on the next Round’s Incoming Row, before the Boss acts', () => {
+    let state = fuseWindow(arrivalRound())
+    // The projection is live for the whole Round the fuse burns through, so
+    // the party can see the deadline in the window that can still answer it.
+    const pending = minionDetonations(catalog, state)
+    expect(pending).toHaveLength(2)
+    expect(pending.every((blast) => blast.damage === 3 && blast.heroIds.includes(state.primaryHeroId))).toBe(true)
+
+    const result = advancePhase(catalog, state)
+    state = result.state
+    expect(state.phase).toBe('incoming')
+    const blasts = result.facts.filter((fact) => fact.kind === 'detonate_minion')
+    expect(blasts).toHaveLength(2)
+    expect(blasts.every((fact) => fact.succeeded)).toBe(true)
+    // Before the Boss: a Whelp's clock was set when it arrived, so what the
+    // Boss does this Round must not decide when it runs out.
+    const firstBeat = result.facts.findIndex((fact) => fact.kind === 'resolve_boss')
+    expect(firstBeat).toBeGreaterThan(result.facts.findIndex((fact) => fact.kind === 'detonate_minion'))
+    // Both Whelps are consumed by their own blasts, and the Hero standing
+    // between them takes both. Counted off the blasts' own facts rather than
+    // off the Hero's total, because the Boss's Incoming Row resolves in this
+    // same batch and its damage is not the thing under test.
+    expect(Object.values(state.board.entities).filter((entity) => entity.kind === 'minion')).toHaveLength(0)
+    const damage = result.facts.filter((fact) => fact.resolutionFact?.minion_detonation === true && fact.kind === 'damage')
+    expect(damage).toHaveLength(2)
+    expect(damage.map((fact) => fact.resolutionFact?.health_loss)).toEqual([3, 3])
+    expect(damage.every((fact) => ((fact.resolutionFact?.damage_keywords as string[]) ?? []).includes('raid_hit'))).toBe(true)
+  })
+
+  it('leaves without a Minion Defeat, so nobody is credited a kill', () => {
+    const result = advancePhase(catalog, fuseWindow(arrivalRound()))
+    // A Minion Defeat is a damage action reducing a Minion to 0 Health, and it
+    // records `target_removed`. A detonation removes the Minion with no damage
+    // action at all: the Whelp is gone, and no fact claims it was killed.
+    expect(result.facts.some((fact) => fact.resolutionFact?.target_removed === true)).toBe(false)
+    expect(Object.values(result.state.board.entities).filter((entity) => entity.kind === 'minion')).toHaveLength(0)
+  })
+
+  it('burns Heroes only, never the Boss or another Minion', () => {
+    // The Burst rule pointed the other way: a player Burst never touches a
+    // Hero, so an Enemy blast never touches an Enemy. Park a Whelp against the
+    // Boss and check the ledger — a party that could bait a blast into
+    // Embermaw would be handed Boss damage it never dealt.
+    const state = fuseWindow(arrivalRound())
+    const whelps = Object.values(state.board.entities).filter((entity) => entity.kind === 'minion')
+    const bossCoords = state.board.entities[state.bossId].coords
+    state.board.entities[whelps[0].id].coords = { q: bossCoords.q + 1, r: bossCoords.r - 1 }
+    expect(hexDistance(state.board.entities[whelps[0].id].coords, bossCoords)).toBe(1)
+    const bossHealth = boss(state).health
+    const result = advancePhase(catalog, state)
+    const struck = result.facts
+      .filter((fact) => fact.kind === 'damage' && fact.resolutionFact?.minion_detonation === true)
+      .map((fact) => fact.detail.targetId)
+    expect(struck).toEqual([state.primaryHeroId])
+    expect(boss(result.state).health).toBe(bossHealth)
+  })
+
+  it('misses a Hero who stood outside the blast', () => {
+    // The second answer, and the one a party without a spare Sweeping Blow
+    // actually has: the blast reaches one hex, so a step is an answer to it.
+    const state = fuseWindow(arrivalRound())
+    for (const whelp of Object.values(state.board.entities).filter((entity) => entity.kind === 'minion')) {
+      expect(hexDistance(whelp.coords, state.board.entities[state.primaryHeroId].coords)).toBe(1)
+    }
+    state.board.entities[state.primaryHeroId].coords = { q: 0, r: -2 }
+    expect(minionDetonations(catalog, state).every((blast) => blast.heroIds.length === 0)).toBe(true)
+    const health = hero(state).health
+    const result = advancePhase(catalog, state)
+    expect(result.facts.filter((fact) => fact.kind === 'detonate_minion')).toHaveLength(2)
+    expect(result.facts.some((fact) => fact.resolutionFact?.minion_detonation === true && fact.kind === 'damage')).toBe(false)
+    expect(hero(result.state).health).toBe(health)
+  })
+
+  it('sharpens with the Whelp damage threshold', () => {
+    // `minion_damage_bonus` is Whelp damage, not only the bite: the Escalation
+    // Threshold that authors it has to reach the blast too, or the Whelp gets
+    // *safer* the deeper the collapse goes.
+    const state = fuseWindow(arrivalRound())
+    state.escalation = 3
+    expect(escalationModifiers(state).minionDamageBonus).toBe(1)
+    const result = advancePhase(catalog, state)
+    const damage = result.facts.filter((fact) => fact.resolutionFact?.minion_detonation === true && fact.kind === 'damage')
+    expect(damage.map((fact) => fact.resolutionFact?.health_loss)).toEqual([4, 4])
+    expect(result.facts.filter((fact) => fact.kind === 'detonate_minion').every((fact) => fact.detail.blastDamage === 4)).toBe(true)
+  })
+
+  const detonationCharges = (facts: ResolvedActionFact[]) =>
+    facts.filter((fact) => fact.kind === 'gain_escalation' && fact.resolutionFact?.escalation_reason === 'unanswered_minions')
+
+  it('charges the spawning Beat’s price once for a Round a Whelp went off in', () => {
+    // Reaching the fuse is the demand going unanswered, so Brood Call's
+    // authored `escalation_if_unanswered` is billed here rather than at the
+    // Round-end step a detonating Whelp never reaches. Once per Round, which
+    // is the rate the Round-end demand charged at: this is the same demand
+    // moved, not a second one, and billing each Whelp separately front-loads
+    // the same total and pulls the collapse forward across the sweep.
+    const state = fuseWindow(arrivalRound())
+    const price = Object.values(catalog.programs)
+      .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
+      .find((beat) => beat.kind === 'spawn_minions')!.escalation_if_unanswered
+    expect(price).toBeGreaterThan(0)
+    const before = state.escalation
+    const result = advancePhase(catalog, state)
+    expect(result.facts.filter((fact) => fact.kind === 'detonate_minion')).toHaveLength(2)
+    expect(detonationCharges(result.facts)).toHaveLength(1)
+    expect(result.state.escalation).toBe(before + price)
+    // Charged where the fuse ran out, so the Round-end step does not bill the
+    // same brood a second time on a board with no Minion left standing.
+    expect(detonationCharges(advancePhase(catalog, stepPhases(result.state, 1).state).facts)).toHaveLength(0)
+  })
+
+  it('charges nothing for a brood the party cleared before the fuse', () => {
+    let state = fuseWindow(arrivalRound())
+    for (const whelp of Object.values(state.board.entities).filter((entity) => entity.kind === 'minion')) {
+      state = resolve(catalog, state, { kind: 'damage', sourceId: state.primaryHeroId, targetId: whelp.id, amount: 2, reasonText: 'test clear' }).state
+    }
+    const before = state.escalation
+    const result = advancePhase(catalog, state)
+    expect(result.facts.filter((fact) => fact.kind === 'detonate_minion')).toHaveLength(0)
+    expect(detonationCharges(result.facts)).toHaveLength(0)
+    expect(result.state.escalation).toBe(before)
+  })
+
+  it('never detonates a Minion with no authored fuse', () => {
+    // Both halves are authored (`explode_damage`, `explode_radius`), so a
+    // Minion without them creeps and bites exactly as it did before D-061.
+    const fuseless = structuredClone(catalog)
+    fuseless.minions.whelp.explode_damage = 0
+    fuseless.minions.whelp.explode_radius = 0
+    let state = stepPhases(immortalHero(startBroodSecond()), 9).state
+    state = stepPhases(state, 3).state
+    expect(minionDetonations(fuseless, state)).toHaveLength(0)
+    const result = advancePhase(fuseless, state)
+    expect(result.facts.filter((fact) => fact.kind === 'detonate_minion')).toHaveLength(0)
+    expect(Object.values(result.state.board.entities).filter((entity) => entity.kind === 'minion')).toHaveLength(2)
   })
 })
 
@@ -2568,18 +2771,13 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
   })
 
   it('accelerates from an unanswered Whelp, so the collapse arrives early', () => {
-    // Embermaw authors the penalty at 0 while the live deck has no Whelp
-    // answer (D-003), so the trigger is proven against a catalog variant that
-    // does price it. Nothing else changes: same passive Hero, adds never
-    // cleared, and the fight now ends before the Encounter Clock.
-    const priced = structuredClone(catalog)
-    for (const program of Object.values(priced.programs)) {
-      for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
-        if (beat.kind === 'spawn_minions') {
-          beat.escalation_if_unanswered = 1
-        }
-      }
-    }
+    // Embermaw prices Brood Call at 0, because since D-061 a Whelp detonates
+    // before it can reach a Round end and a demand nothing can leave standing
+    // is a price nothing can pay. The mechanism is proven against a catalog
+    // variant that both prices the Beat and removes the fuse. Nothing else
+    // changes: same passive Hero, adds never cleared, and the fight now ends
+    // before the Encounter Clock.
+    const priced = standingMinionCatalog()
     let state = immortal()
     let guard = 0
     while (state.active && guard < 60) {
@@ -2599,6 +2797,10 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     // had gone stale: the starter deck carries Sweeping Blow, which one-shots a
     // Whelp. State the rule instead, so pricing and answerability can never
     // drift apart.
+    //
+    // The answer is the same one D-061 tightened the deadline on: killing the
+    // Whelp. Stepping out of its blast dodges the damage but not the price, so
+    // the demand the deck has to be able to answer is still "clear the add".
     const encounter = catalog.encounters.embermaw_prototype
     const priced = Object.values(catalog.programs)
       .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
@@ -2640,12 +2842,19 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
     // Whelps spawn in the Incoming Row, so no player window can reach them
     // before the Round-end step: counting them would be a second automatic
     // tick rather than earned acceleration.
+    //
+    // Against the priced, fuseless variant (D-061): with the live content the
+    // demand costs 0 and no Minion survives to a Round end, so this Round's
+    // zero would be zero whatever the grace rule said.
+    const standing = standingMinionCatalog()
     let state = immortalHero(startBroodSecond())
-    state = stepPhases(state, PHASES_TO_BROOD_SLOW).state
+    for (let step = 0; step < PHASES_TO_BROOD_SLOW; step += 1) {
+      state = advancePhase(standing, state).state
+    }
     expect(state.phase).toBe('slow')
     expect(state.round).toBe(2)
     expect(Object.values(state.board.entities).some((entity) => entity.kind === 'minion')).toBe(true)
-    state = stepPhases(state, 1).state
+    state = advancePhase(standing, state).state
     expect(state.round).toBe(3)
     // Automatic ticks have not begun either, so a nonzero value here could only
     // have come from the Whelps that just landed.
@@ -3956,13 +4165,16 @@ describe('Encounter Records (schema_version 2)', () => {
     expect(record.schema_version).toBe(2)
     expect(record.seed).toBe(scenario.seed)
     expect(record.outcome).toBe('defeat')
-    // The solo ceiling ends at zero Health again. It had moved to the clock
-    // when Brood Call was priced (D-036); promoting Quench moved it back, by
-    // trading two Steady Strike out of the list — the deepest push now runs out
-    // of Hero a Round before it runs out of Rounds. `outcome` stays `defeat`
-    // either way; `end_kind` is what distinguishes the two ways to lose, and
-    // the clock ending has its own test below rather than riding on this one.
-    expect(record.end_kind).toBe('defeat')
+    // The solo ceiling ends on the clock again. It has now flipped three
+    // times: to the clock when Brood Call was priced (D-036), back to zero
+    // Health when promoting Quench traded two Steady Strike out of the list,
+    // and to the clock again with the Whelp fuse (D-061), because the deepest
+    // push is a dodging line and a Whelp it steps away from removes itself —
+    // it runs out of Rounds a Round before it runs out of Hero. `outcome`
+    // stays `defeat` either way; `end_kind` is what distinguishes the two ways
+    // to lose, and it is re-read from the regenerated artifact rather than
+    // being a property the ceiling is supposed to hold.
+    expect(record.end_kind).toBe('end_of_clock')
     expect(record.abandon_reason).toBe('')
     expect(record.content_identity.fingerprint).toMatch(/^[0-9a-f]{64}$/)
     expect(record.content_identity.ids).toContain('encounter:embermaw_prototype')

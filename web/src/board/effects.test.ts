@@ -389,6 +389,42 @@ describe('board effects', () => {
     throw new Error('no Brood Call spawned within 25 phase steps')
   })
 
+  it('blows the ground up around a Whelp whose fuse ran out, and takes the piece with it', () => {
+    // D-061. The detonation resolves in the Incoming Row alongside the Boss
+    // Beats, so it has to claim its own moment: sharing one with the Beat that
+    // follows would show a blast that Beat did not cause.
+    let state = openedRound()
+    state.heroes[state.primaryHeroId].maxHealth = 500
+    state.heroes[state.primaryHeroId].health = 500
+    for (let step = 0; step < 30; step += 1) {
+      const before = state
+      const result = advancePhase(catalog, state)
+      const effects = deriveBoardEffects(catalog, before, result.state, result.facts)
+      state = result.state
+      // The Boss's own cone is a blast too, so the Whelp's is found through the
+      // fact that produced it rather than by taking the first one on the board.
+      const detonated = result.facts.find((fact) => fact.kind === 'detonate_minion' && fact.succeeded)
+      if (!detonated) {
+        continue
+      }
+      const blast = effects.find((effect) => effect.kind === 'blast' && effect.entityId === detonated.sourceId)
+      expect(blast?.tone).toBe('hazard')
+      expect((blast?.hexes ?? []).length).toBeGreaterThan(1)
+      // The piece leaves with its own blast, from the hex the blast centred on.
+      const leaving = effects.find((effect) => effect.kind === 'defeat' && effect.entityId === detonated.sourceId)
+      expect(leaving?.at).toEqual(blast?.at)
+      expect(state.board.entities[detonated.sourceId]).toBeUndefined()
+      // Its own moment, ahead of every Boss Beat in the same batch.
+      const script = derivePlayoutScript(before, state, result.facts, effects)
+      expect(script?.moments[0].beatId).toBeNull()
+      expect(script?.moments[0].beatTitle).toBe('Whelp detonates')
+      expect(script?.moments[0].effects.some((effect) => effect.kind === 'blast')).toBe(true)
+      expect((script?.moments.length ?? 0)).toBeGreaterThan(1)
+      return
+    }
+    throw new Error('no Whelp detonated within 30 phase steps')
+  })
+
   it('shows Armor a guard actually granted rather than the number printed on the card', () => {
     let state = createEncounterState(catalog, FIRST_TURN_ENCOUNTER_ID)
     const hero = state.heroes[state.primaryHeroId]

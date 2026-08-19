@@ -1,8 +1,8 @@
 import { cardChargeCap } from './content/catalog'
 import type { ContentCatalog } from './content/catalog'
 import { applyAction, checkResolution } from './resolve'
-import { ESCALATION_MAX, escalationActionsForRoundEnd, escalationModifiers } from './escalation'
-import { minionIntent } from './minions'
+import { ESCALATION_MAX, escalationActionsForRoundEnd, escalationModifiers, minionDemandTerms } from './escalation'
+import { detonationDue, minionDetonation, minionIntent } from './minions'
 import { actionsForTrack, refreshTelegraphs } from './timeline'
 import { getCounters, counterEvent, refEntityId, type CounterRef } from './counters'
 import { RAID_HIT } from './keywords'
@@ -78,7 +78,7 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
       submit(advanceAction('instant', 'quick', draft.round))
       refreshTelegraphs(catalog, draft)
       break
-    case 'quick':
+    case 'quick': {
       for (const action of counterExpiryActions(draft, 'quick')) {
         submit(action)
       }
@@ -86,12 +86,62 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
         submit(action)
       }
       submit(advanceAction('quick', 'incoming', draft.round))
+      // The Minion fuses (D-061), before the Boss acts. A Whelp's clock is its
+      // own: it was set when the Whelp arrived, so what the Boss does this
+      // Round must not decide when it runs out. Resolving first also means the
+      // hexes a blast frees are available to the spawn telegraph re-aimed
+      // below, rather than being counted as occupied by pieces that are gone.
+      //
+      // Collected before the loop, because the list is what detonates: a
+      // detonation removes its own Minion, and reading the live board mid-loop
+      // would be iterating a collection the loop is emptying.
+      let detonated = false
+      for (const minionId of Object.values(draft.board.entities)
+        .filter((entity) => entity.kind === 'minion' && detonationDue(draft, entity.id))
+        .map((entity) => entity.id)) {
+        if (!draft.active) {
+          break
+        }
+        if (minionDetonation(catalog, draft, minionId) !== null) {
+          submit({ kind: 'detonate_minion', sourceId: minionId })
+          detonated = true
+        }
+      }
+      // A Whelp reaching its fuse IS the Brood Call going unanswered, so the
+      // Beat's authored `escalation_if_unanswered` is charged here rather than
+      // at the Round-end step a detonating Whelp can never reach. Without it a
+      // party that simply stepped out of the blast paid nothing at all for the
+      // adds, and the measured sweep put a solo victory on the board — a
+      // tuning defect by definition (D-016).
+      //
+      // Once per Round, not once per Whelp, because that is the rate the
+      // Round-end demand charged at and this is the same demand moved rather
+      // than a new one: billing each Whelp separately front-loads the same
+      // total into one Round and pulls the collapse forward half a Round
+      // across the sweep. Clearing part of a brood is still paid for — in the
+      // blasts that never land — just not in Escalation.
+      if (detonated && draft.active) {
+        const demand = minionDemandTerms(catalog, draft)
+        if (demand.amount > 0) {
+          submit({
+            kind: 'gain_escalation',
+            sourceId: ENCOUNTER_SOURCE,
+            amount: demand.amount,
+            reason: 'unanswered_minions',
+            beatId: demand.beatId,
+          })
+        }
+      }
+      if (!draft.active) {
+        return { state: draft, facts }
+      }
       // Re-aim the telegraphs before the Incoming Row resolves.
       refreshTelegraphs(catalog, draft)
       for (const action of actionsForTrack(catalog, draft, 'incoming')) {
         submit(action)
       }
       break
+    }
     case 'incoming':
       submit(advanceAction('incoming', 'slow', draft.round))
       break

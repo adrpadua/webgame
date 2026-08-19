@@ -1,7 +1,9 @@
 {
   "id": "whelp",
   "title": "Whelp",
-  "rules_text": "Advances one hex toward its nearest Hero at the end of each Round, and bites for 1 once adjacent. Occupies its hex and constrains movement.",
+  "rules_text": "Advances one hex toward its nearest Hero at the end of each Round, and bites for 1 once adjacent. Detonates on the Incoming Row of the next Round, dealing 3 damage to every Hero within 1 hex, and is consumed. Occupies its hex and constrains movement.",
   "max_health": 2,
-  "attack_damage": 1
+  "attack_damage": 1,
+  "explode_damage": 3,
+  "explode_radius": 1
 }

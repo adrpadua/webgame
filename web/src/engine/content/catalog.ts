@@ -339,6 +339,18 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       throw new Error(`Counter ${counter.id} has no readers and no card reads it, so nothing can ever make it matter`)
     }
   }
+  for (const minion of Object.values(catalog.minions)) {
+    // A fuse is two authored halves and neither is usable alone (D-061):
+    // damage with no radius is a blast that reaches nothing, and a radius with
+    // no damage is a Minion that removes itself for free. Stated both ways so
+    // a half-authored fuse fails at load rather than resolving to nothing.
+    if (minion.explode_damage > 0 && minion.explode_radius < 1) {
+      throw new Error(`Minion ${minion.id} declares explode_damage ${minion.explode_damage} but no explode_radius`)
+    }
+    if (minion.explode_radius > 0 && minion.explode_damage < 1) {
+      throw new Error(`Minion ${minion.id} declares explode_radius ${minion.explode_radius} but no explode_damage`)
+    }
+  }
   for (const modifier of Object.values(catalog.chargeModifiers)) {
     if (modifier.keyword_id !== '') {
       requireKeyword(catalog, modifier.keyword_id, KEYWORD_REFERENCES.chargeModifierMatch, `Charge modifier ${modifier.id}`, 'keyword_id')
