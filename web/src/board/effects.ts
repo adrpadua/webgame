@@ -199,6 +199,21 @@ export function deriveBoardEffects(
         if (fact.resolutionFact?.target_removed === true) {
           add({ kind: 'defeat', entityId: targetId, at, tone: 'hero' })
         }
+        // The Signature's earn moment (D-057, D-058): the standing clause
+        // grants during Boss resolution, and the cause lives on the board —
+        // so the board says so where the block happened, while the Hero
+        // Frame's pip ignites. A wasted earn — a qualifying block at the
+        // full bank — floats too, in a lost tone: overcap is the banking
+        // decision's one price and a silent waste is unlearnable.
+        {
+          const signature = fact.resolutionFact?.signature_event as Record<string, unknown> | undefined
+          const signatureCard = typeof signature?.card_id === 'string' ? catalog.cards[signature.card_id] : undefined
+          if (signature?.event === 'charge_granted' && signatureCard) {
+            add({ kind: 'cast', entityId: targetId, at, label: `+1 ${signatureCard.title}`, tone: 'guard' })
+          } else if (signature?.event === 'wasted' && signatureCard) {
+            add({ kind: 'cast', entityId: targetId, at, label: `${signatureCard.title} wasted`, tone: 'hazard' })
+          }
+        }
         // The Boss is the one piece a killing blow leaves standing:
         // `checkResolution` ends the Encounter and the body stays on its hex,
         // so nothing above says the fight is over. Read the health rather than

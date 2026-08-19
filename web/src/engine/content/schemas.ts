@@ -169,6 +169,10 @@ export const cardSchema = z.object({
   fixed: z.boolean().default(false),
   standing: z.array(signatureGrantSchema).default([]),
   full_charge: fullChargeSchema.default({ places_counter: '', counter_amount: 1 }),
+  // What the Hero Frame calls this Signature's earned Charges (D-058):
+  // Elian's are "Ripostes", Kessa's will be "Momentum". Empty falls back to
+  // the card title. Presentation vocabulary only — the rules say Charges.
+  resource_title: z.string().default(''),
   max_charge: z.number().int().min(0).default(2),
   target_type: z.enum(['none', 'hex', 'board_slot', 'piece']).default('none'),
   armor_delta: z.number().int().default(0),

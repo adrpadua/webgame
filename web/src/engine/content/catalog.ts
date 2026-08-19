@@ -317,6 +317,17 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
           )
         }
       }
+      // The Hero Frame's Signature control fires with a tap and carries no
+      // targeting flow (D-058): a targeted Signature is refused at load until
+      // a Hero actually needs one, so the gap is loud rather than latent.
+      if (card.target_type !== 'none') {
+        throw new Error(
+          `${cardAt(card.id)} is fixed but targets ${card.target_type}; the Signature control supports untargeted activations only (D-058)`,
+        )
+      }
+    }
+    if (!card.fixed && card.resource_title !== '') {
+      throw new Error(`${cardAt(card.id)} authors a resource_title but is not fixed; only a Signature names a resource`)
     }
     for (const grant of card.standing) {
       // The mirror of READABLE_READER_PAIRS' discipline: a Grant `when` the

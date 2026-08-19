@@ -314,6 +314,17 @@ describe('content catalog', () => {
         )
       })
 
+      it('rejects a targeted fixed card, and a resource_title on a non-fixed one (D-058)', () => {
+        expect(() => buildCatalog({ ...empty, cards: [signature({ target_type: 'piece', range_tiles: 1 })] })).toThrow(
+          'the Signature control supports untargeted activations only',
+        )
+        const named = {
+          source: 'data/cards/probe_strike.json',
+          payload: { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1, resource_title: 'Fury' },
+        }
+        expect(() => buildCatalog({ ...empty, cards: [named] })).toThrow('authors a resource_title but is not fixed')
+      })
+
       it('rejects a keyword-matching Charge Modifier on a fixed card', () => {
         const raw = {
           ...empty,

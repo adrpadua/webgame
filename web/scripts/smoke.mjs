@@ -327,13 +327,18 @@ try {
   const next = () => page.locator('[data-testid="next-phase"]').click()
   const cueStep = () => page.locator('[data-testid="first-turn-cue"]').getAttribute('data-step')
   const boardCanvas = page.locator('[data-testid="board"] canvas')
-  // Persistent gauges left the HUD: tapping a piece's tile opens its stat
-  // panel, which stays up as a live readout until dismissed. Returns the
-  // opened panel's piece id.
+  // Tapping an Enemy's tile opens its stat panel, which stays up as a live
+  // readout until dismissed. Returns the opened panel's piece id. The Hero
+  // never opens one: the persistent Hero Frame is the Hero's readout
+  // (D-058), so a Hero tap pulses the frame instead — see tapHeroTile.
   const inspectTile = async (q, r) => {
     await boardCanvas.click({ position: await hexPosition(boardCanvas, q, r) })
     await page.waitForSelector('[data-testid="entity-inspect"]')
     return page.locator('[data-testid="entity-inspect"]').getAttribute('data-entity')
+  }
+  const tapHeroTile = async (q, r) => {
+    await boardCanvas.click({ position: await hexPosition(boardCanvas, q, r) })
+    await page.waitForTimeout(100)
   }
 
   // WCAG 2.2 text contrast (1.4.3): every visible, live text node on the
@@ -530,8 +535,10 @@ try {
       }
       // Nothing floating may cover a band that carries the fight's own
       // controls. Next is the specific casualty worth naming: losing it while
-      // a prompt is up is losing the only way forward.
-      for (const bandId of ['program-strip', 'next-phase', 'action-bar', 'hand']) {
+      // a prompt is up is losing the only way forward. The Hero Frame counts
+      // as such a band since D-058: it is persistent chrome carrying the
+      // Signature control, and it is the dock's floor, not a dock member.
+      for (const bandId of ['program-strip', 'next-phase', 'action-bar', 'hand', 'hero-frame']) {
         const band = document.querySelector(`[data-testid="${bandId}"]`)
         if (band === null) {
           continue
@@ -542,14 +549,16 @@ try {
           }
         }
       }
-      // The dock's contract: it hugs the Action Bar from above, never over it.
-      const bar = document.querySelector('[data-testid="action-bar"]')
+      // The dock's contract: it stacks upward from its floor — the Hero
+      // Frame's top edge (D-058), or the Action Bar's where no frame is
+      // mounted — never over it and never adrift above it.
+      const floor = document.querySelector('[data-testid="hero-frame"]') ?? document.querySelector('[data-testid="action-bar"]')
       const docked = shown.filter((node) => node.dataset.zone === 'dock')
-      if (bar !== null) {
+      if (floor !== null) {
         for (const node of docked) {
-          const gap = box(bar).top - box(node).bottom
+          const gap = box(floor).top - box(node).bottom
           if (gap < -1 || gap > 200) {
-            problems.push(`${node.dataset.notification} sits ${Math.round(gap)}px from the Action Bar`)
+            problems.push(`${node.dataset.notification} sits ${Math.round(gap)}px from the dock floor`)
           }
         }
       }
@@ -634,12 +643,16 @@ try {
   assert((await cueStep()) === 'start-round', 'with both Slots set the script asks for Next')
 
   // Step 3-4: the Boss opens the Round and the Claw lands on the tank. The
-  // Instant Row resolves in the batch that opens Boss Instant, so the beats
-  // replay while the phase IS the Boss's window. The tank's stat panel goes
-  // up first — it is the health readout now, and it rides the beats live.
-  assert((await inspectTile(0, 0)) === 'guardian', 'tapping the Hero tile opens its stat panel')
-  await assertContrast(page, 'with the Hero Stat Panel open')
-  await shot(page, 'hero-stat-panel')
+  // Hero Frame is the health readout (D-058): persistent chrome that rides
+  // the beats live, no tap needed — and a tap on the Hero's own tile pulses
+  // the frame rather than opening a panel.
+  assert((await page.locator('[data-testid="hero-frame"]').count()) === 1, 'the Hero Frame is up before the Boss opens')
+  await tapHeroTile(0, 0)
+  assert((await page.locator('[data-testid="entity-inspect"]').count()) === 0, 'tapping the Hero opens no stat panel; the Hero Frame is the readout')
+  // The teaching slice fields no Signature, so its frame carries no control.
+  assert((await page.locator('[data-testid="signature-control"]').count()) === 0, 'the teaching slice shows no Signature control')
+  await assertContrast(page, 'with the Hero Frame up')
+  await shot(page, 'hero-frame')
   await next()
   assert((await phase()) === 'instant', 'Next opens Boss Instant with its beats replaying')
   assert((await cueStep()) === 'boss-instant', 'the script narrates the Boss Instant')
@@ -756,8 +769,10 @@ try {
   // Incoming Row is the cone and nothing else.
   assert(incomingLog?.includes('Boss Beat: Cinder Breath'), 'the Incoming Row replayed Cinder Breath')
   assert(!incomingLog?.includes('Spawn whelp'), 'the opening Round called no Whelps')
-  // The Hero stepped to (-1, 0); the panel follows the piece by its tile.
-  assert((await inspectTile(-1, 0)) === 'guardian', 'tapping the moved Hero reopens its panel')
+  // The Hero stepped to (-1, 0); the frame needs no reopening — it is
+  // already up, and the moved Hero's tap still lands on the frame's pulse.
+  await tapHeroTile(-1, 0)
+  assert((await page.locator('[data-testid="entity-inspect"]').count()) === 0, 'the moved Hero still opens no panel')
   const heroAfterBreath = await page.locator('[data-testid="hero-health"]').textContent()
   assert(heroAfterBreath?.includes('30'), `the dodged Cinder Breath dealt nothing (${heroAfterBreath?.trim()})`)
 
@@ -993,6 +1008,13 @@ try {
     (await page.locator('[data-testid="outcome-banner"]').getAttribute('data-outcome')) === 'defeat',
     'the solo-ceiling Scenario replays to its Defeat banner',
   )
+  // The Ashen Trial fields Elian's Signature, so its Hero Frame carries the
+  // control (D-058): permanent, pip-metered, and named by the authored
+  // resource title a hold away. The teaching slice asserted its absence
+  // above; this is the presence half of the same contract.
+  assert((await page.locator('[data-testid="signature-control"]').count()) === 1, 'the Ashen Trial Hero Frame carries the Signature control')
+  const signatureFace = await page.locator('[data-testid="signature-control"]').getAttribute('data-signature-face')
+  assert(signatureFace !== null && signatureFace !== '', `the Signature control wears a face (${signatureFace})`)
   // An Encounter with no window left to close leaves one move on the rail.
   await page.waitForSelector('[data-testid="restart"]')
   assert((await page.locator('[data-testid="restart"]').getAttribute('data-rail')) === 'restart', 'an ended Encounter turns the rail to Restart')
@@ -1231,14 +1253,16 @@ try {
   await phone.waitForSelector('[data-testid="move-payment-cue"]', { state: 'detached' })
   await phone.waitForTimeout(300)
   assert((await phone.locator('[data-testid="hand-card"]').count()) === handBeforeDrag - 1, 'tapping an offered card discards exactly that card')
-  // The panel follows the piece by its tile, so it is also the readout for
-  // where the Hero ended up.
+  // Where the Hero ended up is proved by the tap's answer: a Hero tile pulses
+  // the Hero Frame and opens no panel (D-058), so a tap on the destination
+  // that stays panel-less is the Hero standing there — an Enemy or empty hex
+  // would have opened a panel or done nothing to the frame.
+  const pulseBefore = await phone.evaluate(() => window.__workbench.heroFramePulse())
   await phoneBoard.click({ position: await hexPosition(phoneBoard, -1, 0) })
-  await phone.waitForSelector('[data-testid="entity-inspect"]')
-  assert(
-    (await phone.locator('[data-testid="entity-inspect"]').getAttribute('data-entity')) === 'guardian',
-    'the paid drag stepped the Hero onto the hex it was dragged to',
-  )
+  await phone.waitForTimeout(200)
+  assert((await phone.locator('[data-testid="entity-inspect"]').count()) === 0, 'the destination tap opens no panel: the Hero Frame is the readout')
+  const pulseAfter = await phone.evaluate(() => window.__workbench.heroFramePulse())
+  assert(pulseAfter === pulseBefore + 1, `the paid drag stepped the Hero onto the hex it was dragged to (frame pulse ${pulseBefore} -> ${pulseAfter})`)
   await phone.close()
 
   await browser.close()

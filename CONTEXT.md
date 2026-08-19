@@ -263,8 +263,12 @@ The temporary reading surface for any named HUD object — a Compact Card, a Slo
 _Avoid_: Tooltip, card menu, help screen
 
 **Stat Panel**:
-The persistent readout for one piece on the board — the Boss, a Hero, or a Minion — opened by tapping that piece's tile and floated over the board's lower edge. It carries the piece's gauges: health and Counters for every piece, plus armor and deck for a Hero. A Counter chip shows its count whenever more than one is held, because a count the player cannot see is a count they cannot spend deliberately. The panel follows the piece rather than the hex and shows the staggered playout values while a Boss Row replays, so it reads as a live gauge; it closes from its own control, a tap on an empty hex, or a session transition, and stays up through ordinary play. Unlike a Detail Popup it persists instead of dismissing on release. Presentation only: it is never a rules surface.
+The readout a tapped Enemy tile opens — the Boss or a Minion — floated over the board's lower edge. It carries the piece's health gauge and Counter chips; a chip shows its count whenever more than one is held, because a count the player cannot see is a count they cannot spend deliberately. The panel follows the piece rather than the hex and shows the staggered playout values while a Boss Row replays, so it reads as a live gauge; it closes from its own control, a tap on an empty hex, or a session transition, and stays up through ordinary play. Unlike a Detail Popup it persists instead of dismissing on release. Enemy-only since D-058: the Hero's readout is the Hero Frame, and tapping the Hero's tile pulses that frame instead of opening a panel here. Presentation only: it is never a rules surface.
 _Avoid_: Tooltip, Detail Popup, HUD gauge, unit frame
+
+**Hero Frame**:
+The primary Hero's persistent readout and the one piece of permanent chrome beyond the Action Bar Rails (D-058, ADR 0033): name, health with the Armor overlay, Counter chips, the deck gauge, and — where the Encounter fields a Signature — the resource pips and the Signature control. It floats over the board's bottom edge without resizing the board, never dismisses, and is the notification dock's floor: transient prompts stack upward from its top edge. The Signature control is permanent and doubles as the resource meter — dark while empty, steel while a bank waits out a closed window, ignited gold when the fixed Slot can fire — and a tap on the ignited control fires it. Built as the party-frame seed: shaped so a second Hero's frame can sit beside it when the multi-Hero model lands, with only the primary Hero's built today. Presentation only: it is never a rules surface.
+_Avoid_: Unit frame, HUD gauge, stat bar, portrait
 
 **Scripted First Turn**:
 The guided Round a first-time player meets: it walks prepare, charge, fire in the Quick Window, step out of a telegraph, and fire in the Slow Window, gating input to one control at a time. Its current step is derived from the live Encounter state rather than counted off, so it stays correct when the player wanders, restarts, or time-travels. It runs once, and finishing or skipping it retires it.
@@ -279,12 +283,12 @@ Continuous board motion that carries no rules information and applies uniformly 
 _Avoid_: Idle animation, Board Feedback, juice
 
 **Bottom Interaction Zone**:
-The thumb-reachable portrait HUD area that contains the Action Bar immediately above the Hand. It is reserved for player input rather than encounter telemetry.
+The thumb-reachable portrait HUD area that contains the Action Bar immediately above the Hand. It is reserved for player input rather than encounter telemetry; the Hero Frame sits above it, over the board's edge, and is not a member — its one control (the Signature control) is the exception ADR 0033 records, carried inside the frame rather than granted a bar seat.
 _Avoid_: Footer, toolbar
 
 **Class Resource**:
-A role-specific resource spent on signature actions. For the tank, this is currently `Guard`.
-_Avoid_: Stamina, charge
+A Hero-specific resource spent on the Signature: the fixed Slot's earned Charges, displayed on the Hero Frame as pips under the authored `resource_title` (Elian's are Ripostes; Kessa's designed resource is Momentum). Earned only — the standing clause is its sole income — banked across Rounds to the printed cap, and spent whole by the Signature's activation (D-057). The rules vocabulary says Charges; the resource title is presentation. `Guard` is not a Class Resource: it is a Keyword the tank's Charge Modifiers match on.
+_Avoid_: Stamina, mana, charge meter
 
 **Armor**:
 A Hero's temporary damage shield. Armor blocks incoming damage before Health and does not convert into damage, protection, or another effect unless a future explicit rule changes this.

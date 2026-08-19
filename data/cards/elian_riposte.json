@@ -4,6 +4,7 @@
   "rules_text": "Standing: absorb a Tank Hit on the Guarded Front for zero Health loss — this Slot gains one Charge. Activation: spend all Charges for 3 Boss damage, +2 per Charge. Spent 2? The Boss is Sundered.",
   "speed": "quick",
   "fixed": true,
+  "resource_title": "Ripostes",
   "max_charge": 2,
   "target_type": "none",
   "boss_damage": 3,

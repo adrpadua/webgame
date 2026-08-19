@@ -103,9 +103,15 @@ export function PhaserBoard() {
       // portrait play area — hexes a player could legally step to were not
       // on screen. Scene and layout math stay in board space; only the
       // canvas gets smaller.
+      //
+      // Horizontally centered, vertically pinned to the top: the width-bound
+      // canvas cannot grow into the container's spare height, and centering
+      // split that space into two dead bands. Pooled at the bottom it is
+      // where the Hero Frame and the dock's prompts live (D-058), below the
+      // last hex row instead of over it.
       scale: {
         mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
+        autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,
         width: BOARD_WIDTH,
         height: BOARD_HEIGHT,
       },

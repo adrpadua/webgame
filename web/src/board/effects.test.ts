@@ -49,6 +49,33 @@ describe('board effects', () => {
     expect(effects.some((effect) => effect.kind === 'scorch')).toBe(true)
   })
 
+  it('floats the Signature earn where the block happened, and the waste at the cap (D-058)', () => {
+    let state = createEncounterState(catalog, 'embermaw_prototype')
+    const heroId = state.primaryHeroId
+    const tankHit = (): { state: EncounterState; effects: BoardEffect[] } => {
+      state.heroes[heroId].armor = 5
+      return apply(state, {
+        kind: 'damage',
+        sourceId: state.bossId,
+        targetId: heroId,
+        amount: 4,
+        reasonText: 'Raking Claw',
+        factContext: { damage_keywords: ['tank_hit'] },
+      })
+    }
+    const first = tankHit()
+    state = first.state
+    // The earn: a block floater and the Signature's own, both at the Hero.
+    expect(first.effects.some((effect) => effect.kind === 'block')).toBe(true)
+    const earn = first.effects.find((effect) => effect.label === '+1 Riposte')
+    expect(earn).toMatchObject({ kind: 'cast', entityId: heroId, tone: 'guard' })
+    state = tankHit().state
+    const third = tankHit()
+    // A qualifying block at the full bank is a wasted earn, and it says so.
+    const waste = third.effects.find((effect) => effect.label === 'Riposte wasted')
+    expect(waste).toMatchObject({ kind: 'cast', entityId: heroId, tone: 'hazard' })
+  })
+
   it('plays a boss track out one beat at a time: announced, staggered, and in program order', () => {
     const state = openedRound()
     const { effects } = advance(state)

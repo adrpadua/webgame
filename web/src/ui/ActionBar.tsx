@@ -1,4 +1,4 @@
-import { cardChargeCap, cardWindowSpeed, legality, slotChargeCount, type SlotState } from '@/engine'
+import { cardChargeCap, cardWindowSpeed, legality, type SlotState } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { AdvanceControl } from './AdvanceControl'
 import { UndoControl } from './UndoControl'
@@ -33,10 +33,10 @@ function slotStateName(slot: SlotState, chargeCap: number): SlotStateName {
   if (slot.activatedWindow !== null) {
     return 'fired'
   }
-  if (slotChargeCount(slot) === chargeCap) {
+  if (slot.charges.length === chargeCap) {
     return 'primed'
   }
-  return slotChargeCount(slot) > 0 ? 'charged' : 'loaded'
+  return slot.charges.length > 0 ? 'charged' : 'loaded'
 }
 
 const STATE_LABEL: Record<SlotStateName, string> = {
@@ -71,11 +71,10 @@ const LOCK_STATE: Record<SlotStateName, LockState> = {
   fired: 'spent',
 }
 
-// The bar is a twelve-unit ladder. The rails take two units each and the
-// Slots share the eight between them; with the Signature installed the
-// ladder reads 2 | 3 | 3 | 2 | 2 — the Signature takes the narrow plate,
-// which is also what marks it as a different kind of Slot (D-057): a
-// permanent fixture beside two replaceable ones.
+// The bar is a twelve-unit ladder: 2 | 4 | 4 | 2. The rails take two units
+// each and the replaceable Slots share the eight between them. The Signature
+// Slot never renders here — its face is the Hero Frame's control (D-058) —
+// so the bar carries exactly the Slots a hand card can reach.
 //
 // The rails are why the ladder exists. Undo and the advance control are the
 // two most-pressed things in the interface and both used to be somewhere
@@ -86,7 +85,7 @@ const LOCK_STATE: Record<SlotStateName, LockState> = {
 // what it is, and two fr-sized rails around two flex-1 Slots would do
 // exactly that.
 // Keyed by the units one Slot spans (Tailwind needs the literal class names).
-const SLOT_SPAN: Record<number, string> = { 8: 'col-span-8', 4: 'col-span-4', 3: 'col-span-3', 2: 'col-span-2' }
+const SLOT_SPAN: Record<number, string> = { 8: 'col-span-8', 4: 'col-span-4', 2: 'col-span-2' }
 
 export function ActionBar() {
   const state = useWorkbench(selectState)
@@ -95,16 +94,17 @@ export function ActionBar() {
     return null
   }
   // px-2, not px-4: the ladder spends its width on four controls now, and
-  // the eight units the Slots share have to carry a card title.
-  const fixedCount = hero.actionBar.filter((slot) => slot.fixed).length
-  const normalCount = hero.actionBar.length - fixedCount
-  const normalUnits = normalCount > 0 ? Math.floor((8 - 2 * fixedCount) / normalCount) : 8
-  const normalSpan = SLOT_SPAN[normalUnits] ?? 'col-span-4'
+  // the eight units the Slots share have to carry a card title. Fixed Slots
+  // are filtered, not hidden: the map below only ever mints plates for the
+  // Slots a card can be dragged to.
+  const replaceable = hero.actionBar.map((slot, slotIndex) => ({ slot, slotIndex })).filter(({ slot }) => !slot.fixed)
+  const units = replaceable.length > 0 ? Math.floor(8 / replaceable.length) : 8
+  const span = SLOT_SPAN[units] ?? 'col-span-4'
   return (
     <div className="grid grid-cols-12 gap-1.5 border-t border-steel-800 bg-steel-950/80 px-2 py-2" data-testid="action-bar">
       <UndoControl />
-      {hero.actionBar.map((slot, slotIndex) => (
-        <Slot key={slotIndex} slotIndex={slotIndex} span={slot.fixed ? 'col-span-2' : normalSpan} />
+      {replaceable.map(({ slotIndex }) => (
+        <Slot key={slotIndex} slotIndex={slotIndex} span={span} />
       ))}
       <AdvanceControl />
     </div>
@@ -158,12 +158,9 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
   // placed into a Slot that began this Loadout empty is tentative, so
   // landing another card there Swaps it back to hand; Replace — and its
   // confirmation — is reserved for bundles the Slot carried into the Round.
-  // A Signature Slot makes no offer at all (D-057): hand cards cannot reach
-  // it, so it never wears a drop badge — a struck-through "Charge" would
-  // present the refusal as a temporary state rather than the rule it is.
   let incomingAction: 'Prepare' | 'Charge' | 'Replace' | 'Swap' | null = null
   let incomingLegal = false
-  if (incomingCardId !== null && !slot.fixed) {
+  if (incomingCardId !== null) {
     incomingAction = slot.topCard === null ? 'Prepare' : state.phase === 'loadout' ? (slot.placedThisLoadout ? 'Swap' : 'Replace') : 'Charge'
     incomingLegal = legality(catalog, state, {
       kind: incomingAction === 'Charge' ? 'charge_slot' : 'load_slot',
@@ -178,15 +175,14 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
       type="button"
       data-testid={`slot-${slotIndex}`}
       data-top-card={slot.topCard?.cardId ?? ''}
-      data-charges={slotChargeCount(slot)}
-      data-fixed={slot.fixed}
+      data-charges={slot.charges.length}
       data-slot-state={stateName}
       data-out-of-window={outOfWindow}
       data-incoming-action={incomingAction ?? ''}
       data-incoming-legal={incomingAction === null ? '' : String(incomingLegal)}
       aria-label={
         card
-          ? `${slot.fixed ? 'Signature' : `Slot ${slotIndex + 1}`}: ${card.title}, ${STATE_LABEL[stateName]}${
+          ? `Slot ${slotIndex + 1}: ${card.title}, ${STATE_LABEL[stateName]}${
               outOfWindow ? `, fires in the ${cardWindowSpeed(card) === 'quick' ? 'Quick' : 'Slow'} Window` : ''
             }${
               // The want marks are the only thing on the plate with no word
@@ -286,7 +282,7 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
                 <span
                   key={index}
                   className={`h-[5px] w-3.5 -skew-x-[8deg] ${
-                    index < slotChargeCount(slot) ? (stateName === 'fired' ? 'bg-gold-700' : 'bg-gold-400') : 'bg-steel-950 shadow-[inset_0_1px_0_rgba(0,0,0,0.6)]'
+                    index < slot.charges.length ? (stateName === 'fired' ? 'bg-gold-700' : 'bg-gold-400') : 'bg-steel-950 shadow-[inset_0_1px_0_rgba(0,0,0,0.6)]'
                   }`}
                 />
               ))}
@@ -309,18 +305,13 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
               </div>
             )}
           </div>
-          {SUBTITLE_STATES.has(stateName) ? (
+          {SUBTITLE_STATES.has(stateName) && (
             // An out-of-window Slot's subtitle drops to steel whatever its
             // state: Primed's gold word on a dim plate would still whisper
             // "can fire", and it cannot until its window comes round.
             <div className={`mt-1 text-[10px] font-semibold tracking-wide uppercase ${outOfWindow ? 'text-steel-500' : STATE_TONE[stateName]}`}>
               {STATE_LABEL[stateName]}
             </div>
-          ) : (
-            // The Signature names itself where a deck Slot shows nothing: a
-            // permanent, unchargeable-by-hand plate has to read as a
-            // different kind of thing, not as a Slot that happens to be busy.
-            slot.fixed && <div className="mt-1 text-[10px] font-semibold tracking-wide text-steel-500 uppercase">Signature</div>
           )}
         </>
       ) : (

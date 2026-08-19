@@ -15,6 +15,7 @@ import { GuideModal } from './GuideModal'
 import { Hand } from './Hand'
 import { HoldPopoverLayer } from './HoldPopover'
 import { BeatCard, StandingDemand } from './BeatCard'
+import { HeroFrame, HERO_FRAME_CLEARANCE_CLASS } from './HeroFrame'
 import { MovePaymentCue } from './MovePaymentCue'
 import { NotificationLayer, NotificationZone, Notify } from './NotificationLayer'
 import { PhaseBanner } from './PhaseBanner'
@@ -138,7 +139,12 @@ export default function App() {
             strip below the bottom hex row is gone entirely. A step is named
             by pointing at the hex, which is the gesture the board already
             teaches. */}
-        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+        {/* items-start, not items-center: the width-bound board cannot grow
+            into the container's spare height, so centering split that space
+            into two dead bands. Pinned to the top, the spare height pools at
+            the bottom — under the last hex row — which is exactly where the
+            Hero Frame and the dock's prompts live (D-058). */}
+        <div className="relative flex min-h-0 flex-1 items-start justify-center overflow-hidden">
           <PhaserBoard />
           {/* Every floating surface on the play field lands in one of three
               zones, and the zones are flex siblings of one column — so no two
@@ -152,7 +158,7 @@ export default function App() {
               ignore. The stage takes the middle for one announcement at a
               time. The dock hugs the Action Bar with everything that asks for
               a tap on the controls just below it. */}
-          <NotificationLayer>
+          <NotificationLayer clearanceClass={HERO_FRAME_CLEARANCE_CLASS}>
             <NotificationZone zone="guidance">
               <FirstTurnCue />
               <CoachMark />
@@ -170,6 +176,11 @@ export default function App() {
               <EntityInspect />
             </NotificationZone>
           </NotificationLayer>
+          {/* The Hero Frame (D-058): the primary Hero's persistent readout
+              and the Signature control, floating over the board's bottom
+              edge as the dock's floor. Its own layer, not a notification —
+              it never comes or goes, so it has no rank to claim. */}
+          <HeroFrame />
         </div>
         <ActionBar />
         <Hand />
