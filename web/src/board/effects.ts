@@ -277,6 +277,18 @@ export function deriveBoardEffects(
         break
       }
 
+      // A Beat's movement clause landing (D-068). Drawn in the boss tone rather
+      // than the hero tone a displacement uses: a shove is something the party
+      // did to a piece, and this is the piece coming for them.
+      case 'traverse_piece': {
+        const from = axialFrom(fact.resolutionFact, 'from')
+        const to = axialFrom(fact.resolutionFact, 'to')
+        if (from && to && numberFrom(fact.resolutionFact, 'actual_distance') > 0) {
+          add({ kind: 'move', entityId: fact.sourceId, at: to, from, tone: 'boss' })
+        }
+        break
+      }
+
       case 'spawn_minion': {
         const coords = detailAxial(fact, 'coords')
         if (coords) {

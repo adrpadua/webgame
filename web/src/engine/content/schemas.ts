@@ -248,6 +248,23 @@ export const hazardSchema = z.object({
   duration_rounds: z.number().int().min(1).default(1),
   enter_damage: z.number().int().min(0).default(0),
   blocks_voluntary_movement: z.boolean().default(false),
+  // What this ground does to something crossing it under its own power
+  // (D-068). Both fields are authored per Hazard rather than decided by the
+  // engine, because which terrain stops a Boss and which terrain burns it is
+  // a per-encounter design decision — the kind a fight can be built around.
+  //
+  // `blocks_traversal` is the obstacle question, and it is separate from
+  // `blocks_voluntary_movement` on purpose: one is what a Hero may choose to
+  // walk into, the other is what a pathing Enemy has to route around. Ground
+  // can be both, either, or neither.
+  blocks_traversal: z.boolean().default(false),
+  // Whether this ground burns the side that laid it. D-042 made that an
+  // engine rule — an Enemy was immune to its own side's Hazards, full stop —
+  // which is the right default and the wrong place for it: Embermaw walking
+  // through its own fire is an arbitrary decision about Embermaw, not a fact
+  // about fire. Authored, a later Boss can be built to be lured onto its own
+  // ground, which is a fight the engine rule made unauthorable.
+  damages_source_team: z.boolean().default(false),
 })
 
 export const minionSchema = z.object({
@@ -332,11 +349,44 @@ export const bossBeatSchema = z.object({
   // job to `demand_proximity`, which prices standing out of reach in Escalation
   // instead — so the claw was left as the one Beat whose reach was infinite for
   // a reason that had moved somewhere better.
+  //
+  // A `place_counter` Beat aimed at a Hero reads it since D-068, which is the
+  // Boss side of the same rule cards answered in D-067: marking the Party from
+  // the far corner was the one reach nothing measured. Aimed at itself it
+  // measures nothing, and must not author one.
+  //
+  // On a Beat carrying a movement clause this is also the distance the movement
+  // is *trying to achieve* — the mover stops as soon as its target is this
+  // close, rather than always spending its whole allowance.
   range_tiles: z.number().int().min(0).default(0),
-  // How far an `advance_toward_player` Beat closes. Distance is authored because
-  // it is the Boss's counter-pressure against standing out of reach, and how
-  // hard that pressure bites is a per-Boss identity question (D-041).
+  // The movement clause: how far this Beat travels before its own effect
+  // resolves (D-068). Any Beat kind may carry it, so "Move 2, then Claw" is one
+  // Beat with one telegraph rather than two Beats a Program has to keep in
+  // order — the shape a Gloomhaven monster card has, and the reason the field
+  // moved off `advance_toward_player`, which is now simply the Beat kind whose
+  // *only* effect is the move.
+  //
+  // Distance is authored because it is the Boss's counter-pressure against
+  // standing out of reach, and how hard that pressure bites is a per-Boss
+  // identity question (D-041).
   move_tiles: z.number().int().min(0).default(0),
+  // How the movement clause crosses the board (D-068). Three kinds, and the
+  // difference between them is entirely what the ground can do about it:
+  //
+  // `walk`     — steps hex to hex through ground it can stand on. Pieces and
+  //              Hazards authoring `blocks_traversal` lengthen the route or
+  //              close it off, so a walker can be blocked, funnelled, or
+  //              stranded.
+  // `jump`     — crosses whatever is in between, but has to land somewhere it
+  //              could stand. Obstacles stop shaping the route and only shape
+  //              where it ends.
+  // `teleport` — no route at all: it appears on the hex that best answers its
+  //              `range_tiles`, anywhere on the board. `move_tiles` is not a
+  //              budget it spends, so a teleporting Beat must not author one.
+  //
+  // A Boss that walks can be kited into a corner and a Boss that teleports
+  // never can, which is the identity difference this field exists to author.
+  traversal: z.enum(['walk', 'jump', 'teleport']).default('walk'),
   duration_rounds: z.number().int().min(1).default(1),
   // A permanent Hazard survives the Round boundary (D-039). This is how a Beat
   // writes to the arena for good, which is what makes mitigation protect

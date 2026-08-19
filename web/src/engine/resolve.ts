@@ -340,6 +340,10 @@ function resolveOne(
       resolveDisplacement(draft, action, fact, generated)
       break
     }
+    case 'traverse_piece': {
+      resolveTraversal(draft, action, fact, generated)
+      break
+    }
     case 'resolve_boss': {
       generated.push(...resolveBossBeat(draft, action.sourceId, action.beat, action.track))
       succeed(fact)
@@ -354,6 +358,8 @@ function resolveOne(
             remainingRounds: definition.duration_rounds,
             enterDamage: definition.enter_damage,
             blocksVoluntaryMovement: definition.blocks_voluntary_movement,
+            blocksTraversal: definition.blocks_traversal,
+            damagesSourceTeam: definition.damages_source_team,
           }
         : {
             id: 'scorched',
@@ -361,6 +367,8 @@ function resolveOne(
             remainingRounds: Math.max(action.fallbackDurationRounds, 1),
             enterDamage: 1,
             blocksVoluntaryMovement: true,
+            blocksTraversal: false,
+            damagesSourceTeam: false,
           }
       if (action.permanent === true) {
         hazard.permanent = true
@@ -709,14 +717,60 @@ function resolveDisplacement(
   }
 }
 
+// A Beat's movement clause landing (D-068). The route was decided when the Beat
+// resolved, so this only has to walk it — but it re-checks each hex rather than
+// trusting the plan, because anything generated between the two could have put
+// a piece in the way.
+//
+// Hazard entry fires per hex entered, which is where a walker and a jumper come
+// apart: a walker's path is every hex it crossed and it pays for all of them, a
+// jumper's is the one it landed on.
+function resolveTraversal(
+  draft: EncounterState,
+  action: Extract<EncounterActionInput, { kind: 'traverse_piece' }>,
+  fact: ResolvedActionFact,
+  generated: EncounterActionInput[],
+): void {
+  const mover = draft.board.entities[action.sourceId]
+  if (!mover) {
+    fail(fact, 'The traversing piece is unavailable.')
+    return
+  }
+  const from = { ...mover.coords }
+  const entered: Axial[] = []
+  let stopReason: 'complete' | 'blocked' = 'complete'
+  for (const coords of action.path) {
+    if (!moveEntity(draft.board, action.sourceId, coords)) {
+      stopReason = 'blocked'
+      break
+    }
+    entered.push({ ...coords })
+  }
+  fact.resolutionFact = {
+    from,
+    to: { ...mover.coords },
+    traversal: action.traversal,
+    requested_distance: action.path.length,
+    actual_distance: entered.length,
+    stop_reason: stopReason,
+  }
+  succeed(fact)
+  for (const coords of entered) {
+    generated.push(...hazardEntryActions(draft, action.sourceId, coords))
+  }
+}
+
 function hazardEntryActions(draft: EncounterState, targetId: string, coords: Axial): EncounterActionInput[] {
   const enteringTeam = draft.board.entities[targetId]?.team
   return getHazards(draft.board, coords)
     .filter((hazard) => hazard.enterDamage > 0)
-    // Immune to your own side's ground (D-042). Without this a Boss advancing
-    // across its own permanent Ash Trail chips itself, crediting a Hero with
-    // Boss damage they never dealt — against a D-016 margin already down to 2.
-    .filter((hazard) => hazard.sourceTeam === undefined || hazard.sourceTeam !== enteringTeam)
+    // Immune to your own side's ground (D-042), unless the ground says
+    // otherwise (D-068). The rule is still the default and still the right one
+    // — without it a Boss advancing across its own permanent Ash Trail chips
+    // itself, crediting a Hero with Boss damage they never dealt, against a
+    // D-016 margin once down to 2 — but it is now the Hazard's decision rather
+    // than the engine's, so a Boss can be authored to be lured onto its own.
+    .filter((hazard) => hazard.damagesSourceTeam === true || hazard.sourceTeam === undefined || hazard.sourceTeam !== enteringTeam)
     .map((hazard) => ({
       kind: 'damage' as const,
       sourceId: 'hazard',
@@ -919,8 +973,14 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
     case 'move_hero':
       return { title: `Move to (${action.destination.q}, ${action.destination.r})`, detail }
     case 'displace_piece': {
-      const verb = action.movement === 'push' ? 'Push' : action.movement === 'advance' ? 'Advance' : 'Pull'
+      const verb = action.movement === 'push' ? 'Push' : 'Pull'
       return { title: `${verb} ${action.targetId} ${action.distance}`, detail }
+    }
+    case 'traverse_piece': {
+      const landing = action.path.at(-1)
+      const where = landing === undefined ? 'nowhere' : `(${landing.q}, ${landing.r})`
+      const verb = action.traversal === 'walk' ? 'advances' : action.traversal === 'jump' ? 'leaps' : 'appears'
+      return { title: `${action.sourceId} ${verb} to ${where}`, detail }
     }
     case 'resolve_boss':
       return { title: `Boss Beat: ${action.beat.title}`, detail: { beatId: action.beat.id, beatTitle: action.beat.title, track: action.track } }

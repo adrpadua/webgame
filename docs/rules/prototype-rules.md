@@ -40,6 +40,22 @@ The boss has a two-horizon timeline, and every beat in either row states every p
 
 The rows are a rules structure, not a HUD band. The persistent strip that listed both rows by name is gone (D-060): a beat is read as a `Beat Card` when it resolves, carrying its damage, target, reach, rules text and answers, and the `Incoming Row`'s threat is on the board ahead of the `Quick Window` as the telegraph it always was — the breath cone and the marked spawn hexes, painted before the row resolves.
 
+### The Movement Clause
+
+Any Beat may carry a movement clause, and it resolves before the Beat's own effect (D-068). `move_tiles` is how far the Beat may travel, `traversal` is how it crosses the ground, and `range_tiles` is how close it is trying to get — one Beat can therefore be "Move 2, then Claw", the shape a Gloomhaven monster card has, rather than two Beats a Program has to keep in order. `advance_toward_player` is now simply the Beat kind whose *only* effect is the move.
+
+The rule that governs all movement is **go no further than you have to**: a mover stops the moment its target is within the Beat's `range_tiles`, and does not move at all when it already is. That is what makes an advance readable — it comes exactly close enough to do the thing it is about to do — and it is what stops a Boss walking past the Hero it is hunting.
+
+Three traversals, and the difference between them is entirely what the ground can do about it:
+
+| `traversal` | How it crosses | What stops it |
+| --- | --- | --- |
+| `walk` | Hex to hex, through ground it can stand on. Pays Hazard entry for every hex crossed. | Pieces and Hazards authoring `blocks_traversal` lengthen the route or close it off, so a walker can be blocked, funnelled, or stranded. |
+| `jump` | Straight over whatever is in between. Pays Hazard entry only where it lands. | Nothing en route; the landing still has to be ground it could stand on. |
+| `teleport` | No route at all — it appears on the hex that best answers its `range_tiles`, anywhere on the board. | Only the landing. It spends no allowance, so a teleporting Beat authors no `move_tiles`. |
+
+A Boss that walks can be kited into a corner and a Boss that teleports never can, which is the identity difference the field exists to author. Embermaw walks: `Close the Gap` is `move_tiles: 1`, `range_tiles: 1`, `walk`.
+
 The current prototype boss is `Embermaw`, using a short scripted loop of authored boss actions.
 
 ## Player Role
@@ -126,6 +142,13 @@ Pressing and holding the Hero still previews legal routes; a press that releases
 
 Moving also sets the player's facing to the traversed hex edge. Facing is always one of `E`, `NE`, `NW`, `W`, `SW`, or `SE`; no in-between directions are legal.
 
+Three different things move a piece, and they are not the same rule. A **paid step** is the Hero's own move above. A **displacement** is a force applied to a piece — Push and Pull ([ADR 0029](../adr/0029-resolve-forced-movement-one-hex-at-a-time.md)) — re-aimed every hex and stopping dead against whatever it runs into. A **traversal** is a piece crossing the board under its own power along a route it decided in advance, which is why it can go around what a displacement would stop at; it is what a Beat's movement clause emits.
+
+What ground does to a traverser is authored per Hazard, not decided by the engine (D-068):
+
+- `blocks_traversal` — ground a pathing Enemy has to route around. Held apart from `blocks_voluntary_movement` on purpose: one is what a Hero may *choose* to walk into, the other is what a mover *cannot*. Ground can be both, either, or neither.
+- `damages_source_team` — whether this ground burns the side that laid it. D-042's immunity is still the default and still the right one, but it is now the Hazard's decision rather than the engine's: Embermaw's Scorched declines to burn it, and a later Boss's ground can be authored to accept, which makes "lure it onto the hex it just burned" a fight somebody can build.
+
 ## Minions
 
 Minions act at the end of each Round, after the Slow Window and before the Round wraps, in spawn order (D-006):
@@ -162,6 +185,8 @@ Every card that touches anything past the Hero firing it authors a reach: `range
 Two exemptions were withdrawn to get there. `boss_damage` used to resolve without a range check, so a Hero's position never blocked it; and the Boss was the one Enemy a piece-targeting card could mark from any distance, exempted expressly to stay consistent with the first rule (D-034, kept by D-047). Both are gone: the Boss answers the same reach every other Enemy does. `board_slot` stays reach-free, because an ally's prepared Top Card is not a place on the board and support was chosen adjacency-free (D-009).
 
 The melee vocabulary is authored as `range_tiles: 1` — Steady Strike, Shield Slam, Unyielding Step, Taunting Challenge, Quench, and Elian's Riposte all swing at arm's length, which is what their rules text already said.
+
+A Boss Beat answers the same rule, and needs a reach for any of three reasons (D-068): it is a kind that always reaches (`forward_cone`, `demand_proximity`, `targeted_hit`), it is a `place_counter` aimed at a Hero, or it carries a movement clause — which needs `range_tiles` to know how close is close enough. Marking the Party was the last thing the Boss could do to a Hero from anywhere on the board; it stayed that way only because no authored Beat used it. Marking *itself* measures nothing and must not author a reach. The other half of the rule stands: a Beat with no distance question to ask must not answer one.
 
 Counter-pressure against playing at a distance is now priced twice, in the card and in the encounter, and the encounter half is unchanged. A `demand_proximity` Beat (D-041) raises Escalation if no Hero stands within its authored reach at the Round end — Embermaw's `Within Reach` charges `1`. It is priced in Escalation rather than in Health on purpose, because a Health price is one a camper can simply out-heal or out-armor, while the clock is the thing that ends the fight. A Beat may still carry an `unguarded_bonus` for a hit that reaches past the hex the Boss faces; Raking Claw carried one until it gained a reach of `1`, at which point there was no unbraced hex left for it to price (D-062).
 

@@ -4,5 +4,7 @@
   "rules_text": "What standing on or entering this ground costs.",
   "duration_rounds": 1,
   "enter_damage": 1,
-  "blocks_voluntary_movement": false
+  "blocks_voluntary_movement": false,
+  "blocks_traversal": false,
+  "damages_source_team": false
 }

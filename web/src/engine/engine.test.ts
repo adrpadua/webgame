@@ -1305,6 +1305,47 @@ describe('Authored Beat reach', () => {
     turn.range_tiles = 2
     expect(() => rebuild(ranged)).toThrow(/must not author range_tiles/)
   })
+
+  // Two of the three reasons a Beat needs a reach are fields rather than kinds
+  // (D-068), which is why the kind list alone stopped being able to state the
+  // rule.
+  it('refuses a Beat that marks a Hero without saying how far it reaches', () => {
+    const marking = structuredClone(catalog)
+    const stoke = marking.programs.embermaw_embers.instant_beats.find((entry) => entry.kind === 'place_counter')!
+    stoke.counter_target = 'hero'
+    expect(() => rebuild(marking)).toThrow(/marking a Hero but authors no range_tiles/)
+    // Aimed back at itself it measures nothing, and must not answer.
+    stoke.counter_target = 'self'
+    stoke.range_tiles = 1
+    expect(() => rebuild(marking)).toThrow(/must not author range_tiles/)
+  })
+
+  it('refuses a movement clause that does not say how close to get', () => {
+    const moving = structuredClone(catalog)
+    const claw = moving.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'targeted_hit')!
+    claw.move_tiles = 2
+    claw.range_tiles = 0
+    expect(() => rebuild(moving)).toThrow(/needs to know how close to get/)
+  })
+
+  it('refuses a traversal nothing moves, an advance with no allowance, and a teleport that spends one', () => {
+    const idle = structuredClone(catalog)
+    const turn = idle.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'turn_toward_player')!
+    turn.traversal = 'jump'
+    expect(() => rebuild(idle)).toThrow(/authors traversal jump but carries no movement clause/)
+
+    const still = structuredClone(catalog)
+    const advance = still.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'advance_toward_player')!
+    advance.move_tiles = 0
+    expect(() => rebuild(still)).toThrow(/authors no move_tiles/)
+
+    // A teleport has no route to spend an allowance on — an authored one is a
+    // number it never consults, and the author meant a jump.
+    const blink = structuredClone(catalog)
+    const hop = blink.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'advance_toward_player')!
+    hop.traversal = 'teleport'
+    expect(() => rebuild(blink)).toThrow(/teleports but authors move_tiles/)
+  })
 })
 
 // D-042. Recorded as a latent interaction during PR #77's review and ruled on
@@ -1356,6 +1397,23 @@ describe('Own-side Hazard immunity (D-042)', () => {
     const before = boss(state).health
     const moved = drag(state, state.bossId, hex)
     expect(moved.state.board.entities[state.bossId].health).toBeLessThan(before)
+  })
+
+  it('lets the ground decline the immunity, so a Boss can be lured onto its own (D-068)', () => {
+    // The immunity is the right default and was the wrong kind of rule: whether
+    // Embermaw walks its own fire is a decision about Embermaw, not a fact
+    // about fire. Authored, "trick it onto the hex it just burned" becomes a
+    // fight somebody can build — and Embermaw's own Scorched keeps declining
+    // to burn it, which is the line above.
+    const state = immortalHero(start())
+    const hex = { q: 0, r: 0 }
+    state.board.hazards[hexKey(hex)] = [{ ...scorch('enemy'), damagesSourceTeam: true }]
+    const before = boss(state).health
+    const moved = drag(state, state.bossId, hex)
+    expect(moved.state.board.entities[state.bossId].health).toBeLessThan(before)
+    // The shipped ground is authored the other way, and the catalog says so
+    // rather than the engine.
+    expect(catalog.hazards.scorched.damages_source_team).toBe(false)
   })
 
   it('records the side that laid every Hazard the Encounter creates', () => {
@@ -2409,10 +2467,39 @@ describe('The Boss marks too (D-051)', () => {
     // `counter_target` is the whole direction of the mark, and getting it
     // backwards would put the Boss's own debuff on the Boss.
     const state = immortalHero(start())
-    const beat = { ...catalog.programs.embermaw_embers.instant_beats.find((b) => b.kind === 'place_counter')!, counter_target: 'hero' as const }
+    const beat = {
+      ...catalog.programs.embermaw_embers.instant_beats.find((b) => b.kind === 'place_counter')!,
+      counter_target: 'hero' as const,
+      range_tiles: 1,
+    }
     const marked = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat, track: 'instant' })
     expect(marked.state.counters[combatantRef(state.primaryHeroId)]?.[0]).toMatchObject({ id: 'heat', count: beat.counter_amount })
     expect(marked.state.counters[combatantRef(state.bossId)] ?? []).toHaveLength(0)
+  })
+
+  it('reaches for the Hero it marks, and comes up short from the far side (D-068)', () => {
+    // The Boss side of D-067. Marking the Party was the last thing a Beat could
+    // do to a Hero from anywhere on the board, and it stayed that way only
+    // because no authored Beat marked a Hero.
+    const beat = {
+      ...catalog.programs.embermaw_embers.instant_beats.find((b) => b.kind === 'place_counter')!,
+      counter_target: 'hero' as const,
+      range_tiles: 1,
+    }
+    const state = immortalHero(start())
+    const bossCoords = boss(state).coords
+    const furthest = Object.keys(state.board.hexes)
+      .map(parseHexKey)
+      .sort((left, right) => hexDistance(right, bossCoords) - hexDistance(left, bossCoords))[0]
+    expect(hexDistance(furthest, bossCoords)).toBeGreaterThan(beat.range_tiles)
+    state.board.entities[state.primaryHeroId].coords = furthest
+
+    const missed = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat, track: 'instant' })
+    expect(missed.state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
+    // Marking itself measures nothing: the same Beat aimed inward still lands
+    // from the same hex.
+    const inward = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: { ...beat, counter_target: 'self' as const, range_tiles: 0 }, track: 'instant' })
+    expect(inward.state.counters[combatantRef(state.bossId)]?.[0]).toMatchObject({ id: 'heat' })
   })
 
   // The price. Heat used to pay out only in Boss damage, and the sweep said
@@ -2457,6 +2544,7 @@ describe('The Boss marks too (D-051)', () => {
     const marking = structuredClone(catalog)
     const beat = marking.programs.embermaw_embers.instant_beats.find((entry) => entry.kind === 'place_counter')!
     beat.counter_target = 'hero'
+    beat.range_tiles = 1
     let state = immortalHero(start())
     const reasons = (): string[] =>
       escalationActionsForRoundEnd(marking, state)
@@ -3238,6 +3326,170 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
       escalation_reason: 'automatic_tick',
       thresholds_crossed: ['Ashen Verge'],
     })
+  })
+})
+
+describe('Boss traversal (D-068)', () => {
+  // Movement is a clause any Beat may carry, and how it crosses the board is
+  // authored. Embermaw only ever walks one hex, so the vocabulary is proven
+  // against catalog variants — the pattern the Counter and acceleration tests
+  // established for content the live encounter does not exercise yet.
+  const advance = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'advance_toward_player')!
+
+  function movingBeat(patch: Partial<typeof advance> = {}) {
+    return { ...advance, ...patch }
+  }
+
+  // Put the Hero on the hex furthest from the Boss, so a traversal has room to
+  // be measured rather than being over before it starts.
+  function apart(): EncounterState {
+    const state = immortalHero(start())
+    const bossCoords = boss(state).coords
+    const furthest = Object.keys(state.board.hexes)
+      .map(parseHexKey)
+      .sort((left, right) => hexDistance(right, bossCoords) - hexDistance(left, bossCoords))[0]
+    state.board.entities[state.primaryHeroId].coords = furthest
+    return state
+  }
+
+  function fire(state: EncounterState, beat: typeof advance) {
+    return resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat, track: 'instant' })
+  }
+
+  it('walks its authored allowance and no further', () => {
+    const state = apart()
+    const before = hexDistance(boss(state).coords, state.board.entities[state.primaryHeroId].coords)
+    const moved = fire(state, movingBeat({ move_tiles: 2, range_tiles: 1 })).state
+    expect(hexDistance(boss(moved).coords, moved.board.entities[moved.primaryHeroId].coords)).toBe(before - 2)
+  })
+
+  it('stops as soon as its target is in reach, spending nothing it does not need', () => {
+    // Gloomhaven's rule, and the one that makes an advance readable: it comes
+    // exactly close enough to do the thing it is about to do. Without it a Boss
+    // authored to close 3 would walk into and past the Hero it is hunting.
+    const state = apart()
+    const generous = fire(state, movingBeat({ move_tiles: 8, range_tiles: 2 })).state
+    expect(hexDistance(boss(generous).coords, generous.board.entities[generous.primaryHeroId].coords)).toBe(2)
+  })
+
+  it('does not move at all when it is already close enough', () => {
+    // The Hero starts adjacent, and a reach of 1 is already satisfied.
+    const state = immortalHero(start())
+    const bossBefore = { ...boss(state).coords }
+    const fired = fire(state, movingBeat({ move_tiles: 3, range_tiles: 1 }))
+    expect(fired.facts.some((fact) => fact.kind === 'traverse_piece')).toBe(false)
+    expect(boss(fired.state).coords).toEqual(bossBefore)
+  })
+
+  it('walks around a piece in the way instead of stopping against it', () => {
+    // The behaviour the retired `displace_piece` advance could not manage: it
+    // re-aimed each step and stopped dead on the first occupied hex, so a Whelp
+    // of Embermaw's own summoning could pin it in place.
+    const state = apart()
+    const bossCoords = boss(state).coords
+    const heroCoords = state.board.entities[state.primaryHeroId].coords
+    // Block every hex that gets the Boss closer, bar one.
+    const closer = neighbors(state.board.hexes, bossCoords).filter((coords) => hexDistance(coords, heroCoords) < hexDistance(bossCoords, heroCoords))
+    expect(closer.length).toBeGreaterThan(1)
+    closer.slice(1).forEach((coords, index) => {
+      state.board.entities[`blocker_${index}`] = {
+        id: `blocker_${index}`,
+        kind: 'minion',
+        coords,
+        health: 2,
+        maxHealth: 2,
+        facing: 0,
+        team: 'enemy',
+        title: 'Blocker',
+      }
+    })
+    const moved = fire(state, movingBeat({ move_tiles: 1, range_tiles: 1 })).state
+    expect(boss(moved).coords).toEqual(closer[0])
+  })
+
+  it('is stopped by ground that authors blocks_traversal, and walks ground that does not', () => {
+    // The authored half of terrain (D-068). The same Beat, the same board, and
+    // the only difference is what the Hazard says about being crossed.
+    const bossCoords = boss(start()).coords
+    const blockedRun = (blocksTraversal: boolean) => {
+      const state = apart()
+      for (const coords of neighbors(state.board.hexes, bossCoords)) {
+        state.board.hazards[hexKey(coords)] = [
+          { id: 'wall', title: 'Wall', remainingRounds: 9, enterDamage: 0, blocksVoluntaryMovement: false, blocksTraversal },
+        ]
+      }
+      return fire(state, movingBeat({ move_tiles: 1, range_tiles: 1 })).state
+    }
+    // Walled in on every side, a walker has nowhere to go.
+    expect(boss(blockedRun(true)).coords).toEqual(bossCoords)
+    // The identical ground authored as crossable, and it moves.
+    expect(boss(blockedRun(false)).coords).not.toEqual(bossCoords)
+  })
+
+  it('leaps the ground a walker has to go round, and lands somewhere it could stand', () => {
+    const bossCoords = boss(start()).coords
+    const walled = () => {
+      const state = apart()
+      for (const coords of neighbors(state.board.hexes, bossCoords)) {
+        state.board.hazards[hexKey(coords)] = [
+          { id: 'wall', title: 'Wall', remainingRounds: 9, enterDamage: 0, blocksVoluntaryMovement: false, blocksTraversal: true },
+        ]
+      }
+      return state
+    }
+    // A walker is penned in by the ring; a jumper clears it.
+    expect(boss(fire(walled(), movingBeat({ move_tiles: 2, range_tiles: 1 })).state).coords).toEqual(bossCoords)
+    const leapt = fire(walled(), movingBeat({ move_tiles: 2, range_tiles: 1, traversal: 'jump' as const })).state
+    expect(hexDistance(boss(leapt).coords, bossCoords)).toBe(2)
+    // It cleared the ring rather than landing in it: the landing still has to
+    // be ground it could stand on.
+    expect(neighbors(leapt.board.hexes, bossCoords).some((coords) => hexDistance(coords, boss(leapt).coords) === 0)).toBe(false)
+  })
+
+  it('teleports into reach from anywhere, spending no allowance to do it', () => {
+    const state = apart()
+    const heroCoords = state.board.entities[state.primaryHeroId].coords
+    const appeared = fire(state, movingBeat({ move_tiles: 0, range_tiles: 1, traversal: 'teleport' as const })).state
+    expect(hexDistance(boss(appeared).coords, heroCoords)).toBe(1)
+  })
+
+  it('pays Hazard entry for every hex a walk crosses, and only for the landing on a jump', () => {
+    // Where the two kinds actually come apart, stated as the bill rather than
+    // as the route: a walker crosses the ground, a jumper clears it.
+    const burn = (traversal: 'walk' | 'jump') => {
+      const state = apart()
+      for (const key of Object.keys(state.board.hexes)) {
+        state.board.hazards[key] = [
+          { id: 'coals', title: 'Coals', remainingRounds: 9, enterDamage: 1, blocksVoluntaryMovement: false, damagesSourceTeam: true, sourceTeam: 'enemy' },
+        ]
+      }
+      return fire(state, movingBeat({ move_tiles: 3, range_tiles: 1, traversal })).state
+    }
+    const bossMaxHealth = boss(start()).maxHealth
+    // A walker pays a hex at a time all the way in: the distance it had to
+    // close, which is where it started minus the reach it stops at.
+    const crossed = hexDistance(boss(apart()).coords, apart().board.entities[apart().primaryHeroId].coords) - 1
+    expect(crossed).toBeGreaterThan(1)
+    expect(bossMaxHealth - boss(burn('walk')).health).toBe(crossed)
+    // A jumper pays once, for the hex it comes down on.
+    expect(bossMaxHealth - boss(burn('jump')).health).toBe(1)
+  })
+
+  it('lets one Beat move and then hit, measured from where the move ended', () => {
+    // The Gloomhaven monster-card shape: "Move 2, Attack 3" as one Beat with
+    // one telegraph, rather than two Beats a Program has to keep in order.
+    // Resolving the claw from the pre-move hex is the bug the ordering exists
+    // to prevent — it would close the distance and swing at where it had been.
+    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
+    const state = apart()
+    const heroBefore = hero(state).health
+    // Out of reach standing still: the claw alone lands nothing.
+    expect(fire(state, claw).facts.some((fact) => fact.kind === 'damage')).toBe(false)
+    // The same claw carrying a movement clause closes and connects.
+    const lunge = { ...claw, move_tiles: 8, traversal: 'walk' as const }
+    const landed = fire(state, lunge)
+    expect(landed.facts.map((fact) => fact.kind)).toContain('traverse_piece')
+    expect(hero(landed.state).health).toBeLessThan(heroBefore)
   })
 })
 

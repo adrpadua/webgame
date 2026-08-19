@@ -235,6 +235,191 @@ export function isLegalMove(board: BoardState, entityId: string, destination: Ax
   return true
 }
 
+// --- Traversal (D-068) ---
+
+// Ground a piece moving under its own power can stand on: on the board, nobody
+// already there, and no Hazard authoring `blocks_traversal`.
+//
+// Deliberately not `isLegalMove` with a flag. That predicate answers a Hero's
+// question — may I choose to step here — and its Hazard rule is
+// `blocksVoluntaryMovement`, which is about a player declining to walk into
+// fire. A Boss crossing the arena is not choosing, and the ground that stops
+// it is authored separately for exactly that reason.
+export function isTraversable(board: BoardState, moverId: string, coords: Axial): boolean {
+  if (!isOnBoard(board, coords) || isOccupied(board, coords, moverId)) {
+    return false
+  }
+  return !getHazards(board, coords).some((hazard) => hazard.blocksTraversal === true)
+}
+
+export type Traversal = 'walk' | 'jump' | 'teleport'
+
+// The route a Beat's movement clause actually takes, as the hexes entered in
+// order. Empty means it does not move — already close enough, or with nowhere
+// better to stand.
+//
+// One rule governs all three kinds: **go no further than you have to**. The
+// mover stops the moment `target` is within `stopWithin`, which is the Beat's
+// own `range_tiles`. That is what makes an advance readable rather than
+// arbitrary — it comes exactly close enough to do the thing it is about to do —
+// and it is the rule that stops a Boss from walking past the Hero it is
+// hunting.
+//
+// Ties break on hex key rather than on iteration order, so a route is a
+// function of the board and never of how the hex map happened to be built.
+export function traversalRoute(
+  board: BoardState,
+  moverId: string,
+  target: Axial,
+  moveTiles: number,
+  stopWithin: number,
+  traversal: Traversal,
+): Axial[] {
+  const mover = board.entities[moverId]
+  if (!mover) {
+    return []
+  }
+  // Already in reach: the whole clause is skipped rather than spent. A Boss
+  // standing next to its quarry has no reason to shuffle.
+  if (hexDistance(mover.coords, target) <= stopWithin) {
+    return []
+  }
+  if (traversal === 'teleport') {
+    const landing = bestLanding(board, moverId, target, stopWithin, Object.keys(board.hexes).map(parseKey))
+    return landing === null ? [] : [landing]
+  }
+  if (traversal === 'jump') {
+    // Everything within the allowance as the crow flies; what is in between is
+    // simply not consulted. The landing still has to be somewhere it could
+    // stand, which is the only hold obstacles keep over a jumper.
+    const candidates = Object.keys(board.hexes)
+      .map(parseKey)
+      .filter((coords) => hexDistance(mover.coords, coords) <= moveTiles)
+    const landing = bestLanding(board, moverId, target, stopWithin, candidates)
+    return landing === null ? [] : [landing]
+  }
+  return walkRoute(board, moverId, target, moveTiles, stopWithin)
+}
+
+function parseKey(key: string): Axial {
+  const [q, r] = key.split(',').map(Number)
+  return { q, r }
+}
+
+function sortKey(coords: Axial): string {
+  return hexKey(coords)
+}
+
+// The hex a jump or a teleport picks: the one that best answers the Beat, with
+// "best" read off the same `stopWithin` a walker stops at. Closing to reach is
+// the whole point, so a landing that achieves it beats one that does not, and
+// among those the nearest to where it started wins — a Boss that can appear
+// anywhere still appears where it needs to be, not wherever is furthest.
+function bestLanding(board: BoardState, moverId: string, target: Axial, stopWithin: number, candidates: Axial[]): Axial | null {
+  const mover = board.entities[moverId]
+  if (!mover) {
+    return null
+  }
+  const startDistance = hexDistance(mover.coords, target)
+  let best: Axial | null = null
+  let bestScore: [number, number, string] | null = null
+  for (const coords of candidates) {
+    if (!isTraversable(board, moverId, coords)) {
+      continue
+    }
+    const toTarget = hexDistance(coords, target)
+    // Never land further from the quarry than it already was: a movement
+    // clause is pressure, and one that could move away would be a Beat that
+    // sometimes helps the party.
+    if (toTarget >= startDistance) {
+      continue
+    }
+    const score: [number, number, string] = [Math.max(toTarget - stopWithin, 0), hexDistance(mover.coords, coords), sortKey(coords)]
+    if (bestScore === null || compareScore(score, bestScore) < 0) {
+      best = coords
+      bestScore = score
+    }
+  }
+  return best
+}
+
+// How far short of reach it lands, then how far it had to go, then the hex key
+// — the last only so two equally good landings resolve the same way every run.
+function compareScore(left: [number, number, string], right: [number, number, string]): number {
+  if (left[0] !== right[0]) {
+    return left[0] - right[0]
+  }
+  if (left[1] !== right[1]) {
+    return left[1] - right[1]
+  }
+  return left[2].localeCompare(right[2])
+}
+
+// A walker's route: breadth-first over traversable ground, so an obstacle
+// lengthens the path rather than stopping the piece dead against it — the
+// difference between a Boss that can be blocked and a Boss that can be
+// funnelled. Stops at the first hex from which the target is in reach, and
+// otherwise spends the whole allowance closing as far as it can.
+function walkRoute(board: BoardState, moverId: string, target: Axial, moveTiles: number, stopWithin: number): Axial[] {
+  const mover = board.entities[moverId]
+  if (!mover || moveTiles < 1) {
+    return []
+  }
+  const start = mover.coords
+  const cameFrom = new Map<string, string>()
+  const seen = new Set<string>([hexKey(start)])
+  let frontier: Axial[] = [start]
+  let best: Axial | null = null
+  let bestDistance = hexDistance(start, target)
+  for (let step = 1; step <= moveTiles; step += 1) {
+    const next: Axial[] = []
+    // Sorted so the route is decided by the board rather than by the order
+    // neighbours happen to come back in.
+    for (const coords of [...frontier].sort((left, right) => sortKey(left).localeCompare(sortKey(right)))) {
+      for (const candidate of neighbors(board.hexes, coords)) {
+        const key = hexKey(candidate)
+        if (seen.has(key) || !isTraversable(board, moverId, candidate)) {
+          continue
+        }
+        seen.add(key)
+        cameFrom.set(key, hexKey(coords))
+        next.push(candidate)
+        const toTarget = hexDistance(candidate, target)
+        if (toTarget < bestDistance) {
+          bestDistance = toTarget
+          best = candidate
+        }
+        if (toTarget <= stopWithin) {
+          return routeTo(cameFrom, start, candidate)
+        }
+      }
+    }
+    if (next.length === 0) {
+      break
+    }
+    frontier = next
+  }
+  return best === null ? [] : routeTo(cameFrom, start, best)
+}
+
+// Walk the breadth-first parents back to the start, then hand the route back
+// in the order it is travelled — which is the order Hazard entry has to fire
+// in, one hex at a time (ADR 0029).
+function routeTo(cameFrom: Map<string, string>, start: Axial, destination: Axial): Axial[] {
+  const route: Axial[] = []
+  let key = hexKey(destination)
+  const startKey = hexKey(start)
+  while (key !== startKey) {
+    route.push(parseKey(key))
+    const parent = cameFrom.get(key)
+    if (parent === undefined) {
+      break
+    }
+    key = parent
+  }
+  return route.reverse()
+}
+
 export function firstEmptyHexes(candidates: Axial[], empty: Record<HexKey, true>, count: number): Axial[] {
   const result: Axial[] = []
   for (const coords of candidates) {
