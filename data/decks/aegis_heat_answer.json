@@ -1,0 +1,15 @@
+{
+  "id": "aegis_heat_answer",
+  "title": "Elian Heat-Answer Candidate Deck",
+  "rules_text": "Evaluation-only candidate: the live starter list with two Steady Strike traded for two Quench, to measure whether a Counter-reading answer pays for the Boss damage it displaces. Not the default starter deck.",
+  "encounter": "embermaw_prototype",
+  "player_deck": [
+    { "card": "steady_strike", "copies": 4 },
+    { "card": "iron_guard", "copies": 6 },
+    { "card": "sweeping_blow", "copies": 2 },
+    { "card": "fortify", "copies": 2 },
+    { "card": "shield_slam", "copies": 2 },
+    { "card": "drive_back", "copies": 2 },
+    { "card": "quench", "copies": 2 }
+  ]
+}

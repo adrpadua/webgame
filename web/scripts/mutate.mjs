@@ -236,6 +236,20 @@ const MUTATIONS = [
     to: '      if (false) {',
   },
   {
+    name: 'ground that burns for good keeps its Counters',
+    guards: 'D-050: a permanent Hazard takes the Counters on that hex with it',
+    file: 'engine/resolve.ts',
+    from: "if (hazard.permanent === true && clearCounters(draft, hexCounterRef(action.coords)))",
+    to: "if (false && clearCounters(draft, hexCounterRef(action.coords)))",
+  },
+  {
+    name: 'a Boss Beat marks the wrong side',
+    guards: 'D-051: `counter_target` decides whether the Boss marks itself or the Party',
+    file: 'engine/timeline.ts',
+    from: "combatantRef(beat.counter_target === 'hero' ? draft.primaryHeroId : bossId)",
+    to: 'combatantRef(bossId)',
+  },
+  {
     name: 'a cost spend is never paid before the Card resolves',
     guards: 'D-047: a `cost` spend is paid before the Card\'s effects are computed',
     file: 'engine/resolve.ts',

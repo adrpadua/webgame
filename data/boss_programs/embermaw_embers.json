@@ -14,6 +14,19 @@
       ]
     },
     {
+      "id": "stoke_the_forge",
+      "title": "Stoke the Forge",
+      "rules_text": "Embermaw banks its own fire. Every Heat it carries makes every blow land harder, and it never cools on its own.",
+      "kind": "place_counter",
+      "counter": "heat",
+      "counter_amount": 1,
+      "counter_target": "self",
+      "answer_tags": [
+        "interrupt"
+      ],
+      "consequence_tier": "structural"
+    },
+    {
       "id": "ember_scar",
       "title": "Ember Scar",
       "rules_text": "The ground under the last pattern stays Scorched.",
