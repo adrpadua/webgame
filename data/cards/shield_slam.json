@@ -1,7 +1,7 @@
 {
   "id": "shield_slam",
   "title": "Shield Slam",
-  "rules_text": "Deal 3 damage to the boss. If you have Riposte Ready, consume it and gain +2 damage.",
+  "rules_text": "Deal 3 damage to the boss.",
   "speed": "quick",
   "max_charge": 2,
   "target_type": "none",

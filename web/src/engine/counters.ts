@@ -4,15 +4,15 @@ import type { Card, CardReader, CounterDefinition } from './content/schemas'
 import type { EncounterActionInput } from './actions'
 import type { CounterInstance, EncounterState, Phase } from './types'
 
-export const RIPOSTE_READY = 'riposte_ready'
 export const FORTIFIED = 'fortified'
-export const SHIELD_SLAM = 'shield_slam'
 
-// Counters engine code places rather than content. Both are exempt from the
-// "nothing reads this" lint: Fortified is read by its own Reader, and Riposte
-// Ready's graded consumption (D-015) is read by code the vocabulary cannot
-// express, which is exactly why D-033 left it there.
-export const ENGINE_COUNTERS = [FORTIFIED, RIPOSTE_READY]
+// Counters engine code places rather than content. Fortified is exempt from
+// the "nothing reads this" lint because its own Reader reads it. Riposte
+// Ready left this list with D-057: the Signature Slot's earned Charge is the
+// riposte count now, so the last hero mechanic living in engine code — and
+// the graded consumption (D-015) the Reader vocabulary could not express —
+// deleted rather than migrated.
+export const ENGINE_COUNTERS = [FORTIFIED]
 
 // The `when`/`effect` pairs the rules actually read. The schema's two enums
 // multiply out to sixteen combinations and `readerSum` is called with four of
@@ -235,11 +235,11 @@ export function readerSum(
   return total
 }
 
-// Round upkeep: window-scoped Counters never expire by round; round-scoped
-// ones expire when their remaining rounds run out. A Counter authored with no
-// clock (`duration_rounds: 0`) sits until something spends it.
+// Round upkeep: round-scoped Counters expire when their remaining rounds run
+// out. A Counter authored with no clock (`duration_rounds: 0`) sits until
+// something spends it.
 export function counterExpiresOnRoundAdvance(counter: CounterInstance): boolean {
-  if (counter.expiresAtWindowEnd !== '' || counter.remainingRounds <= 0) {
+  if (counter.remainingRounds <= 0) {
     return false
   }
   counter.remainingRounds -= 1
@@ -294,7 +294,6 @@ export function counterEvent(counter: CounterInstance, event: string, reason: st
     event,
     reason,
     count: counter.count,
-    expires_at_window_end: counter.expiresAtWindowEnd,
     source_id: counter.sourceId,
     source_beat_id: counter.sourceBeatId,
     trigger_round: counter.triggerRound,
@@ -302,17 +301,11 @@ export function counterEvent(counter: CounterInstance, event: string, reason: st
   }
 }
 
-// The fields every Counter instance carries but only engine-built ones use.
-const ENGINE_FIELDS = {
-  bonusBossDamageOnSlotFired: 0,
-  bonusBossDamageOffPayoff: 0,
-  consumeOnCardId: '',
-  expiresAtWindowEnd: '' as Phase | '',
-}
-
 // Builds a live instance from an authored definition. Everything the Counter
 // does travels with it as Readers, so nothing downstream needs the catalog to
-// know what a held Counter is worth.
+// know what a held Counter is worth. The four engine-only graded-consumption
+// fields D-033 kept here left with D-057: nothing constructed them but
+// Riposte Ready, and Riposte Ready is the Signature Slot now.
 export function createFromDefinition(
   definition: CounterDefinition,
   source: { sourceId: string; sourceBeatId?: string; round: number; phase: Phase },
@@ -324,7 +317,6 @@ export function createFromDefinition(
     max: definition.max,
     remainingRounds: definition.duration_rounds,
     readers: definition.readers.map((reader) => ({ ...reader })),
-    ...ENGINE_FIELDS,
     triggerReason: 'authored_counter',
     sourceId: source.sourceId,
     sourceBeatId: source.sourceBeatId ?? '',
@@ -353,26 +345,6 @@ export function createFortified(
   const instance = createFromDefinition(definition, { sourceId: sourceCardId, round, phase })
   instance.triggerReason = 'slow_commitment'
   return instance
-}
-
-export function createRiposteReady(sourceId: string, sourceBeatId: string, round: number, phase: Phase): CounterInstance {
-  return {
-    id: RIPOSTE_READY,
-    title: 'Riposte Ready',
-    count: 0,
-    max: 1,
-    remainingRounds: 1,
-    readers: [],
-    bonusBossDamageOnSlotFired: 2,
-    bonusBossDamageOffPayoff: 1,
-    consumeOnCardId: SHIELD_SLAM,
-    expiresAtWindowEnd: 'quick',
-    triggerReason: 'qualifying_tank_hit',
-    sourceId,
-    sourceBeatId,
-    triggerRound: round,
-    triggerPhase: phase,
-  }
 }
 
 // Where a Card puts the Counter it places: the Counter's own `host`, resolved

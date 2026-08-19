@@ -43,6 +43,7 @@ export {
 export { buildProgramSequence, currentProgram } from './timeline'
 export { keywordTitle } from './keywords'
 export { combatantRef, counterCount, readCounterEvent, counterCountByKeyword, getCounters, hexCounterRef, slotRef, type CounterRef } from './counters'
+export { readSignatureEvent, slotChargeCount, EVALUATED_GRANT_WHENS } from './signature'
 export { getEntityIdAt, isLegalMove, neighbors, isGuardedFront } from './board'
 export { minionIntent, minionIntents, type MinionIntent } from './minions'
 export { ESCALATION_MAX, escalationModifiers, escalationStartRound, type EscalationModifiers } from './escalation'

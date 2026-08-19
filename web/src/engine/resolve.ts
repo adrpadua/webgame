@@ -12,12 +12,7 @@ import {
   counterEvent,
   createFortified,
   createFromDefinition,
-  createRiposteReady,
-  getCounters,
-  hasCounter,
   placeCounter,
-  removeCounter,
-  RIPOSTE_READY,
   roundUpkeep,
   readerSum,
   spendCounter,
@@ -30,6 +25,8 @@ import {
   hexCounterRef,
   type CounterRef,
 } from './counters'
+import { evaluateStandingGrants } from './signature'
+import { cardChargeCap } from './content/catalog'
 import { TANK_HIT } from './keywords'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
 import type { CardReader } from './content/schemas'
@@ -167,12 +164,26 @@ function resolveOne(
       const slot = hero.actionBar[action.slotIndex]
       const topCard = slot.topCard as CardInstance
       const card = catalog.cards[topCard.cardId]
+      // A fixed Slot's Charge is a token count, and firing spends the whole
+      // stack while the Top Card stays — ADR 0032's inversion of ADR 0008.
+      // The count is read before the spend so the Charge Modifiers and the
+      // full-bank rider both see what was actually paid.
+      const spentSignatureCharges = slot.fixed ? slot.earnedCharges : 0
       // A cost is paid before the Card's effects are computed, so a Card
       // that both scales off a Counter and spends it as a cost scales off
       // what is left — the ordinary reading of paying for something.
       const spentEarly = spendCardReaders(draft, card, action, 'cost')
-      const effects = resolveFire(catalog, card, slot.charges.map((charge) => catalog.cards[charge.cardId]))
+      const effects = resolveFire(
+        catalog,
+        card,
+        slot.charges.map((charge) => catalog.cards[charge.cardId]),
+        spentSignatureCharges,
+      )
       applyScaleReaders(catalog, draft, effects, card, action)
+      if (slot.fixed) {
+        slot.earnedCharges = 0
+        fact.detail.spentSignatureCharges = spentSignatureCharges
+      }
       if (spentEarly.length > 0) {
         fact.detail.spentCounters = spentEarly
       }
@@ -195,16 +206,12 @@ function resolveOne(
       hero.health = Math.min(hero.maxHealth, hero.health + effects.healing)
       slot.activatedWindow = draft.phase
       syncHeroEntity(draft, action.sourceId)
-      const consumed = consumeCountersForSlot(draft, action.sourceId, card, baseBossDamage > 0 || burstIncludesBoss)
-      if (consumed.events.length > 0) {
-        fact.resolutionFact = { counter_event: consumed.events[0] }
-      }
       if (effects.armorNextRound > 0) {
         const fortified = createFortified(catalog, card.id, draft.round, draft.phase)
         // Fortify's stored Armor is the number of Counters placed, so the
         // amount still rides the card and the Counter stays a bare marker.
         const banked = fortified === null ? 0 : placeCounter(draft, combatantRef(action.sourceId), fortified, effects.armorNextRound)
-        if (fortified !== null && consumed.events.length === 0) {
+        if (fortified !== null) {
           fact.resolutionFact = { counter_event: counterEvent({ ...fortified, count: banked }, 'placed', fortified.triggerReason) }
         }
       }
@@ -227,10 +234,8 @@ function resolveOne(
           fact.detail.placedCounter = definition.id
           fact.detail.placedCounterTarget = hostRef ?? ''
           fact.detail.placedCounterAmount = placed
-          if (consumed.events.length === 0) {
-            fact.resolutionFact = {
-              counter_event: counterEvent({ ...placing, count: placed }, placed > 0 ? 'placed' : 'refused', placed > 0 ? 'authored_counter' : 'at_max'),
-            }
+          fact.resolutionFact = {
+            counter_event: counterEvent({ ...placing, count: placed }, placed > 0 ? 'placed' : 'refused', placed > 0 ? 'authored_counter' : 'at_max'),
           }
         }
       }
@@ -257,9 +262,7 @@ function resolveOne(
             factContext: cardDamageContext(card),
           })
         }
-        const bossBaseAmount = baseBossDamage + (burstIncludesBoss ? effects.targetDamage : 0)
-        const bossAmount = bossBaseAmount + consumed.bonusBossDamage
-        const factContext = cardDamageContext(card, payoffContext(card, consumed, bossBaseAmount))
+        const bossAmount = baseBossDamage + (burstIncludesBoss ? effects.targetDamage : 0)
         if (bossAmount > 0) {
           generated.push({
             kind: 'damage',
@@ -267,19 +270,18 @@ function resolveOne(
             targetId: draft.bossId,
             amount: bossAmount,
             reasonText: card.title,
-            factContext,
+            factContext: cardDamageContext(card),
           })
         }
       } else {
-        if (baseBossDamage + consumed.bonusBossDamage > 0) {
-          const factContext = cardDamageContext(card, payoffContext(card, consumed, baseBossDamage))
+        if (baseBossDamage > 0) {
           generated.push({
             kind: 'damage',
             sourceId: action.sourceId,
             targetId: draft.bossId,
-            amount: baseBossDamage + consumed.bonusBossDamage,
+            amount: baseBossDamage,
             reasonText: card.title,
-            factContext,
+            factContext: cardDamageContext(card),
           })
         }
         if (effects.targetDamage > 0) {
@@ -301,6 +303,21 @@ function resolveOne(
           distance: effects.pushTiles > 0 ? effects.pushTiles : effects.pullTiles,
           movement: effects.pushTiles > 0 ? 'push' : 'pull',
           reasonText: card.title,
+        })
+      }
+      // The full-bank rider (D-057 decision 13): a fixed Slot fired at its
+      // whole Charge cap also marks the Boss. Pushed after the card's own
+      // damage actions, so the follow-through opens the wound and the rider's
+      // own hit never benefits from it — the ordering the ruling specified.
+      // The Counter follows the card's Boss damage, not its `target_type`.
+      if (slot.fixed && card.full_charge.places_counter !== '' && spentSignatureCharges >= cardChargeCap(card)) {
+        generated.push({
+          kind: 'place_counter',
+          sourceId: action.sourceId,
+          hostRef: combatantRef(draft.bossId),
+          counterId: card.full_charge.places_counter,
+          amount: card.full_charge.counter_amount,
+          reasonText: 'signature_full_bank',
         })
       }
       generated.push(...slotFiredCounterActions(draft, action.sourceId))
@@ -410,7 +427,8 @@ function resolveOne(
         break
       }
       fact.detail.dealt = resolutionFact.health_loss
-      evaluateRiposteGrant(draft, action, resolutionFact)
+      evaluateTankHitAbsorption(draft, action, resolutionFact)
+      evaluateStandingGrants(catalog, draft, action, resolutionFact)
       fact.resolutionFact = resolutionFact
       succeed(fact)
       break
@@ -435,12 +453,6 @@ function resolveOne(
       fact.resolutionFact = {
         counter_event: counterEvent({ ...placing, count: placed }, placed > 0 ? 'placed' : 'refused', placed > 0 ? action.reasonText : 'at_max'),
       }
-      succeed(fact)
-      break
-    }
-    case 'expire_counter': {
-      removeCounter(draft, action.hostRef as CounterRef, action.counterId)
-      fact.resolutionFact = { counter_event: structuredClone(action.counterEvent) }
       succeed(fact)
       break
     }
@@ -507,7 +519,7 @@ function resolveOne(
       fact.detail.topCard = slot.topCard.cardId
       fact.detail.chargeCards = slot.charges.map((charge) => charge.cardId)
       hero.discard.push(slot.topCard, ...slot.charges)
-      hero.actionBar[action.slotIndex] = { topCard: null, charges: [], activatedWindow: null, placedThisLoadout: false }
+      hero.actionBar[action.slotIndex] = { topCard: null, charges: [], activatedWindow: null, placedThisLoadout: false, fixed: false, earnedCharges: 0 }
       succeed(fact)
       break
     }
@@ -702,37 +714,6 @@ function clearWindowFlags(draft: EncounterState, window: Phase): void {
   }
 }
 
-interface ConsumedCounters {
-  bonusBossDamage: number
-  events: Record<string, unknown>[]
-}
-
-// A consumable payoff Counter (consumeOnCardId set) is cashed by ANY card
-// that deals Boss damage: the named payoff card takes the full bonus, every
-// other Boss-damage card takes the smaller off-payoff bonus. Cards that deal
-// no Boss damage never consume it. Graded consumption is engine-only (D-015,
-// D-033) — it is exactly what the Reader vocabulary models badly.
-function consumeCountersForSlot(draft: EncounterState, entityId: string, card: Card, dealsBossDamage: boolean): ConsumedCounters {
-  const result: ConsumedCounters = { bonusBossDamage: 0, events: [] }
-  const remaining = []
-  const ref = combatantRef(entityId)
-  for (const counter of getCounters(draft, ref)) {
-    if (counter.consumeOnCardId === '' || !dealsBossDamage) {
-      remaining.push(counter)
-      continue
-    }
-    const isPayoffCard = counter.consumeOnCardId === card.id
-    const bonus = isPayoffCard ? counter.bonusBossDamageOnSlotFired : counter.bonusBossDamageOffPayoff
-    result.bonusBossDamage += bonus
-    const event = counterEvent(counter, 'consumed', isPayoffCard ? 'matching_card_fired' : 'boss_damage_card_fired')
-    event.card_id = card.id
-    event.bonus_boss_damage = bonus
-    result.events.push(event)
-  }
-  draft.counters[ref] = remaining
-  return result
-}
-
 // Counters that answer a fired Slot with bonus Boss damage through an authored
 // Reader rather than through graded consumption.
 function slotFiredCounterActions(draft: EncounterState, entityId: string): EncounterActionInput[] {
@@ -741,20 +722,6 @@ function slotFiredCounterActions(draft: EncounterState, entityId: string): Encou
     return []
   }
   return [{ kind: 'damage', sourceId: entityId, targetId: draft.bossId, amount: bonus, reasonText: 'counter_reader' }]
-}
-
-// The consumed-Counter half of a Boss-damage fact context, which the burst
-// and non-burst branches both need to say the same way.
-function payoffContext(card: Card, consumed: ConsumedCounters, baseAmount: number): Record<string, unknown> | undefined {
-  if (consumed.bonusBossDamage <= 0) {
-    return undefined
-  }
-  return {
-    base_amount: baseAmount,
-    counter_bonus: consumed.bonusBossDamage,
-    counter_id: (consumed.events[0] as { counter_id: string }).counter_id,
-    payoff_card_id: card.id,
-  }
 }
 
 // The fact context every blow a Card deals carries. The Card's own damage
@@ -869,9 +836,12 @@ function applyDamage(
   return resolutionFact
 }
 
-// Riposte Ready: a qualifying Tank Hit against the Guarded Front with zero
-// Health loss grants the status; the evaluation is always recorded.
-function evaluateRiposteGrant(
+// One predicate, two rewards (D-039). Absorbing a Tank Hit on the Guarded
+// Front for zero Health loss decides where the Beat's ash falls — and, since
+// D-057, it is also the event Elian's Signature standing clause reads. The
+// absorption half stays an engine rule because the ash spill is Boss
+// resolution, not a Hero's power; the Grant half lives in `signature.ts`.
+function evaluateTankHitAbsorption(
   draft: EncounterState,
   action: Extract<EncounterActionInput, { kind: 'damage' }>,
   resolutionFact: Record<string, unknown>,
@@ -884,26 +854,7 @@ function evaluateRiposteGrant(
   }
   const guardedFront = isGuardedFront(draft.board, draft.bossId, draft.primaryHeroId)
   resolutionFact.guarded_front = guardedFront
-  // One predicate, two rewards (D-039). Absorbing a Tank Hit on the Guarded
-  // Front for zero Health loss grants Riposte Ready *and* decides where the
-  // Beat's ash falls — the throughput payoff for a party, the standing-room
-  // payoff for a line that cannot win. It never reduces the ash.
   draft.previousImpactAbsorbed = (resolutionFact.health_loss as number) === 0 && guardedFront
-  const evaluation: Record<string, unknown> = { counter_id: RIPOSTE_READY, result: 'not_granted', reason: '' }
-  if ((resolutionFact.health_loss as number) > 0) {
-    evaluation.reason = 'health_lost'
-  } else if (!guardedFront) {
-    evaluation.reason = 'not_guarded_front'
-  } else if (hasCounter(draft, combatantRef(draft.primaryHeroId), RIPOSTE_READY)) {
-    evaluation.reason = 'already_active'
-  } else {
-    const counter = createRiposteReady(action.sourceId, (resolutionFact.boss_beat_id as string) ?? '', draft.round, draft.phase)
-    placeCounter(draft, combatantRef(draft.primaryHeroId), counter)
-    evaluation.result = 'granted'
-    evaluation.reason = counter.triggerReason
-    resolutionFact.counter_event = counterEvent({ ...counter, count: 1 }, 'placed', counter.triggerReason)
-  }
-  resolutionFact.counter_evaluation = evaluation
 }
 
 // One per-kind mapping produces both the fact log title and the serializable
@@ -939,8 +890,6 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: 'Discard for Stamina', detail }
     case 'place_counter':
       return { title: `${action.reasonText}: ${action.amount} ${action.counterId}`, detail }
-    case 'expire_counter':
-      return { title: `Counter expires: ${action.counterId}`, detail }
     case 'advance_phase':
       return { title: `Phase: ${action.fromPhase} to ${action.toPhase}`, detail }
     case 'round_start':

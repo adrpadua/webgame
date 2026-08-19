@@ -126,6 +126,8 @@ describe('dragging the Hero to a hex', () => {
       charges: [{ instanceId: 'targeting-charge', cardId: 'iron_guard' }],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
     useWorkbench.setState({ targetingSlotIndex: 0 })
 
@@ -177,6 +179,8 @@ describe('targeting a burst Card', () => {
       charges: [{ instanceId: 'charge', cardId: 'iron_guard' }],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
   })
 

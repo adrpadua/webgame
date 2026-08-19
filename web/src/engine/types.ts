@@ -24,6 +24,13 @@ export interface SlotState {
   // re-loading the Slot swaps it back to hand instead of discarding it the
   // way replacing a kept bundle does. Cleared when the Loadout ends.
   placedThisLoadout: boolean
+  // The Signature Slot (D-057, ADR 0032): its Top Card is printed on the
+  // Hero, never drawn, never replaceable, never discarded, and it inverts
+  // both halves of ADR 0008 — firing spends the whole stack and the Top Card
+  // stays. `charges` stays empty here: a fixed Slot's Charge is the earned
+  // token count below, because hand cards physically cannot reach it.
+  fixed: boolean
+  earnedCharges: number
 }
 
 export interface HeroState {
@@ -96,13 +103,6 @@ export interface CounterInstance {
   max: number
   remainingRounds: number
   readers: CounterReader[]
-  // Engine-built Counters only. Riposte Ready's graded consumption (D-015) is
-  // exactly what an authoring vocabulary models badly, so D-033 left it in
-  // code and these fields are where it lives.
-  bonusBossDamageOnSlotFired: number
-  bonusBossDamageOffPayoff: number
-  consumeOnCardId: string
-  expiresAtWindowEnd: Phase | ''
   triggerReason: string
   sourceId: string
   sourceBeatId: string

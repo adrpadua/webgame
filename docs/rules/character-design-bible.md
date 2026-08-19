@@ -2,7 +2,7 @@
 
 Status: active content-authoring guidance. This document guides Hero identity and deck design. It does not create executable rules; `EncounterEngine` remains authoritative. Its Boss-side counterpart is the [Encounter Design Bible](encounter-design-bible.md), which carries the role contract ("three questions about the same Boss problem") every Hero here answers one of.
 
-Sections and rows marked ⏳ describe the **Signature Slot** — adopted 2026-08-19 as D-057 with ADR 0032, full shape in [fixed-hero-power.md](../content/design-proposals/fixed-hero-power.md). They are authoring guidance for that target; the live engine still runs the pre-Signature rules (D-015's graded Riposte cash-out, `Shield Slam` in the live deck) until the migration increment ships behind the proposal's evaluation gate. The gate's banking prototype falsified the original activation numbers' bank line; the same-day ruling (proposal decision 13) added the full-bank rider — fired at the cap, the *Riposte* also places `Sundered` — which is what the card text quoted below now carries.
+The **Signature Slot** below is live: adopted 2026-08-19 as D-057 with ADR 0032, full shape in [fixed-hero-power.md](../content/design-proposals/fixed-hero-power.md), and shipped the same day — the engine runs it, `Shield Slam` and D-015's graded cash-out retired into it, and Elian's *Riposte* is the first authored Signature. The gate's banking prototype falsified the original activation numbers' bank line; the same-day ruling (proposal decision 13) added the full-bank rider — fired at the cap, the *Riposte* also places `Sundered` — which the card text below carries.
 
 ## Design Promise
 
@@ -40,7 +40,7 @@ Every authored Hero must name the following before its deck grows beyond the tea
 | Element | Required statement | Design test |
 | --- | --- | --- |
 | Raid job | What danger or opportunity does this Hero own for the party? | A player can say why the party wants this Hero. |
-| Signature ⏳ | The Hero's fixed two-clause power: an earn condition (standing clause) that restates the raid job as a rule, and an activation that is the machine's cash-out. | A new player can connect the earn condition to the Hero's board job, and the payoff reads as correct play converted, not a bonus button. |
+| Signature | The Hero's fixed two-clause power: an earn condition (standing clause) that restates the raid job as a rule, and an activation that is the machine's cash-out. | A new player can connect the earn condition to the Hero's board job, and the payoff reads as correct play converted, not a bonus button. |
 | Engine nouns | Two to four persistent or countable things that cards care about. | Each noun is visible, bounded, and has a plain-language meaning. |
 | Setup | What low-commitment actions establish the engine? | Setup is useful alone, not a dead card. |
 | Conversion | What turns setup into a different capability? | The player can identify why card A changes card B. |
@@ -64,7 +64,7 @@ Use this four-part loop when writing a Hero's cards:
 
 Not every card must occupy exactly one role. But the deck as a whole needs all four. A deck made only of payoffs is a pile of conditional finishers; a deck made only of setup is busywork.
 
-⏳ **Where the payoff lives.** With the Signature Slot, the machine's primary payoff is printed on the Hero: the Signature's standing clause names what the machine converts toward (the earn condition), and its activation is the cash-out. The deck does not lose the payoff role — it loses *ownership* of it. Deck cards in the payoff family become windows the engine exploits or amplifies, and the deck's dominant jobs shift to setup, conversion, and **fuel**: the cards whose correct play *causes* the earn condition. For a Warden that is Armor sized to the incoming hit — under earned charge, mitigation density is literally the engine's income, which is why `Iron Guard` at 8 copies is the settled fill for `Shield Slam`'s retired slots.
+**Where the payoff lives.** With the Signature Slot, the machine's primary payoff is printed on the Hero: the Signature's standing clause names what the machine converts toward (the earn condition), and its activation is the cash-out. The deck does not lose the payoff role — it loses *ownership* of it. Deck cards in the payoff family become windows the engine exploits or amplifies, and the deck's dominant jobs shift to setup, conversion, and **fuel**: the cards whose correct play *causes* the earn condition. For a Warden that is Armor sized to the incoming hit — under earned charge, mitigation density is the engine's income, which is why `Iron Guard` at 8 copies is the settled fill for `Shield Slam`'s retired slots. One timing truth the first migration cohort measured: against an Instant-row Tank Hit, only Armor banked the Round before (Fortify's Slow commitment) can produce the zero-loss block, because Quick-window Armor arrives after the Instant row resolves. `Fortify` is the earn's fuel; `Iron Guard`'s density pays in survival and Charge fodder. An earn condition's fuel has to be a card that can actually arrive before the event it answers — check the Round structure, not just the noun.
 
 ### Shared Action-Bar Translation
 
@@ -80,7 +80,7 @@ This produces readable combo construction:
 
 Do not write a card that promises a tucked card's printed effect. Do not describe a combo that the supported Charge Modifier, target, and timing contracts cannot execute.
 
-## The Signature Slot ⏳
+## The Signature Slot
 
 Every Hero carries a Signature: a fixed third Action Bar Slot whose Top Card is printed on the Hero and carries two clauses. The **standing clause** is always on — when its authored event passes its gates, the Slot gains one Charge. The **activation** fires in its printed window like any Slot, spends its whole Charge Stack, and its Top Card stays. Hand cards can never be tucked here; earned Charges persist across Rounds up to the printed `max_charge`, and a trigger while full earns nothing. Design, rationale, and the migration plan: [fixed-hero-power.md](../content/design-proposals/fixed-hero-power.md).
 
@@ -181,7 +181,7 @@ Give every card a deliberate place in the machine. For an initial 20-card deck, 
 | --- | --- | --- | --- |
 | Foundation | Establish an engine noun or dependable baseline action. | Several copies. | It only matters when another rare card is already in play. |
 | Converter | Revalues a foundation through a Keyword, Charge state, board state, or timing window. | A small repeatable package. | It is secretly just a larger number. |
-| Payoff | Resolves a class-relevant raid problem. ⏳ The primary cash-out lives on the Signature; a deck payoff is a window the engine exploits, never a duplicate of the Signature's own payoff. | Fewer copies than foundation. | It is always correct to fire immediately — or it competes with the Signature for the same identity while being less reliable, which is why `Shield Slam` retired. |
+| Payoff | Resolves a class-relevant raid problem. The primary cash-out lives on the Signature; a deck payoff is a window the engine exploits, never a duplicate of the Signature's own payoff. | Fewer copies than foundation. | It is always correct to fire immediately — or it competes with the Signature for the same identity while being less reliable, which is why `Shield Slam` retired. |
 | Flexible response | Trades raw efficiency for answering varied Boss pressure. | Limited but dependable. | It replaces every specialized card. |
 | Recovery / tutor | Restarts a disrupted engine or makes a narrow plan reliable. | Sparse and purposeful. | It eliminates all hand and Slot tension. |
 | Signature exception | Makes this Hero feel unlike any other. | One compact, well-tested subsystem. | It adds an unbounded rules exception or a new invisible meter. |
@@ -193,24 +193,24 @@ Captain Elian Voss's machine is currently **Shield Wall**, not holy spellcasting
 | Part | Elian expression |
 | --- | --- |
 | Raid job | Hold the Guarded Front, survive the intended Tank Hit, and keep a safe route open. |
-| Engine nouns | Armor, `Guard` Keyword count in a Charge Stack, ⏳ Signature Charges (retiring the Riposte Ready Counter), and the prepared Quick/Slow Slot. |
+| Engine nouns | Armor, `Guard` Keyword count in a Charge Stack, Signature Charges (retiring the Riposte Ready Counter), and the prepared Quick/Slow Slot. |
 | Setup | Install a defense or attack, then Charge it with cards that establish useful `Guard` interactions and take the Guarded Front. |
-| Convert | A `Guard` charge improves a defensive installed module; ⏳ a Boss Tank Hit absorbed on the Guarded Front for `0` Health loss grants the *Riposte* Signature one Charge (max `2`; a block while full earns nothing). |
-| Payoff | ⏳ Fire *Riposte*: spend all Signature Charges for `3` Boss damage `+2` per Charge; fired at the cap of `2` it also **Sunders** the Boss for the Round — cash one for tempo, or bank to two when follow-up hits are waiting to land through the wound. Elsewhere: absorb the hit that would break the line, or clear a nearby Minion. |
+| Convert | A `Guard` charge improves a defensive installed module; a Boss Tank Hit absorbed on the Guarded Front for `0` Health loss grants the *Riposte* Signature one Charge (max `2`; a block while full earns nothing). |
+| Payoff | Fire *Riposte*: spend all Signature Charges for `3` Boss damage `+2` per Charge; fired at the cap of `2` it also **Sunders** the Boss for the Round — cash one for tempo, or bank to two when follow-up hits are waiting to land through the wound. Elsewhere: absorb the hit that would break the line, or clear a nearby Minion. |
 | Recovery | Replace a Slot during Loadout, retain a partially charged plan where legal, or discard a hand card for Stamina and reposition. |
 | Spatial expression | The Guarded Front: the Boss-facing adjacent hex is where Elian's mitigation and the Riposte loop live. Leaving it costs the payoff condition. |
 | Counterpressure | Targeted Tank Hits (`Raking Claw`) cannot be dodged, only mitigated, so Armor sizing competes with damage progress every Round; telegraphed cones and Whelp spawns pull Elian between holding the Front and answering the board. |
 | Signature weakness | Warden's price: low personal tempo. Elian has no initiation, burst, or cheap repositioning — movement costs a card, and damage beyond Steady Strike must be earned through correct defense. |
 | Team handoff | Deferred until multi-Hero rules exist: Interception is the intended visible rescue tool, but must not enter the live deck before its engine/UI contract passes. |
 
-The key play-feel test: Elian should occasionally choose a lower-damage line because it creates the correct defense for the next known mechanic, then feel smart when that preparation visibly earns a Signature Charge. ⏳ Signature Charges are a capped bank (`2`), not a meter that trickles: overcap is waste, and a block while full earns nothing. Elian must not build Armor only because larger numbers are generically good, and firing *Riposte* at one Charge must not become the automatic next action — banking to the cap has to stay a live choice. The proposal's banking prototype showed numbers alone cannot deliver that (cash-at-one dominated); the full-bank **Sundered** rider (proposal decision 13) is what keeps it live, and it makes the bank read a *hand* read — ride to two when Steady Strike and Sweeping Blow are waiting to land through the wound, cash at one when they are not.
+The key play-feel test: Elian should occasionally choose a lower-damage line because it creates the correct defense for the next known mechanic, then feel smart when that preparation visibly earns a Signature Charge. Signature Charges are a capped bank (`2`), not a meter that trickles: overcap is waste, and a block while full earns nothing. Elian must not build Armor only because larger numbers are generically good, and firing *Riposte* at one Charge must not become the automatic next action — banking to the cap has to stay a live choice. The proposal's banking prototype showed numbers alone cannot deliver that (cash-at-one dominated); the full-bank **Sundered** rider (proposal decision 13) is what keeps it live, and it makes the bank read a *hand* read — ride to two when Steady Strike and Sweeping Blow are waiting to land through the wound, cash at one when they are not.
 
 ## Complexity Budget
 
 Complexity belongs in interactions, not in basic input handling.
 
 - Use two to four engine nouns for a Hero before adding a new one.
-- Give the starter deck one signature interaction and one optional branch, not several disconnected subsystems. ⏳ The Signature Slot is that interaction's home: the deck branches, the Signature anchors.
+- Give the starter deck one signature interaction and one optional branch, not several disconnected subsystems. The Signature Slot is that interaction's home: the deck branches, the Signature anchors.
 - Explain the current modifier at the Action Bar, on demand, rather than forcing card-text rereads.
 - Make each declared target, range, and timing rejection visible before commitment.
 - Keep long-term mastery in reading the Boss script and choosing a machine configuration, not in discovering hidden rules.

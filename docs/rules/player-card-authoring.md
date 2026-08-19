@@ -87,7 +87,7 @@ A starter card should have one primary role:
 - enemy control
 - resource setup
 
-An incidental rider is acceptable only when it reinforces that job. The default deck keeps this deliberately strict: each of its five identities owns one job (`Steady Strike` damage, `Iron Guard` mitigation, `Sweeping Blow` Minion clearing, `Fortify` Slow preparation, `Shield Slam` the defensive payoff).
+An incidental rider is acceptable only when it reinforces that job. The default deck keeps this deliberately strict: each of its five identities owns one job (`Steady Strike` damage, `Iron Guard` mitigation, `Sweeping Blow` Minion clearing, `Fortify` Slow preparation, `Drive Back` displacement), and the defensive payoff is not a deck job at all any more — it is printed on the Hero as the Signature (D-057).
 
 ## Action Bar Semantics
 
@@ -97,6 +97,7 @@ An incidental rider is acceptable only when it reinforces that job. The default 
 - The Top Card determines timing, targeting, and Charge Value.
 - The Top Card persists after activation.
 - A Slot needs at least one charged card before it can activate.
+- The Signature Slot (D-057, ADR 0032) is the exception to the hand routes: its Top Card is printed on the Hero, it never takes a prepared or charged hand card, its Charges are earned by its standing clause and bank across Rounds, and firing spends the whole stack while the Top Card stays. It is never Full-Charge-Cleaned and never replaced at Loadout.
 - A Slot activates once in its matching player window. It cannot receive more charged cards after it activates in that window.
 - Activating a Slot leaves its Charge Stack in place. If the stack equals the Charge Value, discard the Top Card and every charged card at the end of that matching window.
 - A full unactivated Slot is `Primed` and persists for later use or an explicit special interaction.
@@ -120,17 +121,21 @@ Timing must be visible as text as well as color. Full card art must not encode a
 
 ## Default Deck Baseline
 
-The live/default deck is the approved five-identity Elian Voss Shield Wall list, specified in [elian-voss-starter.md](../content/decks/elian-voss-starter.md):
+The live/default deck is the five-identity Elian Voss Shield Wall list, specified in [elian-voss-starter.md](../content/decks/elian-voss-starter.md), fighting beside the Signature:
 
 | Card | Copies | Base effect | Modifier |
 | --- | ---: | --- | --- |
-| `Steady Strike` | 8 | Deal 2 damage to the boss. | +1 damage per charged card. |
-| `Iron Guard` | 6 | Gain 3 Armor. | +1 Armor per charged `Guard` card. |
+| `Steady Strike` | 6 | Deal 2 damage to the boss. | +1 damage per charged card. |
+| `Iron Guard` | 8 | Gain 3 Armor. | +1 Armor per charged `Guard` card. |
 | `Sweeping Blow` | 2 | Deal 2 damage to a selected adjacent Minion. | — |
 | `Fortify` | 2 | Slow. Gain 6 Armor at the start of the next Round. | — |
-| `Shield Slam` | 2 | Deal 3 damage to the boss. | A legal activation consumes Riposte Ready for +2 damage. |
+| `Drive Back` | 2 | Push a selected piece 2 hexes directly away. | — |
 
-The deck tests the choice between firing a reusable Top Card immediately and saving cards to build its Charge Stack, plus the Shield Wall role decisions layered on that loop. The historical `10x Steady Strike` / `10x Iron Guard` dummy deck is baseline evidence for the old mechanics shell only. Adding a sixth card identity requires the deck-evaluation evidence in [deck-evaluation-rubric.md](../content/deck-evaluation-rubric.md).
+| Signature (not in the deck) | Standing clause | Activation |
+| --- | --- | --- |
+| *Riposte* (`elian_riposte`, `fixed: true`) | Absorb a Tank Hit on the Guarded Front for zero Health loss: this Slot gains one Charge (max 2, banked across Rounds; a block while full earns nothing). | Quick. Spend all Charges: 3 Boss damage, +2 per Charge. Spent 2? The Boss is Sundered, after this damage resolves. |
+
+The deck tests the choice between firing a reusable Top Card immediately and saving cards to build its Charge Stack, plus the Shield Wall role decisions layered on that loop — and, through the Signature, the choice between cashing an earned Charge for tempo and banking to the cap for the Sundering hit. The historical `10x Steady Strike` / `10x Iron Guard` dummy deck is baseline evidence for the old mechanics shell only. Adding a sixth card identity requires the deck-evaluation evidence in [deck-evaluation-rubric.md](../content/deck-evaluation-rubric.md).
 
 ## Authoring Checklist
 

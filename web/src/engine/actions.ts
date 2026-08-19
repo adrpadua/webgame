@@ -29,7 +29,6 @@ export type EncounterActionInput =
   // A Boss Beat placing a Counter (D-051). It rides an action like every other
   // mutation a Beat causes, so the fact log records who marked what.
   | { kind: 'place_counter'; sourceId: string; hostRef: string; counterId: string; amount: number; reasonText: string }
-  | { kind: 'expire_counter'; sourceId: string; hostRef: string; counterId: string; window: Phase; counterEvent: Record<string, unknown> }
   | { kind: 'advance_phase'; sourceId: typeof ENCOUNTER_SOURCE; fromPhase: Phase; toPhase: Phase; round: number }
   | { kind: 'round_start'; sourceId: typeof ENCOUNTER_SOURCE; round: number }
   | { kind: 'full_charge_cleanup'; sourceId: string; slotIndex: number; window: Phase }

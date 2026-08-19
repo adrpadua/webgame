@@ -300,6 +300,8 @@ describe('board effects', () => {
       charges: [{ instanceId: 'charge', cardId: 'iron_guard' }],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
     const center = { q: 0, r: -1 }
     const result = resolve(variant, state, {
@@ -337,6 +339,8 @@ describe('board effects', () => {
       charges: [{ instanceId: 'charge', cardId: 'iron_guard' }],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
     const result = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
     const effects = deriveBoardEffects(variant, state, result.state, result.facts)
@@ -435,6 +439,8 @@ describe('board effects', () => {
       charges: [{ instanceId: 'charge', cardId: 'iron_guard' }],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
     const result = resolve(variant, state, {
       kind: 'fire_slot',

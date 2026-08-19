@@ -105,9 +105,9 @@ function HeroHealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing
 
 // One chip per live Counter, on whichever piece is holding it. A Counter
 // wears living gold wherever it sits — the material of every mechanism the
-// player operates — because the party authored it either way: Riposte Ready
-// is the gate catching a blow and turning, and Sundered on a Whelp is the
-// same hand's mark on the other side of the board. Whose piece carries it is
+// player operates — because the party authored it either way: Fortified is
+// the wall the party banked, and Sundered on the Boss is the Signature's
+// follow-through opening the wound (D-057). Whose piece carries it is
 // already said by the plate underneath.
 //
 // The count rides the chip whenever there is more than one, because a Counter
@@ -143,7 +143,7 @@ function CounterChip({ counter, rulesText }: { counter: CounterInstance; rulesTe
 // (D-032), so the readout is one component both branches of the panel mount
 // rather than a Hero-only row. The popup quotes the authored rules text when
 // the Counter came from `data/counters/`, and falls back to the instance's
-// trigger reason for the ones engine code still builds (Riposte Ready).
+// trigger reason for any engine-built one.
 function CounterChips({ entityId }: { entityId: string }) {
   const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)

@@ -120,21 +120,24 @@ describe('content catalog', () => {
     expect(catalog.encounters.embermaw_prototype.boss_programs).toEqual(['embermaw_hunt', 'embermaw_embers', 'embermaw_brood'])
     // The live Shield Wall list, named rather than counted (D-040). A total of
     // twenty says nothing about which twenty, and this deck has now been
-    // restated twice — `10x/10x`, then proposal 04's `8/6/2/2/2`, now this —
-    // with prose in three documents claiming to be current each time. Changing
-    // it here is the reminder to change `elian-voss-design.md` and the decision
-    // log with it.
+    // restated three times — `10x/10x`, proposal 04's `8/6/2/2/2`, the
+    // `46d2a61` list, now D-057's migration (`Shield Slam` out to the
+    // Signature, `Iron Guard` to 8) — with prose in three documents claiming
+    // to be current each time. Changing it here is the reminder to change
+    // `elian-voss-design.md` and the decision log with it.
     expect(
       Object.fromEntries(catalog.encounters.embermaw_prototype.player_deck.map((entry) => [entry.card, entry.copies])),
     ).toEqual({
       steady_strike: 6,
-      iron_guard: 6,
+      iron_guard: 8,
       sweeping_blow: 2,
       fortify: 2,
-      shield_slam: 2,
       drive_back: 2,
     })
     expect(catalog.encounters.embermaw_prototype.player_deck.reduce((total, entry) => total + entry.copies, 0)).toBe(20)
+    // The Signature rides the Hero, not the deck (D-057).
+    expect(catalog.encounters.embermaw_prototype.signature_card).toBe('elian_riposte')
+    expect(catalog.cards.elian_riposte.fixed).toBe(true)
     expect(catalog.decks.aegis_controlled_test_deck.encounter).toBe('embermaw_prototype')
     expect(catalog.cards.steady_strike.draw_count).toBe(0)
   })
@@ -234,6 +237,115 @@ describe('content catalog', () => {
       expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow(
         'Card short_shove (data/cards/short_shove.json) declares push_tiles but has range_tiles below 1',
       )
+    })
+
+    // The Signature contract (D-057, ADR 0032). Each refusal is the load-time
+    // half of a rule the engine depends on at runtime; every one names the
+    // file a designer has open.
+    describe('Signature validation (D-057)', () => {
+      const grant = { when: 'host_takes_damage', gates: ['health_loss_zero'], grants_charge: 1 }
+      const signature = (overrides: object = {}) => ({
+        source: 'data/cards/probe_signature.json',
+        payload: {
+          id: 'probe_signature',
+          title: 'Probe Signature',
+          speed: 'quick',
+          fixed: true,
+          boss_damage: 1,
+          standing: [grant],
+          ...overrides,
+        },
+      })
+      // The smallest Encounter that can carry a signature_card, plus the one
+      // program it needs to reference.
+      const arena = (signatureCard: string, deck: { card: string; copies: number }[]) => ({
+        programs: [{ id: 'probe_program', title: 'Probe Program', instant_beats: [], incoming_beats: [] }],
+        cards: [
+          signature(),
+          { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1 },
+        ],
+        encounters: [
+          {
+            id: 'probe_arena',
+            title: 'Probe Arena',
+            primary_hero_id: 'probe_hero',
+            primary_hero_title: 'Probe Hero',
+            signature_card: signatureCard,
+            boss_id: 'probe_boss',
+            boss_title: 'Probe Boss',
+            round_limit: 4,
+            board_radius: 2,
+            player_start: { q: 0, r: 0 },
+            boss_start: { q: 0, r: -2 },
+            player_health: 10,
+            boss_health: 10,
+            slot_count: 2,
+            hand_refill_target: 2,
+            player_deck: deck,
+            boss_programs: ['probe_program'],
+            random_seed: 1,
+          },
+        ],
+      })
+
+      it('rejects a fixed card with no standing clause', () => {
+        expect(() => buildCatalog({ ...empty, cards: [signature({ standing: [] })] })).toThrow(
+          'Card probe_signature (data/cards/probe_signature.json) is fixed but authors no standing clause',
+        )
+      })
+
+      it('rejects a standing clause on a card that is not fixed', () => {
+        expect(() => buildCatalog({ ...empty, cards: [signature({ fixed: false })] })).toThrow(
+          'authors a standing clause but is not fixed',
+        )
+      })
+
+      it('rejects a full_charge block on a card that is not fixed', () => {
+        const bad = {
+          source: 'data/cards/probe_strike.json',
+          payload: { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1, full_charge: { places_counter: 'sundered' } },
+        }
+        expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow('authors a full_charge block but is not fixed')
+      })
+
+      it('rejects a standing when nothing evaluates', () => {
+        expect(() => buildCatalog({ ...empty, cards: [signature({ standing: [{ ...grant, when: 'round_start' }] })] })).toThrow(
+          'authors a round_start standing clause, which nothing evaluates',
+        )
+      })
+
+      it('rejects a keyword-matching Charge Modifier on a fixed card', () => {
+        const raw = {
+          ...empty,
+          keywords: [...empty.keywords, { id: 'guard', title: 'Guard', kind: 'trait' }],
+          chargeModifiers: [{ id: 'probe_guard_bonus', title: 'Probe Guard Bonus', keyword_id: 'guard', effect: 'armor', amount_per_match: 1 }],
+          cards: [signature({ charge_modifiers: ['probe_guard_bonus'] })],
+        }
+        expect(() => buildCatalog(raw)).toThrow('earned Charges are tokens and carry none')
+      })
+
+      it('rejects a fixed card no Encounter names, and an Encounter naming a non-fixed one', () => {
+        expect(() => buildCatalog({ ...empty, cards: [signature()] })).toThrow(
+          'is fixed but no Encounter names it as a signature card',
+        )
+        const wrongCard = arena('probe_strike', [{ card: 'probe_strike', copies: 2 }])
+        expect(() => buildCatalog({ ...empty, ...wrongCard })).toThrow(
+          'names probe_strike as its signature card, but that card is not fixed',
+        )
+      })
+
+      it('rejects a deck that lists a fixed card', () => {
+        const smuggled = arena('probe_signature', [{ card: 'probe_signature', copies: 1 }])
+        expect(() => buildCatalog({ ...empty, ...smuggled })).toThrow('a Signature is never in the deck')
+      })
+
+      it('accepts and installs a legal Signature end to end', () => {
+        const good = buildCatalog({ ...empty, ...arena('probe_signature', [{ card: 'probe_strike', copies: 4 }]) })
+        const state = createEncounterState(good, 'probe_arena')
+        expect(state.heroes.probe_hero.actionBar).toHaveLength(3)
+        expect(state.heroes.probe_hero.actionBar[2]).toMatchObject({ fixed: true, earnedCharges: 0 })
+        expect(state.heroes.probe_hero.actionBar[2].topCard?.cardId).toBe('probe_signature')
+      })
     })
 
     it('loads a data-only shove Card with no engine registration step', () => {
@@ -1256,7 +1368,14 @@ describe('encounter setup', () => {
     expect(state.active).toBe(true)
     expect(hero(state).hand).toHaveLength(4)
     expect(hero(state).deck).toHaveLength(16)
-    expect(hero(state).actionBar).toHaveLength(2)
+    // Two replaceable Slots plus the Signature Slot (D-057): installed at
+    // setup with the Hero's fixed card, uncharged, never in the deck.
+    expect(hero(state).actionBar).toHaveLength(3)
+    const signature = hero(state).actionBar[2]
+    expect(signature.fixed).toBe(true)
+    expect(signature.topCard?.cardId).toBe('elian_riposte')
+    expect(signature.earnedCharges).toBe(0)
+    expect(hero(state).deck.concat(hero(state).hand).every((card) => card.cardId !== 'elian_riposte')).toBe(true)
     expect(boss(state).health).toBe(48)
     expect(boss(state).facing).toBe(4)
     expect(hero(state).health).toBe(34)
@@ -1731,10 +1850,6 @@ describe('Counter Readers — gate, scale, spend (D-047)', () => {
         max: variant.counters.ash.max,
         remainingRounds: 0,
         readers: [],
-        bonusBossDamageOnSlotFired: 0,
-        bonusBossDamageOffPayoff: 0,
-        consumeOnCardId: '',
-        expiresAtWindowEnd: '',
         triggerReason: 'test',
         sourceId: 'test',
         sourceBeatId: '',
@@ -2143,7 +2258,9 @@ describe('Counter hosts — ground and prepared cards (D-048)', () => {
       { bind: { target_type: 'board_slot', places_counter: 'oath' } },
     )
     const state = armed(variant, 'bind', 0)
-    const verdict = legality(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetSlotIndex: 2 })
+    // Slot 1 is the empty one: slot 2 is the Signature now, and a Signature
+    // Slot always holds its printed Top Card (D-057).
+    const verdict = legality(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetSlotIndex: 1 })
     expect(verdict.legal).toBe(false)
     expect(verdict.reason).toContain('prepared Slot')
   })
@@ -2201,10 +2318,6 @@ describe('Event Keywords — Readers that answer one kind of blow (D-049)', () =
         max: 1,
         remainingRounds: 0,
         readers: variant.counters.warded.readers.map((reader) => ({ ...reader })),
-        bonusBossDamageOnSlotFired: 0,
-        bonusBossDamageOffPayoff: 0,
-        consumeOnCardId: '',
-        expiresAtWindowEnd: '',
         triggerReason: 'test',
         sourceId: 'test',
         sourceBeatId: '',
@@ -2286,10 +2399,6 @@ describe('Event Keywords — Readers that answer one kind of blow (D-049)', () =
         max: 1,
         remainingRounds: 0,
         readers: variant.counters.warded.readers.map((reader) => ({ ...reader })),
-        bonusBossDamageOnSlotFired: 0,
-        bonusBossDamageOffPayoff: 0,
-        consumeOnCardId: '',
-        expiresAtWindowEnd: '',
         triggerReason: 'test',
         sourceId: 'test',
         sourceBeatId: '',
@@ -2933,6 +3042,8 @@ describe('forced movement cards', () => {
       charges: [card('charge', 'iron_guard')],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
     return state
   }
@@ -3132,6 +3243,8 @@ describe('area damage cards', () => {
       charges: [card('charge', 'iron_guard')],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
     return state
   }
@@ -3249,7 +3362,10 @@ describe('area damage cards', () => {
     ])
   })
 
-  it('consumes Riposte Ready when the Burst includes the Boss and bonuses only that hit', () => {
+  it('leaves the Signature Charge alone when a Burst that includes the Boss fires (D-057)', () => {
+    // Under D-015 a Boss-damage card cashed the riposte for a graded bonus.
+    // The Signature deletes that route in both directions: deck cards cannot
+    // charge it, and firing one cannot spend what it earned.
     const variant = withBurstCard({ burst_radius: 2, damage: 1 })
     let state = readyBurst(variant)
     hero(state).armor = 5
@@ -3261,7 +3377,8 @@ describe('area damage cards', () => {
       reasonText: 'Raking Claw',
       factContext: { damage_keywords: ['tank_hit'] },
     }).state
-    expect(state.counters[combatantRef(state.primaryHeroId)]?.[0]?.id).toBe('riposte_ready')
+    const signatureSlot = () => hero(state).actionBar.find((slot) => slot.fixed)
+    expect(signatureSlot()?.earnedCharges).toBe(1)
     const bossHealthBefore = boss(state).health
     const fired = resolve(variant, state, {
       kind: 'fire_slot',
@@ -3271,13 +3388,10 @@ describe('area damage cards', () => {
     })
     expect(state.board.entities.whelp_a.health).toBe(2)
     expect(fired.state.board.entities.whelp_a.health).toBe(1)
-    expect(boss(fired.state).health).toBe(bossHealthBefore - 2)
-    expect(fired.state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
-    expect(fired.facts.find((fact) => fact.kind === 'damage' && fact.detail.targetId === state.bossId)?.resolutionFact).toMatchObject({
-      base_amount: 1,
-      counter_bonus: 1,
-      payoff_card_id: 'burst_test',
-    })
+    // The Boss takes only the Burst's own hit; no graded riposte bonus rides it.
+    expect(boss(fired.state).health).toBe(bossHealthBefore - 1)
+    state = fired.state
+    expect(signatureSlot()?.earnedCharges).toBe(1)
   })
 
   it('keeps radius zero on the existing single-Minion path', () => {
@@ -3392,6 +3506,8 @@ describe('card draw effects', () => {
       charges: [card('draw-charge', 'iron_guard')],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
     return state
   }
@@ -3453,10 +3569,6 @@ describe('card draw effects', () => {
         max: 1,
         remainingRounds: 1,
         readers: [{ when: 'slot_fired', event_keyword: '', effect: 'boss_damage', per: 1 }],
-        bonusBossDamageOnSlotFired: 0,
-        bonusBossDamageOffPayoff: 0,
-        consumeOnCardId: '',
-        expiresAtWindowEnd: '',
         triggerReason: 'draw_order_test',
         sourceId: 'test',
         sourceBeatId: '',
@@ -3507,13 +3619,28 @@ describe('damage and Resolution Facts', () => {
       prevented: 3,
       health_loss: 1,
       target_available: true,
-      counter_evaluation: { counter_id: 'riposte_ready', result: 'not_granted', reason: 'health_lost' },
+      signature_event: { card_id: 'elian_riposte', event: 'not_granted', reason: 'health_lost' },
     })
     expect(result.state.heroes[state.primaryHeroId].health).toBe(33)
     expect(result.state.heroes[state.primaryHeroId].armor).toBe(0)
   })
 
-  it('grants Riposte Ready on a fully blocked Tank Hit at the Guarded Front', () => {
+  // The zero-loss guarded-front Tank Hit. Every Signature test earns its
+  // Charges this way — through the standing clause, never by writing to the
+  // Slot — because earned-only is the rule under test (D-057).
+  function absorbTankHit(state: EncounterState): EncounterState {
+    hero(state).armor = Math.max(hero(state).armor, 5)
+    return resolve(catalog, state, {
+      kind: 'damage',
+      sourceId: state.bossId,
+      targetId: state.primaryHeroId,
+      amount: 4,
+      reasonText: 'Raking Claw',
+      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_keywords: ['tank_hit'] },
+    }).state
+  }
+
+  it('grants a Signature Charge on a fully blocked Tank Hit at the Guarded Front (D-057)', () => {
     let state = start()
     hero(state).armor = 5
     const hit = resolve(catalog, state, {
@@ -3528,84 +3655,109 @@ describe('damage and Resolution Facts', () => {
     expect(hit.facts[0].resolutionFact).toMatchObject({
       health_loss: 0,
       guarded_front: true,
-      counter_evaluation: { result: 'granted', reason: 'qualifying_tank_hit' },
+      signature_event: { card_id: 'elian_riposte', event: 'charge_granted', reason: 'standing_clause', charges: 1 },
     })
-    expect(state.counters[combatantRef(state.primaryHeroId)]?.[0]?.id).toBe('riposte_ready')
+    expect(hero(state).actionBar[2].earnedCharges).toBe(1)
+    // No Counter is involved any more: the Charge Stack IS the riposte count.
+    expect(state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
 
-    // A legal Shield Slam consumes Riposte Ready for 2 bonus Boss damage.
+    // Firing at one Charge: 3 base + 2 payback, stack spent, Top Card stays.
     state.phase = 'quick'
-    hero(state).actionBar[0] = { topCard: card('s1', 'shield_slam'), charges: [card('s2', 'iron_guard')], activatedWindow: null, placedThisLoadout: false }
     const bossHealthBefore = boss(state).health
-    const slam = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
-    state = slam.state
+    const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 2 })
+    state = fired.state
     expect(boss(state).health).toBe(bossHealthBefore - 5)
-    expect(state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
-    const damageFact = slam.facts.find((fact) => fact.kind === 'damage')
-    expect(damageFact?.resolutionFact).toMatchObject({ base_amount: 3, counter_bonus: 2, payoff_card_id: 'shield_slam' })
+    expect(hero(state).actionBar[2].earnedCharges).toBe(0)
+    expect(hero(state).actionBar[2].topCard?.cardId).toBe('elian_riposte')
+    expect(hero(state).actionBar[2].activatedWindow).toBe('quick')
+    // One Charge is short of the cap, so no Sundered rider.
+    expect(state.counters[combatantRef(state.bossId)] ?? []).toHaveLength(0)
   })
 
-  it('consumes Riposte Ready for +1 when a non-Shield-Slam Boss-damage card fires', () => {
+  it('banks to the cap and the full-bank fire Sunders the Boss after its own damage (D-057 decision 13)', () => {
     let state = start()
-    hero(state).armor = 5
-    state = resolve(catalog, state, {
-      kind: 'damage',
-      sourceId: state.bossId,
-      targetId: state.primaryHeroId,
-      amount: 4,
-      reasonText: 'Raking Claw',
-      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_keywords: ['tank_hit'] },
-    }).state
-    expect(state.counters[combatantRef(state.primaryHeroId)]?.[0]?.id).toBe('riposte_ready')
+    state = absorbTankHit(state)
+    state = absorbTankHit(state)
+    expect(hero(state).actionBar[2].earnedCharges).toBe(2)
 
     state.phase = 'quick'
-    hero(state).actionBar[0] = { topCard: card('s1', 'steady_strike'), charges: [card('s2', 'iron_guard')], activatedWindow: null, placedThisLoadout: false }
     const bossHealthBefore = boss(state).health
-    const strike = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
-    state = strike.state
-    // Steady Strike: 2 base + 1 per charged card + 1 off-payoff Riposte bonus.
-    expect(boss(state).health).toBe(bossHealthBefore - 4)
-    expect(state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
-    const damageFact = strike.facts.find((fact) => fact.kind === 'damage')
-    expect(damageFact?.resolutionFact).toMatchObject({ base_amount: 3, counter_bonus: 1, payoff_card_id: 'steady_strike' })
-  })
-
-  it('does not consume Riposte Ready when a card with no Boss damage fires', () => {
-    let state = start()
-    hero(state).armor = 5
-    state = resolve(catalog, state, {
+    const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 2 })
+    state = fired.state
+    // 3 base + 2 per Charge = 7 — and exactly 7: the rider lands after the
+    // Riposte's own damage, so its own hit never benefits from Sundered.
+    expect(boss(state).health).toBe(bossHealthBefore - 7)
+    expect(state.counters[combatantRef(state.bossId)]?.[0]).toMatchObject({ id: 'sundered', count: 1 })
+    expect(hero(state).actionBar[2].earnedCharges).toBe(0)
+    // A follow-up hit lands through the wound: +1 from Sundered's Reader.
+    const followUp = resolve(catalog, state, {
       kind: 'damage',
-      sourceId: state.bossId,
-      targetId: state.primaryHeroId,
-      amount: 4,
-      reasonText: 'Raking Claw',
-      factContext: { boss_beat_id: 'raking_claw', boss_track: 'instant', damage_keywords: ['tank_hit'] },
-    }).state
-    expect(state.counters[combatantRef(state.primaryHeroId)]?.[0]?.id).toBe('riposte_ready')
-
-    state.phase = 'quick'
-    hero(state).actionBar[0] = { topCard: card('g1', 'iron_guard'), charges: [card('g2', 'steady_strike')], activatedWindow: null, placedThisLoadout: false }
-    const guard = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
-    state = guard.state
-    expect(state.counters[combatantRef(state.primaryHeroId)]?.[0]?.id).toBe('riposte_ready')
+      sourceId: state.primaryHeroId,
+      targetId: state.bossId,
+      amount: 2,
+      reasonText: 'Steady Strike',
+    })
+    expect(followUp.facts[0].resolutionFact).toMatchObject({ health_loss: 3 })
   })
 
-  it('expires an unconsumed Riposte Ready at the end of the Quick Window', () => {
+  it('wastes the earn when the standing clause triggers at the cap (D-057)', () => {
     let state = start()
+    state = absorbTankHit(state)
+    state = absorbTankHit(state)
+    expect(hero(state).actionBar[2].earnedCharges).toBe(2)
     hero(state).armor = 5
-    state = resolve(catalog, state, {
+    const third = resolve(catalog, state, {
       kind: 'damage',
       sourceId: state.bossId,
       targetId: state.primaryHeroId,
       amount: 4,
       reasonText: 'Raking Claw',
       factContext: { damage_keywords: ['tank_hit'] },
-    }).state
+    })
+    expect(third.facts[0].resolutionFact).toMatchObject({
+      signature_event: { card_id: 'elian_riposte', event: 'wasted', reason: 'at_max', charges: 2 },
+    })
+    expect(hero(third.state).actionBar[2].earnedCharges).toBe(2)
+  })
+
+  it('banks earned Charges across Rounds with no expiry (D-057)', () => {
+    let state = start()
+    state = absorbTankHit(state)
+    expect(hero(state).actionBar[2].earnedCharges).toBe(1)
+    // A full Round passes: Quick and Slow close, the Round wraps, the next
+    // Loadout opens. Under D-015 the unconsumed riposte evaporated at the
+    // Quick Window's end; the banked Charge is the cure for exactly that.
+    state = immortalHero(state)
+    state = stepPhases(state, 5).state
+    expect(state.round).toBe(2)
+    expect(hero(state).actionBar[2].earnedCharges).toBe(1)
+  })
+
+  it('refuses hand cards aimed at the Signature Slot, and an uncharged fire (D-057, ADR 0032)', () => {
+    const state = start()
+    const inHand = hero(state).hand[0]
+    const load = legality(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 2, cardInstanceId: inHand.instanceId })
+    expect(load).toMatchObject({ legal: false, reason: 'The Signature Slot never takes a prepared card.' })
+    state.phase = 'quick'
+    const charge = legality(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 2, cardInstanceId: inHand.instanceId })
+    expect(charge).toMatchObject({ legal: false, reason: 'The Signature Slot charges only through its standing clause.' })
+    const fire = legality(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 2 })
+    expect(fire).toMatchObject({ legal: false, reason: 'The Signature needs at least one earned Charge.' })
+  })
+
+  it('never Full-Charge-Cleans the Signature Slot (ADR 0032)', () => {
+    let state = start()
+    state = absorbTankHit(state)
+    state = absorbTankHit(state)
+    state = immortalHero(state)
     state = stepPhases(state, 2).state
     expect(state.phase).toBe('quick')
+    state = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 2 }).state
+    // The Slot fired at its full cap in this window; ADR 0008's cleanup would
+    // discard a deck Slot here. The Signature survives the window's end.
     const endQuick = advancePhase(catalog, state)
-    const expiry = endQuick.facts.find((fact) => fact.kind === 'expire_counter')
-    expect(expiry?.succeeded).toBe(true)
-    expect(endQuick.state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
+    expect(endQuick.facts.some((fact) => fact.kind === 'full_charge_cleanup' && fact.detail.slotIndex === 2)).toBe(false)
+    expect(endQuick.state.heroes[state.primaryHeroId].actionBar[2].topCard?.cardId).toBe('elian_riposte')
   })
 
   it('removes a Minion the moment damage defeats it', () => {
@@ -3665,7 +3817,7 @@ describe('loadout swaps', () => {
 describe('legality edges', () => {
   it('requires a Minion target in range for a piece-targeting Top Card', () => {
     const state = start()
-    hero(state).actionBar[0] = { topCard: card('s1', 'sweeping_blow'), charges: [card('s2', 'iron_guard')], activatedWindow: null, placedThisLoadout: false }
+    hero(state).actionBar[0] = { topCard: card('s1', 'sweeping_blow'), charges: [card('s2', 'iron_guard')], activatedWindow: null, placedThisLoadout: false, fixed: false, earnedCharges: 0 }
     state.phase = 'quick'
     const noTarget = legality(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
     expect(noTarget).toMatchObject({ legal: false, reason: 'The Top Card needs a Minion target.' })
@@ -3678,6 +3830,8 @@ describe('legality edges', () => {
       charges: [card('s2', 'iron_guard')],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
     played = stepPhases(played, 9).state
     played.phase = 'quick'

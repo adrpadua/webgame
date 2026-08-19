@@ -1,0 +1,7 @@
+{
+  "id": "riposte_payback",
+  "title": "Riposte Payback",
+  "rules_text": "Gain 2 Boss damage for each Charge spent.",
+  "effect": "boss_damage",
+  "amount_per_match": 2
+}

@@ -15,7 +15,7 @@ function instance(cardId: string, suffix: string): CardInstance {
 }
 
 function slotState(slot: Partial<SlotState>): SlotState {
-  return { topCard: null, charges: [], activatedWindow: null, placedThisLoadout: false, ...slot }
+  return { topCard: null, charges: [], activatedWindow: null, placedThisLoadout: false, fixed: false, earnedCharges: 0, ...slot }
 }
 
 function opening(phase: Phase): EncounterState {

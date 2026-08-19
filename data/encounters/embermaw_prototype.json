@@ -4,6 +4,7 @@
   "rules_text": "Defeat Embermaw before the Encounter Clock expires while managing Scorched hexes and Whelp spawns.",
   "primary_hero_id": "guardian",
   "primary_hero_title": "Elian Voss",
+  "signature_card": "elian_riposte",
   "boss_id": "embermaw",
   "boss_title": "Embermaw",
   "round_limit": 8,
@@ -28,7 +29,7 @@
     },
     {
       "card": "iron_guard",
-      "copies": 6
+      "copies": 8
     },
     {
       "card": "sweeping_blow",
@@ -36,10 +37,6 @@
     },
     {
       "card": "fortify",
-      "copies": 2
-    },
-    {
-      "card": "shield_slam",
       "copies": 2
     },
     {

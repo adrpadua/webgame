@@ -1,7 +1,8 @@
 import { cardChargeCap, cardNeedsPieceTarget, cardWindowSpeed, type ContentCatalog } from './content/catalog'
 import { hexDistance, hexKey } from './hex'
 import { isLegalMove } from './board'
-import { cardGatesPass, getCounter, type CounterRef } from './counters'
+import { cardGatesPass } from './counters'
+import { slotChargeCount } from './signature'
 import type { EncounterActionInput } from './actions'
 import type { CardInstance, EncounterState, HeroState, LegalityVerdict } from './types'
 
@@ -53,6 +54,11 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       ) {
         return illegal('Loading a Slot requires a legal Slot during Loadout, Quick, or Slow.')
       }
+      // The Signature Slot is not replaceable at Loadout or ever (ADR 0032):
+      // its Top Card is printed on the Hero.
+      if (hero.actionBar[action.slotIndex].fixed) {
+        return illegal('The Signature Slot never takes a prepared card.')
+      }
       if (hero.actionBar[action.slotIndex].topCard !== null && state.phase !== 'loadout') {
         return illegal('Replacing a Slot is only allowed during Loadout.')
       }
@@ -68,6 +74,12 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
         return illegal('Charging requires a legal Slot during Quick or Slow.')
       }
       const slot = hero.actionBar[action.slotIndex]
+      // Earned, never bought (D-057): hand cards physically cannot flow into
+      // the Signature, which is what protects the other Slots' fuel and ADR
+      // 0002's Slot Tension by construction.
+      if (slot.fixed) {
+        return illegal('The Signature Slot charges only through its standing clause.')
+      }
       if (
         slot.topCard === null ||
         slot.activatedWindow === state.phase ||
@@ -83,8 +95,8 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
         return illegal('Select a legal Slot.')
       }
       const slot = hero.actionBar[action.slotIndex]
-      if (slot.topCard === null || slot.charges.length === 0) {
-        return illegal('A loaded Slot needs at least one charged card.')
+      if (slot.topCard === null || slotChargeCount(slot) === 0) {
+        return illegal(slot.fixed ? 'The Signature needs at least one earned Charge.' : 'A loaded Slot needs at least one charged card.')
       }
       if (slot.activatedWindow === state.phase) {
         return illegal('A Slot may fire only once in its matching window.')
@@ -193,13 +205,6 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
     case 'resolve_boss': {
       if (!action.beat) {
         return illegal('Boss resolution needs an authored beat.')
-      }
-      return legal()
-    }
-    case 'expire_counter': {
-      const counter = getCounter(state, action.hostRef as CounterRef, action.counterId)
-      if (!counter || counter.expiresAtWindowEnd !== action.window || state.phase !== action.window) {
-        return illegal('The Counter is not eligible to expire at this boundary.')
       }
       return legal()
     }

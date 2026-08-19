@@ -23,6 +23,7 @@ import {
 } from './schemas'
 import { ENGINE_KEYWORDS, KEYWORD_REFERENCES, type KeywordKind } from '../keywords'
 import { ENGINE_COUNTERS, READABLE_READER_PAIRS } from '../counters'
+import { EVALUATED_GRANT_WHENS } from '../signature'
 import { hexDistance } from '../hex'
 
 // The Beat kinds that ask a distance question, and therefore must author one.
@@ -294,6 +295,56 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
         throw new Error(`Card ${card.id} has a ${reader.verb} reader on the target but chooses no target`)
       }
     }
+    // The Signature contract (D-057, ADR 0032). A fixed card is a Hero's
+    // engine: its standing clause is its only Charge source, so a fixed card
+    // without one is a Slot that can never fire; and its Charges are tokens
+    // with no Keywords, so a keyword-matching Charge Modifier on it would
+    // author a bonus that can never match.
+    if (card.fixed && card.standing.length === 0) {
+      throw new Error(`${cardAt(card.id)} is fixed but authors no standing clause, so its Slot could never gain a Charge`)
+    }
+    if (!card.fixed && card.standing.length > 0) {
+      throw new Error(`${cardAt(card.id)} authors a standing clause but is not fixed; only a Signature carries one`)
+    }
+    if (!card.fixed && card.full_charge.places_counter !== '') {
+      throw new Error(`${cardAt(card.id)} authors a full_charge block but is not fixed; only a Signature carries one`)
+    }
+    if (card.fixed) {
+      for (const modifierId of card.charge_modifiers) {
+        if (catalog.chargeModifiers[modifierId]?.keyword_id !== '') {
+          throw new Error(
+            `${cardAt(card.id)} is fixed but its charge modifier ${modifierId} matches by Keyword; earned Charges are tokens and carry none`,
+          )
+        }
+      }
+    }
+    for (const grant of card.standing) {
+      // The mirror of READABLE_READER_PAIRS' discipline: a Grant `when` the
+      // rules do not evaluate is a load error, never a clause that silently
+      // does nothing.
+      if (!(EVALUATED_GRANT_WHENS as readonly string[]).includes(grant.when)) {
+        throw new Error(
+          `${cardAt(card.id)} authors a ${grant.when} standing clause, which nothing evaluates; the evaluated whens are ${EVALUATED_GRANT_WHENS.join(', ')}`,
+        )
+      }
+      if (grant.event_keyword !== '') {
+        requireKeyword(catalog, grant.event_keyword, KEYWORD_REFERENCES.damageKeywords, `Card ${card.id}`, 'standing event_keyword')
+      }
+    }
+    if (card.full_charge.places_counter !== '') {
+      const riderCounter = catalog.counters[card.full_charge.places_counter]
+      if (!riderCounter) {
+        throw new Error(`${cardAt(card.id)} full_charge references unknown counter ${card.full_charge.places_counter}`)
+      }
+      // The rider follows the card's Boss damage, so it marks a combatant by
+      // construction — a hex or slot Counter here has nowhere to land.
+      if (riderCounter.host !== 'combatant') {
+        throw new Error(`${cardAt(card.id)} full_charge places ${riderCounter.id}, which is hosted on a ${riderCounter.host}; the rider marks the Boss`)
+      }
+      if (card.boss_damage === 0) {
+        throw new Error(`${cardAt(card.id)} authors a full_charge rider but deals no Boss damage for it to follow`)
+      }
+    }
   }
   for (const counter of Object.values(catalog.counters)) {
     for (const keywordId of counter.keywords) {
@@ -354,8 +405,8 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       }
       // The three Beat fields that were free text until now. All three are
       // joins into the Keyword namespace, and `damage_keywords` is the
-      // one that mattered: the rules compare it against `tank_hit` to grant
-      // Riposte Ready, so an unchecked typo here disabled a Counter grant
+      // one that mattered: the Signature's standing clause narrows on
+      // `tank_hit` (D-057), so an unchecked typo here disabled the Grant
       // silently, at load, with every test still green.
       for (const keywordId of beat.damage_keywords) {
         requireKeyword(catalog, keywordId, KEYWORD_REFERENCES.damageKeywords, `Boss Beat ${beat.id}`, 'damage_keywords')
@@ -408,10 +459,40 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       throw new Error(`The rules name Keyword ${required.id} as ${required.kind}, but it is authored as ${keyword.kind}`)
     }
   }
+  // Only a Hero-referenced card may be fixed (D-057): a Signature is printed
+  // on a Hero, and the Encounter's `signature_card` is where a Hero names it
+  // while Heroes live inline on Encounters. Checked in both directions —
+  // an Encounter naming a non-fixed card, and a fixed card no Encounter
+  // names, are both authoring errors.
+  const referencedSignatures = new Set<string>()
+  for (const encounter of Object.values(catalog.encounters)) {
+    if (encounter.signature_card === '') {
+      continue
+    }
+    const signature = catalog.cards[encounter.signature_card]
+    if (!signature) {
+      throw new Error(`${encounterAt(encounter.id)} references unknown signature card ${encounter.signature_card}`)
+    }
+    if (!signature.fixed) {
+      throw new Error(`${encounterAt(encounter.id)} names ${signature.id} as its signature card, but that card is not fixed`)
+    }
+    referencedSignatures.add(signature.id)
+  }
+  for (const card of Object.values(catalog.cards)) {
+    if (card.fixed && !referencedSignatures.has(card.id)) {
+      throw new Error(`${cardAt(card.id)} is fixed but no Encounter names it as a signature card, so no Hero carries it`)
+    }
+  }
   for (const encounter of Object.values(catalog.encounters)) {
     for (const entry of encounter.player_deck) {
       if (!catalog.cards[entry.card]) {
         throw new Error(`${encounterAt(encounter.id)} deck references unknown card ${entry.card}`)
+      }
+      // A fixed card is never in the deck — it is never drawn and never
+      // discarded, and a deck copy would be exactly the hand-charging route
+      // D-057 closes.
+      if (catalog.cards[entry.card].fixed) {
+        throw new Error(`${encounterAt(encounter.id)} deck lists ${entry.card}, which is fixed; a Signature is never in the deck`)
       }
     }
     for (const programId of encounter.boss_programs) {
@@ -498,6 +579,14 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
     if (card.places_counter !== '') {
       requireDefinition('counter', card.places_counter, catalog.counters)
     }
+    if (card.full_charge.places_counter !== '') {
+      requireDefinition('counter', card.full_charge.places_counter, catalog.counters)
+    }
+    for (const grant of card.standing) {
+      if (grant.event_keyword !== '') {
+        addKeyword(grant.event_keyword)
+      }
+    }
   }
   const visitedPrograms = new Set<string>()
   const addProgram = (id: string): void => {
@@ -527,6 +616,11 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
 
   reachable.set(`encounter:${encounterId}`, encounter)
   encounter.player_deck.forEach((entry) => addCard(entry.card))
+  // The Signature is reachable content like any deck card (D-057): it changes
+  // the Encounter's rules, so retuning it starts a new evidence cohort.
+  if (encounter.signature_card !== '') {
+    addCard(encounter.signature_card)
+  }
   for (const programId of [...encounter.boss_programs, ...encounter.phase_two_programs]) {
     addProgram(programId)
   }

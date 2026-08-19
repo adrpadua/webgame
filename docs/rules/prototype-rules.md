@@ -225,14 +225,15 @@ The result is shown in the top bar and board feedback. Encounter history remains
 
 ## Current Tank Starter Deck
 
-The live/default tank deck is the approved six-identity Shield Wall list, carried by `data/encounters/embermaw_prototype.json` (ADR 0020):
+The live/default tank deck is the five-identity Shield Wall list carried by `data/encounters/embermaw_prototype.json` (ADR 0020), fighting beside Elian's Signature:
 
 - `Steady Strike` (6 copies): deal `2` boss damage, plus `1` per charged card.
-- `Iron Guard` (6 copies): gain `3` Armor, plus `1` per charged `Guard` card.
+- `Iron Guard` (8 copies): gain `3` Armor, plus `1` per charged `Guard` card.
 - `Sweeping Blow` (2 copies): deal `2` damage to a selected adjacent Minion.
 - `Fortify` (2 copies): Slow; gain `6` Armor at the start of the next Round, landing after the Round-start wipe (D-019).
-- `Shield Slam` (2 copies): deal `3` boss damage; a legal activation consumes Riposte Ready for `+2`. Any other Boss-damage card consumes an active Riposte Ready for `+1`; cards without Boss damage never consume it.
 - `Drive Back` (2 copies): push a selected piece 2 hexes directly away from you.
+
+**The Signature Slot (D-057, ADR 0032).** Elian's fixed power, *Riposte*, is a third always-present Slot whose Top Card is printed on the Hero — never in the deck, never drawn, never replaced, never discarded. Its **standing clause** grants the Slot one Charge when Elian absorbs a Tank Hit on the Guarded Front for zero Health loss; hand cards can never charge it, and earned Charges bank across Rounds up to `2` (a block while full earns nothing). Its **activation** (Quick) spends all Charges for `3` Boss damage `+2` per Charge; fired at the full cap of `2`, it also places `Sundered` on the Boss after its own damage resolves. `Shield Slam` and the Riposte Ready Counter retired into it, together with D-015's graded cash-out.
 
 The full specification and card roles live in [elian-voss-starter.md](../content/decks/elian-voss-starter.md). The prior `10x Steady Strike` / `10x Iron Guard` list is historical baseline evidence only.
 

@@ -2,7 +2,7 @@
 
 This is the approved live/default Elian Voss deck specification, matching the runnable encounter definition `data/encounters/embermaw_prototype.json` (ADR 0020) — which is the source of truth this doc follows, not the other way around. The first-pass Shield Wall kit proves the Action Bar and Charge Stack loop while giving the tank a defensive payoff, an adjacent-Minion answer, a Slow commitment, and a repositioning verb.
 
-> **Pending revision (2026-08-19).** The [Signature Slot proposal](../design-proposals/fixed-hero-power.md) — design-settled, awaiting formal `D-0xx` adoption and its ADR — retires `Shield Slam` (its payoff moves whole onto Elian's Signature, *Riposte*, together with D-015's cash-out rule) and raises `Iron Guard` to 8 copies. The list below stays the live deck until that migration ships and passes its evaluation gate.
+> **Revised (2026-08-19).** The [Signature Slot migration](../design-proposals/fixed-hero-power.md) (D-057, ADR 0032) shipped: `Shield Slam` retired — its payoff moved whole onto Elian's Signature, *Riposte*, together with D-015's cash-out rule — and `Iron Guard` rose to 8 copies. The list below is the live post-migration deck.
 
 > **Correction (2026-08-19).** This doc had drifted from the JSON: it listed `Steady Strike` ×8 and omitted `Drive Back`, while the live encounter has carried `Steady Strike` ×6 and `Drive Back` ×2 since the repositioning-verb change. The list below is corrected to the live JSON.
 
@@ -16,10 +16,9 @@ Hero:
 
 ## Deck Identity
 
-The deck is a six-identity Shield Wall kit built to express:
+The deck is a five-identity Shield Wall kit, fighting beside Elian's Signature, built to express:
 
-- Guarded Front mitigation and Riposte Ready
-- Shield Slam payoff after a zero-loss Tank Hit
+- Guarded Front mitigation that feeds the Signature — a zero-loss Tank Hit on the Guarded Front earns *Riposte* a Charge
 - adjacent Minion clearing
 - Slow Window preparation
 - Enemy displacement — answering telegraphed ground by moving the Enemy instead of the Hero
@@ -33,7 +32,7 @@ The deck is a six-identity Shield Wall kit built to express:
 
 - `Steady Strike`
 
-### 6x
+### 8x
 
 - `Iron Guard`
 
@@ -47,10 +46,6 @@ The deck is a six-identity Shield Wall kit built to express:
 
 ### 2x
 
-- `Shield Slam`
-
-### 2x
-
 - `Drive Back`
 
 ## Card Roles
@@ -59,10 +54,11 @@ The deck is a six-identity Shield Wall kit built to express:
 - `Iron Guard`: quick Tank response. It grants `3` Armor, plus `1` Armor for each charged `Guard` card.
 - `Sweeping Blow`: quick adjacent-Minon answer.
 - `Fortify`: Slow Armor commitment for a future threat. Its `6` Armor lands at the next Round start — after the wipe — making it the one card that can pre-block the next Round's Instant Row (D-019).
-- `Shield Slam`: quick Boss payoff that consumes Riposte Ready for the full `+2` Boss damage. Any other Boss-damage card cashes an active Riposte Ready for `+1`, so an earned opening is never wasted on a Slam-less hand; holding the window for the Slam is the stronger, riskier line.
 - `Drive Back`: quick displacement — push a selected piece 2 hexes directly away from you, answering telegraphed ground by moving the Enemy instead of spending the Hero's own position.
 
-Any card can charge either Top Card. `Steady Strike` rewards total Charge, while `Iron Guard` demonstrates a Keyword-specific Charge Modifier. The player chooses between maintaining front-line defense, cashing in a Riposte opening, clearing a Minion, or committing to a Slow plan. Top Cards remain prepared at `0 Charge`, activate once after at least one card is tucked beneath them, and discard as a complete bundle only when activated at their Charge Value.
+Any card can charge either replaceable Top Card. `Steady Strike` rewards total Charge, while `Iron Guard` demonstrates a Keyword-specific Charge Modifier. The player chooses between maintaining front-line defense, cashing or banking the Signature's earned Charges, clearing a Minion, or committing to a Slow plan. Top Cards remain prepared at `0 Charge`, activate once after at least one card is tucked beneath them, and discard as a complete bundle only when activated at their Charge Value — except the Signature Slot, which hand cards can never reach and whose Top Card never discards (ADR 0032).
+
+**The Signature — *Riposte* (D-057).** *Standing:* absorb a Tank Hit on the Guarded Front for zero Health loss and the Slot gains one Charge (max `2`; a block while full earns nothing; Charges bank across Rounds). *Activation (Quick):* spend all Charges for `3` Boss damage `+2` per Charge; spent `2`, the Boss is also **Sundered** after the Riposte's own damage resolves. One timing note the first cohort measured: the Tank Hit resolves in the Boss Instant row, before the Quick Window, so `Iron Guard`'s same-Round Armor arrives too late to produce the zero-loss block — `Fortify`'s banked Armor is what feeds the engine, and `Iron Guard`'s density pays in survival and Charge fuel instead.
 
 ## Notes
 

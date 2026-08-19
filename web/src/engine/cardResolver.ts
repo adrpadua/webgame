@@ -13,16 +13,19 @@ export interface FireEffects {
   pullTiles: number
 }
 
-function matchingCount(modifier: ChargeModifier, chargeStack: Card[]): number {
+function matchingCount(modifier: ChargeModifier, chargeStack: Card[], tokenCharges: number): number {
   if (modifier.keyword_id === '') {
-    return chargeStack.length
+    return chargeStack.length + tokenCharges
   }
   return chargeStack.filter((card) => card.tags.includes(modifier.keyword_id)).length
 }
 
 // A tucked card always adds one Charge but grants no universal bonus; only
 // the Top Card's explicit Charge Modifiers read the Charge Stack.
-export function resolveFire(catalog: ContentCatalog, card: Card, chargeStack: Card[]): FireEffects {
+// `tokenCharges` is a fixed Slot's earned Charge count (D-057): a token has
+// no card and no Keywords, so it matches only keyword-less modifiers — which
+// the catalog enforces is the only kind a Signature carries.
+export function resolveFire(catalog: ContentCatalog, card: Card, chargeStack: Card[], tokenCharges = 0): FireEffects {
   const result: FireEffects = {
     armor: card.armor_delta,
     armorNextRound: card.armor_next_round,
@@ -39,7 +42,7 @@ export function resolveFire(catalog: ContentCatalog, card: Card, chargeStack: Ca
     if (!modifier) {
       continue
     }
-    const bonus = modifier.amount_per_match * matchingCount(modifier, chargeStack)
+    const bonus = modifier.amount_per_match * matchingCount(modifier, chargeStack, tokenCharges)
     switch (modifier.effect) {
       case 'armor':
         result.armor += bonus
