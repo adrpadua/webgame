@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
 import { createEncounterState, type CardInstance, type EncounterState, type Phase, type SlotState } from '@/engine'
-import { slotTakesCharge, slotWantedKeywords } from './slots'
+import { slotOutOfWindow, slotTakesCharge, slotWantedKeywords } from './slots'
 
 // The Slot's two offers, held apart on purpose: what its Top Card is hunting
 // for is a fact about the card and holds all window long, while whether it
@@ -65,5 +65,34 @@ describe('slot takes charge', () => {
 
   it('takes none into an empty Slot: there is no Top Card to charge', () => {
     expect(slotTakesCharge(catalog, state, slotState({}))).toBe(false)
+  })
+})
+
+describe('slot out of window', () => {
+  // steady_strike fires quick; fortify fires slow.
+  const quickSlot = slotState({ topCard: instance('steady_strike', 'top'), charges: [instance('iron_guard', 'a')] })
+  const slowSlot = slotState({ topCard: instance('fortify', 'top'), charges: [instance('iron_guard', 'b')] })
+
+  it('is off in the window its Top Card does not fire in, on in its own', () => {
+    expect(slotOutOfWindow(catalog, opening('slow'), quickSlot)).toBe(true)
+    expect(slotOutOfWindow(catalog, opening('quick'), quickSlot)).toBe(false)
+    expect(slotOutOfWindow(catalog, opening('quick'), slowSlot)).toBe(true)
+    expect(slotOutOfWindow(catalog, opening('slow'), slowSlot)).toBe(false)
+  })
+
+  it('is never off outside the player windows: there dimming would say nothing', () => {
+    for (const phase of ['loadout', 'instant', 'incoming'] as const) {
+      expect(slotOutOfWindow(catalog, opening(phase), quickSlot)).toBe(false)
+      expect(slotOutOfWindow(catalog, opening(phase), slowSlot)).toBe(false)
+    }
+  })
+
+  it('yields to Fired: a spent Slot is spent, not parked', () => {
+    expect(slotOutOfWindow(catalog, opening('slow'), { ...quickSlot, activatedWindow: 'quick' })).toBe(false)
+  })
+
+  it('is never off for an empty Slot, or once the Encounter ends', () => {
+    expect(slotOutOfWindow(catalog, opening('slow'), slotState({}))).toBe(false)
+    expect(slotOutOfWindow(catalog, { ...opening('slow'), active: false }, quickSlot)).toBe(false)
   })
 })
