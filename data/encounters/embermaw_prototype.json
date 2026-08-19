@@ -2,16 +2,20 @@
   "id": "embermaw_prototype",
   "title": "Embermaw: Ashen Trial",
   "rules_text": "Defeat Embermaw before the Encounter Clock expires while managing Scorched hexes and Whelp spawns.",
-  "hero": "guardian",
+  "party": [
+    {
+      "hero": "guardian",
+      "start": {
+        "q": 0,
+        "r": 0
+      }
+    }
+  ],
   "boss_id": "embermaw",
   "boss_title": "Embermaw",
   "round_limit": 8,
   "enrage_text": "Enrage: Embermaw overwhelms the party.",
   "board_radius": 2,
-  "player_start": {
-    "q": 0,
-    "r": 0
-  },
   "boss_start": {
     "q": 1,
     "r": -1

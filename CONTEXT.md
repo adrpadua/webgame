@@ -371,7 +371,7 @@ A Party member controlled by predictable visible priority rules in solo play. An
 _Avoid_: Bot player, companion mode
 
 **Party**:
-The two-to-four Player Heroes cooperating in an Encounter. A Party is controlled by multiple people when possible. In solo play, simple AI Heroes fill the remaining Roles so the same party-shaped encounter mechanics remain in play.
+The two-to-four Player Heroes cooperating in an Encounter. A Party is controlled by multiple people when possible. In solo play, simple AI Heroes fill the remaining Roles so the same party-shaped encounter mechanics remain in play. Authored as an Encounter's ordered `party` — one seat per Hero, each naming a Hero from `data/heroes/`, a start hex, its own decklist, and whether that Hero's Signature is fielded (D-067, ADR 0035). A seat's deck is what states that Hero's Role, so two seats sharing one decklist are two seats playing the same Role. One seat is legal: a solo fight is a Party of one rather than a different kind of Encounter. A Boss Beat's `target_selector` picks which seat its blow lands on, and a card may reach a seated ally through `target_type: "ally"`. `Downed` and `Revive` below are defined but not yet implemented — any Hero reaching `0` still ends the Encounter.
 _Avoid_: Squad, team comp
 
 **Committed Movement**:

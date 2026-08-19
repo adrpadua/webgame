@@ -372,7 +372,12 @@ export function counterHostRef(
   if (host === 'slot') {
     return action.targetSlotIndex === undefined ? null : slotRef(action.sourceId, action.targetSlotIndex)
   }
-  return combatantRef(targetType === 'piece' ? (action.targetId ?? '') : action.sourceId)
+  // `piece` and `ally` both name a chosen combatant, so the Counter lands on
+  // whoever was chosen. That is what makes a ward placeable on the party
+  // member it protects rather than on the Hero who cast it; every untargeted
+  // card still marks its own Hero.
+  const chosen = targetType === 'piece' || targetType === 'ally'
+  return combatantRef(chosen ? (action.targetId ?? '') : action.sourceId)
 }
 
 // Which host a Card's Reader is talking about. A closed set of two subjects,

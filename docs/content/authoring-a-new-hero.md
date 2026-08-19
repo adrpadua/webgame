@@ -169,16 +169,22 @@ A Hero becomes playable the moment an Encounter names them:
 npm run scaffold -- encounter kessa_proving
 ```
 
-Point `hero` at the new id and `player_deck` at the new cards. **Reuse the
+Point the Encounter's `party` at the new Hero — one seat per Hero, each with a
+`hero` id, a `start` hex, and its own `deck` (ADR 0035) — and remember that a
+seat's deck is what states that Hero's Role, so two seats sharing one decklist
+are two seats with the same Role. **Reuse the
 Embermaw Boss Programs for the first fight** — `boss_programs` can name
 `embermaw_hunt`, `embermaw_embers`, `embermaw_brood` directly, which gets the
 new Hero on a board against proven pressure without authoring a Boss first.
-Set `fields_signature: false` if the Signature is not ready; the Hero fields
-without it.
+Set `fields_signature: false` on the seat if the Signature is not ready; the
+Hero fields without it.
 
-The engine is still solo, one Hero per Encounter: a Hero whose design needs a
-party (Kessa's `Breach` window) can be authored and fielded solo, with the
-party half held in `Later` the way her design doc does it.
+A Party of up to four is authorable since ADR 0035, and a card may reach an
+ally (`target_type: "ally"`), which is what makes a preservation Hero
+expressible at all. Two things are still missing: **Downed/Revive** — any Hero
+reaching zero still ends the Encounter, so a failed save is a loss rather than
+a recoverable mistake — and the **party UI**, so a second seat is playable
+through tests and the headless runner rather than the Workbench today.
 
 ## 7. Evidence
 
