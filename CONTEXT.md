@@ -207,12 +207,12 @@ A Slot may activate once during its Top Card's matching player window. A Slot ca
 _Avoid_: Cooldown, repeat cast
 
 **Full-Charge Cleanup**:
-At the end of a Top Card's matching player window, discard the Top Card and every card in its Charge Stack when the stack equals that card's Charge Value and the Slot activated during that window. A full but unactivated Slot persists for later use or an explicit special interaction. A Quick Top Card cleans up at the end of Quick; a Slow Top Card cleans up at the end of Slow.
+At the end of a Top Card's matching player window, discard the Top Card and every card in its Charge Stack when the stack equals that card's Charge Value and the Slot activated during that window. A full but unactivated Slot is `Full` and persists for later use or an explicit special interaction. A Quick Top Card cleans up at the end of Quick; a Slow Top Card cleans up at the end of Slow.
 _Avoid_: End-of-round cleanup, automatic expiration
 
-**Primed**:
-The state of a Slot whose Charge Stack equals its Top Card's Charge Value and has not activated in the current matching player window. A Primed Slot persists until it is activated, consumed by an explicit effect, or otherwise removed by a rule.
-_Avoid_: Fully charged, ready by default
+**Full**:
+The state of a Slot whose Charge Stack equals its Top Card's Charge Value and has not activated in the current matching player window. A Full Slot persists until it is activated, consumed by an explicit effect, or otherwise removed by a rule. A Slot carrying the same complete stack that *did* activate is not Full: it cannot fire again, cannot take another Charge, and Full-Charge Cleanup discards it at the end of the window.
+_Avoid_: Primed, ready by default
 
 **Slot Replacement**:
 Replacing a Top Card is a free beginning-of-Round action, before new charges are committed. Replacing a Slot discards its old Top Card and every card in its existing Charge Stack, then moves the chosen hand card into the Slot at `0 Charge`. Exception: re-loading a Slot that began the current Loadout Step empty is a Swap — the tentative Top Card and its Charge Stack return to hand rather than discarding, so a decision made moments ago can be reconsidered without cost.
@@ -248,7 +248,7 @@ _Avoid_: Active card, lead card
 
 **Loaded**:
 The neutral presentation state of an occupied Slot whose Top Card exists and whose Charge Stack is empty. A Loaded Slot is not actionable: it needs at least one Charge before it can activate. `Loaded` describes a UI-visible state derived from the existing Slot snapshot; it does not add a rules action, timing permission, or resource cost.
-_Avoid_: Ready, Primed, Activated, Locked
+_Avoid_: Ready, Full, Activated, Locked
 
 **Hand**:
 The player's currently available cards, presented as compact cards in the bottom interaction zone of the portrait combat HUD. Four is the normal end-of-Round refill target, not a hard maximum; the authored First Turn Encounter refills to five so the scripted Round can spend one card on every gesture it teaches.
@@ -299,7 +299,7 @@ The next one damage event that would affect the ally selected by an Interception
 _Avoid_: Permanent redirect, damage split
 
 **Guarded Front**:
-The hex adjacent to the Boss on the side the Boss faces. A Shield Wall Hero holds the Guarded Front by standing in it, which is where the Guardian's positional protection and front-line duties apply; it is not a universal safe zone.
+The hex adjacent to the Boss on the side the Boss faces. A Shield Wall Hero holds the Guarded Front by standing in it, which is where the Guardian's positional protection and front-line duties apply; it is not a universal safe zone. The board marks it, and marks it only where the Player Hero's Role is Tank: what it is worth to stand there is a Tank Hit answered, so on anyone else's board the same mark would invite a Hero to stand where the Boss is looking in exchange for nothing. The mark is presentation, derived from the Boss's position and facing; it creates no legal action and is not a rules surface.
 _Avoid_: Tank lane, front row
 
 **Slot Tension**:

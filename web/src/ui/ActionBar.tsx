@@ -4,7 +4,7 @@ import { AdvanceControl } from './AdvanceControl'
 import { UndoControl } from './UndoControl'
 import { blocksTarget } from './firstTurnScript'
 import { useFirstTurnStep } from './useFirstTurn'
-import { slotCanFire, slotTakesCharge, slotWantedKeywords } from './slots'
+import { slotCanFire, slotOutOfWindow, slotTakesCharge, slotWantedKeywords } from './slots'
 import { keywordIcon } from './keywordIcons'
 import { slotDetail } from './holdDetails'
 import { useHold, type HoldDetail } from './HoldPopover'
@@ -24,7 +24,7 @@ const EMPTY_SLOT_DETAIL: HoldDetail = {
   hint: 'Drag a card here, or tap the card then the Slot.',
 }
 
-type SlotStateName = 'empty' | 'loaded' | 'charged' | 'primed' | 'fired'
+type SlotStateName = 'empty' | 'loaded' | 'charged' | 'full' | 'fired'
 
 function slotStateName(slot: SlotState, chargeCap: number): SlotStateName {
   if (slot.topCard === null) {
@@ -34,7 +34,7 @@ function slotStateName(slot: SlotState, chargeCap: number): SlotStateName {
     return 'fired'
   }
   if (slot.charges.length === chargeCap) {
-    return 'primed'
+    return 'full'
   }
   return slot.charges.length > 0 ? 'charged' : 'loaded'
 }
@@ -43,7 +43,7 @@ const STATE_LABEL: Record<SlotStateName, string> = {
   empty: '',
   loaded: 'Loaded',
   charged: 'Charged',
-  primed: 'Primed',
+  full: 'Full',
   fired: 'Fired',
 }
 
@@ -51,15 +51,15 @@ const STATE_LABEL: Record<SlotStateName, string> = {
 // a word that only restates what the eye sees is noise the other states have
 // to be read past. The label is kept for the aria-label, where the card's
 // presence is not a visible fact.
-const SUBTITLE_STATES: ReadonlySet<SlotStateName> = new Set<SlotStateName>(['charged', 'primed', 'fired'])
+const SUBTITLE_STATES: ReadonlySet<SlotStateName> = new Set<SlotStateName>(['charged', 'full', 'fired'])
 
-// Only Primed wears gold in the label: it is the state that can fire.
+// Only Full wears gold in the label: it is the state that can fire.
 // Fired is the state that cannot, and it must not borrow the live colour.
 const STATE_TONE: Record<SlotStateName, string> = {
   empty: 'text-steel-600',
   loaded: 'text-steel-500',
   charged: 'text-steel-400',
-  primed: 'text-gold-400',
+  full: 'text-gold-400',
   fired: 'text-steel-500',
 }
 
@@ -67,7 +67,7 @@ const LOCK_STATE: Record<SlotStateName, LockState> = {
   empty: 'empty',
   loaded: 'open',
   charged: 'charging',
-  primed: 'primed',
+  full: 'full',
   fired: 'spent',
 }
 
@@ -119,6 +119,14 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
   const chargeCap = card ? cardChargeCap(card) : 0
   const stateName = slotStateName(slot, chargeCap)
   const canFire = slotCanFire(catalog, state, slot)
+  // A Slot whose Top Card fires in the other window is off for this one: it
+  // cannot fire however charged it is, so its plate goes dim rather than
+  // sitting lit beside the Slot that can. Off, not dead — it still takes
+  // Charge, so its want marks keep their own predicate and the plate lights
+  // gold again the moment a card is in hand over it. The tumblers and the
+  // timing dot stay at full tone on the dim face: the Charge is intact, and
+  // the dot is the mark that says which window turns the Slot back on.
+  const outOfWindow = slotOutOfWindow(catalog, state, slot)
   const wanted = slotWantedKeywords(catalog, slot)
   const takesCharge = slotTakesCharge(catalog, state, slot)
   const incomingCardId = selectedCardId ?? draggingCardId
@@ -133,7 +141,7 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
   // The pulse is reserved for the moment a dragged card is over the Slot —
   // transient, ended by the drop. It no longer says "this can fire": that is
   // carried by the ward ring closing and the tumblers seating into a shear
-  // line, which are shape changes and do not breathe. A Primed Slot can sit
+  // line, which are shape changes and do not breathe. A Full Slot can sit
   // for rounds, and a persistent pulse would both fade its own text and
   // become furniture the eye edits out — the idle motion the interface
   // direction bans.
@@ -162,11 +170,14 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
       data-top-card={slot.topCard?.cardId ?? ''}
       data-charges={slot.charges.length}
       data-slot-state={stateName}
+      data-out-of-window={outOfWindow}
       data-incoming-action={incomingAction ?? ''}
       data-incoming-legal={incomingAction === null ? '' : String(incomingLegal)}
       aria-label={
         card
           ? `Slot ${slotIndex + 1}: ${card.title}, ${STATE_LABEL[stateName]}${
+              outOfWindow ? `, fires in the ${cardWindowSpeed(card) === 'quick' ? 'Quick' : 'Slow'} Window` : ''
+            }${
               // The want marks are the only thing on the plate with no word
               // beside them, so the label is where they are spoken.
               wanted.length > 0 && takesCharge
@@ -200,21 +211,28 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
       className={`wb-plate wb-plate-slot ${span} min-h-20 min-w-0 py-2 text-left transition ${FOCUS_RING_CLASS} ${
         // A Slot is a raked oathsteel plate. Its state lives in the leading-edge
         // accent — the status channel every plate shares — and in the face:
-        // gold when the Slot is live (Primed, or about to take a card), ember
+        // gold when the Slot is live (Full, or about to take a card), ember
         // when the incoming card would replace what is there, steel otherwise.
+        // A Slot waiting for the other window goes to the dim face before
+        // Full is consulted: Full's gold says "can fire", which is the
+        // one claim an out-of-window Slot must not make. The in-hand branch
+        // stays above it — a card held over the bar is a Charge offer, and
+        // charging is the move an off Slot still owns.
         incomingCardId !== null && incomingLegal
           ? incomingAction === 'Replace'
             ? `wb-face-steel wb-acc-ember ${pulse}`
             : `wb-face-steel wb-acc-gold ${pulse}`
           : canFire
             ? 'wb-face-steel wb-acc-gold'
-            : stateName === 'primed'
-              ? 'wb-face-steel wb-acc-gold'
-              : stateName === 'fired'
-                ? 'wb-face-dim wb-acc-none'
-                : card
-                  ? 'wb-face-steel wb-acc-none'
-                  : 'wb-face-dim wb-acc-none opacity-80'
+            : outOfWindow
+              ? 'wb-face-dim wb-acc-none'
+              : stateName === 'full'
+                ? 'wb-face-steel wb-acc-gold'
+                : stateName === 'fired'
+                  ? 'wb-face-dim wb-acc-none'
+                  : card
+                    ? 'wb-face-steel wb-acc-none'
+                    : 'wb-face-dim wb-acc-none opacity-80'
       } ${spotlit ? SPOTLIGHT_CLASS : ''} ${gated ? GATED_CLASS : ''}`}
     >
       {incomingAction !== null && (
@@ -240,17 +258,19 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
               head sits with its own tumblers, and the timing dot sits with
               the Keywords, which is the other half of "what does this Slot
               want and when". */}
-          <span className={`block truncate text-xs font-bold ${stateName === 'fired' ? 'text-steel-400' : 'text-ceramic-200'}`}>{card.title}</span>
+          <span className={`block truncate text-xs font-bold ${stateName === 'fired' || outOfWindow ? 'text-steel-400' : 'text-ceramic-200'}`}>
+            {card.title}
+          </span>
           {/* Charge tumblers. Separate raked pins with gaps while charging;
               when the last one seats the gaps close and they read as one
               continuous bar — the shear line clear, the lock free to turn.
               Segmented becoming solid is a bigger perceptual change at this
               size than any shift of value, and it is what a lock does. */}
           <div className="mt-1.5 flex items-center gap-1.5">
-            {/* Keyed on the state so entering Primed remounts the head and the
+            {/* Keyed on the state so entering Full remounts the head and the
                 seat plays once, on that transition only. */}
-            <LockHead key={stateName} state={LOCK_STATE[stateName]} className={`h-4 w-4 shrink-0 ${stateName === 'primed' ? 'wb-seat' : ''}`} />
-            <div className={`flex items-center ${stateName === 'primed' || stateName === 'fired' ? 'gap-0' : 'gap-[3px]'}`} data-testid="charge-tumblers">
+            <LockHead key={stateName} state={LOCK_STATE[stateName]} className={`h-4 w-4 shrink-0 ${stateName === 'full' ? 'wb-seat' : ''}`} />
+            <div className={`flex items-center ${stateName === 'full' || stateName === 'fired' ? 'gap-0' : 'gap-[3px]'}`} data-testid="charge-tumblers">
               {Array.from({ length: chargeCap }, (_, index) => (
                 <span
                   key={index}
@@ -279,7 +299,12 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
             )}
           </div>
           {SUBTITLE_STATES.has(stateName) && (
-            <div className={`mt-1 text-[10px] font-semibold tracking-wide uppercase ${STATE_TONE[stateName]}`}>{STATE_LABEL[stateName]}</div>
+            // An out-of-window Slot's subtitle drops to steel whatever its
+            // state: Full's gold word on a dim plate would still whisper
+            // "can fire", and it cannot until its window comes round.
+            <div className={`mt-1 text-[10px] font-semibold tracking-wide uppercase ${outOfWindow ? 'text-steel-500' : STATE_TONE[stateName]}`}>
+              {STATE_LABEL[stateName]}
+            </div>
           )}
         </>
       ) : (

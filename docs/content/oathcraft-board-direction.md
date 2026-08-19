@@ -24,6 +24,7 @@ That line sits where the fiction already puts it. A pattern projector is a real 
 | Telegraph | Tint | Warm |
 | Legal destination | Tint | Cool |
 | Target marker | Tint | Cool |
+| Guarded Front mark | Tint | Cool |
 | Board Feedback flash | Event | Axis for the side, material for the value |
 
 **A board colour that cannot name a material or a temperature is a defect, not a preference.**
@@ -38,6 +39,8 @@ Within a temperature, the more imminent thing is the more saturated. The researc
 
 - **Warm**, most to least: the beat resolving now · a telegraphed beat landing next window · the Boss · a Minion · scorched ground.
 - **Cool**, most to least: legal destinations while choosing · the Hero · the ground.
+
+The Guarded Front mark is ground, and sits at the bottom of the cool order for a reason worth stating: it is the one cool mark that is on the board for the whole Encounter. A persistent mark pitched at the destination step would be the loudest cool thing in every frame of every Round, and the destinations — which appear only while a card is in hand and are the thing being decided between — would be answering to it. So it is drawn as a line rather than a tint over the tile, and what separates it from the two brighter cool marks is shape: it traces the guarded hex's own outline, strong on the three edges facing the Boss and quiet on the three behind. Nothing else on the board draws part of a hex's outline, which is also what keeps the mark off colour alone.
 
 Imminence rather than novelty, or a spawned Minion outshouts the Cinder Breath cone about to land. Imminence rather than damage, or scorched ground never fades after it has been paid for.
 

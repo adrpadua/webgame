@@ -14,6 +14,7 @@ import { useOnboarding } from '@/store/onboarding'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { BoardScene, type BoardSnapshot } from './BoardScene'
+import { marksGuardedFront } from './guardedFront'
 import { deriveBoardEffects, derivePlayoutScript, type BoardEffect } from './effects'
 import { BOARD_HEIGHT, BOARD_WIDTH, pixelToAxial } from './layout'
 
@@ -66,6 +67,7 @@ function buildSnapshot(
     targetPreviewHexKeys: targeting?.previewHexes.map(hexKey) ?? [],
     targetPreviewCenterKey: targeting?.previewHexes.length ? hoveredHexKey : null,
     legalMoveKeys,
+    guardedFront: marksGuardedFront(catalog, state),
     guidedMoveKeys,
     pendingMoveKey,
     showCoordinates,
