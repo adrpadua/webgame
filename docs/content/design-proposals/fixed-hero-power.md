@@ -158,7 +158,9 @@ The bound must therefore be structural and explicit:
 
 If the Signature is the best payoff and it is always available, the rational player charges it every Round and the other two Slots decay into charge batteries. The Action Bar collapses from three meaningful Slots to one, which would delete the Slot Tension that ADR 0002 names as the main source of player pressure.
 
-Candidate answers, none yet chosen, all measurable:
+**Designer direction (2026-08-19): earned charge (option 3) is the shape to prototype first.** Its consequences are worked through in the options below and in the open questions; the fallback remains the steep tax (option 1) if earned charge proves too tight.
+
+Candidate answers, all measurable:
 
 1. **Steep repetition tax** — Charge Value rising `1` per firing makes back-to-back Signature Rounds progressively unaffordable, forcing normal Slots to carry the intervening Rounds.
 2. **Window exclusivity** — the Signature charges only in one named window, so a Signature Round costs the other window's flexibility.
