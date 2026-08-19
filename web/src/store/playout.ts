@@ -33,7 +33,7 @@ interface PlayoutStore {
   // reads "Raking Claw" and presses to watch the claw land.
   nextBeatTitle: string | null
   // The same beat by id, so the prompt can be the Beat's own card rather than
-  // its name on a bar (D-047). A title cannot find the authored Beat, and the
+  // its name on a bar (D-055). A title cannot find the authored Beat, and the
   // card needs its damage, target, reach and counter tags.
   nextBeatId: string | null
   // True while the playout is paused between moments, waiting for a tap.

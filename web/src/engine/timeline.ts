@@ -134,7 +134,7 @@ export function resolveBossBeat(
     // leaves standing at the Round end, which `escalationActionsForRoundEnd`
     // prices. It is the only Beat kind that does nothing when it plays, and it
     // earns that by doing something later — which is why the `warning` kind,
-    // whose effect was nothing at any point, is gone (D-046).
+    // whose effect was nothing at any point, is gone (D-054).
     case 'demand_proximity':
       break
     // Placement rides an action below, so this arm only has to not fall
