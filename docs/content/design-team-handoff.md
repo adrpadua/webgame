@@ -195,11 +195,22 @@ closed set the engine switches on:
 - **Target families.** `none`, `hex` (Burst center), `board_slot`, `piece`.
 - **Charge Modifier effects.** `armor`, `healing`, `boss_damage`,
   `target_damage`.
-- **Signature gates.** `health_loss_zero`, `guarded_front`. A gate is a
-  predicate computed over board state, so a new Hero pattern's earn condition
-  is the one part of an otherwise data-only Hero that routinely needs an
-  engineering request — [authoring-a-new-hero.md](authoring-a-new-hero.md)
-  step 5 says how to raise it.
+- **Signature earn events.** `host_takes_damage`, and only that one. A Grant
+  authoring `host_deals_damage`, `slot_fired`, or `round_start` is refused at
+  load, because nothing evaluates it — so **every Signature the game can print
+  today is earned by the Hero being hit.** Counter Readers, the Signature's
+  mirror, read all four events, so a Hero's wider machine can still react to
+  dealing damage or firing a Slot.
+- **Signature gates.** `health_loss_zero`, `guarded_front` — a perfect block
+  and the Warden sentence. Both narrow the one event above, and both are tank
+  concepts.
+
+  Together those two entries mean a non-Warden Hero cannot author a Signature
+  that states their job. Author them with `signature_card` empty until the
+  open request lands:
+  [signature-earn-vocabulary.md](design-proposals/signature-earn-vocabulary.md).
+  [authoring-a-new-hero.md](authoring-a-new-hero.md) checks this at step 0,
+  before a deck gets written against it.
 
 When a rule you want cannot be expressed in a field, raise it as an engineering
 request. Do not encode it in `rules_text` alone: the Detail Popup would promise

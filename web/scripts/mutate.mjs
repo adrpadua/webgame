@@ -369,6 +369,13 @@ const MUTATIONS = [
     to: "const spentEarly = spendCardReaders(draft, card, action, 'resolution')",
   },
   {
+    name: 'a Hero with no Signature gets one anyway',
+    guards: 'ADR 0034: an empty signature_card is a supported authoring state — the handoff tells every non-Warden Hero to sit here until the earn vocabulary widens',
+    file: 'engine/setup.ts',
+    from: "  if (signatureCard !== '') {",
+    to: '  if (true) {',
+  },
+  {
     name: 'the Signature takes hand charges',
     guards: 'D-064 / ADR 0032: earned, never bought — hand cards cannot reach the Signature',
     file: 'engine/legality.ts',

@@ -453,6 +453,26 @@ describe('content catalog', () => {
         expect(state.heroes.probe_hero.actionBar[2]).toMatchObject({ fixed: true, earnedCharges: 0 })
         expect(state.heroes.probe_hero.actionBar[2].topCard?.cardId).toBe('probe_signature')
       })
+
+      // A Hero with no Signature at all is a supported authoring state, not a
+      // half-built one. The handoff tells designers to author a Hero this way
+      // whenever their earn condition is not "takes damage" — the only event a
+      // standing clause can currently fire on — rather than borrowing a Warden
+      // gate that misstates the Hero's job. That instruction is load-bearing
+      // for every non-Warden Hero, so it is pinned here: an empty
+      // `signature_card` loads, and the bar is exactly the Encounter's Slots
+      // with no fixed Slot appended.
+      it('fields a Hero who has no Signature authored yet', () => {
+        const noSignature = {
+          ...arena('', [{ card: 'probe_strike', copies: 4 }]),
+          cards: [{ id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1 }],
+        }
+        const catalogWithout = buildCatalog({ ...empty, ...noSignature })
+        expect(catalogWithout.heroes.probe_hero.signature_card).toBe('')
+        const state = createEncounterState(catalogWithout, 'probe_arena')
+        expect(state.heroes.probe_hero.actionBar).toHaveLength(2)
+        expect(state.heroes.probe_hero.actionBar.some((slot) => slot.fixed)).toBe(false)
+      })
     })
 
     it('loads a data-only shove Card with no engine registration step', () => {
