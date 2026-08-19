@@ -59,9 +59,10 @@ export function BeatCard() {
         // No `px-`/`py-` here, deliberately. A flat Tailwind padding on a
         // raked plate overrides the clearance the size class derives from the
         // cut, and 12px was 3px short of what this one needs — which is how
-        // the label came to sit against the ember edge. `wb-plate-beat` is
-        // that clearance, measured per side at the corner it is worst at.
-        className={`wb-beat-deal wb-accent-pulse pointer-events-auto wb-plate wb-plate-beat wb-face-steel wb-acc-ember flex w-full flex-col gap-1.5 text-left shadow-xl ${FOCUS_RING_CLASS}`}
+        // the label came to sit against the ember edge. `wb-gutter-raked` is
+        // that clearance, measured per side at the corner it is worst at,
+        // which is what a plate carrying a column of text needs.
+        className={`wb-beat-deal wb-accent-pulse pointer-events-auto wb-plate wb-plate-md wb-gutter-raked wb-face-steel wb-acc-ember flex w-full flex-col gap-1.5 text-left shadow-xl ${FOCUS_RING_CLASS}`}
       >
         <span className="flex items-baseline justify-between gap-2">
           <span className="shrink-0 text-[9px] font-semibold tracking-widest text-steel-400 uppercase">
@@ -142,7 +143,15 @@ export function StandingDemand() {
       <div
         data-testid="standing-demand"
         data-answered={answered ? "true" : "false"}
-        className={`wb-slide-up pointer-events-none wb-plate wb-plate-sm wb-face-steel flex w-full items-center justify-between gap-2 px-3 py-1.5 shadow-lg ${
+        // Same gutter as the Beat Card, for the same reason: "Standing" is
+        // pinned to the leading edge under the accent band, and a flat `px-3`
+        // left it 6px clear there against 10px on the trailing side. One row
+        // rather than four, so the wedge is smaller — but this bar docks
+        // directly above the card, and two plates disagreeing about where
+        // their text starts is the pair of them looking crooked.
+        // The block gutter stays at the thin bar's 6px; only the Beat Card
+        // wants a card's 8px.
+        className={`wb-slide-up pointer-events-none wb-plate wb-plate-sm wb-gutter-raked [--wb-gutter-block:6px] wb-face-steel flex w-full items-center justify-between gap-2 shadow-lg ${
           answered ? "wb-acc-gold" : "wb-acc-ember"
         }`}
       >
