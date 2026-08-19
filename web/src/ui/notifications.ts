@@ -3,11 +3,11 @@
 //
 // Every transient surface on the play field used to place itself. The coach
 // tip pinned to the board's top edge, the targeting prompt at a hard `top-40`
-// that landed on the phase strip's Next button, the phase word at `top-[34%]`
-// that landed on whatever the guidance stack had grown to that round. An
-// absolute offset cannot see another absolute offset, so whether two prompts
-// collided came down to which pair happened to be up at once — which is not a
-// layout, it is a coincidence that mostly holds.
+// that landed on the advance control back when it sat in the phase strip, the
+// phase word at `top-[34%]` that landed on whatever the guidance stack had
+// grown to that round. An absolute offset cannot see another absolute offset,
+// so whether two prompts collided came down to which pair happened to be up
+// at once — which is not a layout, it is a coincidence that mostly holds.
 //
 // The lane is the fix, in two parts.
 //
@@ -88,10 +88,6 @@ export const ZONE_CAPACITY: Record<NotificationZone, number> = {
   guidance: 1,
   stage: 1,
   dock: 3,
-}
-
-export function notificationRule(id: NotificationId): NotificationRule {
-  return NOTIFICATION_RULES[id]
 }
 
 // The CSS `order` a member carries inside its zone. The guidance zone runs top

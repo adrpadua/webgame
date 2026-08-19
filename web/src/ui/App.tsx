@@ -80,8 +80,10 @@ function PlayoutContinue() {
         className={`wb-slide-up wb-face-pulse pointer-events-auto wb-plate wb-plate-sm wb-face-steel wb-acc-ember flex min-h-12 w-full items-center justify-between gap-2 px-4 text-left shadow-xl ${FOCUS_RING_CLASS}`}
       >
         <span className="flex min-w-0 items-center gap-2">
-          {/* "Up next", not "Next": the phase control's Next button is a
-              different move, and the two must not read as the same word. */}
+          {/* "Up next", not "Next": the Action Bar's right rail closes the
+              window, and this plays one beat of the row. Different moves, so
+              they must not read as the same word — which is also why that
+              rail draws the two as different marks. */}
           <span className="shrink-0 text-[9px] font-semibold tracking-widest text-steel-400 uppercase">Up next</span>
           <span className="truncate text-xs font-bold text-coral-100">{nextBeatTitle ?? 'Boss beat'}</span>
         </span>
@@ -102,9 +104,9 @@ function TargetingBanner() {
     return null
   }
   const targetMode = fireTargeting(catalog, state, state.primaryHeroId, targetingSlotIndex).mode
-  // Docked. At its old fixed `top-40` this prompt printed across the phase
-  // strip's Next button — the one control the player must not lose while a
-  // Top Card waits for its target.
+  // Docked. At its old fixed `top-40` this prompt printed across the advance
+  // control, which then sat in the phase strip — the one control the player
+  // must not lose while a Top Card waits for its target.
   return (
     <Notify id="targeting">
       <div
