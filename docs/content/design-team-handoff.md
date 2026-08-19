@@ -48,8 +48,13 @@ npm run dev              # play the change
 Before asking engineering to review a content batch, run the full gate:
 
 ```bash
-npm run build && node scripts/smoke.mjs
+npm run verify:local
 ```
+
+That is the whole gate and the only one — nothing validates in CI. It runs the
+browser check, the Vitest suite, lint, the build, the browser smoke suite and
+the mutation audit, cheapest first. It also runs automatically on push once
+`npm run hooks:install` has been run in this clone.
 
 `smoke.mjs` drives a real browser through the scripted first turn, an ordinary
 round, Scenario replay, time travel, headless record verification, and a 390x844
