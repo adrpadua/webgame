@@ -788,6 +788,14 @@ try {
     presses += 1
     assert(promised !== '', `Continue prompt ${presses} names the beat it will play`)
     assert((await prompt.textContent())?.includes(promised), `prompt ${presses} shows that beat's name (${promised})`)
+    // The card resolved the prompt to a real authored Beat rather than falling
+    // back to a bare title. The fallback exists so a card can never throw, and
+    // this is what stops it becoming the silent normal case — a degraded card
+    // still looks like a card, so nothing else would notice.
+    assert(
+      ((await prompt.getAttribute('data-beat-id')) ?? '') !== '',
+      `card ${presses} found the authored Beat behind "${promised}", not just its title`,
+    )
     await prompt.click()
     const playing = ((await page.locator('[data-testid="beat-chip"][data-playing="true"]').first().textContent()) ?? '').trim()
     assert(playing === promised, `Continue ${presses} plays the beat it promised (promised ${promised}, played ${playing})`)

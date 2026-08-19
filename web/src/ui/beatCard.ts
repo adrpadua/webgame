@@ -87,6 +87,13 @@ export interface StandingDemandView {
 // Rows resolve when their window opens (ADR 0024), so an Incoming demand stands
 // from the Incoming Row through the Slow Window, which is exactly where a
 // Stamina step can still answer it.
+//
+// It therefore docks as soon as the phase opens, which can be before the paced
+// playout has got around to *showing* that Beat's card. That looks early and is
+// not: the rules resolved the whole row when the window opened, and the playout
+// only paces the telling. Gating this on the playout instead would make a rules
+// question depend on presentation, which is the one thing the playout store is
+// careful never to do.
 export function standingDemand(catalog: ContentCatalog, state: EncounterState): StandingDemandView | null {
   if (!state.active || (state.phase !== 'incoming' && state.phase !== 'slow')) {
     return null

@@ -14,11 +14,11 @@ import { FirstTurnCue } from './FirstTurnCue'
 import { GuideModal } from './GuideModal'
 import { Hand } from './Hand'
 import { HoldPopoverLayer } from './HoldPopover'
+import { BeatCard, StandingDemand } from './BeatCard'
 import { MovePad } from './MovePad'
 import { MovePaymentCue } from './MovePaymentCue'
 import { PhaseBanner } from './PhaseBanner'
 import { PhaseControl } from './PhaseControl'
-import { BeatCard, StandingDemand } from './BeatCard'
 import { ProgramStrip } from './ProgramStrip'
 import { ReplaceConfirmModal } from './ReplaceConfirmModal'
 import { FOCUS_RING_CLASS, FRAME_HEIGHT_CLASS } from './theme'
@@ -45,15 +45,6 @@ function RejectionToast() {
   )
 }
 
-// The playout's pacing control: one amber bar names the beat the press will
-// play and hands it to the player. The bar is a trailer, not a caption — it
-// names what is about to happen, because "Raking Claw · Continue" reads as a
-// promise to show the claw, and naming the beat already on the board made
-// every press look like it skipped one. Every beat of a Boss Row gets its
-// own press, the opening one included, so the bar is the first thing the Row
-// says. What has already resolved stays readable beside it: those Boss Beat
-// chips keep their light until the next moment fires. The rules already
-// resolved the whole track — this only paces the telling.
 function TargetingBanner() {
   const targetingSlotIndex = useWorkbench((store) => store.targetingSlotIndex)
   const cancelTargeting = useWorkbench((store) => store.cancelTargeting)

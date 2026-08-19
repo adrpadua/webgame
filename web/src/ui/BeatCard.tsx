@@ -3,7 +3,7 @@ import { selectState, useWorkbench } from '@/store/workbench'
 import { beatCardStats, findLiveBeat, standingDemand } from './beatCard'
 import { FOCUS_RING_CLASS } from './theme'
 
-// Every Boss Beat is a card, and the card is the thing you press to play it.
+// Every Boss Beat is a card, and the card is the control that resolves it.
 //
 // The pacing this rides on already existed: the playout has always held each
 // Beat behind a press and named it first, so the player reads a Beat before it
@@ -11,6 +11,16 @@ import { FOCUS_RING_CLASS } from './theme'
 // the Beat itself — the prompt was a bar carrying a title, and everything that
 // makes a Beat legible (what it hits, for how much, how far it reaches, what
 // answers it) was one hover away on a chip most players never hold.
+//
+// Inherited from the bar this replaced, because it is still the rule: the card
+// is a trailer, not a caption. It names what is about to happen, because
+// "Raking Claw · Resolve" reads as a promise to show the claw, and naming the
+// beat already on the board made every press look like it skipped one. Every
+// beat of a Boss Row gets its own press, the opening one included, so the card
+// is the first thing the Row says. What has already resolved stays readable
+// beside it: the Boss Beat chips in the strip keep their light until the next
+// moment fires. The rules already resolved the whole track — this only paces
+// the telling.
 //
 // Making it a card is also what a board-game port needs (D-047): if a Beat is
 // going to be printed, everything resolution depends on has to be *on* it. That
