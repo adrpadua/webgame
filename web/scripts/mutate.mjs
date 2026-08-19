@@ -174,14 +174,14 @@ const MUTATIONS = [
   },
   {
     name: 'the claw ignores its authored reach and lands from anywhere',
-    guards: 'D-061: a claw reaches as far as its content says and no further',
+    guards: 'D-062: a claw reaches as far as its content says and no further',
     file: 'engine/timeline.ts',
     from: 'if (hexDistance(bossCoords, playerCoords) <= beat.range_tiles) {',
     to: 'if (hexDistance(bossCoords, playerCoords) <= 99) {',
   },
   {
     name: 'a claw that reached nothing still writes the impact memory',
-    guards: 'D-039 / D-061: a miss is no impact, so the Trail keeps its target',
+    guards: 'D-039 / D-062: a miss is no impact, so the Trail keeps its target',
     file: 'engine/timeline.ts',
     from: '        impactedHexes.push(playerCoords)\n      }\n      break',
     to: '      }\n      impactedHexes.push(playerCoords)\n      break',

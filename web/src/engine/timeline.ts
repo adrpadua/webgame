@@ -88,7 +88,7 @@ export function resolveBossBeat(
     case 'advance_toward_player':
       advanceTiles = beat.move_tiles
       break
-    // A claw reaches as far as a claw reaches (D-061). The selector still says
+    // A claw reaches as far as a claw reaches (D-062). The selector still says
     // *who* — a Tank Hit is aimed at the Tank rather than at whoever is
     // standing in a pattern — but whether it lands is now a question of
     // distance, read from the same authored `range_tiles` every other reaching
@@ -104,7 +104,7 @@ export function resolveBossBeat(
         // where in-reach-but-unbraced is still worth pricing. Embermaw no
         // longer authors it: at reach `1` every hex in reach *is* the Guarded
         // Front once `turn_toward_player` has run, so the bonus could never
-        // fire (D-061).
+        // fire (D-062).
         if (beat.unguarded_bonus > 0 && !isGuardedFront(draft.board, bossId, draft.primaryHeroId)) {
           unguardedBonusApplied = beat.unguarded_bonus
           playerDamage += unguardedBonusApplied

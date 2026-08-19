@@ -238,7 +238,7 @@ export const bossBeatSchema = z.object({
   // Three constants for two Beats, none of them content, and the only place the
   // number appeared to a reader was inside a `rules_text` string.
   //
-  // `targeted_hit` reads it too since D-061. It was deliberately rangeless
+  // `targeted_hit` reads it too since D-062. It was deliberately rangeless
   // under D-017, which wanted a hit footwork could not answer; D-041 gave that
   // job to `demand_proximity`, which prices standing out of reach in Escalation
   // instead — so the claw was left as the one Beat whose reach was infinite for

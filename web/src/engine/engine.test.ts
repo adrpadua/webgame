@@ -811,7 +811,7 @@ describe('Ash Trail displacement (D-039)', () => {
     // to stop even for perfect play, which is the rule stated as geometry.
     //
     // The Boss is placed against the same corner rather than left at its start.
-    // Since D-061 the claw reaches one hex, so a Tank in the far corner is a
+    // Since D-062 the claw reaches one hex, so a Tank in the far corner is a
     // Tank the Beat never touches — and a Beat that misses lays no Trail at
     // all, which would pass this assertion for the wrong reason.
     const state = start()
@@ -842,7 +842,7 @@ describe('Ash Trail displacement (D-039)', () => {
     // built from the claw rather than from the cone, which never gets there.
     //
     // The Boss is deliberately left facing where it started instead of being
-    // walked through `turn_toward_player`. Since D-061 that ordering is what
+    // walked through `turn_toward_player`. Since D-062 that ordering is what
     // makes the case unreachable in Embermaw's live content: the turn snaps the
     // facing onto the Tank, and a snapped facing puts every hex in a reach-1
     // claw's range *on* the Guarded Front. The engine rule is still general — a
@@ -1086,7 +1086,7 @@ describe('Authored Beat reach', () => {
   })
 
   it('refuses a claw with no reach authored', () => {
-    // Both halves of the rule reach `targeted_hit` since D-061. A claw that
+    // Both halves of the rule reach `targeted_hit` since D-062. A claw that
     // authors nothing would fall to the schema default of `0` and silently
     // stop connecting from any hex at all — a Beat that resolves to nothing,
     // which is the shape D-054 deleted a whole Beat kind over.
@@ -2845,7 +2845,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
   })
 })
 
-describe('Raking Claw reach (D-061)', () => {
+describe('Raking Claw reach (D-062)', () => {
   const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
 
   function clawAt(coords: { q: number; r: number }) {

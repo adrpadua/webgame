@@ -229,7 +229,7 @@ export function deriveBoardEffects(
         } else if (beat?.kind === 'targeted_hit') {
           // Only when it connected. Board Feedback is derived from Resolution
           // Facts precisely so the board can never show a blow the Encounter
-          // did not resolve, and since D-061 a claw can reach nothing at all —
+          // did not resolve, and since D-062 a claw can reach nothing at all —
           // a lunge is what a landed hit looks like, not what a miss does.
           if (heroCoords && hexDistance(heroCoords, bossCoords) <= beat.range_tiles) {
             add({ kind: 'strike', entityId: before.bossId, at: bossCoords, toward: heroCoords, tone: 'boss' })

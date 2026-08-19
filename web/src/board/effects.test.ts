@@ -51,7 +51,7 @@ describe('board effects', () => {
 
   it('plays no lunge for a claw that reached nothing', () => {
     // Board Feedback is derived from Resolution Facts so the board can never
-    // show a blow the Encounter did not resolve. Since D-061 a claw can come up
+    // show a blow the Encounter did not resolve. Since D-062 a claw can come up
     // short, and a lunge is what a landed hit looks like — playing one anyway
     // would tell the player they were struck on a Round they stepped clear.
     const state = openedRound()
