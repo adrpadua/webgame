@@ -4,6 +4,8 @@ Date: 2026-08-19 (revised same day — see *Revision* below)
 Status: Proposed. No live rules change, no engine change, no ADR yet. Requires a product decision, then an ADR (this is the first exception to ADR 0008's full-charge cleanup), then the deck-evaluation gate.
 Context: [Fixed hero powers and command zones research note](../research/2026-08-19-fixed-hero-powers-and-command-zones.md), [champion design note](../research/2026-08-16-lol-champion-design-lessons.md), [ADR 0002](../../adr/0002-use-a-persistent-action-bar-with-charge-stacks.md), [ADR 0008](../../adr/0008-use-persistent-charge-stacks-and-full-charge-cleanup.md), [Character Design Bible](../../rules/character-design-bible.md), [tank solo-ceiling note](../research/2026-08-17-tank-solo-ceiling-design.md) (D-016).
 
+**Settled by the designer (2026-08-19).** Signatures are **per Hero**, not per role. Everything a Signature does must be **authorable in `data/`** — that is where this project's rules and game components live, and a Hero's engine is a game component. Both are treated as decided below; the remaining open items are marked as such.
+
 **Revision.** The first draft recommended the Signature as a *floor* — "the third-best line in a good hand and the best line in a bad one." That is retracted on designer direction: **the Signature is the Hero's identity and engine**, so it should be the spine of a good hand, not its fallback. The rejected options below are unchanged; Option C is rewritten, the risk analysis is materially different, and the recommended first increment changed from "author a new power" to "migrate the engine that already exists."
 
 ## Problem
@@ -66,6 +68,71 @@ Same fixed Slot, but the activation takes no charges of its own: it reads the Ch
 ### Option D — Gloomhaven default faces
 
 Give every card a generic alternative face. **Held.** It solves the drought with no new object, but it makes every card partly interchangeable, eroding the card-family vocabulary the Character Design Bible is built on — and it is a floor, so it does not answer the identity question at all.
+
+## What the standing clause is
+
+A standing clause is a **Grant**: the mirror of a Counter Reader.
+
+| | Answers | Produces |
+| --- | --- | --- |
+| **Reader** (shipped) | an event from a closed `when` set | a number — `effect` × `per`, once per Counter held |
+| **Grant** (new) | an event from *the same* closed `when` set | a Counter, if its gates pass |
+
+That symmetry is the whole design. A Grant is not a new subsystem; it is the missing half of one the repo already has. Counters are inert markers and Readers are the only thing that gives them meaning — but nothing authored can *place* one in response to an event, so every engine-granted Counter has had to be a code branch.
+
+**Riposte Ready listens to an event `counterReaderSchema.when` already contains.** It is `host_takes_damage`, narrowed by `event_keyword: "tank_hit"` — exactly the D-049 mechanism that already lets a Reader answer one Damage Keyword. Only two things are missing from the vocabulary:
+
+1. **A `place` outcome** where a Reader has a numeric `effect`.
+2. **A gate vocabulary** for board predicates the event alone does not carry.
+
+Gates follow the `cardReader` rule verbatim: a closed enumerated set, every gate must pass, no boolean combination. The schema's own comment is the governing principle — *"the moment this wants `or`, what is being written is an interpreter, and the mechanic belongs in engine code instead."* Same rule here, same escape hatch.
+
+The first Grant needs **no new engine predicates**. `resolve.ts` already computes both of Riposte's conditions when the Tank Hit resolves: `health_loss` and `isGuardedFront()`. Authoring them is exposure, not new rules.
+
+### The authored form
+
+The Signature is a **card**, not a new component kind. ADR 0008 already defines the Top Card as the installed module owning timing, targeting, range, base effect, and max Charge; a Signature is a Top Card that was never in a deck. As a card it inherits `speed`, `max_charge`, `boss_damage`, `target_type`, `charge_modifiers`, and card Readers unchanged. The card schema gains exactly two things — `fixed: true` and a `standing` array — and the Hero references its Signature by card id.
+
+```jsonc
+// data/cards/elian_riposte.json
+{
+  "id": "elian_riposte",
+  "title": "Riposte",
+  "fixed": true,
+  "speed": "quick",
+  "max_charge": 2,
+  "boss_damage": 3,
+  "standing": [
+    {
+      "when": "host_takes_damage",
+      "event_keyword": "tank_hit",
+      "gates": ["health_loss_zero", "guarded_front"],
+      "places_counter": "riposte_ready",
+      "counter_amount": 1,
+      "on": "self"
+    }
+  ],
+  "readers": [
+    { "verb": "scale", "counter": "riposte_ready", "on": "self", "effect": "boss_damage", "per": 2 },
+    { "verb": "spend", "counter": "riposte_ready", "on": "self" }
+  ]
+}
+```
+
+Plus `data/counters/riposte_ready.json`, which does not exist today — Fortified, Sundered, and Weakened are authored; Riposte Ready is not.
+
+### The D-033 blocker dissolves under per-Hero Signatures
+
+D-033 left Riposte Ready in code because graded consumption authored badly: `+2` when the payoff card spends it, `+1` when any other Boss-damage card does. **That grading exists only because two different things could spend it at different values.** With a per-Hero Signature owning the payoff there is one payoff route, and the two halves separate cleanly into vocabulary that already ships:
+
+- the `+2` becomes the Signature's own `scale` and `spend` Readers — card vocabulary, shipped;
+- D-015's `+1` on every other Boss-damage card becomes an ordinary Counter Reader on `riposte_ready` (`when: "slot_fired"`, `effect: "boss_damage"`, `per: 1`) plus a card-side spend — also shipped.
+
+So the only genuinely new schema in the whole proposal is the Grant and its gate list. D-033 was right about the Counter vocabulary of its day; the per-Hero decision is what changes its premise.
+
+### The same disease, one card over
+
+`data/cards/shield_slam.json` carries **no Riposte behaviour at all**. Its `rules_text` describes the interaction in prose, and the behaviour is `consumeOnCardId: SHIELD_SLAM` at `counters.ts:368` — a hard-coded card id living inside the rules engine. Authoring the Grant fixes the grant side; authoring the Readers fixes the spend side; between them the `SHIELD_SLAM` constant stops existing. That is the same defect the Signature exists to fix, and it is evidence that the boundary is currently drawn in the wrong place rather than that Riposte is a special case.
 
 ## What the identity-and-engine framing costs
 
@@ -163,7 +230,7 @@ Open question this raises: if the Signature owns the Riposte payoff, what happen
 
 ## Open questions for the designer
 
-1. **Per Hero or per role?** Per Hero is the Sentinels answer and the one this repo's authorship culture points at; per role is cheaper to author and would make the Second Hero Of A Role rule harder to satisfy, since the Signature is exactly where a Warden and a Vanguard should differ.
-2. **Which battery answer?** Earned charge (option 3) expresses identity best and is most likely to be too tight.
-3. **What happens to `Shield Slam` and D-015** if the Signature owns the Riposte payoff?
-4. **Does the standing clause need to be authorable in `data/`, or may it stay code** with only the activation authored? D-033's original reasoning survives for the standing half, and a partial migration is a legitimate smaller first step.
+1. ~~**Per Hero or per role?**~~ **Settled: per Hero.** This is also what dissolves the D-033 blocker above — a per-role Signature would have kept two spenders at two values and left the grading in code.
+2. ~~**Authorable in `data/`, or code?**~~ **Settled: everything in `data/`.** The Grant plus its gate list is the whole cost of honouring this; no part of a Signature stays in TypeScript.
+3. **Which battery answer?** Earned charge (option 3) expresses identity best and is most likely to be too tight.
+4. **What happens to `Shield Slam` and D-015** if the Signature owns the Riposte payoff? Under active grilling — see the deck's [starter list](../decks/elian-voss-starter.md), which currently names the Slam payoff as one of the kit's five identities.
