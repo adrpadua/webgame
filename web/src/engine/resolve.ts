@@ -469,7 +469,7 @@ function resolveOne(
         // Fortified's banked Armor is its count times its Reader's `per`
         // (D-047), so two Fortify commitments are one stack of Counters and
         // the additive stacking D-019 asked for is just addition.
-        hero.armor += Math.max(readerSum(draft, combatantRef(heroId), 'round_start', 'armor'), 0)
+        hero.armor += Math.max(readerSum(draft, combatantRef(heroId), 'round_start', 'armor_gain'), 0)
       }
       // The Armor wipe is the Party's alone; the duration tick is every
       // combatant's. Running upkeep after the grant keeps Fortified's D-019
@@ -736,7 +736,7 @@ function consumeCountersForSlot(draft: EncounterState, entityId: string, card: C
 // Counters that answer a fired Slot with bonus Boss damage through an authored
 // Reader rather than through graded consumption.
 function slotFiredCounterActions(draft: EncounterState, entityId: string): EncounterActionInput[] {
-  const bonus = readerSum(draft, combatantRef(entityId), 'slot_fired', 'boss_damage')
+  const bonus = readerSum(draft, combatantRef(entityId), 'slot_fired', 'damage_to_boss')
   if (bonus <= 0 || draft.bossId === entityId) {
     return []
   }
@@ -794,8 +794,8 @@ function spendCardReaders(
 }
 
 // `scale`: every held Counter adds `per` to one of the Card's effects. The
-// effect names come from the enum Charge Modifiers already use, so no new
-// effect vocabulary arrives with the Reader vocabulary.
+// effect names are the card-output vocabulary Charge Modifiers share (D-056):
+// each names the Card quantity it raises, never the event a Counter bends.
 function applyScaleReaders(
   catalog: ContentCatalog,
   draft: EncounterState,
@@ -809,16 +809,16 @@ function applyScaleReaders(
     }
     const bonus = reader.per * readerCount(catalog, draft, reader, readerSubject(action, card.target_type, reader.on))
     switch (reader.effect) {
-      case 'armor':
+      case 'armor_gain':
         effects.armor += bonus
         break
-      case 'healing':
+      case 'health_restored':
         effects.healing += bonus
         break
-      case 'boss_damage':
+      case 'damage_to_boss':
         effects.bossDamage += bonus
         break
-      case 'target_damage':
+      case 'damage_to_target':
         effects.targetDamage += bonus
         break
     }
@@ -837,8 +837,8 @@ function applyDamage(
   // Weakened lowers what it deals at `-1` a Counter, the target's Sundered
   // raises what it takes at `+1`. Both resolve before mitigation, so Armor
   // still answers the number the Party can read.
-  const dealtDelta = sourceId === '' ? 0 : readerSum(draft, combatantRef(sourceId), 'host_deals_damage', 'target_damage', damageKeywords)
-  const takenDelta = readerSum(draft, combatantRef(targetId), 'host_takes_damage', 'target_damage', damageKeywords)
+  const dealtDelta = sourceId === '' ? 0 : readerSum(draft, combatantRef(sourceId), 'host_deals_damage', 'damage_dealt', damageKeywords)
+  const takenDelta = readerSum(draft, combatantRef(targetId), 'host_takes_damage', 'damage_taken', damageKeywords)
   const requested = Math.max(amount + dealtDelta + takenDelta, 0)
   // Armor is the only mitigation there has ever been: the old per-Counter
   // `damageReduction` field was never set by anything and left with D-047.

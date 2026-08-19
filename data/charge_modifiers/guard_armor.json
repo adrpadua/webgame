@@ -3,6 +3,6 @@
   "title": "Guard Reinforcement",
   "rules_text": "Gain 1 Armor for each charged Guard card.",
   "keyword_id": "guard",
-  "effect": "armor",
+  "effect": "armor_gain",
   "amount_per_match": 1
 }

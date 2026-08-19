@@ -6,6 +6,13 @@ Live: one validated Keyword namespace with a `kind` discriminator (§3, §7), Co
 `gate`/`scale`/`spend` Readers (§4–6), the `hex` and `slot` hosts, and event Keywords —
 Readers that answer one kind of blow.
 
+**The `effect` values in the snippets below are stale (D-056).** The shared
+enum they show was later split into two named vocabularies — card-output
+(`armor_gain`, `health_restored`, `damage_to_boss`, `damage_to_target`) and
+Counter Reader (`armor_gain`, `damage_taken`, `damage_dealt`,
+`damage_to_boss`) — so copy field shapes from here, but effect names from the
+handoff.
+
 **§1's central claim was wrong and is corrected below.** Escalation is not this pattern and
 did not become a Counter (D-048). That is the one piece of the plan that was dropped rather
 than built, and dropping it was the finding.

@@ -6,6 +6,6 @@
   "max": 30,
   "duration_rounds": 1,
   "readers": [
-    { "when": "round_start", "effect": "armor", "per": 1 }
+    { "when": "round_start", "effect": "armor_gain", "per": 1 }
   ]
 }

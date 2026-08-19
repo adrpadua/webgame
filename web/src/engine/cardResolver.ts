@@ -41,16 +41,16 @@ export function resolveFire(catalog: ContentCatalog, card: Card, chargeStack: Ca
     }
     const bonus = modifier.amount_per_match * matchingCount(modifier, chargeStack)
     switch (modifier.effect) {
-      case 'armor':
+      case 'armor_gain':
         result.armor += bonus
         break
-      case 'healing':
+      case 'health_restored':
         result.healing += bonus
         break
-      case 'boss_damage':
+      case 'damage_to_boss':
         result.bossDamage += bonus
         break
-      case 'target_damage':
+      case 'damage_to_target':
         result.targetDamage += bonus
         break
     }
