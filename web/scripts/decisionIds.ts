@@ -1,0 +1,148 @@
+// Decision-log ids, checked and assigned before a push rather than renumbered
+// after a merge.
+//
+// The log's ids are one global counter and this repo has more than one branch
+// open at a time. That combination has collided three times: D-045/046/047,
+// then D-050/051/052 taken by another branch while the first collision was
+// being renumbered, then D-057. Each time the author had read the log, taken
+// the next free number, and lost the race. `decisionLog.test.ts` catches it,
+// but only on the merged file — by then the fix is a renumber plus every
+// citation of the wrong number.
+//
+// The fix is to stop picking numbers. Write `D-NEW` in the ID column; this
+// assigns the number against the freshest state of the branch you are merging
+// into, at the moment you push. The same pass moves a number you did pick that
+// has since been taken upstream.
+//
+//   npm run log:ids           # check, and name the command that fixes it
+//   npm run log:ids -- --fix  # assign and rewrite the log
+//
+// Exit status is the gate: 0 when there is nothing to assign, 1 otherwise.
+import { execFileSync } from 'node:child_process'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { DECISION_PLACEHOLDER, datedRowCount, parseDecisionRows, planDecisionIds } from '../src/content/decisionIds'
+
+const LOG_PATH = 'docs/content/design-decision-log.md'
+// The branch every branch here merges into. Named once rather than derived:
+// `origin/HEAD` is not set in a fresh clone, and guessing wrong would silently
+// compare against nothing and report no collisions.
+const UPSTREAM = 'origin/main'
+
+const args = process.argv.slice(2).filter((arg) => arg !== '--')
+const FIX = args.includes('--fix')
+
+const git = (...argv: string[]): string => execFileSync('git', argv, { encoding: 'utf8' }).trim()
+const repoRoot = git('rev-parse', '--show-toplevel')
+const logFile = join(repoRoot, LOG_PATH)
+
+// Best-effort refresh, and deliberately not fatal. D-056 took validation out of
+// CI because a gate that fails for reasons the author cannot act on is one
+// everybody learns to ignore, and a gate that needs the network to pass is
+// exactly that. A stale `origin/main` still catches every collision that had
+// already landed when it was last fetched, which is most of them.
+let upstreamNote = ''
+try {
+  execFileSync('git', ['fetch', '--quiet', 'origin', 'main'], { stdio: 'ignore' })
+} catch {
+  upstreamNote = ` (could not fetch; using the ${UPSTREAM} already on disk)`
+}
+
+// `git show <ref>:<path>` is the log as that ref has it, without touching the
+// working tree.
+const logAt = (ref: string): string | null => {
+  try {
+    return execFileSync('git', ['show', `${ref}:${LOG_PATH}`], { encoding: 'utf8' })
+  } catch {
+    return null
+  }
+}
+
+const upstreamLog = logAt(UPSTREAM)
+if (upstreamLog === null) {
+  // A checkout with no `origin/main` — a fresh clone of a fork, or a detached
+  // build. Nothing to compare against, so say so and pass rather than inventing
+  // an answer.
+  console.log(`log:ids: no ${UPSTREAM} in this checkout, nothing to compare against`)
+  process.exit(0)
+}
+
+// The merge base is what separates "both sides invented this number" from "both
+// sides are carrying a row that merged weeks ago". Without it every id shared
+// with upstream looks like a collision, and renumbering those would break the
+// citations the log exists to serve.
+let baseRef: string
+try {
+  baseRef = git('merge-base', 'HEAD', UPSTREAM)
+} catch {
+  console.error(`log:ids: no merge base between HEAD and ${UPSTREAM}; cannot tell a collision from a shared row`)
+  process.exit(1)
+}
+const baseLog = logAt(baseRef) ?? ''
+
+const working = readFileSync(logFile, 'utf8')
+// The parser checked against the file it is about to reason over, the same
+// self-check `decisionLog.test.ts` makes. A regex that stopped matching would
+// report nothing to assign, forever, and read as a clean gate.
+const parsed = parseDecisionRows(working)
+if (parsed.length !== datedRowCount(working)) {
+  console.error(
+    `log:ids: parsed ${parsed.length} decision rows but the log has ${datedRowCount(working)} dated rows — the row format changed and this check is no longer reading it`,
+  )
+  process.exit(1)
+}
+
+const ids = (log: string): string[] => parseDecisionRows(log).map((row) => row.id)
+const plan = planDecisionIds({ log: working, baseIds: ids(baseLog), upstreamIds: ids(upstreamLog) })
+
+if (plan.reassignments.length === 0) {
+  console.log(`log:ids: every decision id is free against ${UPSTREAM}${upstreamNote}`)
+  process.exit(0)
+}
+
+const describe = (reason: string): string =>
+  reason === 'placeholder' ? `unnumbered (${DECISION_PLACEHOLDER})` : `already taken on ${UPSTREAM}`
+for (const entry of plan.reassignments) {
+  console.log(`  ${LOG_PATH}:${entry.lineIndex + 1}  ${entry.from} -> ${entry.to}  (${describe(entry.reason)})`)
+}
+
+if (!FIX) {
+  console.error(`\nlog:ids: ${plan.reassignments.length} decision id(s) need assigning${upstreamNote}. Run: cd web && npm run log:ids -- --fix`)
+  process.exit(1)
+}
+
+writeFileSync(logFile, plan.log)
+
+// A row this branch authored can be cited by the same branch's own prose, so a
+// reassignment has to carry those with it. Restricted to files this branch
+// changed: an id being reassigned is one this branch invented, so nothing
+// outside its own diff can legitimately mean it, and a repo-wide replace would
+// rewrite upstream citations of upstream's row of the same number.
+const changed = git('diff', '--name-only', `${baseRef}...HEAD`)
+  .split('\n')
+  .filter((name) => name !== '' && name !== LOG_PATH)
+const moved: string[] = []
+for (const name of changed) {
+  const path = join(repoRoot, name)
+  let text: string
+  try {
+    text = readFileSync(path, 'utf8')
+  } catch {
+    continue // deleted on this branch, or not a text file we can read
+  }
+  let updated = text
+  for (const entry of plan.reassignments) {
+    if (entry.from !== DECISION_PLACEHOLDER) {
+      updated = updated.split(entry.from).join(entry.to)
+    }
+  }
+  if (updated !== text) {
+    writeFileSync(path, updated)
+    moved.push(name)
+  }
+}
+
+console.log(`\nlog:ids: assigned ${plan.reassignments.length} id(s) in ${LOG_PATH}${upstreamNote}`)
+if (moved.length > 0) {
+  console.log(`log:ids: carried the new ids into ${moved.join(', ')}`)
+}
