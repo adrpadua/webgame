@@ -16,8 +16,10 @@ Context: [Fixed hero powers and command zones research note](../research/2026-08
 8. **Earned charges persist across Rounds** up to `max_charge: 2`, with no expiry. Overcap is the waste: a perfect block while full earns nothing.
 9. **No repetition tax.** The authored Tank Hit cadence is the rate limiter.
 10. **Migration numbers are Shield Slam's own**: base `3` Boss damage, `+2` per charge, Quick.
+11. **`Iron Guard` fills Shield Slam's two slots** (×6 → ×8). Guard density *is* the earn rate — Armor sized to the incoming Tank Hit is what produces zero-loss blocks, so the same card now pays twice (survival + Charge) and the deck literally feeds the engine. Flagged honestly: more mitigation leans toward the stalemate wall, which Escalation exists to close; the cohort measures it. Raising `Sweeping Blow` instead was deliberately held out — it moves D-003's escalation acceleration, a lever that deserves its own change and cohort, not a rider on the migration.
+12. **The bible revision is engine-centric**: the four-part machine loop stays but its payoff relocates to the Signature, the Card Family and Elian Application tables are rewritten under that framing, the Hero Design Contract gains a Signature row, and the authoring contract below ports into the bible — every changed section marked as contingent (⏳) on this proposal's formal adoption, since the bible is active canonical guidance and the engine change has not shipped.
 
-Still open: what fills Shield Slam's two freed deck slots, and the Character Design Bible revision the new deck shape requires. Both below.
+Nothing remains open. The grilling session that produced decisions 1–12 closed its frontier on 2026-08-19.
 
 ## Problem
 
@@ -175,7 +177,7 @@ Why this is the right first increment:
 - `legality.ts` / `legalActions.ts` — refuse `prepare`/`replace`/`charge_slot` against a fixed Slot;
 - `resolve.ts` — generic Grant evaluation where the hard-coded Riposte branch sits; on a fixed Slot's fire, spend the stack and keep the Top Card;
 - `content/schemas.ts` — the `standing` array (Grant: `when`, `event_keyword`, `gates`, `grants_charge`) and `fixed`; catalog validation that only a Hero-referenced card may be `fixed`;
-- `data/` — `elian_riposte.json`, the `riposte_payback` Charge Modifier, Shield Slam's removal from the deck list.
+- `data/` — `elian_riposte.json`, the `riposte_payback` Charge Modifier, and the deck-list change in `embermaw_prototype.json`: `Shield Slam` out, `Iron Guard` to 8 (decision 11).
 
 UI: a permanent Slot must read as different from two replaceable ones on a portrait phone, and the standing clause needs a visible surface — the earn moment should be Board Feedback, not a silent state change (the failure mode Riposte Ready has today).
 
@@ -188,7 +190,10 @@ UI: a permanent Slot must read as different from two replaceable ones on a portr
 5. `npm run evaluate` against the existing Riposte baseline, watching the `7`-ceiling caveat, with D-016's rule: **any solo Boss kill is a red-flag finding.**
 6. **Earn-rate honesty:** if the cohort shows the standing clause triggering so rarely the Signature never fires (the "too tight" risk), the fallback is loosening the earn gates — never reopening hand-charging.
 
-## Remaining open decisions
+## Execution record (2026-08-19, same session)
 
-1. **What fills Shield Slam's two deck slots.** The deck's new job (setup/converter/fuel for the engine) is the selection principle. Under grilling now.
-2. **The Character Design Bible revision** — the Card Family table, the four-part machine loop, and the Elian Application table all assume the deck owns its payoffs. Being drafted in-session; lands as a bible edit once the deck shape is settled.
+Landed alongside this proposal, all guidance-side (no rules or engine change):
+
+- The [Character Design Bible](../../rules/character-design-bible.md) revised per decision 12, with ⏳ contingency markers on every changed section.
+- [elian-voss-starter.md](../decks/elian-voss-starter.md) corrected to the live JSON (it had drifted: `Steady Strike` ×8 with no `Drive Back`, while `46d2a61` had shipped ×6 plus `Drive Back` ×2), and given a pending-revision note for the Signature migration.
+- The same stale list fixed in [prototype-rules.md](../../rules/prototype-rules.md).

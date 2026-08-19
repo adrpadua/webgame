@@ -225,13 +225,14 @@ The result is shown in the top bar and board feedback. Encounter history remains
 
 ## Current Tank Starter Deck
 
-The live/default tank deck is the approved five-identity Shield Wall list, carried by `data/encounters/embermaw_prototype.json` (ADR 0020):
+The live/default tank deck is the approved six-identity Shield Wall list, carried by `data/encounters/embermaw_prototype.json` (ADR 0020):
 
-- `Steady Strike` (8 copies): deal `2` boss damage, plus `1` per charged card.
+- `Steady Strike` (6 copies): deal `2` boss damage, plus `1` per charged card.
 - `Iron Guard` (6 copies): gain `3` Armor, plus `1` per charged `Guard` card.
 - `Sweeping Blow` (2 copies): deal `2` damage to a selected adjacent Minion.
 - `Fortify` (2 copies): Slow; gain `6` Armor at the start of the next Round, landing after the Round-start wipe (D-019).
 - `Shield Slam` (2 copies): deal `3` boss damage; a legal activation consumes Riposte Ready for `+2`. Any other Boss-damage card consumes an active Riposte Ready for `+1`; cards without Boss damage never consume it.
+- `Drive Back` (2 copies): push a selected piece 2 hexes directly away from you.
 
 The full specification and card roles live in [elian-voss-starter.md](../content/decks/elian-voss-starter.md). The prior `10x Steady Strike` / `10x Iron Guard` list is historical baseline evidence only.
 
