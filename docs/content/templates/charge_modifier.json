@@ -1,0 +1,8 @@
+{
+  "id": "new_charge_modifier",
+  "title": "New Charge Modifier",
+  "rules_text": "What each matching tucked card adds to the Top Card.",
+  "keyword_id": "",
+  "effect": "armor",
+  "amount_per_match": 1
+}

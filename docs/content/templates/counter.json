@@ -1,0 +1,17 @@
+{
+  "id": "new_counter",
+  "title": "New Counter",
+  "rules_text": "What holding this Counter means, per Counter held.",
+  "keywords": [],
+  "host": "combatant",
+  "max": 1,
+  "duration_rounds": 0,
+  "readers": [
+    {
+      "when": "host_takes_damage",
+      "event_keyword": "",
+      "effect": "target_damage",
+      "per": 1
+    }
+  ]
+}

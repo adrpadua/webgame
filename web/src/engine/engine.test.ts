@@ -189,8 +189,14 @@ describe('content catalog', () => {
       drive_back: 2,
     })
     expect(catalog.encounters.embermaw_prototype.player_deck.reduce((total, entry) => total + entry.copies, 0)).toBe(20)
-    // The Signature rides the Hero, not the deck (D-064).
-    expect(catalog.encounters.embermaw_prototype.signature_card).toBe('elian_riposte')
+    // The Signature rides the Hero, not the deck (D-064) — and the Hero is
+    // authored content of their own (ADR 0034), so the printed card lives on
+    // the Hero definition and the teaching slice opts out of fielding it.
+    expect(catalog.encounters.embermaw_prototype.hero).toBe('guardian')
+    expect(catalog.heroes.guardian.signature_card).toBe('elian_riposte')
+    expect(catalog.heroes.guardian.max_health).toBe(34)
+    expect(catalog.encounters.embermaw_prototype.fields_signature).toBe(true)
+    expect(catalog.encounters.embermaw_first_turn.fields_signature).toBe(false)
     expect(catalog.cards.elian_riposte.fixed).toBe(true)
     expect(catalog.decks.aegis_controlled_test_deck.encounter).toBe('embermaw_prototype')
     expect(catalog.cards.steady_strike.draw_count).toBe(0)
@@ -327,28 +333,29 @@ describe('content catalog', () => {
           ...overrides,
         },
       })
-      // The smallest Encounter that can carry a signature_card, plus the one
-      // program it needs to reference.
+      // The smallest Hero-and-Encounter pair that can field a Signature, plus
+      // the one program the Encounter needs to reference. The printed card
+      // rides the Hero definition (ADR 0034).
       const arena = (signatureCard: string, deck: { card: string; copies: number }[]) => ({
         programs: [{ id: 'probe_program', title: 'Probe Program', instant_beats: [], incoming_beats: [] }],
         cards: [
           signature(),
           { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1 },
         ],
+        heroes: [
+          { id: 'probe_hero', title: 'Probe Hero', max_health: 10, signature_card: signatureCard },
+        ],
         encounters: [
           {
             id: 'probe_arena',
             title: 'Probe Arena',
-            primary_hero_id: 'probe_hero',
-            primary_hero_title: 'Probe Hero',
-            signature_card: signatureCard,
+            hero: 'probe_hero',
             boss_id: 'probe_boss',
             boss_title: 'Probe Boss',
             round_limit: 4,
             board_radius: 2,
             player_start: { q: 0, r: 0 },
             boss_start: { q: 0, r: -2 },
-            player_health: 10,
             boss_health: 10,
             slot_count: 2,
             hand_refill_target: 2,
@@ -406,13 +413,31 @@ describe('content catalog', () => {
         expect(() => buildCatalog(raw)).toThrow('earned Charges are tokens and carry none')
       })
 
-      it('rejects a fixed card no Encounter names, and an Encounter naming a non-fixed one', () => {
+      it('rejects a fixed card no Hero names, and a Hero naming a non-fixed one', () => {
         expect(() => buildCatalog({ ...empty, cards: [signature()] })).toThrow(
-          'is fixed but no Encounter names it as a signature card',
+          'is fixed but no Hero names it as their signature card',
         )
         const wrongCard = arena('probe_strike', [{ card: 'probe_strike', copies: 2 }])
         expect(() => buildCatalog({ ...empty, ...wrongCard })).toThrow(
-          'names probe_strike as its signature card, but that card is not fixed',
+          'names probe_strike as their signature card, but that card is not fixed',
+        )
+      })
+
+      it('rejects an Encounter fielding an unknown Hero, and a Hero naming an unknown signature card', () => {
+        const missingHero = {
+          ...arena('', [{ card: 'probe_strike', copies: 2 }]),
+          cards: [{ id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1 }],
+          heroes: [],
+        }
+        expect(() => buildCatalog({ ...empty, ...missingHero })).toThrow(
+          'references unknown hero probe_hero',
+        )
+        const ghost = {
+          source: 'data/heroes/probe_hero.json',
+          payload: { id: 'probe_hero', title: 'Probe Hero', max_health: 10, signature_card: 'no_such_card' },
+        }
+        expect(() => buildCatalog({ ...empty, heroes: [ghost] })).toThrow(
+          'Hero probe_hero (data/heroes/probe_hero.json) references unknown signature card no_such_card',
         )
       })
 
@@ -701,6 +726,7 @@ describe('content catalog', () => {
       }
       const variant = buildCatalog({
         cards: [...Object.values(catalog.cards), authored],
+        heroes: Object.values(catalog.heroes),
         keywords: Object.values(catalog.keywords),
         chargeModifiers: Object.values(catalog.chargeModifiers),
         hazards: Object.values(catalog.hazards),
@@ -1126,6 +1152,7 @@ describe('Authored Beat reach', () => {
   function rebuild(source: typeof catalog) {
     return buildCatalog({
       cards: Object.values(source.cards),
+      heroes: Object.values(source.heroes),
       keywords: Object.values(source.keywords),
       chargeModifiers: Object.values(source.chargeModifiers),
       hazards: Object.values(source.hazards),
@@ -2843,15 +2870,15 @@ describe('Consequence Tier ladder (D-021, ADR 0031)', () => {
     // down a Hero" depends on accumulated attrition — measured at 9.7 average
     // health entering Phase II against a 34 maximum, which would make nearly
     // every Beat severe by the late Rounds and the tier meaningless.
-    const encounter = catalog.encounters.embermaw_prototype
+    const heroHealth = catalog.heroes[catalog.encounters.embermaw_prototype.hero].max_health
     for (const { beat } of everyBeat) {
       if (beat.consequence_tier !== 'severe') {
         continue
       }
-      const lethalFromFull = beat.damage + beat.unguarded_bonus >= encounter.player_health
+      const lethalFromFull = beat.damage + beat.unguarded_bonus >= heroHealth
       expect(
         lethalFromFull || beat.escalation_if_unanswered > 0,
-        `${beat.id} is authored severe but neither downs a Hero from full health (${beat.damage}+${beat.unguarded_bonus} vs ${encounter.player_health}) nor adds Escalation`,
+        `${beat.id} is authored severe but neither downs a Hero from full health (${beat.damage}+${beat.unguarded_bonus} vs ${heroHealth}) nor adds Escalation`,
       ).toBe(true)
     }
   })
@@ -2873,7 +2900,7 @@ describe('Consequence Tier ladder (D-021, ADR 0031)', () => {
     ])
     expect(severe.every(({ beat }) => beat.escalation_if_unanswered > 0)).toBe(true)
     const worst = Math.max(...everyBeat.map(({ beat }) => beat.damage + beat.unguarded_bonus))
-    expect(worst).toBeLessThan(catalog.encounters.embermaw_prototype.player_health)
+    expect(worst).toBeLessThan(catalog.heroes[catalog.encounters.embermaw_prototype.hero].max_health)
   })
 
 })
@@ -3065,6 +3092,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
       ]
       const raw = {
         cards: Object.values(catalog.cards),
+        heroes: Object.values(catalog.heroes),
         keywords: Object.values(catalog.keywords),
         chargeModifiers: Object.values(catalog.chargeModifiers),
         hazards: Object.values(catalog.hazards),
@@ -3085,6 +3113,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
       ]
       const raw = {
         cards: Object.values(catalog.cards),
+        heroes: Object.values(catalog.heroes),
         keywords: Object.values(catalog.keywords),
         chargeModifiers: Object.values(catalog.chargeModifiers),
         hazards: Object.values(catalog.hazards),

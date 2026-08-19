@@ -1,0 +1,8 @@
+{
+  "id": "new_hazard",
+  "title": "New Hazard",
+  "rules_text": "What standing on or entering this ground costs.",
+  "duration_rounds": 1,
+  "enter_damage": 1,
+  "blocks_voluntary_movement": false
+}

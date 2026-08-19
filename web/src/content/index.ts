@@ -11,7 +11,7 @@ export const FIRST_TURN_ENCOUNTER_ID = 'embermaw_first_turn'
 
 // Loads every authored JSON payload from the repo-level data/ directory
 // (ADR 0020). Validation happens inside buildCatalog via the zod schemas.
-const modules = import.meta.glob('../../../data/{cards,keywords,charge_modifiers,hazards,minions,counters,boss_programs,encounters,decks,scenarios}/*.json', {
+const modules = import.meta.glob('../../../data/{cards,heroes,keywords,charge_modifiers,hazards,minions,counters,boss_programs,encounters,decks,scenarios}/*.json', {
   eager: true,
   import: 'default',
 }) as Record<string, unknown>
@@ -32,6 +32,7 @@ export function loadCatalog(): ContentCatalog {
   if (cachedCatalog === null) {
     cachedCatalog = buildCatalog({
       cards: group('cards'),
+      heroes: group('heroes'),
       keywords: group('keywords'),
       chargeModifiers: group('charge_modifiers'),
       hazards: group('hazards'),

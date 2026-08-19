@@ -35,7 +35,7 @@ Our adaptation is spatial and mobile-first: the Action Bar and Charge Stack are 
 
 ## Hero Design Contract
 
-Every authored Hero must name the following before its deck grows beyond the teaching slice.
+Every authored Hero must name the following before its deck grows beyond the teaching slice. Once the contract is answered on paper, the authoring surface is `data/heroes/` plus the deck's files, walked end to end in [authoring-a-new-hero.md](../content/authoring-a-new-hero.md).
 
 | Element | Required statement | Design test |
 | --- | --- | --- |
