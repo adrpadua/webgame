@@ -1,0 +1,12 @@
+{
+  "id": "heat",
+  "title": "Heat",
+  "rules_text": "Embermaw deals 1 more damage for each Heat it is carrying. It does not cool on its own.",
+  "keywords": [],
+  "host": "combatant",
+  "max": 4,
+  "duration_rounds": 0,
+  "readers": [
+    { "when": "host_deals_damage", "event_keyword": "", "effect": "target_damage", "per": 1 }
+  ]
+}

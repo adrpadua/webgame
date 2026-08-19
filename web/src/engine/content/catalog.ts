@@ -370,6 +370,21 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       // answer it. Left to the schema default a cone would collapse to nothing
       // and a proximity demand would be unanswerable from any hex — both silent
       // failures, both content-shaped, and neither one a type error.
+      // A Beat kind that exists to place a Counter has to name one, and a
+      // Beat that names one without being that kind is authoring an effect
+      // nothing will run (D-051).
+      if (beat.kind === 'place_counter' && beat.counter === '') {
+        throw new Error(`Boss Beat ${beat.id} is a place_counter but names no counter`)
+      }
+      if (beat.kind !== 'place_counter' && beat.counter !== '') {
+        throw new Error(`Boss Beat ${beat.id} names counter ${beat.counter} but is a ${beat.kind}, which never places one`)
+      }
+      if (beat.counter !== '' && !catalog.counters[beat.counter]) {
+        throw new Error(`Boss Beat ${beat.id} references unknown counter ${beat.counter}`)
+      }
+      if (beat.counter !== '' && catalog.counters[beat.counter]?.host !== 'combatant') {
+        throw new Error(`Boss Beat ${beat.id} places ${beat.counter}, which is hosted on a ${catalog.counters[beat.counter]?.host}; a Beat marks combatants`)
+      }
       if (RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles < 1) {
         throw new Error(`Boss Beat ${beat.id} is a ${beat.kind} but authors no range_tiles`)
       }

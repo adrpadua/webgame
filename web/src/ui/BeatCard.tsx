@@ -24,7 +24,7 @@ import { FOCUS_RING_CLASS } from "./theme";
 // moment fires. The rules already resolved the whole track — this only paces
 // the telling.
 //
-// Making it a card is also what a board-game port needs (D-052): if a Beat is
+// Making it a card is also what a board-game port needs (D-055): if a Beat is
 // going to be printed, everything resolution depends on has to be *on* it. That
 // is a real constraint on content, not just presentation, and this component is
 // where a Beat missing a printable parameter becomes visible.

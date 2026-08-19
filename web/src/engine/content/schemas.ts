@@ -111,9 +111,16 @@ export const cardReaderSchema = z.object({
   // firing Hero or the Card's chosen target and nothing else.
   on: z.enum(['self', 'target']).default('target'),
   effect: z.enum(['armor', 'healing', 'boss_damage', 'target_damage']).default('target_damage'),
-  at_least: z.number().int().min(1).default(0),
+  // These floor at 0, not 1, because 0 is what an omitted field means and a
+  // Reader only uses the one its verb needs. The real rule — a `gate` without
+  // `at_least`, a `scale` without `per`, a `spend` without `amount` is a
+  // Reader that does nothing — is a catalog check, where it can name the card.
+  // Enforcing it here instead made every default invalid, which no test caught
+  // because every test supplied all three fields by hand and no authored card
+  // used `reads` at all until Quench.
+  at_least: z.number().int().min(0).default(0),
   per: z.number().int().default(0),
-  amount: z.number().int().min(1).default(0),
+  amount: z.number().int().min(0).default(0),
   // A cost is paid before the Card's effects are computed and is not refunded
   // if they come to nothing; a resolution spend happens after. The difference
   // is visible whenever a Card both scales off a Counter and spends it.
@@ -190,8 +197,17 @@ export const bossBeatSchema = z.object({
     'hazard_last_impact',
     'forward_cone',
     'spawn_minions',
+    'place_counter',
   ]),
   answer_tags: z.array(z.string()).default([]),
+  // What a `place_counter` Beat places, and where (D-051). `self` is the Boss
+  // marking itself — pressure the party can see accruing and choose to spend
+  // cards suppressing — and `hero` is the Boss marking the Party, which is the
+  // half Counters were missing: they could mark the Boss and it could not mark
+  // back.
+  counter: z.string().default(''),
+  counter_amount: z.number().int().min(1).default(1),
+  counter_target: z.enum(['self', 'hero']).default('self'),
   // Consequence Tier (ADR 0031). It once set the earliest horizon a Beat could
   // appear in, which the Forecast Row's removal retired. What it sets now is
   // where a Beat may *open*: `severe` marks a Beat that can end a run, and no

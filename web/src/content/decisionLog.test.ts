@@ -12,6 +12,14 @@ import { describe, expect, it } from 'vitest'
 // Git cannot catch this. The rows do not overlap textually, so both sides apply
 // cleanly and the merge is silent. The only thing that can catch it is a check
 // on the merged file, which is this.
+//
+// It then happened again, within the hour, to the branch fixing the first one.
+// While D-045/046/047 were being renumbered to D-050/051/052, another branch
+// merged and took D-050/051/052. This test caught it on its own first CI run —
+// the fix had to move again, to D-053/054/055. Two collisions in one hour is
+// the measurement: concurrent branches picking the next free number is not a
+// rare accident here, it is the normal case, and nothing but a check on the
+// merged file will ever see it.
 
 // Read through Vite's glob rather than `node:fs`, the same way the content
 // loader reaches `data/`: this file is compiled under the browser tsconfig,

@@ -34,7 +34,7 @@ export function findLiveBeat(
 // what it does to you, then where it reaches, then what it leaves behind, then
 // what it costs to ignore.
 //
-// This list is the board-game port's authoring gate (D-052). A Beat whose
+// This list is the board-game port's authoring gate (D-055). A Beat whose
 // resolution consults something not printed here cannot be put on a card, so a
 // new field that changes an outcome and never appears in this function is a
 // defect in the port even while the digital game plays correctly.
