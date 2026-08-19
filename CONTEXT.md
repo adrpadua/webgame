@@ -258,6 +258,30 @@ _Avoid_: Ready, Full, Activated, Locked
 The player's currently available cards, presented as compact cards in the bottom interaction zone of the portrait combat HUD. Four is the normal end-of-Round refill target, not a hard maximum; the authored First Turn Encounter refills to five so the scripted Round can spend one card on every gesture it teaches.
 _Avoid_: Hand row, card tray
 
+**Material**:
+The unit the interface's colour language is built from: a named substance with one job, such as runeglass for projected information, living gold for anything the player operates, ember for damage taken, ember coral for the Boss's own body. Colour names a material and never a decoration, so a surface that needs a new colour has almost always chosen the wrong material. A material is not a single value — it carries a ramp, and picks its step from the ground it sits on. It binds the board as well as the chrome.
+_Avoid_: Colour, theme colour, brand colour, swatch
+
+**Plate**:
+The surface every piece of chrome is made of: a parallelogram raked from vertical with its leading corner notched out, carrying an `Accent` along the full cut. Slots, prompts, cards, rails, modals and the Hero Frame are all plates; the rake is their silhouette, which is why a plate is never given a rounded corner. Its depth is derived from its own height rather than chosen, so a plate wears the rake its size implies. Presentation only.
+_Avoid_: Panel, card, box, tile
+
+**Face**:
+A `Plate`'s body, stated as a `Material`. The face is one of the two channels a plate reports state on: steel is the resting body, dim is inert — fired, or waiting on another window — and a lit face in gold, coral, glass or ceramic says the plate is live, the Boss's, a player affordance, or a readout. A lit face always takes that material's own darkest step as its ink.
+_Avoid_: Background, fill, surface colour
+
+**Accent**:
+The band running the full length of a `Plate`'s leading cut, and the interface's status channel. Gold says live — this can fire, or this is the move. Ember says irreversible. Runeglass says a player affordance is being offered. Signal cloth says the role channel. Absent says there is no status to report. Every plate speaks it, which is what lets state be read across the whole surface without reading any label.
+_Avoid_: Border, highlight, edge, trim
+
+**Band**:
+A full-width horizontal division of the play surface that owns its own height — the phase band, the Action Bar, the Hand. A band displaces the board rather than covering it, so adding or removing one resizes the play field; that is the reason bands are fixed for an Encounter and nothing may become one mid-fight. Anything that comes and goes is an overlay instead, and floats.
+_Avoid_: Row, strip, section, toolbar
+
+**Notification Zone**:
+One of the three lanes every floating surface lands in: `guidance` over the top hexes for teaching the player may ignore, `stage` in the middle for one announcement at a time, `dock` against the Action Bar for anything asking for a tap on the controls just below it. The zones are siblings of one column, so no two members can share a pixel and a surface arriving or leaving never resizes the board. The dock's floor is the `Hero Frame`'s top edge. Which zone a member belongs to is settled centrally, not by the order surfaces are written.
+_Avoid_: Toast area, overlay layer, popup stack
+
 **Compact Card**:
 A hand-sized card that exposes only what the card is for in the current window, for rapid scanning. It is not the canonical full-card reading surface. In the `Loadout Step` — and in the Boss rows, where it is inert — it shows the card as a prospective Top Card: name, timing, and Charge Value. In either player window it shows the card's `Keywords` instead, because tucking and moving are the only things a hand card does there and neither reads its timing or Charge Value; a Keyword a loaded Top Card's `Charge Modifier` would pay off is marked as live. While a move is being lined up — held over a hex the Hero could enter, with nothing committed — it shows one `Stamina` mark and nothing else, because the question there is only whether a step is available and any card answers it. Once a destination is committed and the Hand is offering to pay for it, the Keyword face returns: that question is which card to burn, and the live Keywords are what make one of them the wrong answer. Presentation only: which face is showing is derived from the phase and the in-flight gesture, and creates no legal action.
 _Avoid_: Full card, tooltip card

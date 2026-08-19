@@ -375,11 +375,39 @@ Two consequences:
 
 The board keeps tiles clean until tapped. Board-first layout argues for health on the token, but health bars on every token are chrome that never recedes, and with two or three pieces the tap cost is low. **Revisit when the multi-Hero party model lands** — Engineering rank 6 — and four friendly pieces have health that matters at once.
 
+## Typography
+
+Settled August 2026, and settled the way the palette was: by transcribing what shipped and then narrowing it, not by picking a scale off a shelf. Seven steps.
+
+| Step | Size | Carries |
+| --- | --- | --- |
+| `micro` | 9px | Eyebrows, demoted card names, the Beat Card's track label |
+| `chip` | 10px | Chip words, subtitles, stat lines, deck and discard counts |
+| `label` | 11px | The Hero Frame's name, the Round mark, dock titles |
+| `body-sm` | 12px | Slot titles, toasts, prompts |
+| `body` | 14px | Beat titles, modal prose |
+| `title` | 18px | Headings inside a modal |
+| `banner` | 24px | The outcome banner, and nothing else |
+
+Nine steps shipped before this; two were singletons and both lived in the How to Play guide. 8px folded into `micro`, 16px into `title` — folding it down to `body` instead would have left the guide's heading the same size as its own body text, which is the one surface with room to keep a hierarchy.
+
+**The 9/10/11 cluster is deliberate and is not a candidate for merging.** Three sizes within three pixels looks like drift and is not: 9px is the demoted register, 10px is the counted register, 11px is the named register, and each is applied consistently. Collapsing them would be a redesign wearing a cleanup's clothes.
+
+There is no light or regular weight anywhere: at these sizes on a dark ground nothing under 600 survives. **Black is rationed** to words sitting on a lit face, where the ink is that face's own 950 step.
+
+An ESLint rule refuses a new arbitrary `text-[Npx]` outside the seven, for the same reason the padding rule got a browser check — this line has already failed to hold on documentation alone.
+
+## Spacing
+
+Tailwind's default scale is the system. Deliberately not narrowed: unlike typography it shows no evidence of harm — no truncation, no collision, no contradiction — and a rule with no defect behind it is ceremony. What did bite is the escape hatch, so arbitrary `gap-[Npx]` and its siblings are refused by the same lint rule that guards the type ramp. Use a scale step or change the design.
+
 ## What This Does Not Decide
 
-Typography for the game itself, status-effect iconography, and motion beyond the Full seat are all open. The Layout section above decides how much of the frame the board gets and what may float over it, but not what the board itself draws.
+Status-effect iconography is open, and stays open on purpose: there are no status-effect icons because there is no authored status effect that needs one, so deciding now would be inventing rather than describing. Motion beyond the set in the Motion section is open on the same terms.
 
-So is the board's own rendering, and it is not a blank slate. Telegraphs and hazards already have canon — pattern projectors in runeglass, hazards in ember coral — but the board also carries an inherited tint language documented in [art-prompts/board-and-tiles.md](art-prompts/board-and-tiles.md): the hover tile is green and the target tile is orange, applied as runtime `modulate` rather than baked into the art. Both sit outside this palette, and the orange target is close enough to ember to be a real collision — ember is supposed to mean *this hurts you*, and a target marker means the opposite. Reconciling that needs a pass against the Phaser scene, which draws on a different surface under different constraints than the React chrome, and which cannot simply inherit these values.
+The Layout section decides how much of the frame the board gets and what may float over it, but not what the board itself draws. Board implementation — tint application, lighting angles, sprite pipeline, pixel scale, geometry — belongs to [oathcraft-board-direction.md](oathcraft-board-direction.md), as the ownership split above states.
+
+**The board's colour is not open, and no longer sits outside this palette.** An earlier version of this section described an inherited tint language — a green hover tile and an orange target tile applied as runtime `modulate` — and called the orange target a real collision with ember, since ember means *this hurts you* and a target marker means the opposite. That reconciliation has happened. `web/src/board/palette.ts` reads the same token table as the chrome: the target marker is runeglass, matching the Colour Resolves In Two Steps table above, and the file states in its own words that *"there is no green on the board, because green names no material."* The Phaser surface draws under different constraints than the React chrome, but it takes its colour from here.
 
 ## Review Checklist
 
@@ -399,3 +427,5 @@ Before approving a new interface element, ask:
 - If it moves continuously, does it apply uniformly and carry no state?
 - If it is persistent, is it useful in every phase — or should it recede in the ones where it is inert?
 - Does it still read at 390 points wide?
+- Is every type size one of the seven steps, and every gap a scale step?
+- Does its content fit the box it is in — not merely its padding, but its content? A row that overflows puts a glyph inside the plate's own cut, which the padding rule cannot catch.
