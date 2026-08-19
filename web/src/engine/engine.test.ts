@@ -1016,6 +1016,25 @@ describe('Authored Beat reach', () => {
     expect(() => rebuild(missing)).toThrow(/authors no range_tiles/)
   })
 
+  it('refuses priced Beats of one kind that ask different questions', () => {
+    // The Round-end step prices one demand per kind — the dearest priced Beat
+    // in the pool, asking *its* question — so two priced Beats of a kind that
+    // disagree mean one of them is authored with a price and silently never
+    // billed. Both halves of the rule, because the two fields fail differently:
+    // a second reach bills the party at a distance the cheaper Beat never asked
+    // about, and a second Counter leaves the cheaper Counter uncharged.
+    const twoReaches = structuredClone(catalog)
+    const proximity = twoReaches.programs.embermaw_brood.incoming_beats.find((beat) => beat.kind === 'demand_proximity')!
+    proximity.range_tiles = 2
+    expect(() => rebuild(twoReaches)).toThrow(/disagree on range_tiles/)
+
+    const twoCounters = structuredClone(catalog)
+    const heat = twoCounters.programs.embermaw_embers.instant_beats.find((beat) => beat.kind === 'place_counter')!
+    twoCounters.counters.chill = { ...twoCounters.counters[heat.counter], id: 'chill' }
+    twoCounters.programs.embermaw_hunt.instant_beats.push({ ...heat, id: 'stoke_elsewhere', counter: 'chill' })
+    expect(() => rebuild(twoCounters)).toThrow(/disagree on counter/)
+  })
+
   it('refuses a reach on the hit that footwork cannot answer', () => {
     // The other half of the rule, and the one worth stating as content rather
     // than trusting to nobody trying it. Raking Claw is deliberately rangeless

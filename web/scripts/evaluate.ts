@@ -102,6 +102,19 @@ interface PolicyKnobs {
 const QUENCH_COUNTER = catalog.cards.quench.reads.find((reader) => reader.verb === 'spend')?.counter ?? ''
 const QUENCH_THRESHOLD = catalog.counters[QUENCH_COUNTER]?.max ?? 0
 
+// Every Counter a priced `place_counter` Beat places, which is exactly the set
+// `peakCtr` is a diagnostic about. Naming the set matters: an earlier version
+// measured the peak of every Counter but Riposte, which meant a `turtle` run
+// reported `5.20` off its own Fortified stack while the Counter the demand
+// actually prices sat at 2 — a column that answered a different question than
+// its own comment claimed, which is the failure it exists to catch.
+const PRICED_COUNTERS = new Set(
+  Object.values(catalog.programs)
+    .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
+    .filter((beat) => beat.kind === 'place_counter' && beat.escalation_if_unanswered > 0)
+    .map((beat) => beat.counter),
+)
+
 const MOVE_FUEL_ORDER = ['grow_presence', 'anchor_presence', 'gather_strength', 'fortify', 'sweeping_blow', 'strike_hex', 'shield_slam', 'iron_guard']
 const isGuardTagged = (cardId: string): boolean => catalog.cards[cardId].tags.includes('guard')
 
@@ -120,7 +133,7 @@ interface RunMetrics {
   rejected: number
   minionsKilled: number
   burntHexes: number
-  peakBossCounters: number
+  peakPricedCounter: number
   countersSpent: number
 }
 
@@ -477,24 +490,26 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     }
   }
 
-  // The highest a Boss-placed Counter ever got, across the whole run. A Counter
+  // The highest a priced Counter ever got, across the whole run. A Counter
   // demand is priced at the cap (ADR 0027), so this is the reading that says
   // whether that price is reachable at all: if a run this long can never stack
   // past 2 on a Counter capped at 4, the demand is authored but dead, and every
   // aggregate downstream of it would show "no change" for a reason that has
   // nothing to do with whether the mechanic works.
-  let peakBossCounters = 0
+  let peakPricedCounter = 0
   for (const fact of facts) {
     if (!fact.succeeded) {
       continue
     }
     const event = readCounterEvent(fact.resolutionFact as Record<string, unknown> | undefined)
-    if (event !== null && event.counterId !== 'riposte_ready' && event.count > peakBossCounters) {
-      peakBossCounters = event.count
+    if (event !== null && PRICED_COUNTERS.has(event.counterId) && event.count > peakPricedCounter) {
+      peakPricedCounter = event.count
     }
   }
 
-  // Counters the party actually drew off, summed. `reactive_quench` is a policy
+  // Counters the party actually drew off through a Card's `spend` reader,
+  // summed — Riposte's consumption runs a different path and is reported by its
+  // own columns. `reactive_quench` is a policy
   // that can silently decline to react — a swap that never fires reads exactly
   // like `dual_steady` in every other column, which is how a dead instrument
   // gets mistaken for a null result. This is the column that tells them apart.
@@ -539,7 +554,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     rejected,
     minionsKilled,
     burntHexes,
-    peakBossCounters,
+    peakPricedCounter,
     countersSpent,
   }
 }
@@ -612,7 +627,7 @@ for (const knobs of variants) {
     escalation: avg((run) => run.escalation),
     escFromAdds: avg((run) => run.escalationFromDemands),
     whelpKills: avg((run) => run.minionsKilled),
-    peakCtr: avg((run) => run.peakBossCounters),
+    peakCtr: avg((run) => run.peakPricedCounter),
     ctrSpent: avg((run) => run.countersSpent),
     burnt: avg((run) => run.burntHexes),
     bossDmg: avg((run) => run.bossDamage),

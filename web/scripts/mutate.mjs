@@ -138,6 +138,13 @@ const MUTATIONS = [
     to: 'if (false && RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles < 1) {',
   },
   {
+    name: 'priced Beats of one kind may ask different questions',
+    guards: 'ADR 0027: the Round-end step prices one demand per kind, so a second question is a silent drop',
+    file: 'engine/content/catalog.ts',
+    from: '        if (asked.size > 1) {',
+    to: '        if (false && asked.size > 1) {',
+  },
+  {
     name: 'the undodgeable hit may quietly gain a reach',
     guards: 'D-017: Raking Claw is the hit footwork cannot answer',
     file: 'engine/content/catalog.ts',
