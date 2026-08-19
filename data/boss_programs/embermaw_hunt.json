@@ -68,16 +68,6 @@
       "damage": 5,
       "duration_rounds": 1,
       "hazard": "scorched"
-    },
-    {
-      "id": "lane_warning",
-      "title": "Hold the Front",
-      "rules_text": "Mitigate the claw, then clear the cone.",
-      "kind": "warning",
-      "counter_tags": [
-        "Mitigate"
-      ],
-      "consequence_tier": "chip"
     }
   ]
 }

@@ -53,16 +53,6 @@
       "damage": 10,
       "duration_rounds": 1,
       "hazard": "scorched"
-    },
-    {
-      "id": "ash_warning",
-      "title": "Keep a Safe Hex",
-      "rules_text": "Scorched ground blocks voluntary movement. Leave yourself somewhere to stand.",
-      "kind": "warning",
-      "counter_tags": [
-        "Move"
-      ],
-      "consequence_tier": "chip"
     }
   ]
 }

@@ -781,7 +781,14 @@ try {
     'the opening prompt arms before any beat has played',
   )
   const promptText = await page.locator('[data-testid="playout-continue"]').textContent()
-  assert((promptText ?? '').includes('Continue'), `the playout pauses on a Continue prompt (${promptText?.trim()})`)
+  // The property, not the wording. This used to assert the literal word
+  // "Continue", which made the prompt's label load-bearing: the bar became a
+  // Beat card and the verb became "Resolve", and a test that had nothing to
+  // say about pacing failed. What pausing actually means is that a prompt is
+  // up and it names the Beat the press will play — which the loop below then
+  // holds against what really lights.
+  const armed = (await page.locator('[data-testid="playout-continue"]').getAttribute('data-next-beat')) ?? ''
+  assert(armed !== '', `the playout pauses on a prompt naming the beat it will play (${promptText?.trim()})`)
   // The prompt is a trailer, not a caption: the beat it names is the beat
   // the press plays. Naming the beat already on the board made every press
   // read as a skip, so hold each promise against what actually lights. The
@@ -797,6 +804,14 @@ try {
     presses += 1
     assert(promised !== '', `Continue prompt ${presses} names the beat it will play`)
     assert((await prompt.textContent())?.includes(promised), `prompt ${presses} shows that beat's name (${promised})`)
+    // The card resolved the prompt to a real authored Beat rather than falling
+    // back to a bare title. The fallback exists so a card can never throw, and
+    // this is what stops it becoming the silent normal case — a degraded card
+    // still looks like a card, so nothing else would notice.
+    assert(
+      ((await prompt.getAttribute('data-beat-id')) ?? '') !== '',
+      `card ${presses} found the authored Beat behind "${promised}", not just its title`,
+    )
     await prompt.click()
     const playing = ((await page.locator('[data-testid="beat-chip"][data-playing="true"]').first().textContent()) ?? '').trim()
     assert(playing === promised, `Continue ${presses} plays the beat it promised (promised ${promised}, played ${playing})`)
