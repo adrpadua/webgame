@@ -1,17 +1,25 @@
 #!/usr/bin/env bash
-# The browser half of the pre-merge gate, run where a browser actually is.
+# The whole pre-merge gate, run where the code already is.
 #
-# The smoke suite is the only coverage for the 390x844 portrait contract, the
-# 44px target contract, the notification zones, and deterministic record
-# replay through a real browser. It used to run in CI and could not be relied
-# on there: `playwright install --with-deps` shells out to apt-get on a hosted
-# runner, and a slow Ubuntu mirror turned the check red for reasons no author
-# could act on. A gate that fails for reasons you cannot fix is one everybody
-# learns to ignore, which is worse than not having it.
+# There is no CI validation any more. `.github/workflows/` deploys the
+# Workbench to Pages and does nothing else; everything that decides whether a
+# change is good lives in the repository as scripts, and `npm run verify:local`
+# is the one that runs all of them.
 #
-# So it runs here, before the push that a pull request is opened from. The
-# machine already has a browser, the run is a couple of minutes, and a failure
-# is always about the diff.
+# The history is worth keeping, because it is the argument. The browser suite
+# went first: `playwright install --with-deps` shells out to apt-get on a
+# hosted runner, and a slow Ubuntu mirror turned the check red for reasons no
+# author could act on. A gate that fails for reasons you cannot fix is one
+# everybody learns to ignore, which is worse than not having it. The
+# replacement was a self-hosted runner, which is a machine that can be off — a
+# gate whose honesty depends on somebody's laptop being awake. The rest
+# followed for the same reason: a check you can run yourself, in one command,
+# is a check you can trust and fix.
+#
+# What the gate covers, in the order it runs: a browser is present, the Vitest
+# suite, lint (which includes the engine-purity boundary rule), the production
+# build, the browser smoke suite, and the mutation audit. Cheapest first, so a
+# broken diff fails in seconds rather than minutes.
 #
 # Install with: cd web && npm run hooks:install
 # Skip one push with: git push --no-verify
@@ -34,9 +42,5 @@ if [ ! -d node_modules ]; then
   exit 1
 fi
 
-# Fail on a missing browser here, with the command that fixes it, rather than
-# letting the build run for a minute and then dying inside Playwright.
-node scripts/check-browser.mjs
-
-echo "pre-push: running the browser gate (npm run verify:local)"
+echo "pre-push: running the full gate (npm run verify:local)"
 npm run verify:local

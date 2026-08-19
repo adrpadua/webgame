@@ -16,13 +16,18 @@ npm run lint     # includes the engine-purity boundary rule
 npm run build
 npm run hooks:install    # once per clone: installs the pre-push gate below
 node scripts/check-browser.mjs   # is the browser this repo pins installed?
-npm run verify:local     # build + smoke. The browser half of the gate: the
-                         # scripted first turn, ordinary round play, Scenario
-                         # replay, time travel, headless record verification,
-                         # the notification zones, and a 390x844 portrait
-                         # guard (whole board on screen, 44px targets, no
-                         # scroll). Runs automatically on push once the hook
-                         # is installed; `git push --no-verify` skips it.
+npm run mutate   # the mutation audit: reintroduce each documented rule's
+                 # defect and fail if the suite does not notice
+npm run verify:local     # THE GATE. Everything above in one command, cheapest
+                         # first: browser check, tests, lint, build, smoke,
+                         # mutation audit. There is no CI validation — this is
+                         # it. Runs automatically on push once the hook is
+                         # installed; `git push --no-verify` skips it.
+                         # The smoke half covers the scripted first turn,
+                         # ordinary round play, Scenario replay, time travel,
+                         # headless record verification, the notification
+                         # zones, and a 390x844 portrait guard (whole board on
+                         # screen, 44px targets, no scroll).
 npm run headless -- --scenario embermaw_solo_ceiling   # headless Scenario run
 npm run headless -- --replay <record.json>             # verify a v2 record
 npm run film -- --shot hazard   # after build: film a board effect frame by
@@ -57,22 +62,23 @@ Output lands in `web/film/<shot>/` and is ignored by git.
 ## Play on an iPad (or any device)
 
 The Workbench is a fully static build, so it deploys to GitHub Pages via
-`.github/workflows/deploy-workbench.yml` after every merge to `main`. Pull
-requests run the test, mutation-audit, lint, and build gates on a hosted
-runner, and the browser smoke on a **self-hosted** one labelled `playwright`
-that has Chromium installed on it. Set that machine up once with
-`bash web/scripts/setup-local-runner.sh` — it registers the runner, bakes the
-browser in, installs it as a service, and sets the `SELF_HOSTED_SMOKE`
-repository variable that switches the job on. Until that variable is set the
-smoke job is skipped, because a job whose runner labels match nothing sits
-queued for 24 hours instead of failing fast.
+`.github/workflows/deploy-workbench.yml` after every merge to `main`. That
+workflow is the only one in this repository, and deploying is all it does.
 
-The smoke is not on a hosted runner because `playwright install --with-deps`
-shells out to apt-get there, and on 2026-08-18 a slow Ubuntu mirror failed the
-check for reasons no author could act on. It also still runs locally on push
-through the pre-push hook, which is deliberate belt and braces: a self-hosted
-runner is a machine that can be switched off, and the hook means a pull
-request was verified once before it existed.
+**Validation is not in CI. It is `npm run verify:local`, and it runs on push
+through the pre-push hook.** One command, one place, runnable by anyone with
+the repository checked out, and it fails for reasons about the diff.
+
+That is the end of a road worth remembering, because each step had the same
+cause. The browser suite left CI first: `playwright install --with-deps`
+shells out to apt-get on a hosted runner, and on 2026-08-18 a slow Ubuntu
+mirror wedged three runs for 14 to 24 minutes each and then failed them. A
+gate that fails for reasons you cannot act on is one everybody learns to
+ignore, which is worse than not having it. It moved to a self-hosted runner
+next — which is a machine that can be switched off, so the gate's honesty
+depended on somebody's laptop being awake, and a skipped job reports success.
+The rest followed for the same reason. A check you can run yourself, in one
+command, is a check you can trust and can fix.
 
 A pull request **from a fork never reaches the self-hosted runner** — the
 smoke job is guarded on the head repository, because that job would otherwise
