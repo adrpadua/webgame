@@ -10,7 +10,7 @@ import { Notify } from './NotificationLayer'
 import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS } from './theme'
 
 // The Stat Panel (CONTEXT.md) a tapped tile opens — Enemy-only since the
-// Hero Frame (D-058): the primary Hero's readout is persistent chrome now,
+// Hero Frame (D-065): the primary Hero's readout is persistent chrome now,
 // and tapping the Hero pulses the frame instead of opening a panel here.
 // For the Boss and Minions nothing changed: the panel follows the piece, not
 // the hex, its gauges ride the playout's staggered values, and it closes
@@ -52,7 +52,7 @@ export function EntityInspect() {
   const dismissInspect = useWorkbench((store) => store.dismissInspect)
   const entity = inspectedEntityId !== null ? state.board.entities[inspectedEntityId] : undefined
   // A defeated Minion leaves the board; its panel goes with it. A Hero never
-  // opens one — the Hero Frame is the Hero's readout (D-058) — so anything
+  // opens one — the Hero Frame is the Hero's readout (D-065) — so anything
   // that still names a Hero here (an old Scenario, a stale id) stays silent.
   if (!entity || state.heroes[entity.id] !== undefined) {
     return null

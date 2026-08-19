@@ -58,7 +58,7 @@ export function slotOutOfWindow(catalog: WorkbenchCatalog, state: EncounterState
 // this, so the two ends of the same offer can never disagree.
 export function slotTakesCharge(catalog: WorkbenchCatalog, state: EncounterState, slot: SlotState): boolean {
   // A Signature Slot never takes a hand card: its Charge is earned through
-  // its standing clause alone (D-057).
+  // its standing clause alone (D-064).
   if (slot.topCard === null || slot.fixed || slot.activatedWindow === state.phase) {
     return false
   }

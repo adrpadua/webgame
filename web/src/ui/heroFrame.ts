@@ -1,7 +1,7 @@
 import { cardChargeCap, cardWindowSpeed, type Card, type EncounterState } from '@/engine'
 import type { WorkbenchCatalog } from '@/store/workbench'
 
-// The Hero Frame's Signature control (D-058): one permanent button that is
+// The Hero Frame's Signature control (D-065): one permanent button that is
 // also the resource meter. Its face is a small closed state machine, held
 // here as a pure function so the frame and the tests read one definition —
 // the same one-predicate discipline `slots.ts` keeps for the Action Bar.
@@ -10,7 +10,7 @@ import type { WorkbenchCatalog } from '@/store/workbench'
 //            fired: the button ignites and a tap fires the Slot.
 //   spent  — fired in the open window; it relights when the window turns.
 //   banked — Charges held while the Signature's window is closed. The bank
-//            read (D-057 decision 13) lives here: the player sees a held
+//            read (D-064 decision 13) lives here: the player sees a held
 //            stack through the windows it cannot act in.
 //   empty  — no Charges. The visibly unlit meter is what teaches the earn.
 export type SignatureFace = 'empty' | 'banked' | 'ready' | 'spent'
@@ -28,7 +28,7 @@ export interface SignatureControl {
 
 // The primary Hero's Signature, or null when the Encounter fields none — the
 // teaching slice runs a two-Slot bar and its Hero Frame simply has no
-// Signature section (D-058).
+// Signature section (D-065).
 export function signatureControl(catalog: WorkbenchCatalog, state: EncounterState): SignatureControl | null {
   const hero = state.heroes[state.primaryHeroId]
   if (!hero) {

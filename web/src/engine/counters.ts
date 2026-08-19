@@ -8,7 +8,7 @@ export const FORTIFIED = 'fortified'
 
 // Counters engine code places rather than content. Fortified is exempt from
 // the "nothing reads this" lint because its own Reader reads it. Riposte
-// Ready left this list with D-057: the Signature Slot's earned Charge is the
+// Ready left this list with D-064: the Signature Slot's earned Charge is the
 // riposte count now, so the last hero mechanic living in engine code — and
 // the graded consumption (D-015) the Reader vocabulary could not express —
 // deleted rather than migrated.
@@ -314,7 +314,7 @@ export function counterEvent(counter: CounterInstance, event: string, reason: st
 // Builds a live instance from an authored definition. Everything the Counter
 // does travels with it as Readers, so nothing downstream needs the catalog to
 // know what a held Counter is worth. The four engine-only graded-consumption
-// fields D-033 kept here left with D-057: nothing constructed them but
+// fields D-033 kept here left with D-064: nothing constructed them but
 // Riposte Ready, and Riposte Ready is the Signature Slot now.
 export function createFromDefinition(
   definition: CounterDefinition,

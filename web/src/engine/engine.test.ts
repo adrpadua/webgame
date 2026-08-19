@@ -174,7 +174,7 @@ describe('content catalog', () => {
     // The live Shield Wall list, named rather than counted (D-040). A total of
     // twenty says nothing about which twenty, and this deck has now been
     // restated three times — `10x/10x`, proposal 04's `8/6/2/2/2`, the
-    // `46d2a61` list, now D-057's migration (`Shield Slam` out to the
+    // `46d2a61` list, now D-064's migration (`Shield Slam` out to the
     // Signature, `Iron Guard` to 8) — with prose in three documents claiming
     // to be current each time. Changing it here is the reminder to change
     // `elian-voss-design.md` and the decision log with it.
@@ -189,7 +189,7 @@ describe('content catalog', () => {
       drive_back: 2,
     })
     expect(catalog.encounters.embermaw_prototype.player_deck.reduce((total, entry) => total + entry.copies, 0)).toBe(20)
-    // The Signature rides the Hero, not the deck (D-057).
+    // The Signature rides the Hero, not the deck (D-064).
     expect(catalog.encounters.embermaw_prototype.signature_card).toBe('elian_riposte')
     expect(catalog.cards.elian_riposte.fixed).toBe(true)
     expect(catalog.decks.aegis_controlled_test_deck.encounter).toBe('embermaw_prototype')
@@ -310,10 +310,10 @@ describe('content catalog', () => {
       )
     })
 
-    // The Signature contract (D-057, ADR 0032). Each refusal is the load-time
+    // The Signature contract (D-064, ADR 0032). Each refusal is the load-time
     // half of a rule the engine depends on at runtime; every one names the
     // file a designer has open.
-    describe('Signature validation (D-057)', () => {
+    describe('Signature validation (D-064)', () => {
       const grant = { when: 'host_takes_damage', gates: ['health_loss_zero'], grants_charge: 1 }
       const signature = (overrides: object = {}) => ({
         source: 'data/cards/probe_signature.json',
@@ -385,7 +385,7 @@ describe('content catalog', () => {
         )
       })
 
-      it('rejects a targeted fixed card, and a resource_title on a non-fixed one (D-058)', () => {
+      it('rejects a targeted fixed card, and a resource_title on a non-fixed one (D-065)', () => {
         expect(() => buildCatalog({ ...empty, cards: [signature({ target_type: 'piece', range_tiles: 1 })] })).toThrow(
           'the Signature control supports untargeted activations only',
         )
@@ -1512,7 +1512,7 @@ describe('encounter setup', () => {
     expect(state.active).toBe(true)
     expect(hero(state).hand).toHaveLength(4)
     expect(hero(state).deck).toHaveLength(16)
-    // Two replaceable Slots plus the Signature Slot (D-057): installed at
+    // Two replaceable Slots plus the Signature Slot (D-064): installed at
     // setup with the Hero's fixed card, uncharged, never in the deck.
     expect(hero(state).actionBar).toHaveLength(3)
     const signature = hero(state).actionBar[2]
@@ -2652,7 +2652,7 @@ describe('Counter hosts — ground and prepared cards (D-048)', () => {
     )
     const state = armed(variant, 'bind', 0)
     // Slot 1 is the empty one: slot 2 is the Signature now, and a Signature
-    // Slot always holds its printed Top Card (D-057).
+    // Slot always holds its printed Top Card (D-064).
     const verdict = legality(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetSlotIndex: 1 })
     expect(verdict.legal).toBe(false)
     expect(verdict.reason).toContain('prepared Slot')
@@ -3849,7 +3849,7 @@ describe('area damage cards', () => {
     ])
   })
 
-  it('leaves the Signature Charge alone when a Burst that includes the Boss fires (D-057)', () => {
+  it('leaves the Signature Charge alone when a Burst that includes the Boss fires (D-064)', () => {
     // Under D-015 a Boss-damage card cashed the riposte for a graded bonus.
     // The Signature deletes that route in both directions: deck cards cannot
     // charge it, and firing one cannot spend what it earned.
@@ -4114,7 +4114,7 @@ describe('damage and Resolution Facts', () => {
 
   // The zero-loss guarded-front Tank Hit. Every Signature test earns its
   // Charges this way — through the standing clause, never by writing to the
-  // Slot — because earned-only is the rule under test (D-057).
+  // Slot — because earned-only is the rule under test (D-064).
   function absorbTankHit(state: EncounterState): EncounterState {
     hero(state).armor = Math.max(hero(state).armor, 5)
     return resolve(catalog, state, {
@@ -4127,7 +4127,7 @@ describe('damage and Resolution Facts', () => {
     }).state
   }
 
-  it('grants a Signature Charge on a fully blocked Tank Hit at the Guarded Front (D-057)', () => {
+  it('grants a Signature Charge on a fully blocked Tank Hit at the Guarded Front (D-064)', () => {
     let state = start()
     hero(state).armor = 5
     const hit = resolve(catalog, state, {
@@ -4161,7 +4161,7 @@ describe('damage and Resolution Facts', () => {
     expect(state.counters[combatantRef(state.bossId)] ?? []).toHaveLength(0)
   })
 
-  it('banks to the cap and the full-bank fire Sunders the Boss after its own damage (D-057 decision 13)', () => {
+  it('banks to the cap and the full-bank fire Sunders the Boss after its own damage (D-064 decision 13)', () => {
     let state = start()
     state = absorbTankHit(state)
     state = absorbTankHit(state)
@@ -4187,7 +4187,7 @@ describe('damage and Resolution Facts', () => {
     expect(followUp.facts[0].resolutionFact).toMatchObject({ health_loss: 3 })
   })
 
-  it('wastes the earn when the standing clause triggers at the cap (D-057)', () => {
+  it('wastes the earn when the standing clause triggers at the cap (D-064)', () => {
     let state = start()
     state = absorbTankHit(state)
     state = absorbTankHit(state)
@@ -4207,7 +4207,7 @@ describe('damage and Resolution Facts', () => {
     expect(hero(third.state).actionBar[2].earnedCharges).toBe(2)
   })
 
-  it('banks earned Charges across Rounds with no expiry (D-057)', () => {
+  it('banks earned Charges across Rounds with no expiry (D-064)', () => {
     let state = start()
     state = absorbTankHit(state)
     expect(hero(state).actionBar[2].earnedCharges).toBe(1)
@@ -4220,7 +4220,7 @@ describe('damage and Resolution Facts', () => {
     expect(hero(state).actionBar[2].earnedCharges).toBe(1)
   })
 
-  it('refuses hand cards aimed at the Signature Slot, and an uncharged fire (D-057, ADR 0032)', () => {
+  it('refuses hand cards aimed at the Signature Slot, and an uncharged fire (D-064, ADR 0032)', () => {
     const state = start()
     const inHand = hero(state).hand[0]
     const load = legality(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 2, cardInstanceId: inHand.instanceId })

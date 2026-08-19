@@ -106,7 +106,7 @@ describe('dragging the Hero to a hex', () => {
     expect(store().lastRejection).toContain('Quick Window')
   })
 
-  it('pulses the Hero Frame on a Hero tap instead of opening a panel (D-058)', () => {
+  it('pulses the Hero Frame on a Hero tap instead of opening a panel (D-065)', () => {
     openQuickWindow()
     const pulseBefore = store().heroFramePulse
     store().hexClicked(heroCoords())

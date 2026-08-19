@@ -346,7 +346,7 @@ try {
   // Tapping an Enemy's tile opens its stat panel, which stays up as a live
   // readout until dismissed. Returns the opened panel's piece id. The Hero
   // never opens one: the persistent Hero Frame is the Hero's readout
-  // (D-058), so a Hero tap pulses the frame instead — see tapHeroTile.
+  // (D-065), so a Hero tap pulses the frame instead — see tapHeroTile.
   const inspectTile = async (q, r) => {
     await boardCanvas.click({ position: await hexPosition(boardCanvas, q, r) })
     await page.waitForSelector('[data-testid="entity-inspect"]')
@@ -552,7 +552,7 @@ try {
       // Nothing floating may cover a band that carries the fight's own
       // controls. Next is the specific casualty worth naming: losing it while
       // a prompt is up is losing the only way forward. The Hero Frame counts
-      // as such a band since D-058: it is persistent chrome carrying the
+      // as such a band since D-065: it is persistent chrome carrying the
       // Signature control, and it is the dock's floor, not a dock member.
       for (const bandId of ['phase-band', 'next-phase', 'action-bar', 'hand', 'hero-frame']) {
         const band = document.querySelector(`[data-testid="${bandId}"]`)
@@ -566,7 +566,7 @@ try {
         }
       }
       // The dock's contract: it stacks upward from its floor — the Hero
-      // Frame's top edge (D-058), or the Action Bar's where no frame is
+      // Frame's top edge (D-065), or the Action Bar's where no frame is
       // mounted — never over it and never adrift above it.
       const floor = document.querySelector('[data-testid="hero-frame"]') ?? document.querySelector('[data-testid="action-bar"]')
       const docked = shown.filter((node) => node.dataset.zone === 'dock')
@@ -652,7 +652,7 @@ try {
   assert((await cueStep()) === 'start-round', 'with both Slots set the script asks for Next')
 
   // Step 3-4: the Boss opens the Round and the Claw lands on the tank. The
-  // Hero Frame is the health readout (D-058): persistent chrome that rides
+  // Hero Frame is the health readout (D-065): persistent chrome that rides
   // the beats live, no tap needed — and a tap on the Hero's own tile pulses
   // the frame rather than opening a panel.
   assert((await page.locator('[data-testid="hero-frame"]').count()) === 1, 'the Hero Frame is up before the Boss opens')
@@ -1037,12 +1037,12 @@ try {
     'the solo-ceiling Scenario replays to its Defeat banner',
   )
   // The Ashen Trial fields Elian's Signature, so its Hero Frame carries the
-  // control (D-058): permanent, pip-metered, and named by the authored
+  // control (D-065): permanent, pip-metered, and named by the authored
   // resource title a hold away. The teaching slice asserted its absence
   // above; this is the presence half of the same contract.
   assert((await page.locator('[data-testid="signature-resource"]').count()) === 1, 'the Ashen Trial Hero Frame carries the class-resource bar')
   // The bar is permanent; the button is not. Nothing is earned in this
-  // terminal Scenario state, so the offer must not be on screen (D-058).
+  // terminal Scenario state, so the offer must not be on screen (D-065).
   assert((await page.locator('[data-testid="signature-control"]').count()) === 0, 'no Signature button while the Signature cannot fire')
   const barInFrame = await page.evaluate(() => {
     const frame = document.querySelector('[data-testid="hero-frame"]')
@@ -1330,7 +1330,7 @@ try {
   await phone.waitForTimeout(300)
   assert((await phone.locator('[data-testid="hand-card"]').count()) === handBeforeDrag - 1, 'tapping an offered card discards exactly that card')
   // Where the Hero ended up is proved by the tap's answer: a Hero tile pulses
-  // the Hero Frame and opens no panel (D-058), so a tap on the destination
+  // the Hero Frame and opens no panel (D-065), so a tap on the destination
   // that stays panel-less is the Hero standing there — an Enemy or empty hex
   // would have opened a panel or done nothing to the frame.
   const pulseBefore = await phone.evaluate(() => window.__workbench.heroFramePulse())
@@ -1343,7 +1343,7 @@ try {
 
   // The Signature's whole loop, driven through the UI on a seed where it is
   // reachable: the button appears exactly when the power can be fired and at
-  // no other time (D-058), which is the half a presence check alone cannot
+  // no other time (D-065), which is the half a presence check alone cannot
   // prove. Seed 5 puts Fortify in the opening Hand, and its banked Armor is
   // the only Armor that arrives before the Instant row's Tank Hit — the
   // timing the migration cohort measured.

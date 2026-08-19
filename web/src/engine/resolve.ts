@@ -306,7 +306,7 @@ function resolveOne(
           reasonText: card.title,
         })
       }
-      // The full-bank rider (D-057 decision 13): a fixed Slot fired at its
+      // The full-bank rider (D-064 decision 13): a fixed Slot fired at its
       // whole Charge cap also marks the Boss. Pushed after the card's own
       // damage actions, so the follow-through opens the wound and the rider's
       // own hit never benefits from it — the ordering the ruling specified.
@@ -884,7 +884,7 @@ function applyDamage(
 
 // One predicate, two rewards (D-039). Absorbing a Tank Hit on the Guarded
 // Front for zero Health loss decides where the Beat's ash falls — and, since
-// D-057, it is also the event Elian's Signature standing clause reads. The
+// D-064, it is also the event Elian's Signature standing clause reads. The
 // absorption half stays an engine rule because the ash spill is Boss
 // resolution, not a Hero's power; the Grant half lives in `signature.ts`.
 function evaluateTankHitAbsorption(

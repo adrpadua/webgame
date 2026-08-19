@@ -87,7 +87,7 @@ A starter card should have one primary role:
 - enemy control
 - resource setup
 
-An incidental rider is acceptable only when it reinforces that job. The default deck keeps this deliberately strict: each of its five identities owns one job (`Steady Strike` damage, `Iron Guard` mitigation, `Sweeping Blow` Minion clearing, `Fortify` Slow preparation, `Drive Back` displacement), and the defensive payoff is not a deck job at all any more — it is printed on the Hero as the Signature (D-057).
+An incidental rider is acceptable only when it reinforces that job. The default deck keeps this deliberately strict: each of its five identities owns one job (`Steady Strike` damage, `Iron Guard` mitigation, `Sweeping Blow` Minion clearing, `Fortify` Slow preparation, `Drive Back` displacement), and the defensive payoff is not a deck job at all any more — it is printed on the Hero as the Signature (D-064).
 
 ## Action Bar Semantics
 
@@ -97,7 +97,7 @@ An incidental rider is acceptable only when it reinforces that job. The default 
 - The Top Card determines timing, targeting, and Charge Value.
 - The Top Card persists after activation.
 - A Slot needs at least one charged card before it can activate.
-- The Signature Slot (D-057, ADR 0032) is the exception to the hand routes: its Top Card is printed on the Hero, it never takes a prepared or charged hand card, its Charges are earned by its standing clause and bank across Rounds, and firing spends the whole stack while the Top Card stays. It is never Full-Charge-Cleaned and never replaced at Loadout.
+- The Signature Slot (D-064, ADR 0032) is the exception to the hand routes: its Top Card is printed on the Hero, it never takes a prepared or charged hand card, its Charges are earned by its standing clause and bank across Rounds, and firing spends the whole stack while the Top Card stays. It is never Full-Charge-Cleaned and never replaced at Loadout.
 - A Slot activates once in its matching player window. It cannot receive more charged cards after it activates in that window.
 - Activating a Slot leaves its Charge Stack in place. If the stack equals the Charge Value, discard the Top Card and every charged card at the end of that matching window.
 - A full unactivated Slot is `Full` and persists for later use or an explicit special interaction.

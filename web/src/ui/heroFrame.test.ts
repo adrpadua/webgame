@@ -3,7 +3,7 @@ import { FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
 import { createEncounterState, resolve, type EncounterState } from '@/engine'
 import { signatureControl } from './heroFrame'
 
-// The Signature control's face (D-058): one closed state machine shared by
+// The Signature control's face (D-065): one closed state machine shared by
 // the Hero Frame and these tests, the way `slots.ts` predicates are shared
 // with the Action Bar. Each face is pinned against a state the engine
 // actually produced, not a hand-built Slot.

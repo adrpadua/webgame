@@ -199,7 +199,7 @@ export function deriveBoardEffects(
         if (fact.resolutionFact?.target_removed === true) {
           add({ kind: 'defeat', entityId: targetId, at, tone: 'hero' })
         }
-        // The Signature's earn moment (D-057, D-058): the standing clause
+        // The Signature's earn moment (D-064, D-065): the standing clause
         // grants during Boss resolution, and the cause lives on the board —
         // so the board says so where the block happened, while the Hero
         // Frame's pip ignites. A wasted earn — a qualifying block at the

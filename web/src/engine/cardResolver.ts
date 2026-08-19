@@ -22,7 +22,7 @@ function matchingCount(modifier: ChargeModifier, chargeStack: Card[], tokenCharg
 
 // A tucked card always adds one Charge but grants no universal bonus; only
 // the Top Card's explicit Charge Modifiers read the Charge Stack.
-// `tokenCharges` is a fixed Slot's earned Charge count (D-057): a token has
+// `tokenCharges` is a fixed Slot's earned Charge count (D-064): a token has
 // no card and no Keywords, so it matches only keyword-less modifiers — which
 // the catalog enforces is the only kind a Signature carries.
 export function resolveFire(catalog: ContentCatalog, card: Card, chargeStack: Card[], tokenCharges = 0): FireEffects {

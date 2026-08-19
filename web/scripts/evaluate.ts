@@ -85,7 +85,7 @@ interface PolicyKnobs {
   // decimal places), the row was removed on that evidence (ADR 0031), and the
   // pair collapsed into the one plan that remains worth sweeping.
   // `banker` is the turtle's engine with one difference: it rides the
-  // Signature to its full Charge cap before firing (D-057 decision 13). It is
+  // Signature to its full Charge cap before firing (D-064 decision 13). It is
   // built on turtle because the cohort's first run showed only Fortify's
   // banked Armor can produce the zero-loss Instant-row block the standing
   // clause reads — Iron Guard's Armor lands in the Quick Window, after the
@@ -382,7 +382,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     }
   }
 
-  // The Signature Slot (D-057): fire it in the Quick Window whenever it holds
+  // The Signature Slot (D-064): fire it in the Quick Window whenever it holds
   // an earned Charge. Cash-at-one is the measured floor of the banking
   // decision — the ceiling is a hand-reading line no fixed script can walk,
   // the same limit the Slow-window comment below records for Fortify.
@@ -489,7 +489,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
   }
 
   // Metric extraction from the recorded facts. The Signature replaces the
-  // Riposte Ready Counter (D-057): grants and overcap waste ride the
+  // Riposte Ready Counter (D-064): grants and overcap waste ride the
   // signature_event on damage facts, fires are the fire_slot facts that
   // spent Charges, and the full-bank rider is the Sundered placement.
   let signatureGranted = 0

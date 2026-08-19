@@ -94,7 +94,7 @@ export function createEncounterState(catalog: ContentCatalog, encounterId: strin
   for (let index = 0; index < encounter.slot_count; index += 1) {
     actionBar.push({ topCard: null, charges: [], activatedWindow: null, placedThisLoadout: false, fixed: false, earnedCharges: 0 })
   }
-  // The Signature Slot (D-057, ADR 0032): installed at setup, after the
+  // The Signature Slot (D-064, ADR 0032): installed at setup, after the
   // replaceable Slots, with the Hero's fixed card as a Top Card that was
   // never in the deck and never leaves. It starts uncharged — every Charge
   // it will ever hold is earned through its standing clause in play.

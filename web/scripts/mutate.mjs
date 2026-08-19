@@ -370,7 +370,7 @@ const MUTATIONS = [
   },
   {
     name: 'the Signature takes hand charges',
-    guards: 'D-057 / ADR 0032: earned, never bought — hand cards cannot reach the Signature',
+    guards: 'D-064 / ADR 0032: earned, never bought — hand cards cannot reach the Signature',
     file: 'engine/legality.ts',
     from: "      if (slot.fixed) {\n        return illegal('The Signature Slot charges only through its standing clause.')\n      }",
     to: '',
@@ -384,14 +384,14 @@ const MUTATIONS = [
   },
   {
     name: 'the full-bank rider fires below the cap',
-    guards: 'D-057 decision 13: Sundered rides only a fire at the whole Charge cap',
+    guards: 'D-064 decision 13: Sundered rides only a fire at the whole Charge cap',
     file: 'engine/resolve.ts',
     from: "if (slot.fixed && card.full_charge.places_counter !== '' && spentSignatureCharges >= cardChargeCap(card)) {",
     to: "if (slot.fixed && card.full_charge.places_counter !== '' && spentSignatureCharges >= 1) {",
   },
   {
     name: 'an earn at the cap banks anyway',
-    guards: 'D-057 decision 8: overcap is waste — a block while full earns nothing',
+    guards: 'D-064 decision 8: overcap is waste — a block while full earns nothing',
     file: 'engine/signature.ts',
     from: '      if (slot.earnedCharges >= cap) {',
     to: '      if (false) {',
@@ -402,7 +402,7 @@ const MUTATIONS = [
     // other half: let hand cards be PREPARED onto the Signature and the
     // "never discards, never replaced" claim falls with it.
     name: 'a hand card can be prepared onto the Signature',
-    guards: 'D-057 / ADR 0032: the Signature Slot is never replaceable and never takes a prepared card',
+    guards: 'D-064 / ADR 0032: the Signature Slot is never replaceable and never takes a prepared card',
     file: 'engine/legality.ts',
     from: "      if (hero.actionBar[action.slotIndex].fixed) {\n        return illegal('The Signature Slot never takes a prepared card.')\n      }",
     to: '',

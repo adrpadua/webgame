@@ -74,7 +74,7 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
         return illegal('Charging requires a legal Slot during Quick or Slow.')
       }
       const slot = hero.actionBar[action.slotIndex]
-      // Earned, never bought (D-057): hand cards physically cannot flow into
+      // Earned, never bought (D-064): hand cards physically cannot flow into
       // the Signature, which is what protects the other Slots' fuel and ADR
       // 0002's Slot Tension by construction.
       if (slot.fixed) {

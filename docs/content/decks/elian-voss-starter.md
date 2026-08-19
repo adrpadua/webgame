@@ -2,7 +2,7 @@
 
 This is the approved live/default Elian Voss deck specification, matching the runnable encounter definition `data/encounters/embermaw_prototype.json` (ADR 0020) — which is the source of truth this doc follows, not the other way around. The first-pass Shield Wall kit proves the Action Bar and Charge Stack loop while giving the tank a defensive payoff, an adjacent-Minion answer, a Slow commitment, and a repositioning verb.
 
-> **Revised (2026-08-19).** The [Signature Slot migration](../design-proposals/fixed-hero-power.md) (D-057, ADR 0032) shipped: `Shield Slam` retired — its payoff moved whole onto Elian's Signature, *Riposte*, together with D-015's cash-out rule — and `Iron Guard` rose to 8 copies. The list below is the live post-migration deck.
+> **Revised (2026-08-19).** The [Signature Slot migration](../design-proposals/fixed-hero-power.md) (D-064, ADR 0032) shipped: `Shield Slam` retired — its payoff moved whole onto Elian's Signature, *Riposte*, together with D-015's cash-out rule — and `Iron Guard` rose to 8 copies. The list below is the live post-migration deck.
 
 > **Correction (2026-08-19).** This doc had drifted from the JSON: it listed `Steady Strike` ×8 and omitted `Drive Back`, while the live encounter has carried `Steady Strike` ×6 and `Drive Back` ×2 since the repositioning-verb change. The list below is corrected to the live JSON.
 
@@ -58,7 +58,7 @@ The deck is a five-identity Shield Wall kit, fighting beside Elian's Signature, 
 
 Any card can charge either replaceable Top Card. `Steady Strike` rewards total Charge, while `Iron Guard` demonstrates a Keyword-specific Charge Modifier. The player chooses between maintaining front-line defense, cashing or banking the Signature's earned Charges, clearing a Minion, or committing to a Slow plan. Top Cards remain prepared at `0 Charge`, activate once after at least one card is tucked beneath them, and discard as a complete bundle only when activated at their Charge Value — except the Signature Slot, which hand cards can never reach and whose Top Card never discards (ADR 0032).
 
-**The Signature — *Riposte* (D-057).** *Standing:* absorb a Tank Hit on the Guarded Front for zero Health loss and the Slot gains one Charge (max `2`; a block while full earns nothing; Charges bank across Rounds). *Activation (Quick):* spend all Charges for `3` Boss damage `+2` per Charge; spent `2`, the Boss is also **Sundered** after the Riposte's own damage resolves. One timing note the first cohort measured: the Tank Hit resolves in the Boss Instant row, before the Quick Window, so `Iron Guard`'s same-Round Armor arrives too late to produce the zero-loss block — `Fortify`'s banked Armor is what feeds the engine, and `Iron Guard`'s density pays in survival and Charge fuel instead.
+**The Signature — *Riposte* (D-064).** *Standing:* absorb a Tank Hit on the Guarded Front for zero Health loss and the Slot gains one Charge (max `2`; a block while full earns nothing; Charges bank across Rounds). *Activation (Quick):* spend all Charges for `3` Boss damage `+2` per Charge; spent `2`, the Boss is also **Sundered** after the Riposte's own damage resolves. One timing note the first cohort measured: the Tank Hit resolves in the Boss Instant row, before the Quick Window, so `Iron Guard`'s same-Round Armor arrives too late to produce the zero-loss block — `Fortify`'s banked Armor is what feeds the engine, and `Iron Guard`'s density pays in survival and Charge fuel instead.
 
 ## Notes
 

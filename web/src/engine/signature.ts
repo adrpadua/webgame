@@ -5,7 +5,7 @@ import { cardChargeCap } from './content/catalog'
 import type { EncounterActionInput } from './actions'
 import type { EncounterState, SlotState } from './types'
 
-// The Signature Slot (D-057, ADR 0032): a Hero's fixed power, authored as a
+// The Signature Slot (D-064, ADR 0032): a Hero's fixed power, authored as a
 // `fixed: true` card and installed as an always-present Slot at setup. This
 // module owns the standing clause — the Grant, the mirror of a Counter
 // Reader — and the small shared questions about a fixed Slot's Charge, which
@@ -70,7 +70,7 @@ function gatesPass(
 // not fire says why, the same honesty the old Riposte Ready evaluation kept —
 // and an earn while the stack is full is recorded as waste, because overcap
 // is the Signature's one loss surface and the cohort has to be able to count
-// it (D-057).
+// it (D-064).
 export function evaluateStandingGrants(
   catalog: ContentCatalog,
   draft: EncounterState,
@@ -104,7 +104,7 @@ export function evaluateStandingGrants(
       const cap = cardChargeCap(card)
       if (slot.earnedCharges >= cap) {
         // The trigger fired and the stack was full: the earn is wasted, by
-        // design — overcap is the price of holding a full bank (D-057
+        // design — overcap is the price of holding a full bank (D-064
         // decision 8), and it has to be visible to the player and the cohort
         // alike, never silently absorbed.
         resolutionFact.signature_event = signatureEvent(card.id, 'wasted', 'at_max', slot.earnedCharges)

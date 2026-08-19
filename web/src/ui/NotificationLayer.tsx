@@ -31,7 +31,7 @@ const LayerContext = createContext<LayerValue | null>(null)
 const ZoneContext = createContext<NotificationZone | null>(null)
 
 // `clearanceClass` is the bottom padding the column keeps clear. The default
-// hugs the Action Bar; a play surface with a persistent Hero Frame (D-058)
+// hugs the Action Bar; a play surface with a persistent Hero Frame (D-065)
 // passes the frame's clearance instead, so the dock's rank 1 stacks from the
 // frame's top edge — the frame is the dock's floor, not a dock member.
 export function NotificationLayer({ children, clearanceClass = 'pb-1' }: { children: ReactNode; clearanceClass?: string }) {

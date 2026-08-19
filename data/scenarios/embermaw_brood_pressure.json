@@ -28,7 +28,7 @@
           "q": 1,
           "r": 0
         },
-        "cardInstanceId": "sweeping_blow_12"
+        "cardInstanceId": "iron_guard_12"
       }
     },
     {
@@ -82,7 +82,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "fortify_14"
+        "cardInstanceId": "sweeping_blow_14"
       }
     },
     {

@@ -216,7 +216,7 @@ function simulate(seed: number, knobs: PolicyKnobs): SimResult {
             submit({ kind: 'fire_slot', sourceId: heroId, slotIndex })
           }
         }
-        // The Signature Slot (D-057): fire it whenever it holds an earned
+        // The Signature Slot (D-064): fire it whenever it holds an earned
         // Charge. Cash-at-one is the measured floor of the banking decision;
         // the ceiling needs a policy that reads the hand, which a fixed
         // script cannot.

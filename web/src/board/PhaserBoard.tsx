@@ -117,7 +117,7 @@ export function PhaserBoard() {
       // Horizontally centered, vertically pinned to the top: the width-bound
       // canvas cannot grow into the container's spare height, and centering
       // split that space into two dead bands. Pooled at the bottom it is
-      // where the Hero Frame and the dock's prompts live (D-058), below the
+      // where the Hero Frame and the dock's prompts live (D-065), below the
       // last hex row instead of over it.
       scale: {
         mode: Phaser.Scale.FIT,

@@ -73,7 +73,7 @@ const LOCK_STATE: Record<SlotStateName, LockState> = {
 
 // The bar is a twelve-unit ladder: 2 | 4 | 4 | 2. The rails take two units
 // each and the replaceable Slots share the eight between them. The Signature
-// Slot never renders here — its face is the Hero Frame's control (D-058) —
+// Slot never renders here — its face is the Hero Frame's control (D-065) —
 // so the bar carries exactly the Slots a hand card can reach.
 //
 // The rails are why the ladder exists. Undo and the advance control are the

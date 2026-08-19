@@ -1,7 +1,7 @@
 # Design Proposal: The Signature Slot — the Hero's Engine, Given a Home
 
 Date: 2026-08-19 (revised twice same day; design-settled the same day — see *Settled decisions*)
-Status: **Adopted as D-057 (ADR 0032) and shipped 2026-08-19.** The container's constraints are in the ADR; gate step 2's prototype falsified the bank line under the original activation numbers ([finding below](#prototype-finding-2026-08-19-the-bank-line-is-dominated)) and the designer ruled **R3** the same day — fired at the cap, the Riposte also places `Sundered` (decision 13). The migration increment is live — see the [migration record](#migration-record-2026-08-19-shipped) for the cohort verdicts, including the one authored claim the cohort falsified (decision 11's earn mechanism).
+Status: **Adopted as D-064 (ADR 0032) and shipped 2026-08-19.** The container's constraints are in the ADR; gate step 2's prototype falsified the bank line under the original activation numbers ([finding below](#prototype-finding-2026-08-19-the-bank-line-is-dominated)) and the designer ruled **R3** the same day — fired at the cap, the Riposte also places `Sundered` (decision 13). The migration increment is live — see the [migration record](#migration-record-2026-08-19-shipped) for the cohort verdicts, including the one authored claim the cohort falsified (decision 11's earn mechanism).
 Context: [Fixed hero powers and command zones research note](../research/2026-08-19-fixed-hero-powers-and-command-zones.md), [champion design note](../research/2026-08-16-lol-champion-design-lessons.md), [riposte deepening proposal](riposte-payoff-deepening.md), [ADR 0002](../../adr/0002-use-a-persistent-action-bar-with-charge-stacks.md), [ADR 0008](../../adr/0008-use-persistent-charge-stacks-and-full-charge-cleanup.md), [Character Design Bible](../../rules/character-design-bible.md), [tank solo-ceiling note](../research/2026-08-17-tank-solo-ceiling-design.md) (D-016).
 
 ## Settled decisions (designer-approved 2026-08-19)
@@ -214,11 +214,11 @@ So the settled card would play as a metronome: block, fire, block, fire. The eng
 
 Recommendation: **R3**, with the rider placing `Sundered` *after* the Riposte's own damage resolves (the follow-through opens the wound; its own hit does not benefit), keeping the `7`-ceiling caveat's arithmetic unchanged.
 
-**Ruled 2026-08-19: R3, as recommended** — recorded as settled decision 13. The first-increment card text and the authored form above carry the `full_charge` block, and the cohort watches Sundered uptime alongside the ceiling. The container (D-057, ADR 0032) was unaffected throughout — nothing in this section changed the Slot, the Grant, or earned charge.
+**Ruled 2026-08-19: R3, as recommended** — recorded as settled decision 13. The first-increment card text and the authored form above carry the `full_charge` block, and the cohort watches Sundered uptime alongside the ceiling. The container (D-064, ADR 0032) was unaffected throughout — nothing in this section changed the Slot, the Grant, or earned charge.
 
 ## Evaluation gate (before any live change)
 
-1. ~~Formal `D-0xx` entry, then the ADR (ADR 0008 exception, D-015 retirement, D-033 revisit).~~ **Done 2026-08-19: D-057 (minted as D-050, renumbered by the decision-log renumbering merged from `main`), ADR 0032.**
+1. ~~Formal `D-0xx` entry, then the ADR (ADR 0008 exception, D-015 retirement, D-033 revisit).~~ **Done 2026-08-19: D-064 (minted as D-050, renumbered by the decision-log renumbering merged from `main`), ADR 0032.**
 2. ~~Throwaway prototype of the earned-charge loop against the scripted Embermaw cadence: does banking versus cashing feel like a read of the Timeline, or does one line dominate?~~ **Run 2026-08-19: the cash line dominated as originally numbered; ruled R3 (decision 13) the same day — the full-bank `Sundered` rider is what keeps the bank line alive.**
 3. **Engine test:** a well-drawn hand still wants the Signature; if good hands route around it, it is a floor wearing an engine's name.
 4. **Battery verification:** earned charge should protect the normal Slots by construction — verify the cohort shows their fire rate unchanged anyway.
@@ -235,7 +235,7 @@ Landed alongside this proposal, all guidance-side (no rules or engine change):
 
 Adoption pass (later the same day):
 
-- **D-057** recorded in the [design decision log](../design-decision-log.md); D-015 marked Superseded in place; D-033 annotated with the revisit. (Minted as D-050; renumbered when the merge from `main` brought the log renumbering that resolved the old `D-045`–`D-047` ID collision — main's D-050 is the Scorched-ground ruling.)
+- **D-064** recorded in the [design decision log](../design-decision-log.md); D-015 marked Superseded in place; D-033 annotated with the revisit. (Minted as D-050; renumbered when the merge from `main` brought the log renumbering that resolved the old `D-045`–`D-047` ID collision — main's D-050 is the Scorched-ground ruling.)
 - **[ADR 0032](../../adr/0032-give-each-hero-a-fixed-signature-slot-with-earned-charges.md)** written for the container: the ADR 0008 exception scoped to `fixed` cards, the legality refusals that protect ADR 0002, the Grant vocabulary, and ADR 0002's progression-Slot reservation transferring to a fourth Slot.
 - Gate step 2 run: [`signature-banking.mjs`](../../../web/prototypes/signature-banking.mjs) and the prototype finding above.
 - **Ruled the same day: R3** — settled decision 13 (the full-bank `Sundered` rider), folded into the authored form, the card text, and the seam.

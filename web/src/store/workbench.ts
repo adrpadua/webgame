@@ -66,7 +66,7 @@ export interface WorkbenchStore {
   // (submits, advances) leaves it up as a live gauge.
   inspectedEntityId: string | null
   // Bumped when the player taps the primary Hero's tile: the Hero Frame is
-  // the Hero's readout (D-058), so the tap pulses the frame instead of
+  // the Hero's readout (D-065), so the tap pulses the frame instead of
   // opening a Stat Panel. A counter rather than a flag, so every tap replays
   // the pulse.
   heroFramePulse: number
@@ -373,7 +373,7 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
       // A bare tap inspects: a tile holding an Enemy opens that piece's Stat
       // Panel, an empty hex closes it. Occupancy is the board's question
       // (ADR 0017), so the engine answers it. The Hero's readout is the
-      // persistent Hero Frame (D-058): tapping the Hero pulses the frame —
+      // persistent Hero Frame (D-065): tapping the Hero pulses the frame —
       // the tap points at the chrome that answers it — and closes any open
       // Enemy panel rather than opening one.
       const tappedId = getEntityIdAt(state.board, coords)
@@ -527,7 +527,7 @@ if (typeof window !== 'undefined') {
     exportRecord: () => useWorkbench.getState().exportRecord(),
     exportScenario: () => useWorkbench.getState().exportScenario(),
     // The Hero Frame's pulse counter, so a browser check can prove a Hero
-    // tap reached the frame (D-058) without reading an animation.
+    // tap reached the frame (D-065) without reading an animation.
     heroFramePulse: () => useWorkbench.getState().heroFramePulse,
     // The Boss's live health. The Stat Panel shows it only while open, so a
     // check that wants a before/after around one press would otherwise have

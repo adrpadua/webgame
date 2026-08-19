@@ -49,7 +49,7 @@ describe('board effects', () => {
     expect(effects.some((effect) => effect.kind === 'scorch')).toBe(true)
   })
 
-  it('floats the Signature earn where the block happened, and the waste at the cap (D-058)', () => {
+  it('floats the Signature earn where the block happened, and the waste at the cap (D-065)', () => {
     let state = createEncounterState(catalog, 'embermaw_prototype')
     const heroId = state.primaryHeroId
     const tankHit = (): { state: EncounterState; effects: BoardEffect[] } => {

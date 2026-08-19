@@ -24,7 +24,7 @@ export interface SlotState {
   // re-loading the Slot swaps it back to hand instead of discarding it the
   // way replacing a kept bundle does. Cleared when the Loadout ends.
   placedThisLoadout: boolean
-  // The Signature Slot (D-057, ADR 0032): its Top Card is printed on the
+  // The Signature Slot (D-064, ADR 0032): its Top Card is printed on the
   // Hero, never drawn, never replaceable, never discarded, and it inverts
   // both halves of ADR 0008 — firing spends the whole stack and the Top Card
   // stays. `charges` stays empty here: a fixed Slot's Charge is the earned

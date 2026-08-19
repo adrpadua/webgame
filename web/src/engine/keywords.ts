@@ -7,7 +7,7 @@ export type KeywordKind = Keyword['kind']
 // between engine code and `data/keywords/`, and it used to be an unwritten
 // one: the Beat damage keyword was an unvalidated string on both sides, so a
 // typo in a Beat — or a renamed keyword — silently stopped the riposte grant
-// (then a Counter, now the Signature's standing clause, D-057) from ever
+// (then a Counter, now the Signature's standing clause, D-064) from ever
 // firing, with no load error and no failing test. Naming them here
 // lets the catalog assert at load that every id the rules will compare against
 // exists, and exists as the right kind.

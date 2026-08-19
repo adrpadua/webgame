@@ -144,7 +144,7 @@ export default function App() {
             into the container's spare height, so centering split that space
             into two dead bands. Pinned to the top, the spare height pools at
             the bottom — under the last hex row — which is exactly where the
-            Hero Frame and the dock's prompts live (D-058). */}
+            Hero Frame and the dock's prompts live (D-065). */}
         <div className="relative flex min-h-0 flex-1 items-start justify-center overflow-hidden">
           <PhaserBoard />
           {/* Every floating surface on the play field lands in one of three
@@ -177,7 +177,7 @@ export default function App() {
               <EntityInspect />
             </NotificationZone>
           </NotificationLayer>
-          {/* The Hero Frame (D-058): the primary Hero's persistent readout
+          {/* The Hero Frame (D-065): the primary Hero's persistent readout
               and the Signature control, floating over the board's bottom
               edge as the dock's floor. Its own layer, not a notification —
               it never comes or goes, so it has no rank to claim. */}

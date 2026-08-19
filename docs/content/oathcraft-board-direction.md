@@ -103,7 +103,7 @@ The tile floor takes a deterministic per-hex value shift to break the vector-art
 
 A tile stays clean until it is tapped, and the tapped piece's Stat Panel is the readout. Board-first layout argues for health on the token, and comparable games do it — but health bars on every token are chrome that never recedes, and at two or three pieces the tap costs little.
 
-**Amended 2026-08-19 (D-058, ADR 0033):** the primary Hero's state moved to the persistent Hero Frame at the board's bottom edge — the Signature made a tap-summoned readout untenable for the Hero's own machine — while Enemy state keeps this rule unchanged: tiles stay clean, and a tapped Enemy's Stat Panel is its readout. **Revisit when the multi-Hero party model lands** (`design-backlog.md`, Engineering rank 6), when four friendly pieces have health that matters simultaneously.
+**Amended 2026-08-19 (D-065, ADR 0033):** the primary Hero's state moved to the persistent Hero Frame at the board's bottom edge — the Signature made a tap-summoned readout untenable for the Hero's own machine — while Enemy state keeps this rule unchanged: tiles stay clean, and a tapped Enemy's Stat Panel is its readout. **Revisit when the multi-Hero party model lands** (`design-backlog.md`, Engineering rank 6), when four friendly pieces have health that matters simultaneously.
 
 ## What This Does Not Decide
 

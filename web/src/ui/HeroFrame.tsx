@@ -8,7 +8,7 @@ import { HERO_STAT_DETAILS, slotDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
 import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS, healthBarScale } from './theme'
 
-// The Hero Frame (D-058, ADR 0033): the primary Hero's persistent readout,
+// The Hero Frame (D-065, ADR 0033): the primary Hero's persistent readout,
 // floating over the board's bottom edge, built to the unit-frame anatomy an
 // MMO player already reads — a left-justified vertical stack of name, then
 // health with the Armor overlay, then the class resource where mana sits,

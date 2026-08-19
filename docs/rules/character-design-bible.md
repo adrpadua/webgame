@@ -2,7 +2,7 @@
 
 Status: active content-authoring guidance. This document guides Hero identity and deck design. It does not create executable rules; `EncounterEngine` remains authoritative. Its Boss-side counterpart is the [Encounter Design Bible](encounter-design-bible.md), which carries the role contract ("three questions about the same Boss problem") every Hero here answers one of.
 
-The **Signature Slot** below is live: adopted 2026-08-19 as D-057 with ADR 0032, full shape in [fixed-hero-power.md](../content/design-proposals/fixed-hero-power.md), and shipped the same day — the engine runs it, `Shield Slam` and D-015's graded cash-out retired into it, and Elian's *Riposte* is the first authored Signature. The gate's banking prototype falsified the original activation numbers' bank line; the same-day ruling (proposal decision 13) added the full-bank rider — fired at the cap, the *Riposte* also places `Sundered` — which the card text below carries.
+The **Signature Slot** below is live: adopted 2026-08-19 as D-064 with ADR 0032, full shape in [fixed-hero-power.md](../content/design-proposals/fixed-hero-power.md), and shipped the same day — the engine runs it, `Shield Slam` and D-015's graded cash-out retired into it, and Elian's *Riposte* is the first authored Signature. The gate's banking prototype falsified the original activation numbers' bank line; the same-day ruling (proposal decision 13) added the full-bank rider — fired at the cap, the *Riposte* also places `Sundered` — which the card text below carries.
 
 ## Design Promise
 

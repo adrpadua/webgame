@@ -53,7 +53,7 @@ export function cardDetail(card: Card, idPrefix: string, hint?: string): HoldDet
 }
 
 // A prepared Slot: the same card detail plus where this Slot stands right now.
-// The Signature Slot (D-057) counts earned Charges instead of tucked cards,
+// The Signature Slot (D-064) counts earned Charges instead of tucked cards,
 // and its uncharged hint names the earn rule rather than asking for a card
 // the rules would refuse.
 export function slotDetail(card: Card, slot: SlotState, slotIndex: number, phase: Phase): HoldDetail {

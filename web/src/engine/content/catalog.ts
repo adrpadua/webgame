@@ -295,7 +295,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
         throw new Error(`Card ${card.id} has a ${reader.verb} reader on the target but chooses no target`)
       }
     }
-    // The Signature contract (D-057, ADR 0032). A fixed card is a Hero's
+    // The Signature contract (D-064, ADR 0032). A fixed card is a Hero's
     // engine: its standing clause is its only Charge source, so a fixed card
     // without one is a Slot that can never fire; and its Charges are tokens
     // with no Keywords, so a keyword-matching Charge Modifier on it would
@@ -318,11 +318,11 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
         }
       }
       // The Hero Frame's Signature control fires with a tap and carries no
-      // targeting flow (D-058): a targeted Signature is refused at load until
+      // targeting flow (D-065): a targeted Signature is refused at load until
       // a Hero actually needs one, so the gap is loud rather than latent.
       if (card.target_type !== 'none') {
         throw new Error(
-          `${cardAt(card.id)} is fixed but targets ${card.target_type}; the Signature control supports untargeted activations only (D-058)`,
+          `${cardAt(card.id)} is fixed but targets ${card.target_type}; the Signature control supports untargeted activations only (D-065)`,
         )
       }
     }
@@ -429,7 +429,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       // The three Beat fields that were free text until now. All three are
       // joins into the Keyword namespace, and `damage_keywords` is the
       // one that mattered: the Signature's standing clause narrows on
-      // `tank_hit` (D-057), so an unchecked typo here disabled the Grant
+      // `tank_hit` (D-064), so an unchecked typo here disabled the Grant
       // silently, at load, with every test still green.
       for (const keywordId of beat.damage_keywords) {
         requireKeyword(catalog, keywordId, KEYWORD_REFERENCES.damageKeywords, `Boss Beat ${beat.id}`, 'damage_keywords')
@@ -482,7 +482,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       throw new Error(`The rules name Keyword ${required.id} as ${required.kind}, but it is authored as ${keyword.kind}`)
     }
   }
-  // Only a Hero-referenced card may be fixed (D-057): a Signature is printed
+  // Only a Hero-referenced card may be fixed (D-064): a Signature is printed
   // on a Hero, and the Encounter's `signature_card` is where a Hero names it
   // while Heroes live inline on Encounters. Checked in both directions —
   // an Encounter naming a non-fixed card, and a fixed card no Encounter
@@ -513,7 +513,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       }
       // A fixed card is never in the deck — it is never drawn and never
       // discarded, and a deck copy would be exactly the hand-charging route
-      // D-057 closes.
+      // D-064 closes.
       if (catalog.cards[entry.card].fixed) {
         throw new Error(`${encounterAt(encounter.id)} deck lists ${entry.card}, which is fixed; a Signature is never in the deck`)
       }
@@ -664,7 +664,7 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
 
   reachable.set(`encounter:${encounterId}`, encounter)
   encounter.player_deck.forEach((entry) => addCard(entry.card))
-  // The Signature is reachable content like any deck card (D-057): it changes
+  // The Signature is reachable content like any deck card (D-064): it changes
   // the Encounter's rules, so retuning it starts a new evidence cohort.
   if (encounter.signature_card !== '') {
     addCard(encounter.signature_card)
