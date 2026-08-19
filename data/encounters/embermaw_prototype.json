@@ -118,7 +118,7 @@
     {
       "value": 3,
       "title": "Fed on Ash",
-      "rules_text": "Whelp bites deal 1 more damage.",
+      "rules_text": "Whelp bites and detonations deal 1 more damage.",
       "minion_damage_bonus": 1
     },
     {

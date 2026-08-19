@@ -6,7 +6,8 @@ import type { Card } from './content/schemas'
 import { resolveFire, type FireEffects } from './cardResolver'
 import { legality } from './legality'
 import { resolveBossBeat, advanceProgram, applyPhaseBreak, phaseBreakDue } from './timeline'
-import { ESCALATION_MAX } from './escalation'
+import { minionDetonation } from './minions'
+import { ESCALATION_MAX, escalationModifiers } from './escalation'
 import { shuffle } from './rng'
 import {
   counterEvent,
@@ -30,7 +31,7 @@ import {
   hexCounterRef,
   type CounterRef,
 } from './counters'
-import { TANK_HIT } from './keywords'
+import { RAID_HIT, TANK_HIT } from './keywords'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
 import type { CardReader } from './content/schemas'
 import type { CardInstance, EncounterState, HazardInstance, HeroState, Phase, ResolveResult, ResolvedActionFact } from './types'
@@ -392,6 +393,51 @@ function resolveOne(
       moveEntity(draft.board, action.sourceId, action.destination)
       entity.facing = directionForAxialDelta(axialSubtract(action.destination, fromCoords))
       succeed(fact)
+      break
+    }
+    case 'detonate_minion': {
+      // The fuse running out (D-063). The blast is derived here rather than
+      // carried on the action, so the footprint the fact records is the one
+      // the hexes were actually taken from.
+      const minion = draft.board.entities[action.sourceId]
+      const detonation = minionDetonation(catalog, draft, action.sourceId)
+      if (!minion || !detonation) {
+        fail(fact, 'That Minion has no fuse to run out.')
+        break
+      }
+      const bonus = escalationModifiers(draft).minionDamageBonus
+      fact.detail.blastCenter = { ...detonation.center }
+      fact.detail.blastHexes = detonation.hexes
+      fact.detail.blastDamage = detonation.damage + bonus
+      fact.detail.minionTitle = minion.title
+      fact.resolutionFact = {
+        minion_detonation: true,
+        blast_hexes: detonation.hexes.length,
+        heroes_caught: [...detonation.heroIds],
+        ...(bonus > 0 ? { escalation_bonus: bonus } : {}),
+      }
+      // The Minion is consumed by its own blast: it leaves the board as part
+      // of this action, the way a Minion Defeat leaves inside the damage that
+      // killed it. This is deliberately NOT a Minion Defeat — no damage action
+      // removed it, so nothing records `target_removed` and no Hero is
+      // credited with a kill they did not make.
+      delete draft.board.entities[action.sourceId]
+      delete draft.counters[combatantRef(action.sourceId)]
+      succeed(fact)
+      for (const heroId of detonation.heroIds) {
+        generated.push({
+          kind: 'damage',
+          sourceId: action.sourceId,
+          targetId: heroId,
+          amount: detonation.damage + bonus,
+          reasonText: `${minion.title} detonates`,
+          factContext: {
+            minion_detonation: true,
+            damage_keywords: [RAID_HIT],
+            ...(bonus > 0 ? { escalation_bonus: bonus } : {}),
+          },
+        })
+      }
       break
     }
     case 'damage': {
@@ -933,6 +979,8 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: `Spawn ${action.minionId}`, detail }
     case 'move_minion':
       return { title: `${action.sourceId} advances to (${action.destination.q}, ${action.destination.r})`, detail }
+    case 'detonate_minion':
+      return { title: `${action.sourceId} detonates`, detail }
     case 'damage':
       return { title: `Damage ${action.amount} to ${action.targetId} (${action.reasonText})`, detail }
     case 'discard_for_stamina':

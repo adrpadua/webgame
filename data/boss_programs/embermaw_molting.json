@@ -47,7 +47,7 @@
     {
       "id": "brood_call",
       "title": "Brood Call",
-      "rules_text": "Whelps emerge at the marked edge hexes. Any Whelp still standing at the next Round end raises Escalation by 1.",
+      "rules_text": "Whelps emerge at the marked edge hexes. Each one detonates on the next Round's Incoming Row, burning every Hero within 1 hex and raising Escalation by 1.",
       "kind": "spawn_minions",
       "consequence_tier": "severe",
       "minion": "whelp",

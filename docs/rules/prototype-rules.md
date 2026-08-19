@@ -25,8 +25,8 @@ When the `Slow Window` ends, the next round begins and the boss timeline rolls f
 Escalation is the encounter's only clock (D-023, [ADR 0027](../adr/0027-make-escalation-the-encounters-single-clock.md)). Embermaw carries a value from `0` to `5`:
 
 - **Automatic tick.** At each round's end step, from round `escalation start` onward, Escalation gains `1`. The start round is derived as `Encounter Clock - 4`, so on Embermaw's `8`-round clock the ticks land at the ends of rounds `4` through `8`.
-- **Acceleration.** An authored Boss Beat may add Escalation when its demand is still standing at a round's end step. A Minion that arrived during the current round does not count — it spawns in the `Incoming Row`, so no player window could reach it. Embermaw currently authors this at `0`, because the live deck has no Whelp answer (D-003).
-- **Thresholds.** Reaching a value applies its authored effect for the rest of the fight, and effects at different values stack. Embermaw: `1` Ashen Verge (the western edge — `(-2,0)`, `(-2,1)`, `(-2,2)` — becomes permanently Scorched), `2` Wider Brood (Brood Call summons one more Whelp, and the telegraph shows it), `3` Fed on Ash (Whelp bites `+1`), `4` Closing Jaws (the burn spreads to `(-1,-1)` and `(-1,2)`). Structural thresholds place permanent Scorched hazards that no Round boundary clears, and never a hex adjacent to Embermaw, so the Guarded Front cannot burn (D-031).
+- **Acceleration.** An authored Boss Beat may add Escalation when its demand is still standing at a round's end step. A Minion that arrived during the current round does not count — it spawns in the `Incoming Row`, so no player window could reach it. A Minion with a fuse never reaches a round end at all, so its demand is charged where the fuse runs out instead: a Round in which a Whelp detonated bills Brood Call's authored `1`, once, whatever the brood's size (D-063). The deck's answer is Sweeping Blow, which one-shots a Whelp (D-003).
+- **Thresholds.** Reaching a value applies its authored effect for the rest of the fight, and effects at different values stack. Embermaw: `1` Ashen Verge (the western edge — `(-2,0)`, `(-2,1)`, `(-2,2)` — becomes permanently Scorched), `2` Wider Brood (Brood Call summons one more Whelp, and the telegraph shows it), `3` Fed on Ash (Whelp bites and detonations `+1`), `4` Closing Jaws (the burn spreads to `(-1,-1)` and `(-1,2)`). Structural thresholds place permanent Scorched hazards that no Round boundary clears, and never a hex adjacent to Embermaw, so the Guarded Front cannot burn (D-031).
 - **The top threshold ends the fight.** At `5`, the encounter ends in enrage defeat unless Embermaw has already been defeated. There is no separate round-limit check; with no acceleration this lands at the end of round `8`, exactly where the old clock expired.
 
 `Embermaw: Ashen Trial` therefore has an `Encounter Clock` of `8` rounds, and a party that leaves demands standing reaches the end sooner.
@@ -135,6 +135,15 @@ Minions act at the end of each Round, after the Slow Window and before the Round
 - The creep is the deadline: `Kill Adds` means clearing a Minion before it arrives, and every step it takes also removes a route the party could have used.
 - Minion movement ignores Hazard blocking — Scorched is Embermaw's own element.
 - Each Minion's next action is a visible, deterministic Minion Intent derived from the live board; the engine exposes it as a projection (`minionIntents`).
+
+A Minion may also carry a fuse (D-063), authored on the Minion as `explode_damage` and `explode_radius` — both or neither:
+
+- It detonates on the `Incoming Row` of the Round after the one it arrived in, before that Row's Boss Beats resolve, and is consumed. A Whelp deals `3` at radius `1`.
+- The blast is a Raid Hit against every Hero inside the radius and against nothing else: an Enemy blast never touches the Boss or another Minion, the same way a player `Burst` never touches a Hero.
+- A detonation is not a Minion Defeat. No damage action removes the piece, so nothing records `target_removed` and no Hero is credited a kill.
+- It gets exactly one end step, on the Round it arrived in, so its creep is what carries the blast into range rather than a deadline of its own.
+- Two answers, and they are not equivalent: killing it inside its single Round answers the demand, while stepping out of the blast only avoids the damage — the Escalation is charged either way (see Acceleration).
+- The pending blast is a projection (`minionDetonations`), live for the whole Round the fuse burns through, and the board paints its footprint: a quiet wash over the ground with one warm outline around the outside of it. It is read from the live board rather than stored, so clearing the Minion takes the mark with it the same frame.
 
 ## Targeting
 

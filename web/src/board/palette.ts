@@ -47,6 +47,7 @@ export interface BoardPalette {
   heroFill: number
   moveOverlay: number
   coneOverlay: number
+  blastOverlay: number
   spawnOverlay: number
   bossFill: number
   minionFill: number
@@ -65,6 +66,18 @@ export interface BoardPalette {
 // Two telegraphs are on the board at once and the cone is the more imminent
 // read, so it takes the brighter step and the spawn telegraph the next.
 //
+// A third telegraph arrived with the Minion fuse (D-063), and it takes the
+// cone's step rather than a new one, because the ramp ranks by imminence and a
+// blast about to go off in the Incoming Row is exactly as imminent as the cone
+// about to burn in it. There is no sixth warm step to give it and it must not
+// invent one — the same problem the Guarded Front has on the cool side, with
+// the same answer: it separates by SHAPE. A cone is a filled fan whose every
+// tile wears its own edge; a blast is a wash with ONE line around the outside
+// of it, so what the eye reads is a boundary with a Minion sitting inside
+// rather than a set of hexes. See `boundaryEdges` in layout.ts for the line,
+// and TELEGRAPH_ALPHA below for why the blast is the one telegraph that puts
+// its warning in the edge and not in the fill.
+//
 // The Boss sits below both telegraphs rather than at coral-400, which is the
 // step the chrome gives it. On a plate the Boss is the only warm thing in
 // view; on the board it competes with the beats it is about to land, and the
@@ -78,6 +91,11 @@ export function boardPalette(): BoardPalette {
     heroFill: readToken('cloth-500'),
     moveOverlay: readToken('glass-400'),
     coneOverlay: readToken('coral-300'),
+    // Deliberately the cone's step. Named separately anyway so the board can
+    // say which telegraph it is drawing, and so the day a sixth warm step
+    // exists this is one line rather than a search for every place the blast
+    // borrowed the cone's constant.
+    blastOverlay: readToken('coral-300'),
     spawnOverlay: readToken('coral-400'),
     bossFill: readToken('coral-500'),
     minionFill: readToken('coral-700'),
@@ -135,7 +153,29 @@ export function toneColors(): Record<'hero' | 'boss' | 'guard' | 'heal' | 'hazar
 // 1.55x the spawn — and spends less of the board doing it. The floor for the
 // cone is nearer 0.58 than 0.62; the value is chosen for how it reads, not for
 // the last place the bound would still hold.
-export const TELEGRAPH_ALPHA = { cone: 0.62, spawn: 0.58 } as const
+//
+// The blast is the one telegraph whose ranking does NOT ride its fill, and
+// that is a consequence of its size. A cone covers three hexes; two Whelps
+// with their fuses up cover ten of the board's nineteen, and washing that at
+// the cone's 0.62 turns most of the arena into warning — the failure the cone
+// itself came down from 0.70 to avoid, at twice the area. So the blast splits
+// the job the other two do with one value: its outline carries the warning at
+// the token's own full chroma (0.40 against the Boss sprite's 0.104, the
+// brightest warm thing on the board), and the wash inside only says which
+// ground is under it. 0.28 puts that wash in a band with a floor and a ceiling
+// on it, and both are load-bearing. Above: the arena backdrop's hottest warm
+// pixel, because scenery never outshouts a mark — at 0.24 the wash sat under
+// that ceiling and the ground behind the board could have read hotter than the
+// ground about to burn. Below: the Boss sprite and the spawn telegraph,
+// because a containment tint that competed with a piece would be claiming an
+// urgency the line beside it is already carrying. That leaves 3.7x the bare
+// tile, which is where it sits.
+export const TELEGRAPH_ALPHA = { cone: 0.62, blast: 0.28, spawn: 0.58 } as const
+
+// What the blast's outline is drawn at. Full alpha and a heavier line than the
+// per-tile edges the cone wears: it is one line around a whole area rather
+// than six around each hex, so it has to read as a boundary at a glance.
+export const BLAST_EDGE = { alpha: 1, width: 3 } as const
 
 // The measured warm median of the Boss sprite, which the telegraphs have to
 // clear. Taken from facing E; the whole sheet reads 0.1033, and the higher
