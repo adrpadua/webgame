@@ -24,14 +24,21 @@ const LOG = Object.values(
 // Rows look like `| <date> | D-0NN | <status> | ...`.
 function decisionIds(): string[] {
   return LOG.split('\n')
-    .map((line: string) => /^\|[^|]*\|\s*(D-\d+)\s*\|/.exec(line)?.[1])
+    .map((line) => /^\|[^|]*\|\s*(D-\d+)\s*\|/.exec(line)?.[1])
     .filter((id): id is string => id !== undefined)
 }
 
 describe('design decision log', () => {
   it('gives every decision its own id', () => {
     const ids = decisionIds()
-    expect(ids.length).toBeGreaterThan(40)
+    // Every dated row is a decision row, so the two counts have to agree. This
+    // is the parser checking itself: a regex that quietly stopped matching
+    // would report zero duplicates forever, and a floor like
+    // `length > 40` would only notice once the log shrank past a number
+    // somebody picked.
+    const datedRows = LOG.split('\n').filter((line) => /^\|\s*20\d\d-\d\d-\d\d\s*\|/.test(line))
+    expect(ids.length, 'every dated row should parse to a decision id').toBe(datedRows.length)
+
     const seen = new Map<string, number>()
     for (const id of ids) {
       seen.set(id, (seen.get(id) ?? 0) + 1)
