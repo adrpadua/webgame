@@ -24,3 +24,6 @@ web/dist/
 # Browser smoke screenshots (scripts/smoke.mjs rewrites them every run)
 web/smoke.png
 web/smoke-portrait.png
+
+# Board effect films (scripts/film.mjs rewrites the shot it is filming)
+web/film/

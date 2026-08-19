@@ -33,9 +33,8 @@ Escalation is the encounter's only clock (D-023, [ADR 0027](../adr/0027-make-esc
 
 ## Boss Timeline
 
-The boss has a visible three-horizon timeline. Row names state *when*; how much a beat discloses is the beat's own property (D-021, [ADR 0026](../adr/0026-disclose-boss-beats-in-stages-across-three-timeline-horizons.md)):
+The boss has a visible two-horizon timeline, and every beat in either row states every parameter ([ADR 0031](../adr/0031-remove-the-forecast-row-and-let-the-schedule-be-learned.md)). Row names state *when*, never how much is known. A third row, `Forecast`, previewed next round's program at family level until measurement showed reading it changed no outcome; the schedule is learned by playing now.
 
-- `Forecast Row`: next round's whole boss program at family level — its title, the union of its counter tags, and its highest Consequence Tier. No targets, magnitudes, or hexes. It never resolves, so the per-round event order is unchanged. Round `1` is not forecast, because no earlier round could have shown it.
 - `Instant Row`: the action already resolving this round, with every parameter
 - `Incoming Row`: the action telegraphed for later this round, with every parameter, then promoted into the next round's instant
 

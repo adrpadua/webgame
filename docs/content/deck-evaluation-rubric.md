@@ -138,7 +138,7 @@ Four metrics are required of every encounter session, in addition to the deck me
 
 | Metric | The law it tests | What to record | Healthy result |
 | --- | --- | --- | --- |
-| Timeline conversion rate | D-021's Forecast Row | When a threat is forecast, did the party take an action specifically preparing for it? | Rises across a party's first three attempts. A flat low rate means the Forecast Row is decorative UI, not information. |
+| Schedule learning rate | ADR 0031's learn-by-playing | Across a party's first three attempts, did they act on knowledge of the Boss's order that they could only have got by playing it? | Rises across the three attempts. A flat rate means the order is either unlearnable or already memorised — check `programPredictability` against its `1` and uniform-floor bounds. |
 | Failure attribution | D-022's randomize-before-commitment | After a wipe, ask what decision could have prevented it. | High agreement on a causal mistake. Repeated "nothing, bad draw" is the named failure signal for randomness placement. |
 | Decision concentration | D-026's rejection of face-down commitment | Which player proposed or selected each significant response. | Responses spread across the Party. One player driving nearly everything is answered with more demand density, never a silence rule. |
 | Role counterfactual value | D-025 and the Role Contract | Remove or simulate away each role's key actions; measure the loss in survival and time. | Each role contributes uniquely without being the sole legal source of every solution. |

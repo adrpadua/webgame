@@ -37,6 +37,7 @@
         "Interrupt"
       ],
       "consequence_tier": "structural",
+      "range_tiles": 2,
       "damage": 13,
       "duration_rounds": 1,
       "hazard": "scorched"

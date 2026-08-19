@@ -39,6 +39,7 @@
         "Position"
       ],
       "consequence_tier": "severe",
+      "range_tiles": 1,
       "escalation_if_unanswered": 1
     },
     {

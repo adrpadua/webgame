@@ -73,7 +73,43 @@ Because rows are facings and columns are the cycle, a frame is arithmetic rather
 
 ## 5. Draw
 
-`BoardScene` loads every sheet in `preload`, creates a sprite on first sight with a bottom origin, and depth-sorts by where each piece stands, so a wide piece like Embermaw occludes the hexes in front of it correctly. The idle cycle is Board Ambience: uniform across pieces, carrying no rules information, and held on frame 0 under reduced motion.
+`BoardScene` loads every sheet in `preload` and draws pieces through `placeSprite`, which returns false when a piece has no art so the caller falls back to the drawn token. Sprites are **retained objects in an otherwise immediate-mode renderer**: created on first sight, keyed by entity id, and reaped when their piece leaves the board.
+
+### Where a piece sits
+
+| Layer | Depth |
+| --- | --- |
+| Arena backdrop | `-1` |
+| Tiles, tints, shadows | `0` |
+| Pieces | `1 + footY / 10000` |
+| Flames | `1.5` |
+| Labels and floaters | `2` |
+
+The origin is bottom-centre and the sprite is positioned at `y + footOffset`, so a piece stands on its tile rather than floating at its midpoint. Within the piece layer, depth is **where the piece stands**: further down the board is nearer the camera. Without that, a low wide Embermaw and the Hero in front of it take turns being on top according to which was created first.
+
+Flames sit *above* pieces rather than below, which looks wrong until you notice that the ground a Hazard takes is usually ground somebody is standing on — Ash Trail burns the hex the claw struck, which is the hex the Tank is holding. Fire drawn behind that piece is fire nobody sees.
+
+### What the scene sets each frame
+
+- **Frame** — `spriteFrame(facing, idleStep(now))`. Rows are facings, columns are the cycle, so this is arithmetic rather than a lookup. Reduced motion pins it to the first frame: the cycle is Board Ambience, and ambience is what that setting turns off.
+- **Scale** — `targetHeight / frameHeight`, multiplied by whatever motion is live. Each sheet is cropped to its own content, so a shared scale would size a piece by however much empty space its contact sheet happened to leave.
+- **Position** — the resting point plus the effect's offset and the idle bob from `ambience.ts`, phased per piece. The cast shadow is drawn from the *resting* position and stays put, which is what reads as a lift rather than a slide.
+
+### The two tints
+
+A sprite is normally untinted — the sheet is the art. Two cases move it, and Phaser's tint **multiplies**, so white is the art as drawn.
+
+**Board Feedback flash.** The tone of whatever landed, held for the effect's duration. The drawn token flashed by filling itself; a sheet takes the same tone as a tint, which reads on the armour without flattening it.
+
+**The Boss going out.** `defeat.ts` runs buckle → vent → out, and the last stage walks the multiplier from white toward the scorched step, so the light goes out of the art itself instead of a dead colour being laid over it — every shape the sheet drew survives. The cooled body is a *state* rather than a beat: `checkResolution` ends the Encounter and leaves the body standing, so the scene reads the piece's health rather than the module's clock to keep it dark.
+
+That second tint is the one place a runtime value moves a piece within the warm ordering, which this pipeline otherwise insists belongs to the PNG. It is safe because it only ever moves a piece **down**, and because the piece it moves has left the ordering: a defeated Boss is not a threat being ranked against the beats around it.
+
+### Arrival and departure
+
+A Minion does not fade in. `spawn.ts` breaks the hex and gives the piece up — the telegraph ring that has sat there for a Round closes inward onto the piece while splinters come up with it, then the piece swells past its own size and settles back. That inward ring is deliberately the opposite motion to the burn's ignition flare, which runs outward to take the whole tile: one is a hex being claimed, the other a hex delivering.
+
+Departure is simpler. `reapSprites` destroys any sprite whose id is no longer on the board, so a removed piece takes its texture with it.
 
 ## Checks
 

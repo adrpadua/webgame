@@ -3,9 +3,19 @@ import type { ContentCatalog } from './content/catalog'
 
 // How well can the best possible predictor guess next Round's Boss Program?
 //
-// ADR 0028 draws the program order from the seed so the Forecast Row discloses
-// something a player cannot already count. That claim needs a number, because
-// "countable" is otherwise an argument rather than a measurement: a bag of three
+// This was built to check that ADR 0028's seeded order gave the Forecast Row
+// something to disclose. The row is gone (ADR 0031), and the measurement it was
+// built to justify is now the more important of the two: with nothing telling
+// the player what is coming, this number *is* the learning curve.
+//
+// Read it as a band rather than a target. At `1` the order is a fixed rotation
+// and a second run teaches nothing it did not already give away — memorisation,
+// not mastery. At the uniform floor the order is noise, and no amount of play
+// makes the next Round more knowable, so experience buys nothing either. The
+// design wants the middle: enough structure that meeting a Boss repeatedly pays
+// off, enough residue that it never becomes recitation.
+//
+// The number needs measuring rather than arguing because a bag of three
 // programs is a short shuffle, and by the end of a cycle a player who has been
 // paying attention knows exactly what is left.
 //
@@ -33,7 +43,7 @@ export interface RoundPredictability {
 
 export interface ProgramPredictability {
   perRound: RoundPredictability[]
-  // Mean best-possible accuracy across the forecastable Rounds. `1/n` would be
+  // Mean best-possible accuracy across the predictable Rounds. `1/n` would be
   // a pool drawn uniformly at random; `1` is a fixed rotation.
   meanAccuracy: number
   // Rounds a perfect counter is never wrong about.

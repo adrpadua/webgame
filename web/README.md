@@ -20,7 +20,34 @@ node scripts/smoke.mjs   # after build: the scripted first turn, ordinary
                          # (whole board on screen, 44px targets, no scroll)
 npm run headless -- --scenario embermaw_solo_ceiling   # headless Scenario run
 npm run headless -- --replay <record.json>             # verify a v2 record
+npm run film -- --shot hazard   # after build: film a board effect frame by
+                                # frame into web/film/ with a contact sheet
 ```
+
+## Filming a board effect
+
+Board Feedback is animation, and every animation in the board so far was found
+to be wrong by watching it rather than by reading it — a flame drawn behind the
+Hero, a tint whose arguments were the wrong way round and did nothing at all.
+Both passed their unit tests.
+
+`scripts/film.mjs` captures one moment frame by frame and lays the frames out
+as a contact sheet, so the shape of a curve is one image rather than a folder:
+
+```bash
+npm run build
+npm run film -- --list                     # the named shots
+npm run film -- --shot hazard              # a Hazard landing, framed on its hex
+npm run film -- --fact "Spawn " --scenario embermaw_brood_pressure
+```
+
+A shot is a committed Scenario plus the Resolution Fact to stop in front of:
+loading the Scenario and stepping forward through time travel replays that step
+exactly as the session played it, so no shot has to know which cards to drag.
+Frames are captured with `page.screenshot()` rather than a CDP screencast —
+the board is a WebGL canvas, and a screencast can hand back a buffer that has
+already been presented, which reads as a flicker no player would ever see.
+Output lands in `web/film/<shot>/` and is ignored by git.
 
 ## Play on an iPad (or any device)
 

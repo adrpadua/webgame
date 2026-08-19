@@ -41,19 +41,19 @@ Damage is a consequence of a pattern. A timeline card must not be authored as a 
 Impact and counterplay scale together (see the [champion design research note](../research/2026-08-16-lol-champion-design-lessons.md)). Two authoring rules apply to every timeline entry, on this and future Bosses:
 
 - **Every entry carries at least one counter tag.** A Beat with no meaningful answer is a design defect, not a difficulty setting. `Mitigate` on an unavoidable Tank Hit counts: the answer is preparation, not evasion.
-- **Telegraph lead scales with consequence.** Each Beat carries one of three named Consequence Tiers, and the tier sets the earliest horizon the Beat may appear in (D-021, ADR 0026):
+- **Consequence is authored, and it gates where a Beat may open.** Each Beat carries one of three named Consequence Tiers (D-021, ADR 0031):
 
-| Tier | What qualifies | Earliest legal horizon |
+| Tier | What qualifies | What the tier costs the author |
 | --- | --- | --- |
-| `Chip` | Routine attrition the party absorbs and recovers from. | Any row, including `Instant`. |
-| `Structural` | Spawns entities, changes the board, or applies a lasting Status Effect. | No later than the `Incoming` row. |
-| `Severe` | Can down a Hero **from full health**, or crosses an Escalation Threshold. | The `Forecast` row, first. |
+| `Chip` | Routine attrition the party absorbs and recovers from. | Nothing; it may appear anywhere. |
+| `Structural` | Spawns entities, changes the board, or applies a lasting Status Effect. | Nothing today, now that both rows disclose completely. |
+| `Severe` | Can down a Hero **from full health**, or crosses an Escalation Threshold. | It may never appear in the first program of a phase. |
 
-Round 1 is never forecast, because no earlier Round could have shown it, and a Phase Break is unforecast for the same reason, so **the first program of every phase may carry no `Severe` Beat**. Embermaw's `Hunt Pattern` satisfies this by construction — it is the one Phase I program that does not call Whelps — and Phase II's list is ordered `Ashfall, Molting` to satisfy it too.
+The tier used to set a Beat's earliest legal *horizon*, with `Severe` required to reach a `Forecast` row first. That row is gone (ADR 0031), and what survives is the fairness half: **the first program of every phase may carry no `Severe` Beat**, because the opening Round is the one nobody can have learned anything about. Embermaw's `Hunt Pattern` satisfies this by construction — it is the one Phase I program that does not call Whelps — and Phase II's list is ordered `Ashfall, Molting` to satisfy it too.
 
-The `Severe` tier has **no justification clause**. The old rule allowed a top-tier hit to ship from the `Instant` row with an explicit design justification, because there was no earlier horizon to send it to; the Forecast Row removes that excuse. **The floor in `Severe` is load-bearing, and it was added after measurement.** "Can down a Hero" with no floor is not a per-Beat property at all: it depends on accumulated attrition, so the same Beat qualifies or not depending on when it lands. A 30-seed survival-policy run through Phase II makes that concrete — Heroes enter Phase II at `9.7` health on average (min `2`, max `17`) against a `34` maximum, where Phase II's Raking Claw (`6`) and Cinder Breath (`7`) are each routinely lethal, and where Phase I's Cinder Breath (`5`) is equally lethal to a Hero at `4`. Reading the test that way makes nearly every Beat `Severe` by the late Rounds and the tier stops discriminating. Anchoring it to full health keeps it stable per Beat, which is what an authored tier needs.
+The `Severe` tier has **no justification clause**. The old rule allowed a top-tier hit to ship from the `Instant` row with an explicit design justification; with the opener rule doing the work instead, there is nothing left for an excuse to buy. **The floor in `Severe` is load-bearing, and it was added after measurement.** "Can down a Hero" with no floor is not a per-Beat property at all: it depends on accumulated attrition, so the same Beat qualifies or not depending on when it lands. A 30-seed survival-policy run through Phase II makes that concrete — Heroes enter Phase II at `9.7` health on average (min `2`, max `17`) against a `34` maximum, where Phase II's Raking Claw (`6`) and Cinder Breath (`7`) are each routinely lethal, and where Phase I's Cinder Breath (`5`) is equally lethal to a Hero at `4`. Reading the test that way makes nearly every Beat `Severe` by the late Rounds and the tier stops discriminating. Anchoring it to full health keeps it stable per Beat, which is what an authored tier needs.
 
-Consequence for Embermaw: **`Brood Call` is `Severe`, on the Escalation clause rather than the damage one.** No Embermaw Beat downs a Hero from full health — the largest single hit is Phase II's Raking Claw at `11` against an unheld Guarded Front (`6` plus a `+5` unguarded bonus, up from Phase I's `4` plus `+3`), nearly a third of a Hero's health, real pressure but not a spike that needs a Round of banked preparation. Phase II is more dangerous than Phase I because attrition has already run, not because its Beats changed kind, and that is a balance observation rather than a tier one. What earned the tier is that Brood Call can now cross an Escalation Threshold (D-036): a living Whelp at a Round end raises Escalation by `1`, which is one of the three run-ending outcomes, so the Beat is `Severe` by definition and reaches the Forecast Row first.
+Consequence for Embermaw: **`Brood Call` is `Severe`, on the Escalation clause rather than the damage one.** No Embermaw Beat downs a Hero from full health — the largest single hit is Phase II's Raking Claw at `11` against an unheld Guarded Front (`6` plus a `+5` unguarded bonus, up from Phase I's `4` plus `+3`), nearly a third of a Hero's health, real pressure but not a spike that needs a Round of banked preparation. Phase II is more dangerous than Phase I because attrition has already run, not because its Beats changed kind, and that is a balance observation rather than a tier one. What earned the tier is that Brood Call can now cross an Escalation Threshold (D-036): a living Whelp at a Round end raises Escalation by `1`, which is one of the three run-ending outcomes, so the Beat is `Severe` by definition and can never open a phase.
 
 The tier is authored on each Beat rather than computed — "can down a Hero" depends on Hero health and would be fragile to derive — but its implications are enforced by tests over live content: a Beat that can add Escalation must be `Severe`, and a Beat that spawns a Minion or leaves a Hazard must be at least `Structural`.
 
@@ -139,7 +139,7 @@ The timeline uses the existing `Instant -> Quick -> Incoming -> Slow` structure.
 
 **This table is a lesson plan, not a schedule.** Since D-037 the program order is drawn from the Raid Seed at setup, so only Round 1 is fixed. Read the rows as the order the *lessons* are meant to arrive in — hold the front, then read a cone, then clear adds — and expect a given run to teach them in a different order. What the seed cannot change is the pool: every three-Round window contains each Phase I program exactly once, so no run skips a lesson or drills one three times.
 
-The three implemented Phase I programs each lead a different demand, which is what gives the Forecast Row something to say (D-036):
+The three implemented Phase I programs each lead a different demand, which is what there is to learn about this Boss (D-036). With no Forecast Row, telling them apart is a skill built by meeting them rather than a row read off the HUD:
 
 | Program | Beats | Asks for | Deliberately does not ask for |
 | --- | --- | --- | --- |
@@ -147,7 +147,7 @@ The three implemented Phase I programs each lead a different demand, which is wh
 | `Ember Pattern` | Ember Scar, Cinder Breath `10` | `Position`, `Move`, `Interrupt` | `Mitigate` — Armor is wasted on a Round answered by footwork |
 | `Brood Pattern` | Raking Claw `4`/`+3`, Brood Call (2 Whelps, `Severe`) | `Position`, `Mitigate`, `Kill Adds` | `Move` — nothing here is dodged |
 
-Phase II mirrors the split at harder values and in the order `Ashfall, Molting`, because a Phase Break is unforecast and `Molting` carries the `Severe` Brood Call: `Ashfall` is Cinder Breath `13` plus the scar, `Molting` is Raking Claw `6`/`+5` plus the Brood Call.
+Phase II mirrors the split at harder values and in the order `Ashfall, Molting`, because `Molting` carries the `Severe` Brood Call and no phase may open on one: `Ashfall` is Cinder Breath `13` plus the scar, `Molting` is Raking Claw `6`/`+5` plus the Brood Call.
 
 `Worldfire` ends the encounter as an explicit end-of-clock failure, not a damage check to out-heal. Since D-023 it is the top Escalation Threshold rather than a round-limit check, and Escalation is what the party actually watches:
 

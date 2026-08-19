@@ -115,7 +115,7 @@ export function resolveBossBeat(
       scorchedDurationRounds = beat.duration_rounds
       break
     case 'forward_cone':
-      patternHexes = forwardCone(draft.board.hexes, bossCoords, bossFacing)
+      patternHexes = forwardCone(draft.board.hexes, bossCoords, bossFacing, beat.range_tiles)
       if (containsHex(patternHexes, playerCoords)) {
         playerDamage = beat.damage
         impactedHexes.push(playerCoords)
@@ -224,7 +224,10 @@ export function refreshTelegraphs(catalog: ContentCatalog, draft: EncounterState
   for (const beat of program.incoming_beats) {
     switch (beat.kind) {
       case 'forward_cone':
-        for (const coords of forwardCone(draft.board.hexes, boss.coords, boss.facing, 2)) {
+        // The same authored reach the Beat will resolve with, not a matching
+        // literal: the telegraph must not lie, and two constants agreeing is
+        // not the same as one constant being read twice.
+        for (const coords of forwardCone(draft.board.hexes, boss.coords, boss.facing, beat.range_tiles)) {
           draft.telegraphs[hexKey(coords)] = 'cone'
         }
         break
@@ -275,10 +278,10 @@ export function phaseBreakDue(state: EncounterState, round: number): boolean {
 // The order the Boss runs its programs in, resolved once from the encounter
 // seed (D-037). Two properties matter and they pull against each other.
 //
-// Index 0 is the authored opener, pinned. Round 1 is the teaching Round and the
-// one Round the Forecast Row can never have disclosed (ADR 0026), so it must
-// stay the Round the author chose — and it is why the first program of every
-// phase has to be free of `severe` Beats.
+// Index 0 is the authored opener, pinned. Round 1 is the teaching Round — the
+// one Round a first-time player cannot have learned anything about (ADR 0031) —
+// so it stays the Round the author chose, and it is why the first program of
+// every phase has to be free of `severe` Beats.
 //
 // Everything after it is drawn in bags: shuffle the whole pool, deal it out,
 // shuffle again. A bag keeps each program appearing about as often as an

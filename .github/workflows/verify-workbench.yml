@@ -38,6 +38,16 @@ jobs:
         working-directory: web
         run: npm test
 
+      # A green suite says nothing about which rules it guards. This
+      # reintroduces each documented rule's defect one at a time and fails if
+      # the suite does not notice — the first run found four rules that were
+      # documented, implemented, and unasserted, one of them behind a test that
+      # walked a whole fight without ever reaching the branch it existed for.
+      # Runs the suite once per entry, so it is the slowest step here by design.
+      - name: Mutation audit
+        working-directory: web
+        run: npm run mutate
+
       - name: Lint
         working-directory: web
         run: npm run lint

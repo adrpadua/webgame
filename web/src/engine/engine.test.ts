@@ -21,7 +21,6 @@ import {
   ESCALATION_MAX,
   escalationModifiers,
   escalationStartRound,
-  forecast,
   highestTier,
   programCounterTags,
   programPredictability,
@@ -359,10 +358,11 @@ describe('content catalog', () => {
   })
 })
 
-// D-037. A fixed `(index + 1) % length` rotation made the Forecast Row
-// decorative: after one cycle the next program was deducible from the Round
-// number, so the third horizon disclosed nothing a player could not already
-// count. The order is now drawn from the seed, at setup.
+// D-037. A fixed `(index + 1) % length` rotation made the schedule deducible
+// from the Round counter after one cycle. That was written up as a problem for
+// the Forecast Row, which is gone; it is a bigger problem without it (ADR
+// 0031), because a memorised rotation is the whole of what there is to learn.
+// The order is drawn from the seed, at setup.
 describe('Boss Program order (D-037)', () => {
   it('walks the resolved sequence, Round by Round', () => {
     let state = start()
@@ -379,8 +379,10 @@ describe('Boss Program order (D-037)', () => {
   })
 
   it('pins Round 1 to the authored opener on every seed', () => {
-    // Round 1 is the teaching Round and the one Round the Forecast Row can
-    // never have disclosed (ADR 0026), so the author keeps it.
+    // Round 1 is the teaching Round: the one Round a first-time player cannot
+    // have learned anything about, so the author keeps it rather than the seed.
+    // This is why a phase's first program carries no `severe` Beat (D-036) —
+    // together they make the opening Round teach instead of end the run.
     const opener = catalog.encounters.embermaw_prototype.boss_programs[0]
     for (const seed of [1, 2, 3, 7, 42, 1337, 20260817]) {
       const state = start(seed)
@@ -391,9 +393,23 @@ describe('Boss Program order (D-037)', () => {
 
   it('gives different seeds different orders', () => {
     // The point of the change. If this ever collapses to one order, the
-    // Forecast Row is decorative again.
+    // schedule is deducible from the Round counter and there is nothing to
+    // learn by playing.
     const orders = new Set([1, 2, 3, 4, 5, 6, 7, 8].map((seed) => start(seed).programSequence.join(',')))
     expect(orders.size).toBeGreaterThan(1)
+  })
+
+  it('keeps the Round after the opener unknowable from the Round number alone', () => {
+    // Carried over from the deleted Forecast Row suite, which is where this
+    // property was asserted. The row is gone (ADR 0031) but the property it
+    // depended on is now the design's foundation rather than one row's excuse:
+    // with no forecast, the only way to know what is coming is to have met this
+    // Boss before, and that is worth nothing if Round 2 is a constant.
+    //
+    // Round 2 specifically, because Round 1 is pinned to the authored opener —
+    // it is the one Round that is supposed to be the same every time.
+    const secondRound = new Set([1, 2, 3, 4, 5, 6, 7, 8].map((seed) => start(seed).programSequence[1]))
+    expect(secondRound.size).toBeGreaterThan(1)
   })
 
   it('deals each program about as often as a fixed rotation would', () => {
@@ -416,9 +432,10 @@ describe('Boss Program order (D-037)', () => {
   })
 
   it('resolves the order at setup, so nothing rolls at a Round boundary', () => {
-    // ADR 0025: the Forecast Row shows next Round's program a full Round early,
-    // so the roll has to have happened before any window opened. Advancing must
-    // not change the sequence, only the cursor into it.
+    // ADR 0025, and it outlived the row that first motivated it: a committed
+    // Scenario and a sealed Encounter Record both replay by re-running the
+    // seed, so a roll at a Round boundary would make replay depend on when the
+    // boundary was crossed. Advancing moves the cursor, never the sequence.
     let state = immortalHero(start(4))
     const resolved = [...state.programSequence]
     for (let round = 0; round < 3; round += 1) {
@@ -429,8 +446,10 @@ describe('Boss Program order (D-037)', () => {
 })
 
 // The substance of the differentiation pass: three programs that were the same
-// six Beats under three names now ask for three different answers, which is
-// what gives the Forecast Row something to disclose.
+// six Beats under three names now ask for three different answers. With no
+// Forecast Row (ADR 0031) this is what there is to learn — three programs a
+// player can tell apart after meeting them, rather than one program wearing
+// three titles.
 // The instrument that turns "is this countable?" from an argument into a number
 // (D-038). It assumes nothing about how the order is generated — it groups real
 // sequences by observed prefix and asks what the modal continuation is worth —
@@ -647,6 +666,122 @@ describe('Demand disclosure (D-041)', () => {
     expect(hexDistance(twoOut, bossCoords)).toBe(2)
     expect(reasonsStandingAt(adjacent)).not.toContain('unanswered_proximity')
     expect(reasonsStandingAt(twoOut)).toContain('unanswered_proximity')
+  })
+})
+
+// Reach is content (ADR 0020). It used to be three engine constants for two
+// Beats: `forwardCone`'s default parameter, a second literal at the telegraph
+// call site, and a bare `1` in the Escalation step. The only place a reader
+// could find the number was inside a `rules_text` string, which nothing checks.
+describe('Authored Beat reach', () => {
+  // Round 1 is Hunt Pattern on every seed, and Hunt's Incoming Row is a cone.
+  const TO_QUICK = 2
+
+  // Round-trip a built catalog back through the loader, so a content rule can
+  // be tested by editing content rather than by hand-assembling payloads.
+  function rebuild(source: typeof catalog) {
+    return buildCatalog({
+      cards: Object.values(source.cards),
+      keywords: Object.values(source.keywords),
+      chargeModifiers: Object.values(source.chargeModifiers),
+      hazards: Object.values(source.hazards),
+      minions: Object.values(source.minions),
+      statuses: Object.values(source.statuses),
+      programs: Object.values(source.programs),
+      encounters: Object.values(source.encounters),
+    })
+  }
+
+  function coneTelegraph(state: EncounterState): string[] {
+    return Object.entries(state.telegraphs)
+      .filter(([, kind]) => kind === 'cone')
+      .map(([key]) => key)
+      .sort()
+  }
+
+  function scorchedByIncoming(state: EncounterState): string[] {
+    return advancePhase(catalog, state)
+      .facts.filter((fact) => fact.kind === 'apply_hazard' && fact.succeeded)
+      .map((fact) => hexKey((fact.detail as { coords: { q: number; r: number } }).coords))
+      .sort()
+  }
+
+  it('draws the telegraph and burns the ground from the same authored number', () => {
+    // The telegraph must not lie. It used to agree with the resolution by
+    // coincidence — two separate literals that happened to both be 2 — so
+    // either could have been edited alone. Both now read `beat.range_tiles`,
+    // and this compares what the party was shown against what landed.
+    const quick = stepPhases(start(), TO_QUICK).state
+    expect(quick.phase).toBe('quick')
+    const shown = coneTelegraph(quick)
+    expect(shown.length).toBeGreaterThan(0)
+    expect(scorchedByIncoming(quick)).toEqual(shown)
+  })
+
+  it('moves both of them together when the authored number changes', () => {
+    // Proof the field is read rather than decorative, and that nothing kept a
+    // private copy: shortening the reach has to shrink the preview and the
+    // footprint alike. Against the old two-literal form this failed.
+    const shortened = structuredClone(catalog)
+    for (const program of Object.values(shortened.programs)) {
+      for (const beat of program.incoming_beats) {
+        if (beat.kind === 'forward_cone') {
+          beat.range_tiles = 1
+        }
+      }
+    }
+    const full = stepPhases(start(), TO_QUICK).state
+    let short = createEncounterState(shortened, 'embermaw_prototype')
+    for (let step = 0; step < TO_QUICK; step += 1) {
+      short = advancePhase(shortened, short).state
+    }
+    expect(coneTelegraph(short).length).toBeLessThan(coneTelegraph(full).length)
+    expect(
+      advancePhase(shortened, short)
+        .facts.filter((fact) => fact.kind === 'apply_hazard' && fact.succeeded).length,
+    ).toBeLessThan(scorchedByIncoming(full).length)
+  })
+
+  it('asks the proximity demand at the authored distance', () => {
+    // The companion to D-041's adjacency guard, which pins what the authored
+    // `1` means. This pins that the number is the one being read: widen the
+    // demand's reach and a Hero two hexes out stops being billed.
+    const widened = structuredClone(catalog)
+    for (const program of Object.values(widened.programs)) {
+      for (const beat of program.incoming_beats) {
+        if (beat.kind === 'demand_proximity') {
+          beat.range_tiles = 2
+        }
+      }
+    }
+    const state = start()
+    state.currentProgramId = 'embermaw_brood'
+    state.board.entities[state.primaryHeroId].coords = { q: -1, r: 1 }
+    expect(hexDistance({ q: -1, r: 1 }, boss(state).coords)).toBe(2)
+    const reasons = (source: typeof catalog) =>
+      escalationActionsForRoundEnd(source, state)
+        .filter((action) => action.kind === 'gain_escalation')
+        .map((action) => action.reason)
+    expect(reasons(catalog)).toContain('unanswered_proximity')
+    expect(reasons(widened)).not.toContain('unanswered_proximity')
+  })
+
+  it('refuses content that asks a distance question without answering it', () => {
+    const missing = structuredClone(catalog)
+    const beat = missing.programs.embermaw_hunt.incoming_beats.find((entry) => entry.kind === 'forward_cone')!
+    beat.range_tiles = 0
+    expect(() => rebuild(missing)).toThrow(/authors no range_tiles/)
+  })
+
+  it('refuses a reach on the hit that footwork cannot answer', () => {
+    // The other half of the rule, and the one worth stating as content rather
+    // than trusting to nobody trying it. Raking Claw is deliberately rangeless
+    // (D-017); giving it a reach would hand a camping Hero a hex to stand
+    // outside of and undo what the proximity demand exists to close.
+    const ranged = structuredClone(catalog)
+    const claw = ranged.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'targeted_hit')!
+    claw.range_tiles = 2
+    expect(() => rebuild(ranged)).toThrow(/must not author range_tiles/)
   })
 })
 
@@ -1229,63 +1364,15 @@ describe('Authored Status Effects (D-032 to D-034)', () => {
   })
 })
 
-describe('Forecast Row (D-021, ADR 0026)', () => {
-  it('previews the next Round\'s whole program at family level', () => {
-    const state = startBroodSecond()
-    expect(state.currentProgramId).toBe('embermaw_hunt')
-    const ahead = forecast(catalog, state)!
-    // Family level only: a title, the union of counter tags, and a tier. No
-    // target, magnitude, or hex — those belong to Incoming and Instant.
-    expect(ahead).toMatchObject({
-      programId: 'embermaw_brood',
-      title: catalog.programs.embermaw_brood.title,
-      tier: 'severe',
-    })
-    expect(ahead.counterTags).toEqual(['Position', 'Mitigate', 'Kill Adds'])
-    expect(Object.keys(ahead)).not.toContain('damage')
-  })
-
-  it('tells the party something the Round number does not (D-037)', () => {
-    // The whole reason the order is seeded. Under the old fixed rotation this
-    // set had exactly one member on every seed, which made the third horizon
-    // decorative: a player could read the next program off the Round counter.
-    const secondRoundForecasts = new Set(
-      [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => forecast(catalog, start(seed))!.programId),
-    )
-    expect(secondRoundForecasts.size).toBeGreaterThan(1)
-  })
-
-  it('follows the resolved order a Round ahead', () => {
-    let state = immortalHero(start(4))
-    const sequence = [...state.programSequence]
-    for (let index = 0; index < 3; index += 1) {
-      expect(state.currentProgramId).toBe(sequence[index])
-      expect(forecast(catalog, state)?.programId).toBe(sequence[index + 1])
-      state = stepPhases(state, 5).state
-    }
-  })
-
-  it('is a pure read: asking for it never changes the Encounter', () => {
-    const state = start()
-    const before = structuredClone(state)
-    forecast(catalog, state)
-    expect(state).toEqual(before)
-  })
-
-  it('stops forecasting once the Encounter is resolved', () => {
-    const state = start()
-    state.active = false
-    expect(forecast(catalog, state)).toBeNull()
-  })
-
-  it('empties at the end of the resolved order rather than wrapping', () => {
-    const state = start()
-    state.programIndex = state.programSequence.length - 1
-    expect(forecast(catalog, state)).toBeNull()
-  })
-})
-
-describe('Consequence Tier ladder (D-021, ADR 0026)', () => {
+// The tier ladder, in the reduced form that outlived the Forecast Row.
+// ADR 0026 claimed the ladder and the row "stand or fall together"; that was
+// half right. The disclosure half fell with the row — `severe` no longer means
+// "must be forecast first", because nothing is forecast. What these tests keep
+// is the authoring discipline underneath it, which the opener rule (D-036)
+// depends on: a Beat that can end the run has to be labelled as one, or the
+// rule that keeps such Beats out of a phase's first program has nothing to
+// check against.
+describe('Consequence Tier ladder (D-021, ADR 0031)', () => {
   const everyBeat = Object.values(catalog.programs).flatMap((program) => [
     ...program.instant_beats.map((beat) => ({ beat, program })),
     ...program.incoming_beats.map((beat) => ({ beat, program })),
@@ -1293,7 +1380,8 @@ describe('Consequence Tier ladder (D-021, ADR 0026)', () => {
 
   it('rates a Beat that can cross an Escalation Threshold as severe', () => {
     // An Escalation Threshold crossing is one of D-025's run-ending outcomes,
-    // so such a Beat is severe by definition and must reach the Forecast Row.
+    // so such a Beat is severe by definition — which is what keeps it out of
+    // the first program of a phase, the one Round nobody can have learned.
     for (const { beat } of everyBeat) {
       if (beat.escalation_if_unanswered > 0) {
         expect(beat.consequence_tier).toBe('severe')
