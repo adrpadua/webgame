@@ -92,8 +92,8 @@ const MUTATIONS = [
     name: 'demand price never found, so nothing is ever billed',
     guards: 'ADR 0027: an unanswered demand accelerates the clock',
     file: 'engine/escalation.ts',
-    from: 'if (beat.kind === kind && beat.escalation_if_unanswered > amount) {',
-    to: 'if (false && beat.kind === kind && beat.escalation_if_unanswered > amount) {',
+    from: 'if (beat.kind === kind && beat.escalation_if_unanswered > terms.amount) {',
+    to: 'if (false && beat.kind === kind && beat.escalation_if_unanswered > terms.amount) {',
   },
   {
     name: 'proximity distance hardcoded instead of read from the Beat',
@@ -101,6 +101,20 @@ const MUTATIONS = [
     file: 'engine/escalation.ts',
     from: 'return piece !== undefined && hexDistance(piece.coords, boss.coords) <= rangeTiles',
     to: 'return piece !== undefined && hexDistance(piece.coords, boss.coords) <= 1',
+  },
+  {
+    name: 'Counter demand billed on the first stack instead of the cap',
+    guards: 'ADR 0027: a Counter the party must answer every Round is a tax, not a decision',
+    file: 'engine/escalation.ts',
+    from: 'return hosts.some((ref) => counterCount(state, ref, counterId) >= threshold)',
+    to: 'return hosts.some((ref) => counterCount(state, ref, counterId) >= 1)',
+  },
+  {
+    name: 'Counter demand always asks the Boss, whoever the Beat marks',
+    guards: 'D-051: the Boss marks the Party too, and that half must be priced',
+    file: 'engine/escalation.ts',
+    from: "counterTarget === 'hero' ? Object.keys(state.heroes).map(combatantRef) : [combatantRef(state.bossId)]",
+    to: '[combatantRef(state.bossId)]',
   },
   {
     name: 'cone resolution hardcodes its reach',

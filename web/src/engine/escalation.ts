@@ -1,6 +1,7 @@
 import type { ContentCatalog } from './content/catalog'
 import type { EncounterActionInput } from './actions'
 import { ENCOUNTER_SOURCE } from './actions'
+import { combatantRef, counterCount } from './counters'
 import { hexDistance } from './hex'
 import type { EncounterState } from './types'
 
@@ -40,6 +41,22 @@ export function escalationModifiers(state: EncounterState): EscalationModifiers 
   return modifiers
 }
 
+// Everything authored on the Beat that set a demand's price. One record rather
+// than a per-kind argument list, so a demand asks the question its own content
+// authored — a distance demand reads `rangeTiles`, a Counter demand reads
+// `counterId`, `counterTarget` and `threshold` — and simply ignores the fields
+// it has no question about. The alternative, a union per kind, would buy type
+// safety the table cannot use: `DEMANDS` is iterated, so every entry is reached
+// through the same call site whatever its kind.
+interface DemandTerms {
+  amount: number
+  beatId: string
+  rangeTiles: number
+  counterId: string
+  counterTarget: 'self' | 'hero'
+  threshold: number
+}
+
 // The demands a Beat can leave standing at a Round end, and how to tell.
 // ADR 0027 shipped with one kind and called a general predicate "the second
 // Boss's problem"; the second demand arrived first (D-041), so the shape is
@@ -56,10 +73,7 @@ const DEMANDS: {
   // those from the pool bills the party on a Round the Timeline never showed
   // the Beat, which is ADR 0027's disclosure rule broken from the inside.
   scope: 'pool' | 'program'
-  // `rangeTiles` is the authored reach of the Beat that set the price, so a
-  // demand that asks a distance question asks the authored one. A demand with
-  // no distance in it simply ignores the argument.
-  standing: (state: EncounterState, rangeTiles: number) => boolean
+  standing: (state: EncounterState, terms: DemandTerms) => boolean
 }[] = [
   {
     kind: 'spawn_minions',
@@ -84,7 +98,7 @@ const DEMANDS: {
     // Guarded Front's bonus made being close *safer*. Boss movement cannot fix
     // that — chasing a camper only pushes them onto the front. A demand that
     // being far *is* the failure of cannot be dodged by being far.
-    standing: (state, rangeTiles) => {
+    standing: (state, { rangeTiles }) => {
       const boss = state.board.entities[state.bossId]
       if (!boss) {
         return false
@@ -95,21 +109,49 @@ const DEMANDS: {
       })
     },
   },
+  {
+    kind: 'place_counter',
+    reason: 'unanswered_counter',
+    // `pool`, for the same reason a Minion is: a Counter with no clock sits on
+    // its host whichever program is up, so it is standing on the board rather
+    // than belonging to the Round that placed it.
+    scope: 'pool',
+    // Priced at the cap, not at the first stack. A Counter the party must
+    // answer every single Round is a tax, not a decision — and it would need a
+    // grace Round besides, because a Counter placed in the Incoming Row has no
+    // player window before the Round-end step. Pricing the cap gives the slack
+    // for free: Heat can be ignored for several Rounds and then cannot, which
+    // is a tempo decision rather than an upkeep. It also makes the Counter's
+    // authored `max` load-bearing instead of decorative.
+    standing: (state, { counterId, counterTarget, threshold }) => {
+      if (counterId === '' || threshold < 1) {
+        return false
+      }
+      // Asked where the Beat actually places it. A Boss marking itself and a
+      // Boss marking the Party are the same mechanic pointed opposite ways
+      // (D-051), and reading only the Boss would have priced half of it — a
+      // Counter piled onto a Hero would sit at its cap unanswered and cost
+      // nothing.
+      const hosts =
+        counterTarget === 'hero' ? Object.keys(state.heroes).map(combatantRef) : [combatantRef(state.bossId)]
+      return hosts.some((ref) => counterCount(state, ref, counterId) >= threshold)
+    },
+  },
 ]
 
 // The authored terms of one demand: what it costs to leave standing, which Beat
-// set that cost, and how far that Beat reaches. All three come off the same
-// Beat, so the question a demand asks and the price it charges can never be
-// read from different content.
-function demandTerms(
-  catalog: ContentCatalog,
-  state: EncounterState,
-  kind: string,
-  scope: 'pool' | 'program',
-): { amount: number; beatId: string; rangeTiles: number } {
-  let amount = 0
-  let beatId = ''
-  let rangeTiles = 0
+// set that cost, and everything that Beat says about the question being asked.
+// All of it comes off the same Beat, so the question a demand asks and the
+// price it charges can never be read from different content.
+//
+// The Counter threshold is the one term not authored on the Beat, because it
+// is not the Beat's to set: the cap belongs to the Counter, and a Beat that
+// could name its own threshold could name one the Counter can never reach.
+// Pricing the cap also gives the demand its grace for free — a Counter placed
+// in the Incoming Row has no player window before this step, so charging the
+// first stack would be an upkeep tax rather than a decision.
+function demandTerms(catalog: ContentCatalog, state: EncounterState, kind: string, scope: 'pool' | 'program'): DemandTerms {
+  const terms: DemandTerms = { amount: 0, beatId: '', rangeTiles: 0, counterId: '', counterTarget: 'self', threshold: 0 }
   const programIds = scope === 'pool' ? state.programIds : state.currentProgramId === null ? [] : [state.currentProgramId]
   for (const programId of programIds) {
     const program = catalog.programs[programId]
@@ -117,14 +159,17 @@ function demandTerms(
       continue
     }
     for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
-      if (beat.kind === kind && beat.escalation_if_unanswered > amount) {
-        amount = beat.escalation_if_unanswered
-        beatId = beat.id
-        rangeTiles = beat.range_tiles
+      if (beat.kind === kind && beat.escalation_if_unanswered > terms.amount) {
+        terms.amount = beat.escalation_if_unanswered
+        terms.beatId = beat.id
+        terms.rangeTiles = beat.range_tiles
+        terms.counterId = beat.counter
+        terms.counterTarget = beat.counter_target
+        terms.threshold = catalog.counters[beat.counter]?.max ?? 0
       }
     }
   }
-  return { amount, beatId, rangeTiles }
+  return terms
 }
 
 // The Round-end Escalation step: the automatic tick once it has begun, then
@@ -140,7 +185,7 @@ export function escalationActionsForRoundEnd(catalog: ContentCatalog, state: Enc
     // Beat that sets the reach, so asking before pricing would mean asking a
     // distance question with no authored distance to ask it about.
     const terms = demandTerms(catalog, state, demand.kind, demand.scope)
-    if (terms.amount > 0 && demand.standing(state, terms.rangeTiles)) {
+    if (terms.amount > 0 && demand.standing(state, terms)) {
       actions.push({ kind: 'gain_escalation', sourceId: ENCOUNTER_SOURCE, amount: terms.amount, reason: demand.reason, beatId: terms.beatId })
     }
   }

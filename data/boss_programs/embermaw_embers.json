@@ -16,15 +16,16 @@
     {
       "id": "stoke_the_forge",
       "title": "Stoke the Forge",
-      "rules_text": "Embermaw banks its own fire. Every Heat it carries makes every blow land harder, and it never cools on its own.",
+      "rules_text": "Embermaw banks its own fire. Every Heat it carries makes every blow land harder, and it never cools on its own. While Embermaw is at maximum Heat at the end of a Round, Escalation rises by 1.",
       "kind": "place_counter",
       "counter": "heat",
-      "counter_amount": 1,
+      "counter_amount": 2,
       "counter_target": "self",
+      "escalation_if_unanswered": 1,
       "answer_tags": [
         "interrupt"
       ],
-      "consequence_tier": "structural"
+      "consequence_tier": "severe"
     },
     {
       "id": "ember_scar",

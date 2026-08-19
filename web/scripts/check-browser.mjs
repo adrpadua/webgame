@@ -27,11 +27,10 @@ if (existsSync(path)) {
   process.exit(0)
 }
 
-const inActions = process.env.GITHUB_ACTIONS === 'true'
-const lead = inActions ? '::error::' : ''
 console.error(
-  `${lead}No Chromium for this Playwright version at ${path}. ` +
+  `No Chromium for this Playwright version at ${path}. ` +
     'Install it once with: cd web && npx playwright install --with-deps chromium ' +
-    '(macOS: drop --with-deps). On a CI runner, web/scripts/setup-local-runner.sh does this for you.',
+    '(macOS: drop --with-deps). If this machine already has a build somewhere else, ' +
+    'point PLAYWRIGHT_CHROMIUM_PATH at it instead.',
 )
 process.exit(1)

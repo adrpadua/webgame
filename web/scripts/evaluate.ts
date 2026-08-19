@@ -104,6 +104,7 @@ interface RunMetrics {
   rejected: number
   minionsKilled: number
   burntHexes: number
+  peakBossCounters: number
 }
 
 // Same policy shape as generateScenarios.ts, instrumented for metrics instead
@@ -437,6 +438,23 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     }
   }
 
+  // The highest a Boss-placed Counter ever got, across the whole run. A Counter
+  // demand is priced at the cap (ADR 0027), so this is the reading that says
+  // whether that price is reachable at all: if a run this long can never stack
+  // past 2 on a Counter capped at 4, the demand is authored but dead, and every
+  // aggregate downstream of it would show "no change" for a reason that has
+  // nothing to do with whether the mechanic works.
+  let peakBossCounters = 0
+  for (const fact of facts) {
+    if (!fact.succeeded) {
+      continue
+    }
+    const event = readCounterEvent(fact.resolutionFact as Record<string, unknown> | undefined)
+    if (event !== null && event.counterId !== 'riposte_ready' && event.count > peakBossCounters) {
+      peakBossCounters = event.count
+    }
+  }
+
   let escalationFromDemands = 0
   for (const fact of facts) {
     if (fact.kind === 'gain_escalation' && fact.succeeded) {
@@ -468,6 +486,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     rejected,
     minionsKilled,
     burntHexes,
+    peakBossCounters,
   }
 }
 
@@ -539,6 +558,7 @@ for (const knobs of variants) {
     escalation: avg((run) => run.escalation),
     escFromAdds: avg((run) => run.escalationFromDemands),
     whelpKills: avg((run) => run.minionsKilled),
+    peakCtr: avg((run) => run.peakBossCounters),
     burnt: avg((run) => run.burntHexes),
     bossDmg: avg((run) => run.bossDamage),
     dmgSpread: spread((run) => run.bossDamage),
