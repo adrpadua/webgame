@@ -45,3 +45,10 @@ Both were found by measuring the shipped app, not by reading it:
   content in a 97px box: lock head, three tumblers, the timing dot and one want mark do not
   fit four units of the ladder, and the want glyph lands 9px past the Slot's content edge,
   inside the plate's own cut. Sweeping Blow, at two Charges and no want mark, fits exactly.
+
+## Relationship to the design system
+
+`design/design-system/` publishes the same values to Claude Design as a first-class Design
+System project (**Oathcraft Design System**). It imports this file's CSS constants and
+component renderers rather than restating them, so the canvas and the design system cannot
+disagree about what a Slot looks like. Tokens for both live in `design/oathcraft_tokens.py`.
