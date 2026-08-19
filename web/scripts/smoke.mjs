@@ -765,7 +765,14 @@ try {
     'the opening prompt arms before any beat has played',
   )
   const promptText = await page.locator('[data-testid="playout-continue"]').textContent()
-  assert((promptText ?? '').includes('Continue'), `the playout pauses on a Continue prompt (${promptText?.trim()})`)
+  // The property, not the wording. This used to assert the literal word
+  // "Continue", which made the prompt's label load-bearing: the bar became a
+  // Beat card and the verb became "Resolve", and a test that had nothing to
+  // say about pacing failed. What pausing actually means is that a prompt is
+  // up and it names the Beat the press will play — which the loop below then
+  // holds against what really lights.
+  const armed = (await page.locator('[data-testid="playout-continue"]').getAttribute('data-next-beat')) ?? ''
+  assert(armed !== '', `the playout pauses on a prompt naming the beat it will play (${promptText?.trim()})`)
   // The prompt is a trailer, not a caption: the beat it names is the beat
   // the press plays. Naming the beat already on the board made every press
   // read as a skip, so hold each promise against what actually lights. The
