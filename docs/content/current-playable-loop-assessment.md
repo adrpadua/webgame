@@ -50,7 +50,7 @@ Do not approve a broader tank deck or the approved Phase II package until a focu
 - a player recognizes and clears at least one Whelp;
 - a player uses a Slow Top Card during the Slow Window;
 - a player spends a card to leave an incoming cone rather than treating movement as a hidden tax;
-- a player can state why a Slot was fired, held Primed, or replaced;
+- a player can state why a Slot was fired, held Full, or replaced;
 - the run can win and can lose through comprehensible decisions, not only enrage attrition.
 
 See [first-content-pass.md](first-content-pass.md) for the ranked proposals and [design-backlog.md](design-backlog.md) for implementation dependencies.

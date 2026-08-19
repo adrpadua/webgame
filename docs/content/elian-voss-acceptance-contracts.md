@@ -83,7 +83,7 @@ Add one focused seeded replay scenario, `whelp_clear`, plus a scene-parity asser
 | --- | --- |
 | After load | `phase = loadout`; Slot 1 `top_card.id = fortify`; no Charges. |
 | During Quick | Fortify cannot fire because its Top Card is Slow. After the first Charge, Slot 1 has one Charge and remains unactivated. |
-| At Slow before fire | Slot 1 has two Charges, equal to Fortify's Charge Value; Fortify is Primed and unactivated. |
+| At Slow before fire | Slot 1 has two Charges, equal to Fortify's Charge Value; Fortify is Full and unactivated. |
 | After fire | `phase = slow`; fire succeeds; Guardian Armor increases by exactly `6`; Slot remains populated with Fortify and its two Charges; Slot is activated for Slow. |
 | At next Loadout | Slot 1 is empty; Fortify and both charged Cards are in Discard; neither is in Hand or a Slot. The next Round-start Armor reset occurs according to the existing Round rule. |
 

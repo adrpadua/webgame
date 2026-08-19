@@ -68,7 +68,7 @@ Current slot rules:
 - Any hand card can charge a Slot during either player window; the Top Card alone determines activation timing
 - A charged Slot activates once in its matching player window, then cannot receive more charges for the rest of that window
 - Activation does not consume the Charge Stack. The Top Card's printed rules determine how charge count and Keywords modify its effect
-- A full, unactivated Slot is `Primed` and persists for a later activation or an explicit special interaction
+- A full, unactivated Slot is `Full` and persists for a later activation or an explicit special interaction
 - If a full Slot activates, discard its Top Card and Charge Stack at the end of that matching player window
 - During the beginning-of-Round Loadout Step, freely replace any Slot: discard its old Top Card and Charge Stack, then load a hand card at `0 Charge`
 - Re-loading a Slot that began this Loadout empty is a Swap: the tentative Top Card and its charges return to hand instead of discarding, so a decision made this Loadout can be reconsidered freely

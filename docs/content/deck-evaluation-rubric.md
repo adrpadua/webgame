@@ -74,7 +74,7 @@ Automated evidence can identify that alternatives existed. It must not claim tha
 | Useful action | A legal action that materially advances survival, a stated role responsibility, a visible counterplay objective, or a planned engine state for the current or next player window. It is not merely any legal input. |
 | Meaningful Slot decision | A choice between at least two useful Slot plans with distinct plausible purposes, confirmed by a human reviewer. Automatic counts are a proxy only. |
 | Dead draw | A Hand card that cannot materially help the current or next player window under the current legal board state. It is not simply a card the player did not use. |
-| Charge efficiency | The proportion of charged cards that contribute to a successful activation, an intentional Primed hold, or another authored supported result. A charge discarded because of an explicit replacement or cleanup is not automatically waste. |
+| Charge efficiency | The proportion of charged cards that contribute to a successful activation, an intentional Full hold, or another authored supported result. A charge discarded because of an explicit replacement or cleanup is not automatically waste. |
 | Role moment | A recorded, player-observable result in which the Hero fulfills its stated role against a visible raid pressure. |
 | Default-deck promotion gate | A future candidate needs both Viability and Play-feel at `3/5` or above, its required focused contracts passing, and no unresolved misleading-output condition. The Elian Shield Wall default migration is a user-approved product exception; it does not establish a general bypass. |
 
@@ -127,8 +127,8 @@ Two asymmetric rules then apply, adapted from the champion balance framework in 
 | Minions cleared | Automatic only after Minion scenarios and board removals are supported | Viability | Current Whelp coverage is blocked pending setup-only Minion placement and typed target firing. |
 | Hazard answers | Mixed, pending board-pressure facts or a focused scenario | Viability and Play-feel | Automatic proxy: legal movement or state changes that avoid a telegraphed Hazard/pattern; human confirms whether the answer felt intentional. |
 | Dead-draw rate | Automatic only after hand/Slot/window summaries are exposed | Viability and Play-feel | Prototype definition: a card seen in Hand that cannot legally help the current or next player window. |
-| Slot Tension / meaningful-choice frequency | Mixed, pending report-side proxy and human confirmation | Play-feel | Automatic proxy: count Rounds with at least two legal useful choices among fire, hold Primed, charge, replace, or move. Human confirms whether the choice felt real. |
-| Charge efficiency | Automatic in part from Charge actions; full scoring waits on report aggregation | Viability and Play-feel | Ratio of tucked cards that contributed to a successful Slot activation or intentional Primed hold versus wasted/discarded charges. |
+| Slot Tension / meaningful-choice frequency | Mixed, pending report-side proxy and human confirmation | Play-feel | Automatic proxy: count Rounds with at least two legal useful choices among fire, hold Full, charge, replace, or move. Human confirms whether the choice felt real. |
+| Charge efficiency | Automatic in part from Charge actions; full scoring waits on report aggregation | Viability and Play-feel | Ratio of tucked cards that contributed to a successful Slot activation or intentional Full hold versus wasted/discarded charges. |
 | Class-fantasy clarity | Human rubric now | Play-feel | Ask whether the deck felt like the named Hero Archetype, using observed moments rather than lore preference. |
 | Repetition fatigue across repeated runs | Human rubric now | Play-feel | Ask after at least three runs with the same deck/scenario set. |
 

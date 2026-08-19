@@ -134,7 +134,7 @@ The first Embermaw Tutorial Prompt set teaches the early parts of this loop as e
 | Positioning | The Guardian's primary positional responsibility is the Guarded Front: the Boss-facing adjacent hex. |
 | Riposte Ready | A qualifying Boss Tank Hit in the Guarded Front that causes `0` Health loss grants one non-stacking, non-refreshing Riposte Ready. It expires at the end of the first following Quick Window. |
 | Riposte payoff | A card that deals Boss damage consumes Riposte Ready when it resolves: Shield Slam gains `2` additional Boss damage; any other Boss-damage card gains `1`. Cards that deal no Boss damage never consume it. |
-| Action Bar | The Guardian uses the shared Top Card, Charge Stack, Primed, and Full-Charge Cleanup rules. |
+| Action Bar | The Guardian uses the shared Top Card, Charge Stack, Full, and Full-Charge Cleanup rules. |
 | Movement | A card discarded to move creates 1 Stamina for that adjacent move. The card does not resolve its rules text. |
 | Class resource | No active Guardian-specific resource is required for the first playable pass. `Guard` remains a Keyword, not a meter. |
 
