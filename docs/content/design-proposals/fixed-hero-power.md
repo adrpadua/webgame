@@ -1,7 +1,7 @@
 # Design Proposal: The Signature Slot — the Hero's Engine, Given a Home
 
 Date: 2026-08-19 (revised twice same day; design-settled the same day — see *Settled decisions*)
-Status: Proposed, design-settled. No live rules change and no engine change yet. Adoption requires the formal `D-0xx` entry, then an ADR (this is the first exception to ADR 0008's full-charge cleanup and it retires D-015), then the deck-evaluation gate below.
+Status: **Adopted as D-050**, with [ADR 0032](../../adr/0032-give-each-hero-a-fixed-signature-slot-with-earned-charges.md) recording the container (the ADR 0008 exception, the earned-charge protection of ADR 0002, D-015's retirement, D-033's revisit). No live rules change and no engine change yet — the migration increment waits behind the evaluation gate below, and gate step 2's prototype has returned **one open finding on the activation numbers** ([see below](#prototype-finding-2026-08-19-the-bank-line-is-dominated)) that needs a designer ruling before the card text freezes.
 Context: [Fixed hero powers and command zones research note](../research/2026-08-19-fixed-hero-powers-and-command-zones.md), [champion design note](../research/2026-08-16-lol-champion-design-lessons.md), [riposte deepening proposal](riposte-payoff-deepening.md), [ADR 0002](../../adr/0002-use-a-persistent-action-bar-with-charge-stacks.md), [ADR 0008](../../adr/0008-use-persistent-charge-stacks-and-full-charge-cleanup.md), [Character Design Bible](../../rules/character-design-bible.md), [tank solo-ceiling note](../research/2026-08-17-tank-solo-ceiling-design.md) (D-016).
 
 ## Settled decisions (designer-approved 2026-08-19)
@@ -68,7 +68,7 @@ Slot properties:
 
 **Why earned charge solves the battery problem by construction.** The prior drafts' largest risk was the other two Slots decaying into charge fuel for the Signature, deleting the Slot Tension ADR 0002 names as the main player pressure. Hand cards physically cannot flow into the Signature, so the normal Slots keep their fuel and their tension. It also flips the D-016 risk back down: the engine's rate is bound to the authored Tank Hit cadence — a *structural* bound, the kind the tank research says holds where numeric ones erode.
 
-**Where the decision lives.** Fire at one Charge for tempo, or ride to the cap for the big hit — knowing that a perfect block while capped is wasted, and the Boss Timeline shows you the next Tank Hit. Overcap avoidance is a mastery read off the Timeline, with zero added rules text. This is the builder/spender loop the [riposte deepening proposal](riposte-payoff-deepening.md) named as Option B, arrived at structurally.
+**Where the decision lives.** Fire at one Charge for tempo, or ride to the cap for the big hit — knowing that a perfect block while capped is wasted, and the Boss Timeline shows you the next Tank Hit. Overcap avoidance is a mastery read off the Timeline, with zero added rules text. This is the builder/spender loop the [riposte deepening proposal](riposte-payoff-deepening.md) named as Option B, arrived at structurally. *(Gate step 2 falsified this paragraph as written — under decision 10's numbers the cash line dominates and the overcap read is trivial; see the [prototype finding](#prototype-finding-2026-08-19-the-bank-line-is-dominated).)*
 
 ## What the standing clause is
 
@@ -181,10 +181,38 @@ Why this is the right first increment:
 
 UI: a permanent Slot must read as different from two replaceable ones on a portrait phone, and the standing clause needs a visible surface — the earn moment should be Board Feedback, not a silent state change (the failure mode Riposte Ready has today).
 
+## Prototype finding (2026-08-19): the bank line is dominated
+
+Gate step 2 was run as a throwaway sim ([`web/prototypes/signature-banking.mjs`](../../../web/prototypes/signature-banking.mjs), deterministic, 40k trials × 8 Rounds). It models the Signature economy alone: the earn opportunity is the `tank_hit` Beat (`Raking Claw`), present in 2 of 3 Phase I programs, ordered per ADR 0028's pinned-opener-plus-shuffled-bags, converting to a Charge at a swept zero-loss block rate `p`. The question the gate asked — *does banking versus cashing feel like a read of the Timeline, or does one line dominate?* — has a measured answer: **one line dominates, and it is the wrong one.**
+
+| block rate `p` | cash at 1 Charge | bank to cap | oracle (perfect foresight) | predictor (66%) |
+| --- | --- | --- | --- | --- |
+| 0.6 | **16.96** | 12.62 | 12.62 | 11.76 |
+| 0.8 | **22.69** | 16.63 | 16.63 | 14.97 |
+| 1.0 | **28.32** | 20.33 | 20.33 | 17.88 |
+
+(Signature damage per run under decision 10's numbers, `3` base `+2`/Charge.)
+
+Three facts, each worse than the last:
+
+1. **Cashing at one Charge beats banking by +30–40% at every block rate.** The repeated base is the whole cause: every fire collects a free `3`, so firing frequency is worth more than any stack. Two earns cashed separately are `10` damage; banked and cashed together, `7`.
+2. **The overcap-avoidance "mastery read" is trivial.** The Tank Hit resolves in **Boss Instant**, *before* that Round's Quick Window — so a player who reaches the cap can always fire in the same Round, no foresight required. The blind bank-to-cap policy wastes zero earns.
+3. **Foresight is actively harmful at the live predictability.** A policy that holds a full stack based on schedule prediction (right 66% of the time, the post-ADR-0031 `programPredictability` number) *underperforms* blind banking, because a wrong hold walks a full stack into an earn.
+
+So the settled card would play as a metronome: block, fire, block, fire. The engine survives — the earn condition is still the Hero's job stated as a rule, and fire-on-earn is still correct play converted — but decision 8's banked charge would be dead weight, and the bible's play-feel requirement (*"banking to the cap has to stay a live choice"*) fails as authored. Rate-neutral numbers (`0` base, `3`/Charge) were also measured: they make every policy exactly equal, which is indifference, not a decision — ADR 0031's law is that a decision only matters if it is priced, and rate-neutral prices banking at zero.
+
+### The candidate responses (designer ruling needed)
+
+- **R1 — Accept the cadence.** Fire-on-earn is the intended rhythm; the Signature's real decision surface is the *earn* (Armor sizing, front-holding), not the spend. Then `max_charge: 2` is dead weight — drop to `1`, card text simplifies, damage is `5` per earned block, and decision 8's banking story is retracted honestly. Cheapest, but it abandons the builder/spender texture the deepening proposal wanted.
+- **R2 — Rate-neutral numbers.** `0` base, `3`/Charge: banking becomes free rather than dominated. Rejected above — indifference is not a decision, and it lowers the floor fire to `3`.
+- **R3 — A full-bank rider (recommended).** Keep decision 10's numbers, and at the cap the activation gains a *kind* effect, not more of the same number: **fired at `2` Charges, the Riposte also places `Sundered` on the Boss** (`+1` damage from every source, one Round — authored since D-034, consumed by nothing). The bank line then forgoes ~`3` base damage per cycle to buy a Round where every follow-up hits harder: roughly break-even solo with two or three follow-up hits in hand, and strictly better in a party — which makes the choice *contextual* (what is in hand, who else is hitting this Round), the exact shape of a live decision. It gives the status vocabulary its first consumer (backlog item 10's gap), it is the Warden creating a burst window for the team — a raid job, not a bigger number — and ADR 0008's anticipated "class-specific full-charge mechanics" is exactly this hook. Cost: one small schema addition (a `full_charge` effect block on `fixed` cards) and a slightly longer card text, to be weighed against authoring rule 5 (permanently visible means permanently short).
+
+Recommendation: **R3**, with the rider placing `Sundered` *after* the Riposte's own damage resolves (the follow-through opens the wound; its own hit does not benefit), keeping the `7`-ceiling caveat's arithmetic unchanged. If R3 is taken, the first-increment card text and the authored form gain the `full_charge` block, and the cohort watches Sundered uptime alongside the ceiling. Until the ruling lands, the container (D-050, ADR 0032) is unaffected — nothing above changes the Slot, the Grant, or earned charge.
+
 ## Evaluation gate (before any live change)
 
-1. Formal `D-0xx` entry, then the ADR (ADR 0008 exception, D-015 retirement, D-033 revisit).
-2. Throwaway prototype of the earned-charge loop against the scripted Embermaw cadence: does banking versus cashing feel like a read of the Timeline, or does one line dominate?
+1. ~~Formal `D-0xx` entry, then the ADR (ADR 0008 exception, D-015 retirement, D-033 revisit).~~ **Done 2026-08-19: D-050, ADR 0032.**
+2. ~~Throwaway prototype of the earned-charge loop against the scripted Embermaw cadence: does banking versus cashing feel like a read of the Timeline, or does one line dominate?~~ **Run 2026-08-19: the cash line dominates — see the prototype finding above; activation numbers await the designer ruling.**
 3. **Engine test:** a well-drawn hand still wants the Signature; if good hands route around it, it is a floor wearing an engine's name.
 4. **Battery verification:** earned charge should protect the normal Slots by construction — verify the cohort shows their fire rate unchanged anyway.
 5. `npm run evaluate` against the existing Riposte baseline, watching the `7`-ceiling caveat, with D-016's rule: **any solo Boss kill is a red-flag finding.**
@@ -197,3 +225,9 @@ Landed alongside this proposal, all guidance-side (no rules or engine change):
 - The [Character Design Bible](../../rules/character-design-bible.md) revised per decision 12, with ⏳ contingency markers on every changed section.
 - [elian-voss-starter.md](../decks/elian-voss-starter.md) corrected to the live JSON (it had drifted: `Steady Strike` ×8 with no `Drive Back`, while `46d2a61` had shipped ×6 plus `Drive Back` ×2), and given a pending-revision note for the Signature migration.
 - The same stale list fixed in [prototype-rules.md](../../rules/prototype-rules.md).
+
+Adoption pass (later the same day):
+
+- **D-050** recorded in the [design decision log](../design-decision-log.md); D-015 marked Superseded in place; D-033 annotated with the revisit. (The log's preamble now also records the pre-existing `D-045`–`D-047` ID collision found while minting D-050.)
+- **[ADR 0032](../../adr/0032-give-each-hero-a-fixed-signature-slot-with-earned-charges.md)** written for the container: the ADR 0008 exception scoped to `fixed` cards, the legality refusals that protect ADR 0002, the Grant vocabulary, and ADR 0002's progression-Slot reservation transferring to a fourth Slot.
+- Gate step 2 run: [`signature-banking.mjs`](../../../web/prototypes/signature-banking.mjs) and the prototype finding above. **Open:** the designer ruling on R1/R2/R3.

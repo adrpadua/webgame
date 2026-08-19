@@ -2,7 +2,7 @@
 
 Status: active content-authoring guidance. This document guides Hero identity and deck design. It does not create executable rules; `EncounterEngine` remains authoritative. Its Boss-side counterpart is the [Encounter Design Bible](encounter-design-bible.md), which carries the role contract ("three questions about the same Boss problem") every Hero here answers one of.
 
-Sections and rows marked ⏳ describe the **Signature Slot** — design settled 2026-08-19 in [fixed-hero-power.md](../content/design-proposals/fixed-hero-power.md), pending its formal `D-0xx` adoption and ADR. They are authoring guidance for that target; the live engine still runs the pre-Signature rules (D-015's graded Riposte cash-out, `Shield Slam` in the live deck) until the migration ships.
+Sections and rows marked ⏳ describe the **Signature Slot** — adopted 2026-08-19 as D-050 with ADR 0032, full shape in [fixed-hero-power.md](../content/design-proposals/fixed-hero-power.md). They are authoring guidance for that target; the live engine still runs the pre-Signature rules (D-015's graded Riposte cash-out, `Shield Slam` in the live deck) until the migration increment ships behind the proposal's evaluation gate. One number is still moving: the gate's banking prototype falsified the settled activation numbers' bank line, and the ruling on the proposal's R1/R2/R3 responses may change the *Riposte* card text quoted below.
 
 ## Design Promise
 
@@ -203,7 +203,7 @@ Captain Elian Voss's machine is currently **Shield Wall**, not holy spellcasting
 | Signature weakness | Warden's price: low personal tempo. Elian has no initiation, burst, or cheap repositioning — movement costs a card, and damage beyond Steady Strike must be earned through correct defense. |
 | Team handoff | Deferred until multi-Hero rules exist: Interception is the intended visible rescue tool, but must not enter the live deck before its engine/UI contract passes. |
 
-The key play-feel test: Elian should occasionally choose a lower-damage line because it creates the correct defense for the next known mechanic, then feel smart when that preparation visibly earns a Signature Charge. ⏳ Signature Charges are a capped bank (`2`), not a meter that trickles: overcap is waste, so the mastery read is cashing before the block the Timeline shows coming. Elian must not build Armor only because larger numbers are generically good, and firing *Riposte* at one Charge must not become the automatic next action — banking to the cap has to stay a live choice.
+The key play-feel test: Elian should occasionally choose a lower-damage line because it creates the correct defense for the next known mechanic, then feel smart when that preparation visibly earns a Signature Charge. ⏳ Signature Charges are a capped bank (`2`), not a meter that trickles: overcap is waste, so the mastery read is cashing before the block the Timeline shows coming. Elian must not build Armor only because larger numbers are generically good, and firing *Riposte* at one Charge must not become the automatic next action — banking to the cap has to stay a live choice. (The proposal's banking prototype shows the settled numbers fail this requirement as written — cash-at-one dominates — which is why the activation numbers are the one clause still open; this sentence is the test any ruling must pass.)
 
 ## Complexity Budget
 
