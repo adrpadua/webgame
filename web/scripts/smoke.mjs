@@ -789,6 +789,17 @@ try {
   // holds against what really lights.
   const armed = (await page.locator('[data-testid="playout-continue"]').getAttribute('data-next-beat')) ?? ''
   assert(armed !== '', `the playout pauses on a prompt naming the beat it will play (${promptText?.trim()})`)
+  // The card's face must not breathe. A plate paints its face on ::before, so
+  // animating that layer dips the whole background the Beat's rules text sits
+  // on — over a lit board the hexes and sprites read straight through it. The
+  // contrast checks above cannot see this: they measure declared colours, and
+  // the text's own opacity never moves, so only the composited pixels fail.
+  // Asserted as "the face does not animate" rather than "the card lacks class
+  // X", so any future class that breathes ::before is caught too.
+  const faceAnimation = await page.locator('[data-testid="playout-continue"]').evaluate(
+    (el) => getComputedStyle(el, '::before').animationName,
+  )
+  assert(faceAnimation === 'none', `the Beat card's face does not breathe behind its text (::before animation ${faceAnimation})`)
   // The prompt is a trailer, not a caption: the beat it names is the beat
   // the press plays. Naming the beat already on the board made every press
   // read as a skip, so hold each promise against what actually lights. The
