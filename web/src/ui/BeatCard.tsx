@@ -56,7 +56,7 @@ export function BeatCard() {
         data-next-beat={nextBeatTitle ?? ""}
         data-beat-id={found?.beat.id ?? ""}
         onClick={continuePlayout}
-        className={`wb-beat-deal wb-face-pulse pointer-events-auto wb-plate wb-plate-md wb-face-steel wb-acc-ember flex w-full flex-col gap-1.5 px-3 py-2 text-left shadow-xl ${FOCUS_RING_CLASS}`}
+        className={`wb-beat-deal wb-accent-pulse pointer-events-auto wb-plate wb-plate-md wb-face-steel wb-acc-ember flex w-full flex-col gap-1.5 px-3 py-2 text-left shadow-xl ${FOCUS_RING_CLASS}`}
       >
         <span className="flex items-baseline justify-between gap-2">
           <span className="shrink-0 text-[9px] font-semibold tracking-widest text-steel-400 uppercase">
@@ -70,8 +70,14 @@ export function BeatCard() {
             hand, and a Boss card sharing that verb would read as a move the
             player is being offered. Resolve is the engine's own word for what
             a Beat does and collides with nothing the player can do.
-            The plate breathes to say "waiting on you"; the label does not, so
-            the verb never dips under its contrast floor while it waits. */}
+
+            The accent breathes to say "waiting on you", not the face. The bar
+            this replaced used `wb-face-pulse`, which dips the plate's face to
+            55% — fine under one short title, unreadable under a card carrying
+            a Beat's rules text, because the board shows straight through it.
+            Nothing flagged it: the text's own opacity never moves, so a
+            contrast check on declared colours passes while the composited
+            pixels fail. Caught by screenshotting the card. */}
           <span className="shrink-0 text-[11px] font-black tracking-widest text-coral-300 uppercase">
             Resolve ▸
           </span>
