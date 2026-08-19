@@ -1,7 +1,7 @@
 # Design Proposal: The Signature Slot — the Hero's Engine, Given a Home
 
 Date: 2026-08-19 (revised twice same day; design-settled the same day — see *Settled decisions*)
-Status: **Adopted as D-050**, with [ADR 0032](../../adr/0032-give-each-hero-a-fixed-signature-slot-with-earned-charges.md) recording the container (the ADR 0008 exception, the earned-charge protection of ADR 0002, D-015's retirement, D-033's revisit). No live rules change and no engine change yet — the migration increment waits behind the evaluation gate below, and gate step 2's prototype has returned **one open finding on the activation numbers** ([see below](#prototype-finding-2026-08-19-the-bank-line-is-dominated)) that needs a designer ruling before the card text freezes.
+Status: **Adopted as D-050**, with [ADR 0032](../../adr/0032-give-each-hero-a-fixed-signature-slot-with-earned-charges.md) recording the container (the ADR 0008 exception, the earned-charge protection of ADR 0002, D-015's retirement, D-033's revisit). Gate step 2's prototype falsified the bank line under the original activation numbers ([finding below](#prototype-finding-2026-08-19-the-bank-line-is-dominated)) and the designer ruled **R3** the same day — fired at the cap, the Riposte also places `Sundered` (decision 13). The card text below carries the rider and is settled. No live rules change and no engine change yet — the migration increment waits behind the remaining evaluation gate.
 Context: [Fixed hero powers and command zones research note](../research/2026-08-19-fixed-hero-powers-and-command-zones.md), [champion design note](../research/2026-08-16-lol-champion-design-lessons.md), [riposte deepening proposal](riposte-payoff-deepening.md), [ADR 0002](../../adr/0002-use-a-persistent-action-bar-with-charge-stacks.md), [ADR 0008](../../adr/0008-use-persistent-charge-stacks-and-full-charge-cleanup.md), [Character Design Bible](../../rules/character-design-bible.md), [tank solo-ceiling note](../research/2026-08-17-tank-solo-ceiling-design.md) (D-016).
 
 ## Settled decisions (designer-approved 2026-08-19)
@@ -18,8 +18,9 @@ Context: [Fixed hero powers and command zones research note](../research/2026-08
 10. **Migration numbers are Shield Slam's own**: base `3` Boss damage, `+2` per charge, Quick.
 11. **`Iron Guard` fills Shield Slam's two slots** (×6 → ×8). Guard density *is* the earn rate — Armor sized to the incoming Tank Hit is what produces zero-loss blocks, so the same card now pays twice (survival + Charge) and the deck literally feeds the engine. Flagged honestly: more mitigation leans toward the stalemate wall, which Escalation exists to close; the cohort measures it. Raising `Sweeping Blow` instead was deliberately held out — it moves D-003's escalation acceleration, a lever that deserves its own change and cohort, not a rider on the migration.
 12. **The bible revision is engine-centric**: the four-part machine loop stays but its payoff relocates to the Signature, the Card Family and Elian Application tables are rewritten under that framing, the Hero Design Contract gains a Signature row, and the authoring contract below ports into the bible — every changed section marked as contingent (⏳) on this proposal's formal adoption, since the bible is active canonical guidance and the engine change has not shipped.
+13. **The full-bank rider** (ruled 2026-08-19, from the [prototype finding](#prototype-finding-2026-08-19-the-bank-line-is-dominated) below): an activation fired at `max_charge` also places **`Sundered`** on the Boss, *after* its own damage resolves — the follow-through opens the wound; its own hit does not benefit. Decision 10's numbers are kept unchanged. This is what makes banking a live decision: the bank line trades ~`3` base damage per cycle for a Round in which every source's hits land `+1`, so the choice is contextual on what is in hand and who else is swinging. It is also the D-034 status vocabulary's first consumer, and the "class-specific full-charge mechanic" ADR 0008 anticipated.
 
-Nothing remains open. The grilling session that produced decisions 1–12 closed its frontier on 2026-08-19.
+Nothing remains open. The grilling session that produced decisions 1–12 closed its frontier on 2026-08-19; decision 13 was added the same day by the evaluation gate's own prototype, which is the gate doing its job.
 
 ## Problem
 
@@ -68,7 +69,7 @@ Slot properties:
 
 **Why earned charge solves the battery problem by construction.** The prior drafts' largest risk was the other two Slots decaying into charge fuel for the Signature, deleting the Slot Tension ADR 0002 names as the main player pressure. Hand cards physically cannot flow into the Signature, so the normal Slots keep their fuel and their tension. It also flips the D-016 risk back down: the engine's rate is bound to the authored Tank Hit cadence — a *structural* bound, the kind the tank research says holds where numeric ones erode.
 
-**Where the decision lives.** Fire at one Charge for tempo, or ride to the cap for the big hit — knowing that a perfect block while capped is wasted, and the Boss Timeline shows you the next Tank Hit. Overcap avoidance is a mastery read off the Timeline, with zero added rules text. This is the builder/spender loop the [riposte deepening proposal](riposte-payoff-deepening.md) named as Option B, arrived at structurally. *(Gate step 2 falsified this paragraph as written — under decision 10's numbers the cash line dominates and the overcap read is trivial; see the [prototype finding](#prototype-finding-2026-08-19-the-bank-line-is-dominated).)*
+**Where the decision lives.** Fire at one Charge for tempo, or ride to the cap for the Sundering hit. Gate step 2 falsified the first draft of this paragraph — under decision 10's numbers alone the cash line dominated and the overcap read was trivial (see the [prototype finding](#prototype-finding-2026-08-19-the-bank-line-is-dominated)) — so decision 13 is what makes the sentence true: banking buys a *kind* effect, not a bigger number, and the read is contextual rather than arithmetic. Cash at one when the hand is empty and tempo is the need; bank to two when Steady Strike and Sweeping Blow are waiting to land through a Sundered Boss, or when the party's burst Round is coming. This is the builder/spender loop the [riposte deepening proposal](riposte-payoff-deepening.md) named as Option B, arrived at structurally.
 
 ## What the standing clause is
 
@@ -97,6 +98,10 @@ The Signature is a **card** — not a new component kind — so it inherits `spe
   "boss_damage": 3,
   "tags": ["tank", "attack"],
   "charge_modifiers": ["riposte_payback"],   // effect: boss_damage, amount_per_match: 2
+  "full_charge": {                           // decision 13: only when fired at max_charge
+    "places_counter": "sundered",            // on the Boss, after this card's damage resolves
+    "counter_amount": 1
+  },
   "standing": [
     {
       "when": "host_takes_damage",
@@ -108,7 +113,7 @@ The Signature is a **card** — not a new component kind — so it inherits `spe
 }
 ```
 
-No `data/counters/riposte_ready.json` is needed — the Counter retires entirely (decision 5). The Grant and its gate list are the only new schema in the proposal.
+No `data/counters/riposte_ready.json` is needed — the Counter retires entirely (decision 5). The Grant, its gate list, and the `full_charge` block (decision 13) are the only new schema in the proposal. One placement note: `full_charge.places_counter` follows the card's **Boss damage**, not its `target_type` — a `target_type: "none"` card normally places Counters on the firing Hero (D-048), but the rider marks the thing the riposte struck.
 
 ### What gets deleted
 
@@ -123,7 +128,7 @@ The migration is a net removal from the engine:
 
 > **Elian Voss — Signature: *Riposte***
 > *Standing:* When you absorb a Tank Hit on the Guarded Front for zero Health loss, this Slot gains one Charge (max `2`; a block while full earns nothing).
-> *Activation (Quick):* Spend all Charges: deal `3` damage to the Boss, `+2` per Charge spent.
+> *Activation (Quick):* Spend all Charges: deal `3` damage to the Boss, `+2` per Charge spent. Spent `2`? The Boss is **Sundered**.
 
 Why this is the right first increment:
 
@@ -176,7 +181,7 @@ Why this is the right first increment:
 - `setup.ts` — install the Signature Slot at encounter creation;
 - `legality.ts` / `legalActions.ts` — refuse `prepare`/`replace`/`charge_slot` against a fixed Slot;
 - `resolve.ts` — generic Grant evaluation where the hard-coded Riposte branch sits; on a fixed Slot's fire, spend the stack and keep the Top Card;
-- `content/schemas.ts` — the `standing` array (Grant: `when`, `event_keyword`, `gates`, `grants_charge`) and `fixed`; catalog validation that only a Hero-referenced card may be `fixed`;
+- `content/schemas.ts` — the `standing` array (Grant: `when`, `event_keyword`, `gates`, `grants_charge`), `fixed`, and the `full_charge` block (decision 13: effects applied only when fired at `max_charge`; its `places_counter` follows the card's Boss damage, not `target_type`); catalog validation that only a Hero-referenced card may be `fixed`;
 - `data/` — `elian_riposte.json`, the `riposte_payback` Charge Modifier, and the deck-list change in `embermaw_prototype.json`: `Shield Slam` out, `Iron Guard` to 8 (decision 11).
 
 UI: a permanent Slot must read as different from two replaceable ones on a portrait phone, and the standing clause needs a visible surface — the earn moment should be Board Feedback, not a silent state change (the failure mode Riposte Ready has today).
@@ -207,12 +212,14 @@ So the settled card would play as a metronome: block, fire, block, fire. The eng
 - **R2 — Rate-neutral numbers.** `0` base, `3`/Charge: banking becomes free rather than dominated. Rejected above — indifference is not a decision, and it lowers the floor fire to `3`.
 - **R3 — A full-bank rider (recommended).** Keep decision 10's numbers, and at the cap the activation gains a *kind* effect, not more of the same number: **fired at `2` Charges, the Riposte also places `Sundered` on the Boss** (`+1` damage from every source, one Round — authored since D-034, consumed by nothing). The bank line then forgoes ~`3` base damage per cycle to buy a Round where every follow-up hits harder: roughly break-even solo with two or three follow-up hits in hand, and strictly better in a party — which makes the choice *contextual* (what is in hand, who else is hitting this Round), the exact shape of a live decision. It gives the status vocabulary its first consumer (backlog item 10's gap), it is the Warden creating a burst window for the team — a raid job, not a bigger number — and ADR 0008's anticipated "class-specific full-charge mechanics" is exactly this hook. Cost: one small schema addition (a `full_charge` effect block on `fixed` cards) and a slightly longer card text, to be weighed against authoring rule 5 (permanently visible means permanently short).
 
-Recommendation: **R3**, with the rider placing `Sundered` *after* the Riposte's own damage resolves (the follow-through opens the wound; its own hit does not benefit), keeping the `7`-ceiling caveat's arithmetic unchanged. If R3 is taken, the first-increment card text and the authored form gain the `full_charge` block, and the cohort watches Sundered uptime alongside the ceiling. Until the ruling lands, the container (D-050, ADR 0032) is unaffected — nothing above changes the Slot, the Grant, or earned charge.
+Recommendation: **R3**, with the rider placing `Sundered` *after* the Riposte's own damage resolves (the follow-through opens the wound; its own hit does not benefit), keeping the `7`-ceiling caveat's arithmetic unchanged.
+
+**Ruled 2026-08-19: R3, as recommended** — recorded as settled decision 13. The first-increment card text and the authored form above carry the `full_charge` block, and the cohort watches Sundered uptime alongside the ceiling. The container (D-050, ADR 0032) was unaffected throughout — nothing in this section changed the Slot, the Grant, or earned charge.
 
 ## Evaluation gate (before any live change)
 
 1. ~~Formal `D-0xx` entry, then the ADR (ADR 0008 exception, D-015 retirement, D-033 revisit).~~ **Done 2026-08-19: D-050, ADR 0032.**
-2. ~~Throwaway prototype of the earned-charge loop against the scripted Embermaw cadence: does banking versus cashing feel like a read of the Timeline, or does one line dominate?~~ **Run 2026-08-19: the cash line dominates — see the prototype finding above; activation numbers await the designer ruling.**
+2. ~~Throwaway prototype of the earned-charge loop against the scripted Embermaw cadence: does banking versus cashing feel like a read of the Timeline, or does one line dominate?~~ **Run 2026-08-19: the cash line dominated as originally numbered; ruled R3 (decision 13) the same day — the full-bank `Sundered` rider is what keeps the bank line alive.**
 3. **Engine test:** a well-drawn hand still wants the Signature; if good hands route around it, it is a floor wearing an engine's name.
 4. **Battery verification:** earned charge should protect the normal Slots by construction — verify the cohort shows their fire rate unchanged anyway.
 5. `npm run evaluate` against the existing Riposte baseline, watching the `7`-ceiling caveat, with D-016's rule: **any solo Boss kill is a red-flag finding.**
@@ -230,4 +237,5 @@ Adoption pass (later the same day):
 
 - **D-050** recorded in the [design decision log](../design-decision-log.md); D-015 marked Superseded in place; D-033 annotated with the revisit. (The log's preamble now also records the pre-existing `D-045`–`D-047` ID collision found while minting D-050.)
 - **[ADR 0032](../../adr/0032-give-each-hero-a-fixed-signature-slot-with-earned-charges.md)** written for the container: the ADR 0008 exception scoped to `fixed` cards, the legality refusals that protect ADR 0002, the Grant vocabulary, and ADR 0002's progression-Slot reservation transferring to a fourth Slot.
-- Gate step 2 run: [`signature-banking.mjs`](../../../web/prototypes/signature-banking.mjs) and the prototype finding above. **Open:** the designer ruling on R1/R2/R3.
+- Gate step 2 run: [`signature-banking.mjs`](../../../web/prototypes/signature-banking.mjs) and the prototype finding above.
+- **Ruled the same day: R3** — settled decision 13 (the full-bank `Sundered` rider), folded into the authored form, the card text, and the seam. Gate steps 3–6 remain, all riding the migration increment's cohort.

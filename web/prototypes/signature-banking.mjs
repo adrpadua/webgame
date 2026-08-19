@@ -32,6 +32,9 @@
 //
 // Throwaway prototype artifact, kept as the source for the proposal's
 // prototype-finding section, in the spirit of draw-availability.mjs.
+// Outcome: cash_at_1 dominated (+30-40%) under the slam numbers; ruled R3
+// same day (proposal decision 13) -- a full-bank Sundered rider, a kind
+// effect this damage-only model deliberately does not price.
 //
 // Usage (from repo root):  node web/prototypes/signature-banking.mjs
 
