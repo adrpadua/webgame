@@ -198,7 +198,7 @@ function SignatureButton() {
         }
         fireSlot(slotIndex)
       }}
-      className={`wb-pop-in wb-plate wb-plate-sm wb-face-gold wb-acc-gold pointer-events-auto ml-auto flex min-h-13 w-[74px] shrink-0 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-gold-950 ${FOCUS_RING_CLASS}`}
+      className={`wb-pop-in wb-plate wb-plate-sm wb-face-gold wb-acc-gold pointer-events-auto ml-auto flex min-h-13 w-[74px] shrink-0 flex-col items-center justify-center gap-0.5 py-1.5 text-gold-950 ${FOCUS_RING_CLASS}`}
     >
       <span className="w-full truncate text-center text-[10px] leading-none font-black tracking-wide uppercase">{card.title}</span>
       <span className="text-[9px] leading-none font-bold tracking-wide text-gold-900 uppercase">Fire</span>
@@ -249,7 +249,7 @@ export function HeroFrame() {
         // pop, pointing the tap at the chrome that answers it.
         key={pulse}
         aria-label={`${title}, health ${shownHero.health} of ${shownHero.maxHealth}, Armor ${shownHero.armor}${resourceLabel}, ${hero.deck.length} in deck, ${hero.discard.length} in discard`}
-        className={`wb-pop-in wb-plate wb-plate-lg wb-face-ceramic wb-acc-cloth pointer-events-auto flex w-[208px] shrink-0 flex-col items-start gap-[2px] px-2 py-0.5 text-left text-ceramic-950 ${FOCUS_RING_CLASS}`}
+        className={`wb-pop-in wb-plate wb-plate-lg wb-face-ceramic wb-acc-cloth pointer-events-auto flex w-[208px] shrink-0 flex-col items-start gap-[2px] py-0.5 text-left text-ceramic-950 ${FOCUS_RING_CLASS}`}
       >
         <span className="flex w-full items-center gap-1 text-[11px] leading-none font-semibold">
           <HeroEmblem className="h-3.5 w-3.5 shrink-0 text-cloth-500" />

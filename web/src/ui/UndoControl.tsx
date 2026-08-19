@@ -46,9 +46,6 @@ export function UndoControl() {
         }
         undo()
       }}
-      // Matches the advance rail's clearance: the rake's text padding is not
-      // what a centred mark needs.
-      style={{ paddingInline: 6 }}
       // A rail with nothing to take back is inert, not absent. At steel-600
       // on the dim face the mark scored about 2.2:1 and read as an empty
       // plate — which makes the bar look like it lost a control rather than
@@ -56,7 +53,7 @@ export function UndoControl() {
       // still reads quieter than the armed rail, which keeps three channels
       // between the two states: the face, the leading-edge accent, and
       // runeglass against steel.
-      className={`wb-plate wb-plate-lg col-span-2 flex min-h-20 items-center justify-center transition ${FOCUS_RING_CLASS} ${
+      className={`wb-plate wb-plate-lg wb-plate-centered col-span-2 flex min-h-20 items-center justify-center transition ${FOCUS_RING_CLASS} ${
         canUndo ? 'wb-face-steel wb-acc-glass text-glass-200 hover:brightness-125 active:translate-y-px' : 'wb-face-dim wb-acc-none text-steel-500'
       } ${gated ? GATED_CLASS : ''}`}
     >

@@ -56,7 +56,7 @@ export function BeatCard() {
         data-next-beat={nextBeatTitle ?? ""}
         data-beat-id={found?.beat.id ?? ""}
         onClick={continuePlayout}
-        className={`wb-beat-deal wb-accent-pulse pointer-events-auto wb-plate wb-plate-md wb-face-steel wb-acc-ember flex w-full flex-col gap-1.5 px-3 py-2 text-left shadow-xl ${FOCUS_RING_CLASS}`}
+        className={`wb-beat-deal wb-accent-pulse pointer-events-auto wb-plate wb-plate-md wb-face-steel wb-acc-ember flex w-full flex-col gap-1.5 py-2 text-left shadow-xl ${FOCUS_RING_CLASS}`}
       >
         <span className="flex items-baseline justify-between gap-2">
           <span className="shrink-0 text-[9px] font-semibold tracking-widest text-steel-400 uppercase">
@@ -137,7 +137,7 @@ export function StandingDemand() {
       <div
         data-testid="standing-demand"
         data-answered={answered ? "true" : "false"}
-        className={`wb-slide-up pointer-events-none wb-plate wb-plate-sm wb-face-steel flex w-full items-center justify-between gap-2 px-3 py-1.5 shadow-lg ${
+        className={`wb-slide-up pointer-events-none wb-plate wb-plate-sm wb-face-steel flex w-full items-center justify-between gap-2 py-1.5 shadow-lg ${
           answered ? "wb-acc-gold" : "wb-acc-ember"
         }`}
       >

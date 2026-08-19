@@ -131,10 +131,30 @@ body {
   border-color: transparent !important;
   --wb-off: 5px;   /* height x tan(8deg); overridden per size */
   --wb-notch: 3px;
+  --wb-gutter: 8px;
+  --wb-inset: var(--wb-off);
   --wb-face: var(--color-steel-900);
   --wb-edge: var(--color-steel-700);
   --wb-acc: var(--color-steel-700);
-  padding-inline: calc(var(--wb-off) + 10px);
+  /* The one padding rule, declared once and never re-declared by a size or
+     by a consumer. `--wb-off` is not a decoration here: it is exactly how far
+     the clip-path below cuts into the box, so content inside that distance is
+     content under the cut.
+
+     Two terms, each meaning one thing. `--wb-inset` is how deep the cut
+     actually reaches *this plate's content*, which depends on where that
+     content sits: the leading edge is furthest in at the top and reaches zero
+     at the bottom, and the trailing edge does the reverse, so content that
+     spans the plate meets the full offset while content held to the middle
+     band meets half of it (`wb-plate-centered`). `--wb-gutter` is the
+     breathing room past the cut, and it is the only figure tuned by eye.
+
+     This replaced seven hand-set `padding-inline` values, a `px-*` utility
+     per caller, and two inline `paddingInline: 6` styles that no class could
+     beat. Nothing sets padding-inline any more; a plate that wants its width
+     back lowers `--wb-gutter` or declares where its content sits. A browser
+     check holds every visible plate to `padding >= --wb-inset`. */
+  padding-inline: calc(var(--wb-inset) + var(--wb-gutter));
 }
 .wb-plate::before {
   content: '';
@@ -174,35 +194,36 @@ body {
     0 100%
   );
 }
-/* Sizes: offset = height x tan(8deg) ≈ height x 0.14. */
-@utility wb-plate-xs { --wb-off: 3px; --wb-notch: 2px; padding-inline: calc(var(--wb-off) + 8px); }   /* ~24px chips */
-@utility wb-plate-sm { --wb-off: 5px; --wb-notch: 3px; padding-inline: calc(var(--wb-off) + 14px); }  /* ~38-44px controls */
-@utility wb-plate-md { --wb-off: 7px; --wb-notch: 4px; padding-inline: calc(var(--wb-off) + 8px); }   /* ~48px cards */
-/* The Compact Card. A five-card Hand at 390 gives each card 68px, so the
-   symmetric padding-inline the other sizes use spends 30 of them on the cut
-   and leaves 38px for a title — not enough for a two-word card name, which
-   then overflowed the plate into its neighbour. The rake does not need
-   symmetric clearance: the leading edge is furthest in at the top (off +
-   notch) and the trailing edge at the bottom (off), so the padding is
-   asymmetric by the same measure and wins back 12px of content.
-   The offset stays the ~48px figure rather than this plate's true height x
-   tan(8deg) of 13px: a true rake would take a fifth of the card's width for
-   the cut alone. The Compact Card is the one plate raked to its width.
-   8px clears the cut where the content actually sits rather than at the
-   corners: the leading edge is only ~7px in beside the title and reaches 0
-   at the bottom, and the trailing edge is ~1px in beside the title and 7px
-   at the pips. The corners themselves hold no content. */
-@utility wb-plate-card { --wb-off: 7px; --wb-notch: 4px; padding-inline: 8px; }
-@utility wb-plate-lg { --wb-off: 9px; --wb-notch: 4px; padding-inline: calc(var(--wb-off) + 10px); }  /* ~62px slots */
-/* The Action Bar Slot. Same rake as wb-plate-lg, less breathing room, for
-   the reason wb-plate-card gives: the cut is furthest in on one side per row
-   and the padding does not have to clear it on both. The bar's twelve-unit
-   ladder (2 | 4 | 4 | 2) gives a Slot four units — about 120px at 390 — and
-   the symmetric clearance spent 38 of them on the cut, which truncated
-   "Steady Strike". 3px past the offset clears the cut where the content
-   actually sits and wins back 14px of title. */
-@utility wb-plate-slot { --wb-off: 9px; --wb-notch: 4px; padding-inline: calc(var(--wb-off) + 3px); }
-@utility wb-plate-xl { --wb-off: 16px; --wb-notch: 6px; padding-inline: calc(var(--wb-off) + 12px); } /* ~112px panels */
+/* Sizes carry the rake and, where the plate is width-starved, a tighter
+   gutter. None of them re-declare padding: the rule above derives it, so a
+   new size cannot ship with content sitting in its own cut.
+   Offset = height x tan(8deg) ≈ height x 0.14 at the size class's nominal
+   height; a plate much taller than its class simply wears a shallower rake,
+   which is why the offset is the cut's real depth rather than an angle. */
+@utility wb-plate-xs { --wb-off: 3px; --wb-notch: 2px; }                     /* ~24px chips */
+@utility wb-plate-sm { --wb-off: 5px; --wb-notch: 3px; --wb-gutter: 10px; }  /* ~38-44px controls */
+@utility wb-plate-md { --wb-off: 7px; --wb-notch: 4px; }                     /* ~48px cards */
+/* The Compact Card. A five-card Hand at 390 gives each card 68px, so every
+   pixel of gutter is a pixel of card name: this is the plate that buys its
+   width by lowering the gutter to 4px rather than by ducking under the cut.
+   Its offset stays the ~48px figure rather than this plate's true height x
+   tan(8deg) of 13px — a true rake would take a fifth of the card's width for
+   the cut alone — so the Compact Card wears a visibly shallower rake, which
+   is a deliberate exception to the angle rather than to the padding rule. */
+@utility wb-plate-card { --wb-off: 7px; --wb-notch: 4px; --wb-gutter: 4px; }
+@utility wb-plate-lg { --wb-off: 9px; --wb-notch: 4px; }                     /* ~62px readouts */
+/* The Action Bar Slot. Same rake as wb-plate-lg on a tighter gutter, for the
+   reason the Compact Card gives: the bar's twelve-unit ladder gives a Slot
+   about 120px at 390, and a card name has to fit inside what the cut leaves. */
+@utility wb-plate-slot { --wb-off: 9px; --wb-notch: 4px; --wb-gutter: 3px; }
+@utility wb-plate-xl { --wb-off: 16px; --wb-notch: 6px; --wb-gutter: 12px; } /* ~112px panels */
+/* Content held to the plate's vertical middle — an Action Bar Rail's centred
+   mark — meets each cut at half its depth, because both edges are furthest in
+   at a corner and the middle is halfway along both. Declaring that is how a
+   rail gets its width back without ducking under its own face: the plate
+   keeps the full rake and the mark keeps the room. Only for plates whose
+   content genuinely cannot reach the top or bottom edge. */
+@utility wb-plate-centered { --wb-inset: calc(var(--wb-off) / 2); }
 /* Faces and accents. The accent is the status channel: gold on the live
    thing, ember on the irreversible one, glass on a player affordance. */
 @utility wb-face-steel   { --wb-face: var(--color-steel-900); --wb-edge: var(--color-steel-700); }

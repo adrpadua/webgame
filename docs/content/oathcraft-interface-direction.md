@@ -126,6 +126,10 @@ The rule: **horizontal padding is the rake offset plus the gap you actually want
 
 Vertical padding is unaffected — the rake only moves the horizontal edges.
 
+**Content that cannot reach the top or bottom edge meets a shallower cut.** Both edges are furthest in at a corner and travel to zero at the opposite one, so a mark held to the plate's vertical middle — an Action Bar Rail's glyph — meets each edge at *half* the offset. Such a plate may pad from half the offset instead of the whole, which is how a 57px rail keeps its full rake and still gives its mark room. This is a statement about where the content sits, not a licence to trim: a plate whose content spans its height pads from the whole offset, and one that claims the middle band while filling top to bottom is drawing its own face across its own text.
+
+**Shipped as one derived rule, not as a table.** The table above is the arithmetic, not the implementation: every raked plate computes `padding-inline` once, as `--wb-inset + --wb-gutter`, where the inset is the rake's real depth against that plate's content (the offset, halved for a middle-band plate) and the gutter is the only figure chosen by eye. Sizes declare the rake and their gutter; nothing else sets horizontal padding. The rule was written here first and drifted anyway — it had become seven hand-set `padding-inline` values, a `px-*` utility per caller, and two inline styles that no class could beat, with four plate kinds sitting inside their own cut at once. A browser check now holds every visible plate to `padding >= inset`, so the drift is caught the day it happens rather than the day someone squints at a screenshot.
+
 ### Accents Run Parallel To The Cut
 
 An accent bar inside a raked clip is not a bar — the clip shaves it into a tapering wedge, which reads as a rendering fault rather than a decision. **Every leading-edge accent is skewed to the same 8°** so it stays parallel to the edge it belongs to, and it **runs that edge's full length**.

@@ -142,13 +142,11 @@ export function AdvanceControl() {
         aria-label={label}
         onClick={ended ? () => restart() : onPress}
         // The rail is the Action Bar's live gold, the same face a Slot wears
-        // when it can fire — pressing it is always a move. The rake's text
-        // clearance is not what a centred mark needs, so the plate keeps its
-        // cut and gives the glyph the room instead: at mid height the leading
-        // edge is only half the offset in, and the mark sits above both
-        // painted layers regardless.
-        style={{ paddingInline: 6 }}
-        className={`wb-plate wb-plate-lg wb-face-gold wb-acc-gold col-span-2 flex min-h-20 items-center justify-center text-gold-950 transition hover:brightness-110 active:translate-y-px ${FOCUS_RING_CLASS} ${
+        // when it can fire — pressing it is always a move. Its mark is held
+        // to the plate's middle, so it takes the centred inset: the cut is
+        // half as deep there, and the glyph keeps the room the full rake
+        // would have spent.
+        className={`wb-plate wb-plate-lg wb-plate-centered wb-face-gold wb-acc-gold col-span-2 flex min-h-20 items-center justify-center text-gold-950 transition hover:brightness-110 active:translate-y-px ${FOCUS_RING_CLASS} ${
           spotlit ? SPOTLIGHT_CLASS : ''
         } ${gated ? GATED_CLASS : ''}`}
       >

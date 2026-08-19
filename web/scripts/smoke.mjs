@@ -1061,6 +1061,43 @@ try {
   // below reaches the busiest state.
   const spilling = await cardSpill(phone)
   assert(spilling.length === 0, `no Compact Card's text overflows its plate at 390x844 (${spilling.join(' | ') || 'all contained'})`)
+  // The raked plate's one padding rule: content may never sit inside the cut.
+  // `--wb-off` is exactly how far the clip-path takes off each side, so a
+  // plate whose horizontal padding is under it is drawing its own face across
+  // its own text. This used to be seven hand-set `padding-inline` values plus
+  // whatever `px-*` each caller reached for, and four plate kinds were under
+  // their cut at once — including two rails wearing the browser's default
+  // button padding because nothing had set one. Checked on every visible
+  // plate rather than a named few, so a new size or a new caller is covered
+  // the day it ships.
+  const rakedPlates = await phone.evaluate(() => {
+    const problems = []
+    const seen = new Set()
+    for (const el of document.querySelectorAll('.wb-plate')) {
+      const box = el.getBoundingClientRect()
+      if (box.width === 0 || box.height === 0) {
+        continue
+      }
+      const style = getComputedStyle(el)
+      // The depth the cut reaches this plate's content: the full offset,
+      // halved for a plate that declares its content sits in the middle band.
+      const off = Number.parseFloat(style.getPropertyValue('--wb-off')) || 0
+      const inset = el.classList.contains('wb-plate-centered') ? off / 2 : off
+      const left = Number.parseFloat(style.paddingLeft)
+      const right = Number.parseFloat(style.paddingRight)
+      const size = [...el.classList].find((name) => name.startsWith('wb-plate-')) ?? 'wb-plate'
+      const key = `${size}:${el.dataset.testid ?? ''}`
+      if (left < inset || right < inset) {
+        if (seen.has(key)) {
+          continue
+        }
+        seen.add(key)
+        problems.push(`${key} pads ${left}/${right} inside a ${inset}px cut`)
+      }
+    }
+    return problems
+  })
+  assert(rakedPlates.length === 0, `every raked plate clears its own cut (${rakedPlates.join(' | ') || 'all clear'})`)
   // The Action Bar's twelve-unit ladder: 2 | 4 | 4 | 2. The rails carry the
   // fight's two most-pressed moves and the Slots carry the cards, and the
   // ratio is the contract — a rail that grew into a Slot would take the
