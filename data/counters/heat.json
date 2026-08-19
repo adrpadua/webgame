@@ -7,6 +7,6 @@
   "max": 4,
   "duration_rounds": 0,
   "readers": [
-    { "when": "host_deals_damage", "event_keyword": "", "effect": "target_damage", "per": 1 }
+    { "when": "host_deals_damage", "event_keyword": "", "effect": "damage_dealt", "per": 1 }
   ]
 }

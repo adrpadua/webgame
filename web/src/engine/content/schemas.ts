@@ -35,12 +35,28 @@ export const keywordSchema = z.object({
   kind: z.enum(['role', 'trait', 'damage_type', 'answer']),
 })
 
+// The two effect vocabularies (D-056). One shared enum used to serve every
+// surface, which made `target_damage` mean three quantities: the damage a
+// firing Card deals, the damage a Counter's host takes, and the damage that
+// host deals — with only `when` to tell them apart. Each value now names what
+// it modifies, so a name read alone says which quantity moves.
+//
+// Card-output effects name the Card quantity a Charge Modifier or a Card
+// Reader's `scale` raises.
+export const cardOutputEffectSchema = z.enum(['armor_gain', 'health_restored', 'damage_to_boss', 'damage_to_target'])
+
+// Counter Reader effects name the event quantity holding the Counter bends:
+// Sundered raises `damage_taken`, Weakened and Heat move `damage_dealt`,
+// Fortified banks `armor_gain` at the Round start, and a Slot Counter adds
+// `damage_to_boss` when its Slot fires.
+export const counterEffectSchema = z.enum(['armor_gain', 'damage_taken', 'damage_dealt', 'damage_to_boss'])
+
 export const chargeModifierSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   rules_text: z.string().default(''),
   keyword_id: z.string().default(''),
-  effect: z.enum(['armor', 'healing', 'boss_damage', 'target_damage']),
+  effect: cardOutputEffectSchema,
   amount_per_match: z.number().int().min(1),
 })
 
@@ -57,7 +73,7 @@ export const counterReaderSchema = z.object({
   // Reader reading the *event* rather than the host — the fact stream already
   // carried these Keywords, and this is what lets content read them.
   event_keyword: z.string().default(''),
-  effect: z.enum(['armor', 'healing', 'boss_damage', 'target_damage']),
+  effect: counterEffectSchema,
   // Signed, and applied once per Counter held: Sundered raises what its host
   // takes at `1`, Weakened lowers what its host deals at `-1`, and Fortified
   // banks Armor at `1` per Counter so the count *is* the stored Armor. Zero is
@@ -110,7 +126,7 @@ export const cardReaderSchema = z.object({
   // A closed set of subjects, never a path expression. Phase 1 reads the
   // firing Hero or the Card's chosen target and nothing else.
   on: z.enum(['self', 'target']).default('target'),
-  effect: z.enum(['armor', 'healing', 'boss_damage', 'target_damage']).default('target_damage'),
+  effect: cardOutputEffectSchema.default('damage_to_target'),
   // These floor at 0, not 1, because 0 is what an omitted field means and a
   // Reader only uses the one its verb needs. The real rule — a `gate` without
   // `at_least`, a `scale` without `per`, a `spend` without `amount` is a

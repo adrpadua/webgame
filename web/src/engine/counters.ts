@@ -21,10 +21,10 @@ export const ENGINE_COUNTERS = [FORTIFIED, RIPOSTE_READY]
 // Authoring one is now a load error rather than a Reader that silently never
 // fires. Adding a pair here means teaching the rules to read it.
 export const READABLE_READER_PAIRS = [
-  { when: 'round_start', effect: 'armor' },
-  { when: 'host_takes_damage', effect: 'target_damage' },
-  { when: 'host_deals_damage', effect: 'target_damage' },
-  { when: 'slot_fired', effect: 'boss_damage' },
+  { when: 'round_start', effect: 'armor_gain' },
+  { when: 'host_takes_damage', effect: 'damage_taken' },
+  { when: 'host_deals_damage', effect: 'damage_dealt' },
+  { when: 'slot_fired', effect: 'damage_to_boss' },
 ] as const
 
 // Where a Counter lives, as one tagged string (D-048). Counters were keyed by

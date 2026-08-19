@@ -2,6 +2,6 @@
   "id": "each_charge_boss_damage",
   "title": "Charged Assault",
   "rules_text": "Gain 1 Boss damage for each charged card.",
-  "effect": "boss_damage",
+  "effect": "damage_to_boss",
   "amount_per_match": 1
 }

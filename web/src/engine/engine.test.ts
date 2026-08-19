@@ -316,7 +316,7 @@ describe('content catalog', () => {
     // exact failure mode D-047 exists to make loud.
     const counterEntry = (patch: Record<string, unknown>) => ({
       source: 'data/counters/probe.json',
-      payload: { id: 'probe_counter', title: 'Probe Counter', readers: [{ when: 'round_start', effect: 'armor', per: 1 }], ...patch },
+      payload: { id: 'probe_counter', title: 'Probe Counter', readers: [{ when: 'round_start', effect: 'armor_gain', per: 1 }], ...patch },
     })
     const readerCard = (reader: Record<string, unknown>, patch: Record<string, unknown> = {}) => ({
       source: 'data/cards/probe_read.json',
@@ -362,7 +362,7 @@ describe('content catalog', () => {
     })
 
     it('rejects a Reader whose per is zero, and a Card that overfills a Counter', () => {
-      expect(() => buildCatalog({ ...empty, counters: [counterEntry({ readers: [{ when: 'round_start', effect: 'armor', per: 0 }] })] })).toThrow(
+      expect(() => buildCatalog({ ...empty, counters: [counterEntry({ readers: [{ when: 'round_start', effect: 'armor_gain', per: 0 }] })] })).toThrow(
         'reader with per 0, which does nothing',
       )
       const greedy = {
@@ -376,7 +376,7 @@ describe('content catalog', () => {
 
     it('rejects a Card whose target cannot supply the host its Counter needs', () => {
       const hexCounter = { source: 'data/counters/ground.json', payload: { id: 'ground_counter', title: 'Ground', host: 'hex' } }
-      const reader = { source: 'data/cards/reads_ground.json', payload: { id: 'reads_ground', title: 'Reads Ground', speed: 'quick', target_type: 'hex', range_tiles: 1, reads: [{ verb: 'scale', counter: 'ground_counter', on: 'target', per: 1, effect: 'boss_damage' }] } }
+      const reader = { source: 'data/cards/reads_ground.json', payload: { id: 'reads_ground', title: 'Reads Ground', speed: 'quick', target_type: 'hex', range_tiles: 1, reads: [{ verb: 'scale', counter: 'ground_counter', on: 'target', per: 1, effect: 'damage_to_boss' }] } }
       const wrongTarget = {
         source: 'data/cards/bad_ground.json',
         payload: { id: 'bad_ground', title: 'Bad Ground', speed: 'quick', target_type: 'piece', range_tiles: 1, places_counter: 'ground_counter' },
@@ -391,7 +391,7 @@ describe('content catalog', () => {
       // never starts a Round holding Armor, so a Reader there could not fire.
       const bad = {
         source: 'data/counters/ground.json',
-        payload: { id: 'ground_counter', title: 'Ground', host: 'hex', readers: [{ when: 'host_takes_damage', effect: 'target_damage', per: 1 }] },
+        payload: { id: 'ground_counter', title: 'Ground', host: 'hex', readers: [{ when: 'host_takes_damage', effect: 'damage_taken', per: 1 }] },
       }
       expect(() => buildCatalog({ ...empty, counters: [bad] })).toThrow(
         'is hosted on a hex but declares readers, and every reader event is a combatant\'s',
@@ -404,10 +404,10 @@ describe('content catalog', () => {
       // validate cleanly and never fire.
       const bad = {
         source: 'data/counters/idle.json',
-        payload: { id: 'idle', title: 'Idle', readers: [{ when: 'slot_fired', effect: 'armor', per: 1 }] },
+        payload: { id: 'idle', title: 'Idle', readers: [{ when: 'slot_fired', effect: 'armor_gain', per: 1 }] },
       }
       expect(() => buildCatalog({ ...empty, counters: [bad] })).toThrow(
-        'authors a slot_fired/armor reader, which nothing reads',
+        'authors a slot_fired/armor_gain reader, which nothing reads',
       )
     })
 
@@ -416,7 +416,7 @@ describe('content catalog', () => {
       // narrowing them by Keyword authors a Reader that can never fire.
       const bad = {
         source: 'data/counters/odd.json',
-        payload: { id: 'odd', title: 'Odd', readers: [{ when: 'round_start', event_keyword: 'tank_hit', effect: 'armor', per: 1 }] },
+        payload: { id: 'odd', title: 'Odd', readers: [{ when: 'round_start', event_keyword: 'tank_hit', effect: 'armor_gain', per: 1 }] },
       }
       expect(() => buildCatalog({ ...empty, counters: [bad] })).toThrow(
         'narrows a round_start reader by event_keyword, but only damage events carry Keywords',
@@ -426,7 +426,7 @@ describe('content catalog', () => {
     it('rejects an unauthored event_keyword, and a Card keywording damage it never deals', () => {
       const unknown = {
         source: 'data/counters/odd.json',
-        payload: { id: 'odd', title: 'Odd', readers: [{ when: 'host_takes_damage', event_keyword: 'flame', effect: 'target_damage', per: 1 }] },
+        payload: { id: 'odd', title: 'Odd', readers: [{ when: 'host_takes_damage', event_keyword: 'flame', effect: 'damage_taken', per: 1 }] },
       }
       expect(() => buildCatalog({ ...empty, counters: [unknown] })).toThrow('references unknown keyword flame in event_keyword')
 
@@ -438,9 +438,9 @@ describe('content catalog', () => {
     })
 
     it('rejects a Beat that places nothing, or names a Counter it cannot host', () => {
-      const heat = { source: 'data/counters/heat.json', payload: { id: 'heat', title: 'Heat', readers: [{ when: 'host_deals_damage', effect: 'target_damage', per: 1 }] } }
+      const heat = { source: 'data/counters/heat.json', payload: { id: 'heat', title: 'Heat', readers: [{ when: 'host_deals_damage', effect: 'damage_dealt', per: 1 }] } }
       const ground = { source: 'data/counters/ground.json', payload: { id: 'ground', title: 'Ground', host: 'hex' } }
-      const reader = { source: 'data/cards/reads.json', payload: { id: 'reads', title: 'Reads', speed: 'quick', target_type: 'hex', range_tiles: 1, reads: [{ verb: 'scale', counter: 'ground', on: 'target', per: 1, effect: 'boss_damage' }] } }
+      const reader = { source: 'data/cards/reads.json', payload: { id: 'reads', title: 'Reads', speed: 'quick', target_type: 'hex', range_tiles: 1, reads: [{ verb: 'scale', counter: 'ground', on: 'target', per: 1, effect: 'damage_to_boss' }] } }
       const program = (beat: Record<string, unknown>) => ({
         source: 'data/boss_programs/probe.json',
         payload: { id: 'probe', title: 'Probe', instant_beats: [{ id: 'probe_beat', title: 'Probe Beat', ...beat }], incoming_beats: [] },
@@ -1498,16 +1498,16 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
     expect(catalog.counters.sundered).toMatchObject({
       max: 1,
       duration_rounds: 1,
-      readers: [{ when: 'host_takes_damage', effect: 'target_damage', per: 1 }],
+      readers: [{ when: 'host_takes_damage', effect: 'damage_taken', per: 1 }],
     })
     expect(catalog.counters.weakened).toMatchObject({
-      readers: [{ when: 'host_deals_damage', effect: 'target_damage', per: -1 }],
+      readers: [{ when: 'host_deals_damage', effect: 'damage_dealt', per: -1 }],
     })
     // Fortified's banked Armor is its count, so additive stacking (D-019)
     // needs no flag: `max` above 1 is the whole rule.
     expect(catalog.counters.fortified).toMatchObject({
       duration_rounds: 1,
-      readers: [{ when: 'round_start', effect: 'armor', per: 1 }],
+      readers: [{ when: 'round_start', effect: 'armor_gain', per: 1 }],
     })
     expect(catalog.counters.fortified.max).toBeGreaterThan(1)
   })
@@ -1522,7 +1522,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
     expect(fired.state.counters[combatantRef(state.bossId)]?.[0]).toMatchObject({
       id: 'sundered',
       count: 1,
-      readers: [{ when: 'host_takes_damage', effect: 'target_damage', per: 1 }],
+      readers: [{ when: 'host_takes_damage', effect: 'damage_taken', per: 1 }],
     })
   })
 
@@ -1688,7 +1688,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
     expect(fortified).toMatchObject({
       title: catalog.counters.fortified.title,
       count: 6,
-      readers: [{ when: 'round_start', effect: 'armor', per: 1 }],
+      readers: [{ when: 'round_start', effect: 'armor_gain', per: 1 }],
     })
   })
 })
@@ -1761,7 +1761,7 @@ describe('Counter Readers — gate, scale, spend (D-047)', () => {
         range_tiles: 8,
         damage: 0,
         boss_damage: 1,
-        reads: [{ verb: 'scale', counter: 'ash', on: 'target', effect: 'boss_damage', per: 2, at_least: 0, amount: 0, timing: 'cost', counter_keyword: '' }],
+        reads: [{ verb: 'scale', counter: 'ash', on: 'target', effect: 'damage_to_boss', per: 2, at_least: 0, amount: 0, timing: 'cost', counter_keyword: '' }],
       },
     })
     let state = armed(variant, 'cinder_reap')
@@ -1778,7 +1778,7 @@ describe('Counter Readers — gate, scale, spend (D-047)', () => {
         target_type: 'piece',
         range_tiles: 8,
         boss_damage: 4,
-        reads: [{ verb: 'gate', counter: 'ash', on: 'target', at_least: 3, per: 0, amount: 0, effect: 'target_damage', timing: 'cost', counter_keyword: '' }],
+        reads: [{ verb: 'gate', counter: 'ash', on: 'target', at_least: 3, per: 0, amount: 0, effect: 'damage_to_target', timing: 'cost', counter_keyword: '' }],
       },
     })
     let state = armed(variant, 'ash_pact')
@@ -1806,8 +1806,8 @@ describe('Counter Readers — gate, scale, spend (D-047)', () => {
         range_tiles: 8,
         boss_damage: 0,
         reads: [
-          { verb: 'spend', counter: 'ash', on: 'target', amount: 2, timing: 'cost', at_least: 0, per: 0, effect: 'target_damage', counter_keyword: '' },
-          { verb: 'scale', counter: 'ash', on: 'target', per: 3, effect: 'boss_damage', timing: 'cost', at_least: 0, amount: 0, counter_keyword: '' },
+          { verb: 'spend', counter: 'ash', on: 'target', amount: 2, timing: 'cost', at_least: 0, per: 0, effect: 'damage_to_target', counter_keyword: '' },
+          { verb: 'scale', counter: 'ash', on: 'target', per: 3, effect: 'damage_to_boss', timing: 'cost', at_least: 0, amount: 0, counter_keyword: '' },
         ],
       },
     })
@@ -1827,8 +1827,8 @@ describe('Counter Readers — gate, scale, spend (D-047)', () => {
         range_tiles: 8,
         boss_damage: 0,
         reads: [
-          { verb: 'spend', counter: 'ash', on: 'target', amount: 2, timing: 'resolution', at_least: 0, per: 0, effect: 'target_damage', counter_keyword: '' },
-          { verb: 'scale', counter: 'ash', on: 'target', per: 3, effect: 'boss_damage', timing: 'cost', at_least: 0, amount: 0, counter_keyword: '' },
+          { verb: 'spend', counter: 'ash', on: 'target', amount: 2, timing: 'resolution', at_least: 0, per: 0, effect: 'damage_to_target', counter_keyword: '' },
+          { verb: 'scale', counter: 'ash', on: 'target', per: 3, effect: 'damage_to_boss', timing: 'cost', at_least: 0, amount: 0, counter_keyword: '' },
         ],
       },
     })
@@ -1850,7 +1850,7 @@ describe('Counter Readers — gate, scale, spend (D-047)', () => {
         target_type: 'piece',
         range_tiles: 8,
         boss_damage: 0,
-        reads: [{ verb: 'scale', counter_keyword: 'guard', on: 'target', per: 2, effect: 'boss_damage', timing: 'cost', at_least: 0, amount: 0, counter: '' }],
+        reads: [{ verb: 'scale', counter_keyword: 'guard', on: 'target', per: 2, effect: 'damage_to_boss', timing: 'cost', at_least: 0, amount: 0, counter: '' }],
       },
     })
     let state = armed(variant, 'keyword_reap')
@@ -2076,7 +2076,7 @@ describe('Counter hosts — ground and prepared cards (D-048)', () => {
           range_tiles: 2,
           burst_radius: 0,
           boss_damage: 0,
-          reads: [{ verb: 'scale', counter: 'embers', on: 'target', per: 3, effect: 'boss_damage', timing: 'cost', at_least: 0, amount: 0, counter_keyword: '' }],
+          reads: [{ verb: 'scale', counter: 'embers', on: 'target', per: 3, effect: 'damage_to_boss', timing: 'cost', at_least: 0, amount: 0, counter_keyword: '' }],
         },
       },
     )
@@ -2186,7 +2186,7 @@ describe('Event Keywords — Readers that answer one kind of blow (D-049)', () =
       host: 'combatant',
       max: 1,
       duration_rounds: 0,
-      readers: [{ when: 'host_takes_damage', event_keyword: eventKeyword, effect: 'target_damage', per: -2 }],
+      readers: [{ when: 'host_takes_damage', event_keyword: eventKeyword, effect: 'damage_taken', per: -2 }],
     }
     return variant
   }
@@ -2271,7 +2271,7 @@ describe('Event Keywords — Readers that answer one kind of blow (D-049)', () =
       host: 'combatant',
       max: 1,
       duration_rounds: 0,
-      readers: [{ when: 'host_takes_damage', event_keyword: 'raid_hit', effect: 'target_damage', per: -3 }],
+      readers: [{ when: 'host_takes_damage', event_keyword: 'raid_hit', effect: 'damage_taken', per: -3 }],
     }
     let state = immortalHero(start())
     state = stepPhases(state, 2).state
@@ -3197,7 +3197,7 @@ describe('area damage cards', () => {
       ...variant.chargeModifiers.each_charge_boss_damage,
       id: 'burst_damage',
       title: 'Burst Damage',
-      effect: 'target_damage',
+      effect: 'damage_to_target',
     }
     const state = readyBurst(variant)
     const fired = resolve(variant, state, {
@@ -3452,7 +3452,7 @@ describe('card draw effects', () => {
         count: 1,
         max: 1,
         remainingRounds: 1,
-        readers: [{ when: 'slot_fired', event_keyword: '', effect: 'boss_damage', per: 1 }],
+        readers: [{ when: 'slot_fired', event_keyword: '', effect: 'damage_to_boss', per: 1 }],
         bonusBossDamageOnSlotFired: 0,
         bonusBossDamageOffPayoff: 0,
         consumeOnCardId: '',

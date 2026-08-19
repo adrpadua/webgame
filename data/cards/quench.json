@@ -8,7 +8,7 @@
   "boss_damage": 2,
   "tags": ["attack", "reaction", "tank"],
   "reads": [
-    { "verb": "scale", "counter": "heat", "on": "target", "effect": "boss_damage", "per": 1, "timing": "cost" },
+    { "verb": "scale", "counter": "heat", "on": "target", "effect": "damage_to_boss", "per": 1, "timing": "cost" },
     { "verb": "spend", "counter": "heat", "on": "target", "amount": 2, "timing": "resolution" }
   ]
 }

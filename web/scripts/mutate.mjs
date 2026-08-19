@@ -250,6 +250,13 @@ const MUTATIONS = [
     to: 'combatantRef(bossId)',
   },
   {
+    name: 'a blow reads the wrong side of the ledger',
+    guards: "D-056: an effect names the quantity it moves — `damage_dealt` is the source's ledger, `damage_taken` the target's",
+    file: 'engine/resolve.ts',
+    from: "readerSum(draft, combatantRef(sourceId), 'host_deals_damage', 'damage_dealt', damageKeywords)",
+    to: "readerSum(draft, combatantRef(sourceId), 'host_deals_damage', 'damage_taken', damageKeywords)",
+  },
+  {
     name: 'a cost spend is never paid before the Card resolves',
     guards: 'D-047: a `cost` spend is paid before the Card\'s effects are computed',
     file: 'engine/resolve.ts',
