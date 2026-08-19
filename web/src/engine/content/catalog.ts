@@ -36,7 +36,7 @@ import { hexDistance } from '../hex'
 // would not fail — it would simply stop matching, and the validation below
 // would go quiet on the rule it exists to enforce. The annotation turns that
 // into a compile error at the moment of the rename.
-const RANGED_BEAT_KINDS = new Set<BossBeat['kind']>(['forward_cone', 'demand_proximity'])
+const RANGED_BEAT_KINDS = new Set<BossBeat['kind']>(['forward_cone', 'demand_proximity', 'targeted_hit'])
 
 export interface ContentCatalog {
   cards: Record<string, Card>
@@ -400,9 +400,9 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       if (RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles < 1) {
         throw new Error(`Boss Beat ${beat.id} is a ${beat.kind} but authors no range_tiles`)
       }
-      // The other half of the same rule. `targeted_hit` is the hit footwork
-      // cannot answer (D-017); giving it a reach would quietly turn Raking Claw
-      // into something a camping Hero can stand outside of.
+      // The other half of the same rule: a Beat kind with no distance question
+      // to ask must not answer one, because a reach nothing reads is a number
+      // an author can set and watch do nothing.
       if (!RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles > 0) {
         throw new Error(`Boss Beat ${beat.id} is a ${beat.kind} and must not author range_tiles`)
       }

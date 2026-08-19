@@ -155,7 +155,7 @@ Cards currently resolve against one of these target styles:
 - direct damage to the Boss through a card's `boss_damage` effect
 - selected Minion piece on a hex through the current `PIECE` target type
 
-A card's `boss_damage` effect resolves without a range check in the prototype: the Hero's position never blocks it. Counter-pressure against playing at a distance is authored encounter content, not a card range rule. That counter-pressure now exists (D-017): a Boss Beat may carry an `unguarded_bonus` that adds damage to its targeted hit when no Hero holds the Guarded Front at resolution — Embermaw's Raking Claw rakes an unheld line for `4 + 3`.
+A card's `boss_damage` effect resolves without a range check in the prototype: the Hero's position never blocks it. Counter-pressure against playing at a distance is authored encounter content, not a card range rule. That counter-pressure is a `demand_proximity` Beat (D-041): if no Hero stands within its authored reach at the Round end, Escalation rises — Embermaw's `Within Reach` charges `1`. It is priced in Escalation rather than in Health on purpose, because a Health price is one a camper can simply out-heal or out-armor, while the clock is the thing that ends the fight. A Beat may still carry an `unguarded_bonus` for a hit that reaches past the hex the Boss faces; Raking Claw carried one until it gained a reach of `1`, at which point there was no unbraced hex left for it to price (D-062).
 
 The prototype does not yet provide a selectable generic Enemy target. A future `Enemy` selector must allow both the Boss and Minions, then validate their shared range and targeting rules consistently.
 

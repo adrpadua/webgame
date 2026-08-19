@@ -20,6 +20,8 @@ import {
   heroRole,
   hexKey,
   isGuardedFront,
+  guardedFrontHex,
+  neighbors,
   legality,
   minionDetonations,
   minionIntents,
@@ -833,10 +835,16 @@ describe('Ash Trail displacement (D-039)', () => {
   it('burns under the Tank anyway with nowhere left to spill', () => {
     // Backed against the rim, absorbing cleanly buys nothing. The bleed refuses
     // to stop even for perfect play, which is the rule stated as geometry.
+    //
+    // The Boss is placed against the same corner rather than left at its start.
+    // Since D-062 the claw reaches one hex, so a Tank in the far corner is a
+    // Tank the Beat never touches — and a Beat that misses lays no Trail at
+    // all, which would pass this assertion for the wrong reason.
     const state = start()
     const heroId = state.primaryHeroId
     const rim = { q: -2, r: 2 }
     state.board.entities[heroId].coords = { ...rim }
+    state.board.entities[state.bossId].coords = { q: -1, r: 1 }
     state.heroes[heroId].armor = 20
     const after = throughInstant(state)
     expect(hero(after).health).toBe(hero(after).maxHealth)
@@ -847,29 +855,53 @@ describe('Ash Trail displacement (D-039)', () => {
 
   it('does not count a hit absorbed away from the Guarded Front as absorbed', () => {
     // The displacement is what holding the front buys. Armor alone must not buy
-    // it, or the Tank can stand anywhere, soak the unguarded bonus, and still
-    // move the Trail — which is the reward without the position that earns it.
-    // The predicate is zero Health loss *there*; both halves are load-bearing.
+    // it, or the Tank can stand anywhere, soak a blow, and still move the Trail
+    // — which is the reward without the position that earns it. The predicate
+    // is zero Health loss *there*; both halves are load-bearing.
     //
     // The other three tests in this suite all keep the Hero on the front, so
     // dropping the `guardedFront` half of the predicate left every one of them
     // passing. This is the case that separates the halves.
+    //
+    // The predicate is reached only by damage carrying the `Tank Hit` Keyword,
+    // and the claw is the only Beat that carries it — so the case has to be
+    // built from the claw rather than from the cone, which never gets there.
+    //
+    // The Boss is deliberately left facing where it started instead of being
+    // walked through `turn_toward_player`. Since D-062 that ordering is what
+    // makes the case unreachable in Embermaw's live content: the turn snaps the
+    // facing onto the Tank, and a snapped facing puts every hex in a reach-1
+    // claw's range *on* the Guarded Front. The engine rule is still general — a
+    // Boss whose claw reaches two, or that claws without turning first, lands
+    // exactly this hit — so it stays guarded here rather than deleted with the
+    // content that used to produce it.
+    const hunt = catalog.programs.embermaw_hunt
+    const claw = hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
+    const trail = hunt.instant_beats.find((beat) => beat.kind === 'hazard_last_impact')!
+
     const state = start()
-    state.board.entities[state.bossId].coords = { q: 2, r: -2 }
-    state.board.entities[state.primaryHeroId].coords = { q: -1, r: 1 }
-    // More than the claw plus its unguarded bonus, so Health never moves.
+    const bossCoords = state.board.entities[state.bossId].coords
+    const front = guardedFrontHex(state.board, state.bossId)!
+    // In the claw's reach, off the front, and with ground further out — so the
+    // assertion discriminates rather than falling back to the rim case above.
+    const stood = neighbors(state.board.hexes, bossCoords).find(
+      (coords) =>
+        hexKey(coords) !== hexKey(front) &&
+        neighbors(state.board.hexes, coords).some((out) => hexDistance(out, bossCoords) > hexDistance(coords, bossCoords)),
+    )!
+    state.board.entities[state.primaryHeroId].coords = { ...stood }
+    // More than the claw deals, so Health never moves.
     state.heroes[state.primaryHeroId].armor = 20
-    const after = throughInstant(state)
-    const heroCoords = after.board.entities[after.primaryHeroId].coords
-    expect(hero(after).health).toBe(hero(after).maxHealth)
-    // Hunt closes the gap before it claws, so assert the position the Beat
-    // actually resolved against rather than the one it was set up with.
-    expect(isGuardedFront(after.board, after.bossId, after.primaryHeroId)).toBe(false)
-    // Burnt under them, not spilled behind them — and there is somewhere to
-    // spill to, so this discriminates rather than falling back to the rim case.
-    // Asserted on the Hazard rather than on the key: a key with nothing under
-    // it would satisfy `toContain` while the ground stayed clear.
-    expect(after.board.hazards[hexKey(heroCoords)] ?? []).not.toHaveLength(0)
+    const hit = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
+    expect(hero(hit.state).health).toBe(hero(hit.state).maxHealth)
+    expect(isGuardedFront(hit.state.board, hit.state.bossId, hit.state.primaryHeroId)).toBe(false)
+    expect(hit.facts.find((fact) => fact.kind === 'damage')?.resolutionFact).toMatchObject({ guarded_front: false, health_loss: 0 })
+
+    // Burnt under them, not spilled behind them. Read off the Trail's own
+    // generated Hazard rather than the board, so a key with nothing under it
+    // cannot satisfy the assertion while the ground stays clear.
+    const scorch = resolve(catalog, hit.state, { kind: 'resolve_boss', sourceId: hit.state.bossId, beat: trail, track: 'instant' })
+    expect(scorch.facts.filter((fact) => fact.kind === 'apply_hazard').map((fact) => fact.detail.coords)).toEqual([stood])
   })
 })
 
@@ -1081,14 +1113,23 @@ describe('Authored Beat reach', () => {
     expect(() => rebuild(twoCounters)).toThrow(/disagree on counter/)
   })
 
-  it('refuses a reach on the hit that footwork cannot answer', () => {
-    // The other half of the rule, and the one worth stating as content rather
-    // than trusting to nobody trying it. Raking Claw is deliberately rangeless
-    // (D-017); giving it a reach would hand a camping Hero a hex to stand
-    // outside of and undo what the proximity demand exists to close.
+  it('refuses a claw with no reach authored', () => {
+    // Both halves of the rule reach `targeted_hit` since D-062. A claw that
+    // authors nothing would fall to the schema default of `0` and silently
+    // stop connecting from any hex at all — a Beat that resolves to nothing,
+    // which is the shape D-054 deleted a whole Beat kind over.
+    const rangeless = structuredClone(catalog)
+    const claw = rangeless.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'targeted_hit')!
+    claw.range_tiles = 0
+    expect(() => rebuild(rangeless)).toThrow(/authors no range_tiles/)
+  })
+
+  it('still refuses a reach on a Beat kind that asks no distance question', () => {
+    // The other half, on a kind that genuinely has no distance to read: a reach
+    // nothing consults is a number an author can set and watch do nothing.
     const ranged = structuredClone(catalog)
-    const claw = ranged.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'targeted_hit')!
-    claw.range_tiles = 2
+    const turn = ranged.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'turn_toward_player')!
+    turn.range_tiles = 2
     expect(() => rebuild(ranged)).toThrow(/must not author range_tiles/)
   })
 })
@@ -3013,22 +3054,95 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
   })
 })
 
-describe('Raking Claw counter-pressure (D-017)', () => {
-  it('adds the unguarded bonus only when the Guarded Front is unheld', () => {
-    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
-    // Holding the front: the authored 4 lands with no bonus recorded.
+describe('Raking Claw reach (D-062)', () => {
+  const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
+
+  function clawAt(coords: { q: number; r: number }) {
+    const state = start()
+    state.board.entities[state.primaryHeroId].coords = { ...coords }
+    return resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
+  }
+
+  it('lands on a Tank inside its authored reach and on nobody further out', () => {
+    // Read against the authored number rather than a literal `1`, the same
+    // contract D-043 wrote for the cone: shortening or lengthening the reach in
+    // `data/` has to move the hit with it, or the rules text is a decoration.
+    const state = start()
+    const bossCoords = state.board.entities[state.bossId].coords
+    for (const key of Object.keys(state.board.hexes)) {
+      const [q, r] = key.split(',').map(Number)
+      const distance = hexDistance({ q, r }, bossCoords)
+      if (distance === 0) {
+        continue
+      }
+      const damage = clawAt({ q, r }).facts.find((fact) => fact.kind === 'damage')
+      const inReach = distance <= claw.range_tiles
+      expect(damage !== undefined, `hex ${key} at distance ${distance}`).toBe(inReach)
+      if (inReach) {
+        // The authored damage flat, from every hex in reach. The Boss has not
+        // turned here, so some of these are off the Guarded Front — and they
+        // still take exactly `damage`, because nothing is authored to make an
+        // unbraced hex cost more.
+        expect(damage?.resolutionFact).toMatchObject({ requested: claw.damage })
+      }
+    }
+  })
+
+  it('authors no unguarded bonus, because at this reach there is no unbraced hex', () => {
+    // The reason the `+3` went with the reach, stated as the geometry rather
+    // than as a note in the log. `turn_toward_player` snaps the Boss onto the
+    // Tank before the claw resolves, and a snapped facing puts every adjacent
+    // hex *on* the Guarded Front — so a bonus for standing in reach unbraced
+    // would price a position the board cannot produce. It is authored content
+    // that could never fire, which is what D-058 went looking for an
+    // instrument to catch.
+    //
+    // If a later Boss authors a claw reaching past the hex it faces, the engine
+    // still applies the bonus; what this pins is that Embermaw's does not
+    // pretend to.
+    const turn = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'turn_toward_player')!
+    const state = start()
+    const bossCoords = state.board.entities[state.bossId].coords
+    for (const key of Object.keys(state.board.hexes)) {
+      const [q, r] = key.split(',').map(Number)
+      if (hexDistance({ q, r }, bossCoords) !== claw.range_tiles) {
+        continue
+      }
+      let turned = start()
+      turned.board.entities[turned.primaryHeroId].coords = { q, r }
+      turned = resolve(catalog, turned, { kind: 'resolve_boss', sourceId: turned.bossId, beat: turn, track: 'instant' }).state
+      expect(isGuardedFront(turned.board, turned.bossId, turned.primaryHeroId), `hex ${key} after the turn`).toBe(true)
+    }
+    for (const program of Object.values(catalog.programs)) {
+      for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
+        if (beat.kind === 'targeted_hit') {
+          expect(beat.unguarded_bonus, `${beat.id} authors an unguarded bonus it can never apply`).toBe(0)
+        }
+      }
+    }
+  })
+
+  it('lays no Ash Trail on the hex a claw could not reach', () => {
+    // A miss is not an impact of zero hexes; it is no impact at all, so the
+    // memory `hazard_last_impact` burns has to stay where the Boss last
+    // actually connected. Without this the claw would keep writing its target's
+    // hex whether or not it got there, and a Tank standing well clear would
+    // watch the ground burn under them.
+    const trail = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'hazard_last_impact')!
     let state = start()
-    const held = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
-    const heldFact = held.facts.find((fact) => fact.kind === 'damage')
-    expect(heldFact?.resolutionFact).toMatchObject({ requested: 4, guarded_front: true })
-    expect(heldFact?.resolutionFact?.unguarded_bonus).toBeUndefined()
-    // Abandoning the front: the same claw still lands (movement does not
-    // evade it) and rakes for the authored 4 + 3.
-    state = start()
-    state.board.entities[state.primaryHeroId].coords = { q: -2, r: 0 }
-    const unheld = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
-    const unheldFact = unheld.facts.find((fact) => fact.kind === 'damage')
-    expect(unheldFact?.resolutionFact).toMatchObject({ requested: 7, unguarded_bonus: 3, guarded_front: false })
+    const struck = { ...state.board.entities[state.primaryHeroId].coords }
+    state = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' }).state
+    expect(state.previousImpactedHexes).toEqual([struck])
+
+    const away = { q: -2, r: 2 }
+    state.board.entities[state.primaryHeroId].coords = { ...away }
+    const missed = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: claw, track: 'instant' })
+    state = missed.state
+    expect(missed.facts.some((fact) => fact.kind === 'damage')).toBe(false)
+    expect(state.previousImpactedHexes).toEqual([struck])
+
+    const scorch = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: trail, track: 'instant' })
+    expect(scorch.facts.filter((fact) => fact.kind === 'apply_hazard').map((fact) => fact.detail.coords)).toEqual([struck])
   })
 })
 
