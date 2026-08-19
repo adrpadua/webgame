@@ -172,7 +172,7 @@ closed set the engine switches on:
   `rules_text` carry the Boss's flavour, and what varies between Bosses —
   `damage`, `hazard`, `minion`, `count`, `range_tiles`, `move_tiles` — is an
   authored field on the Beat. There is no `warning` kind: a Beat that resolves
-  to nothing is not a Beat (D-046), and rules reminders belong on the Hazard,
+  to nothing is not a Beat (D-051), and rules reminders belong on the Hazard,
   Beat, or Program they describe.
 - **Status triggers.** `on_round_start`, `on_enter_hex`, `on_damage_taken`,
   `on_slot_fired`.

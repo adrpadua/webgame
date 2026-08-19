@@ -22,7 +22,7 @@ function stepTo(state: EncounterState, phase: EncounterState['phase']): Encounte
 // can land — the pinned opener carries none.
 const BROOD_SECOND_SEED = 3
 
-describe('Boss Beat cards (D-047)', () => {
+describe('Boss Beat cards (D-052)', () => {
   describe('what a card prints', () => {
     it('prints every authored parameter a Beat resolves against', () => {
       // The port's authoring gate: a Beat whose resolution consults something
