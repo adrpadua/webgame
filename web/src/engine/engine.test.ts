@@ -17,6 +17,7 @@ import {
   createEncounterState,
   fireTargeting,
   hexDistance,
+  heroRole,
   hexKey,
   isGuardedFront,
   legality,
@@ -139,6 +140,22 @@ describe('content catalog', () => {
     expect(catalog.cards.steady_strike.draw_count).toBe(0)
   })
 
+  // A Hero's Role is a fact their deck already states — every card in it
+  // carries the Role Keyword — so nothing else stores one, and the surfaces
+  // that pivot on Role read it back out from there.
+  it('names the Role an Encounter’s Hero plays from the deck they bring', () => {
+    expect(heroRole(catalog, 'embermaw_prototype')).toBe('tank')
+    expect(heroRole(catalog, 'embermaw_first_turn')).toBe('tank')
+    expect(heroRole(catalog, 'no_such_encounter')).toBe('')
+    // A deck that does not agree with itself names no Hero, and says so
+    // rather than picking the Role most of it happens to carry.
+    const mixed = {
+      ...catalog,
+      cards: { ...catalog.cards, steady_strike: { ...catalog.cards.steady_strike, tags: ['attack'] } },
+    }
+    expect(heroRole(mixed, 'embermaw_prototype')).toBe('')
+  })
+
   // ADR 0022 removed Presence. The schema strips keys it does not declare
   // rather than rejecting them, so a card reintroducing the stat would load
   // silently and carry a field nothing reads — which is how a deleted
@@ -168,6 +185,7 @@ describe('content catalog', () => {
       keywords: [
         { id: 'tank_hit', title: 'Tank Hit', kind: 'damage_type' },
         { id: 'raid_hit', title: 'Raid Hit', kind: 'damage_type' },
+        { id: 'tank', title: 'Tank', kind: 'role' },
       ],
       chargeModifiers: [],
       hazards: [],
@@ -293,8 +311,8 @@ describe('content catalog', () => {
       expect(() => buildCatalog({ ...empty, programs: [beatProgram({ answer_tags: ['Kill Adds'] })] })).toThrow(
         'Boss Beat probe_beat references unknown keyword Kill Adds in answer_tags',
       )
-      expect(() => buildCatalog({ ...empty, programs: [beatProgram({ target_selector: 'tank' })] })).toThrow(
-        'Boss Beat probe_beat references unknown keyword tank in target_selector',
+      expect(() => buildCatalog({ ...empty, programs: [beatProgram({ target_selector: 'healer' })] })).toThrow(
+        'Boss Beat probe_beat references unknown keyword healer in target_selector',
       )
     })
 
