@@ -5,10 +5,11 @@ Every piece of gameplay content is JSON under the repo-level `data/` directory
 (ADR 0020), validated by zod schemas at load. The Encounter Engine in
 `web/src/engine/` is the rules source of truth; the Workbench renders it.
 
-This build is ready for data-only iteration on Cards, Keywords, Charge
+This build is ready for data-only iteration on Heroes, Cards, Keywords, Charge
 Modifiers, Statuses, Boss Programs and Beats, Hazards, Minions, and Encounters.
 Ordinary content belongs in `data/`; do not edit the engine, the store, or the
-board to tune content.
+board to tune content. To take a Hero from idea to a measured fight end to end,
+follow [authoring-a-new-hero.md](authoring-a-new-hero.md).
 
 > The Godot reference under `resources/`, `scenes/`, and `scripts/` is frozen
 > (D-018). Do not author there, and do not copy content out of it into an
@@ -33,7 +34,11 @@ redeploys on every push to `main` or the active workbench branch that touches
 
 ## Daily Workflow
 
-1. Copy the closest existing JSON file in the matching `data/` directory.
+1. Scaffold a fresh file from its template — `npm run scaffold -- <type> <id>`
+   stamps `docs/content/templates/<type>.json` into the matching `data/`
+   directory with the id and title set ([templates/README.md](templates/README.md))
+   — or copy the closest existing JSON file if an existing design is the
+   better starting point.
 2. Give it a stable lowercase `snake_case` `id` — the filename should match it —
    and complete player-facing `title` and `rules_text`.
 3. Reference it by `id` from a Card, Boss Program, Encounter, or deck.
@@ -108,6 +113,7 @@ file is the authority when this table and the code disagree.
 | Type and home | Required authoring contract |
 | --- | --- |
 | Card: `data/cards/` | `id`, `title`, complete `rules_text`, `speed` (`quick`/`slow`), `max_charge`, `target_type` (`none`/`hex`/`board_slot`/`piece`), `range_tiles` for selected pieces or hexes, effect fields, registered Keyword ids in `tags`, optional `charge_modifiers`, optional `places_counter` with `counter_amount`, optional `reads`, optional `damage_keywords` for what its own damage is made of. `draw_count` draws `0` to `3` cards for the firing Hero after every other Card consequence; these draws may exceed `hand_refill_target`, because it is a Round-refill floor rather than a hand ceiling. `burst_radius >= 1` deals positive `damage` to every Enemy within that radius of a selected hex, including the Boss; the center may be empty and requires `target_type: "hex"` (ADR 0030). `push_tiles` moves the target away from the firing Hero and `pull_tiles` moves it toward the Hero; either requires a piece target and range of at least 1, and one Card cannot declare both. The Top Card owns timing, target, and Charge Value. |
+| Hero: `data/heroes/` | `id`, display `title`, `rules_text` naming the raid job, `max_health`, and the `signature_card` printed on the Hero — a `fixed: true` card id, or empty while the Hero has no Signature authored (ADR 0034). A Hero exists independently of any fight: Encounters field one by id, and two Encounters fielding the same Hero share one health pool and one printed card. The Hero carries no Role field — every deck card carries the Role Keyword, and the deck's unanimity is what names the Role. |
 | Keyword: `data/keywords/` | Stable `id`, display `title`, one concise mechanical definition. Cards reference the id in `tags`; a card contributes each distinct Keyword once to each matching modifier. A required `kind` — `role`, `trait`, `damage_type`, or `answer` — says what sort of thing the Keyword is, and every reference is checked against it: a Beat's and a Card's `damage_keywords` take `damage_type`, its `target_selector` takes `role`, its `answer_tags` take `answer`, and a card tag takes `trait` or `role` (D-044). `kind: "role"` replaces the old `role_marker` flag, and the HUD leaves Roles off the glance surfaces. |
 | Charge Modifier: `data/charge_modifiers/` | Stable identity and rules text, optional `keyword_id` (empty counts every charged card), `effect` (`armor`, `healing`, `boss_damage`, `target_damage`), and positive `amount_per_match`. It modifies the Top Card; a tucked card never resolves itself. |
 | Counter: `data/counters/` | Identity, optional `keywords`, `host` (`combatant`, `hex`, or `slot` — D-046), `max` (`1` refuses a second placement; higher accumulates — a placement that would overflow lands what fits and the fact records how many, so `fortified`'s `30` is a rail well above the twelve two Slow Slots can bank rather than a design cap), `duration_rounds` (`0` = no clock), and `readers`. A Counter has no payload of its own: each Reader names `when` (`round_start`, `host_takes_damage`, `host_deals_damage`, `slot_fired`), an `effect`, a signed `per` applied once per Counter held, and optionally one `event_keyword` narrowing a damage Reader to blows carrying that Damage Keyword — so Sundered is `host_takes_damage`/`target_damage`/`1` and Weakened is `host_deals_damage`/`target_damage`/`-1`, and neither declares a side (D-045). A Card places it through `places_counter` and `counter_amount`; where it lands comes from that Card's `target_type`, which must be able to supply the Counter's host — `none`/`piece` for `combatant`, `hex` for `hex`, `board_slot` for `slot`. Ground outlives whoever stands on it; a Slot's Counters ride its prepared Top Card and are dropped when that Slot is re-loaded. Only a `combatant` host may declare Readers, because every Reader event is a combatant's. A Counter nothing can read fails the build. |
@@ -115,7 +121,7 @@ file is the authority when this table and the code disagree.
 | Boss Program / Beat: `data/boss_programs/` | Program identity plus non-empty ordered `instant_beats` and `incoming_beats` — row membership is timing. Every Beat carries identity, rules text, visible `answer_tags`, optional `damage_keywords` saying what its blow is made of and who it is aimed at (plural — D-049), and for a `place_counter` Beat the `counter` it places with `counter_amount` and `counter_target` (`self` marks the Boss, `hero` marks the Party — D-051), a `consequence_tier` (`severe` marks a Beat that can end a run, which is what keeps it out of the first program of any phase — ADR 0031, D-036), and the fields its `kind` requires: `damage`, `unguarded_bonus`, `hazard`, `minion`, `count`, `duration_rounds`, `escalation_if_unanswered`, `move_tiles`, `range_tiles`. Reach is authored, not defaulted (D-043): a `forward_cone`, `demand_proximity` or `targeted_hit` Beat must declare `range_tiles`, and every other kind must not. `targeted_hit` joined that list in D-062 — it was rangeless while D-017 wanted a hit footwork could not answer, and D-041 moved that job to `demand_proximity`, which prices standing out of reach in Escalation rather than in Health. Both halves are rejected at load. |
 | Hazard: `data/hazards/` | Identity, `duration_rounds`, and at least one supported behavior: `enter_damage` or `blocks_voluntary_movement`. |
 | Minion: `data/minions/` | Identity, positive `max_health`, `attack_damage`, and complete rules text. Boss Beats reference the Minion they spawn. New Minion triggers or movement rules require engineering. |
-| Encounter: `data/encounters/` | Hero and Boss identity, `board_radius`, legal starts, health, `slot_count`, `hand_refill_target`, complete `player_deck`, ordered `boss_programs`, `loop_boss_programs`, `round_limit` and `enrage_text`, `random_seed`, `minion_spawn_candidates`, optional `phase_trigger` + `phase_two_programs` + `phase_break_text` (ADR 0023), and optional `escalation_thresholds` (ADR 0027). No new file to register — it appears in the Workbench's Encounter list on save. |
+| Encounter: `data/encounters/` | The `hero` fielded by id from `data/heroes/` (with optional `fields_signature: false` to hold the Signature back, as the teaching slice does), Boss identity, `board_radius`, legal starts, `boss_health`, `slot_count`, `hand_refill_target`, complete `player_deck`, ordered `boss_programs`, `loop_boss_programs`, `round_limit` and `enrage_text`, `random_seed`, `minion_spawn_candidates`, optional `phase_trigger` + `phase_two_programs` + `phase_break_text` (ADR 0023), and optional `escalation_thresholds` (ADR 0027). No new file to register — it appears in the Workbench's Encounter list on save. |
 | Evaluation deck: `data/decks/` | Identity, the `encounter` it is played against, and a complete `player_deck`. Used by the balance tooling to compare decklists against one fight. Run one with `npm run evaluate -- --deck <id>` (D-052): a candidate card can be measured without being promoted into the live starter deck first, which is the promotion the measurement is meant to gate. |
 | Scenario: `data/scenarios/` | Named, versioned action sequence replayed from a seeded initial state — never a state snapshot. Author these by exporting from the debug rail rather than by hand. |
 
@@ -133,6 +139,11 @@ Encounter ashen_trial_variant (data/encounters/ashen_trial_variant.json) thresho
 
 ## Complete Examples
 
+- **A Hero and their Signature**: `data/heroes/guardian.json` is Elian Voss —
+  identity, `max_health`, and `elian_riposte` named as the printed
+  `signature_card`. `data/encounters/embermaw_first_turn.json` fields him with
+  `"fields_signature": false`, which is how the teaching slice keeps its
+  two-Slot bar.
 - **Keyword and Charge Modifier**: `data/cards/iron_guard.json` references
   `data/charge_modifiers/guard_armor.json`, which counts the `guard` Keyword
   defined in `data/keywords/guard.json`.
@@ -161,8 +172,8 @@ Encounter ashen_trial_variant (data/encounters/ashen_trial_variant.json) thresho
 ## Engineering Boundary
 
 Design may freely: tune any existing field, add new files of the supported
-types, reorder Beats, rewrite decklists, resequence Programs, add Escalation
-Thresholds, and author whole new Encounters.
+types, author whole new Heroes and the Encounters that field them, reorder
+Beats, rewrite decklists, resequence Programs, and add Escalation Thresholds.
 
 Engineering owns anything that widens the vocabulary, because each of these is a
 closed set the engine switches on:
@@ -184,6 +195,11 @@ closed set the engine switches on:
 - **Target families.** `none`, `hex` (Burst center), `board_slot`, `piece`.
 - **Charge Modifier effects.** `armor`, `healing`, `boss_damage`,
   `target_damage`.
+- **Signature gates.** `health_loss_zero`, `guarded_front`. A gate is a
+  predicate computed over board state, so a new Hero pattern's earn condition
+  is the one part of an otherwise data-only Hero that routinely needs an
+  engineering request — [authoring-a-new-hero.md](authoring-a-new-hero.md)
+  step 5 says how to raise it.
 
 When a rule you want cannot be expressed in a field, raise it as an engineering
 request. Do not encode it in `rules_text` alone: the Detail Popup would promise

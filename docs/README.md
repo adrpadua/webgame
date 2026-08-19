@@ -13,6 +13,8 @@ Use this directory for the durable record of how the game works and why it is bu
 - [content/oathcraft-board-direction.md](content/oathcraft-board-direction.md): the locked board direction — tints, lighting, and motion, consuming the palette above
 - [content/oathcraft-notification-zones.md](content/oathcraft-notification-zones.md): where a floating message may land and which one yields when two want the same pixel
 - [content/design-team-handoff.md](content/design-team-handoff.md): supported `data/` JSON content schemas and the designer validation/playtest loop
+- [content/authoring-a-new-hero.md](content/authoring-a-new-hero.md): the end-to-end path from Hero idea to a measured fight, including where the engineering boundary bites
+- [content/templates](content/templates): copy-ready authoring templates, stamped into `data/` by `npm run scaffold`
 - [artifacts/sprite-sheet-pipeline.md](artifacts/sprite-sheet-pipeline.md): how a board piece gets from a prompt to a pixel, and what checks each stage
 - [artifacts](artifacts): catalog of implementation and gameplay artifacts — see its [README](artifacts/README.md) first, because most of it is a Godot-era record
 - [agents](agents): repository-maintenance material for coding agents, including the [agent recovery kit](agents/recovery-kit.md) and copy-ready role prompts

@@ -1,0 +1,9 @@
+{
+  "id": "new_deck",
+  "title": "New Evaluation Deck",
+  "rules_text": "What this decklist is trying to prove against its Encounter.",
+  "encounter": "new_encounter",
+  "player_deck": [
+    { "card": "new_card", "copies": 4 }
+  ]
+}

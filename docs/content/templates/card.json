@@ -1,0 +1,13 @@
+{
+  "id": "new_card",
+  "title": "New Card",
+  "rules_text": "State the base effect first: a verb, an amount, and a target.",
+  "speed": "quick",
+  "max_charge": 2,
+  "target_type": "none",
+  "boss_damage": 0,
+  "armor_delta": 0,
+  "healing": 0,
+  "tags": [],
+  "charge_modifiers": []
+}

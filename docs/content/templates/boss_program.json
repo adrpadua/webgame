@@ -1,0 +1,26 @@
+{
+  "id": "new_boss_program",
+  "title": "New Boss Program",
+  "rules_text": "The Boss turn this Program plays, named in the Boss's own voice.",
+  "instant_beats": [
+    {
+      "id": "new_program_face",
+      "title": "Face the Threat",
+      "rules_text": "The Boss turns toward the closest Hero.",
+      "kind": "turn_toward_player",
+      "consequence_tier": "chip"
+    }
+  ],
+  "incoming_beats": [
+    {
+      "id": "new_program_breath",
+      "title": "Telegraphed Breath",
+      "rules_text": "Deal 2 damage to every Hero in the forward cone, out to 2 hexes.",
+      "kind": "forward_cone",
+      "damage": 2,
+      "range_tiles": 2,
+      "consequence_tier": "chip",
+      "answer_tags": []
+    }
+  ]
+}
