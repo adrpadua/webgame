@@ -1,5 +1,6 @@
 import heroIdleUrl from '@/assets/elian-voss-idle.png'
 import bossIdleUrl from '@/assets/embermaw-idle.png'
+import bossPhaseTwoIdleUrl from '@/assets/embermaw-phase-two-idle.png'
 import minionIdleUrl from '@/assets/whelp-idle.png'
 
 // The idle sheets, and the arithmetic that reads a frame out of one.
@@ -45,7 +46,26 @@ export interface SheetSpec {
 export const SHEETS: Record<string, SheetSpec> = {
   hero: { key: 'elian-idle', url: heroIdleUrl, frameWidth: 162, frameHeight: 210, targetHeight: 74, footOffset: 12 },
   boss: { key: 'embermaw-idle', url: bossIdleUrl, frameWidth: 238, frameHeight: 176, targetHeight: 80, footOffset: 22 },
+  // Embermaw with its containment shed, from the Phase Trigger onward. Drawn
+  // larger in its own contact sheet but at the same aspect, so the same
+  // targetHeight lands it at the same size on the board: a phase changes what
+  // the Boss does, not how much hex it takes up.
+  // Kept on one line like its siblings: the smoke parses this table with a
+  // per-line regex, and an entry it cannot see is an entry it cannot check.
+  bossPhaseTwo: { key: 'embermaw-phase-two-idle', url: bossPhaseTwoIdleUrl, frameWidth: 326, frameHeight: 240, targetHeight: 80, footOffset: 22 },
   minion: { key: 'whelp-idle', url: minionIdleUrl, frameWidth: 178, frameHeight: 164, targetHeight: 40, footOffset: 10 },
+}
+
+// Which sheet a Boss wears. The phase is re-read on every snapshot rather than
+// swapped once at the Phase Reveal: a one-time swap is right going forward and
+// wrong going back, and stepping through time travel across the Phase Trigger
+// has to restore the first form. The last sheet holds for any phase beyond the
+// art, which is wrong by one form rather than a Boss with no art at all.
+const BOSS_PHASES = ['boss', 'bossPhaseTwo'] as const
+
+export function bossSheetKey(bossPhase: number): string {
+  const index = Number.isFinite(bossPhase) ? Math.floor(bossPhase) - 1 : 0
+  return BOSS_PHASES[Math.min(Math.max(index, 0), BOSS_PHASES.length - 1)]
 }
 
 // Rows are facings and columns are the idle cycle, so a frame is arithmetic

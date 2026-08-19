@@ -33,18 +33,18 @@ describe('notification zones', () => {
   it('orders a zone anchor-first', () => {
     expect(zoneMembers('guidance')).toEqual(['first-turn', 'coach-tip'])
     expect(zoneMembers('stage')).toEqual(['outcome', 'phase-banner'])
-    expect(zoneMembers('dock')).toEqual(['playout-continue', 'targeting', 'move-payment', 'rejection', 'stat-panel'])
+    expect(zoneMembers('dock')).toEqual(['beat-card', 'targeting', 'move-payment', 'standing-demand', 'rejection', 'stat-panel'])
   })
 
   // The dock's anchor is the Action Bar's top edge, so its first rank is the
-  // prompt a player presses over and over through a Boss Row.
-  it('anchors the dock on the pacing prompt', () => {
-    expect(zoneMembers('dock')[0]).toBe('playout-continue')
-    expect(stackOrder('playout-continue')).toBe(1)
+  // card a player presses over and over through a Boss Row.
+  it('anchors the dock on the Beat Card', () => {
+    expect(zoneMembers('dock')[0]).toBe('beat-card')
+    expect(stackOrder('beat-card')).toBe(1)
   })
 
   it('docks the prompts that ask for a tap on the controls below them', () => {
-    for (const id of ['playout-continue', 'targeting', 'move-payment', 'rejection'] as const) {
+    for (const id of ['beat-card', 'targeting', 'move-payment', 'rejection'] as const) {
       expect(NOTIFICATION_RULES[id].zone).toBe('dock')
     }
   })
@@ -53,7 +53,7 @@ describe('notification zones', () => {
   // bottom-anchored column only the members above the newcomer move, so the
   // transient one has to sit farther from the anchor than the stable ones.
   it('keeps the transient toast outside every dock prompt', () => {
-    for (const id of ['playout-continue', 'targeting', 'move-payment'] as const) {
+    for (const id of ['beat-card', 'targeting', 'move-payment', 'standing-demand'] as const) {
       expect(stackOrder('rejection')).toBeGreaterThan(stackOrder(id))
     }
   })
@@ -76,10 +76,10 @@ describe('resolveZone', () => {
   // Over capacity the far ranks yield, never the thing the player is about
   // to touch.
   it('drops the outermost ranks when a zone overflows', () => {
-    const crowded: NotificationId[] = ['playout-continue', 'targeting', 'move-payment', 'rejection', 'stat-panel']
+    const crowded: NotificationId[] = ['beat-card', 'targeting', 'move-payment', 'standing-demand', 'rejection', 'stat-panel']
     const shown = resolveZone('dock', crowded)
     expect(shown.length).toBe(ZONE_CAPACITY.dock)
-    expect(shown).toEqual(['playout-continue', 'targeting', 'move-payment'])
+    expect(shown).toEqual(['beat-card', 'targeting', 'move-payment', 'standing-demand'])
     expect(shown).not.toContain('stat-panel')
   })
 
@@ -91,5 +91,15 @@ describe('resolveZone', () => {
 
   it('ignores a member listed twice', () => {
     expect(resolveZone('dock', ['rejection', 'rejection'])).toEqual(['rejection'])
+  })
+})
+
+// The Boss Row is the busiest the dock gets and the one moment the Stat Panel
+// is a live readout of what the Beat on screen is doing, so the cap has to
+// clear that crowd rather than take the gauge away while it is being watched.
+describe('the Boss Row crowd', () => {
+  it('seats the Beat Card, the standing demand, a refusal, and the Stat Panel at once', () => {
+    const shown = resolveZone('dock', ['stat-panel', 'rejection', 'standing-demand', 'beat-card'])
+    expect(shown).toEqual(['beat-card', 'standing-demand', 'rejection', 'stat-panel'])
   })
 })

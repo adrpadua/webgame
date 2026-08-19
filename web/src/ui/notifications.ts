@@ -40,9 +40,10 @@ export type NotificationId =
   | 'coach-tip'
   | 'phase-banner'
   | 'outcome'
-  | 'playout-continue'
+  | 'beat-card'
   | 'targeting'
   | 'move-payment'
+  | 'standing-demand'
   | 'rejection'
   | 'stat-panel'
 
@@ -54,10 +55,10 @@ export interface NotificationRule {
   rank: number
 }
 
-// One dock member — the stat panel — is not a notification. It is listed
-// anyway because it floats in the same lane, and a lane with two owners is
-// how the overlap came back last time: the panel has to yield to a prompt
-// rather than sit under one.
+// Two dock members are not notifications. The stat panel and the standing
+// demand are listed anyway because they float in the same lane, and a lane
+// with two owners is how the overlap came back last time: both have to yield
+// to a prompt rather than sit under one.
 export const NOTIFICATION_RULES: Record<NotificationId, NotificationRule> = {
   // Guidance, anchored to the board's top edge: teaching the player may
   // ignore. The scripted turn outranks ambient coaching, and while it runs the
@@ -73,21 +74,29 @@ export const NOTIFICATION_RULES: Record<NotificationId, NotificationRule> = {
 
   // Dock, anchored to the board's bottom edge — which is the Action Bar's top
   // edge. Everything that asks for a tap on the controls below it.
-  'playout-continue': { zone: 'dock', rank: 1 },
+  'beat-card': { zone: 'dock', rank: 1 },
   targeting: { zone: 'dock', rank: 2 },
   'move-payment': { zone: 'dock', rank: 3 },
-  rejection: { zone: 'dock', rank: 4 },
-  'stat-panel': { zone: 'dock', rank: 5 },
+  // The demand a Round is still carrying. It is not pressed and it is not
+  // transient — it arrives when its row resolves and stays until the Round
+  // ends — so it sits above the prompts and below the readouts: fight
+  // information the player acts on, rather than a control or a reference.
+  'standing-demand': { zone: 'dock', rank: 4 },
+  rejection: { zone: 'dock', rank: 5 },
+  'stat-panel': { zone: 'dock', rank: 6 },
 }
 
 // How many members of a zone may speak at once. Past the cap the far-from-the
 // anchor ranks yield, so the thing the player is about to touch is the last to
 // go. The dock's cap is a guard rather than a routine event: the realistic
-// crowd is one prompt, a toast, and the panel.
+// crowd is one prompt, a standing demand, a toast, and the panel. Four,
+// because the Boss row that shows a Beat Card is exactly when the Stat Panel
+// is a live readout of what that Beat is doing — a cap that hid it there
+// would take the gauge away at the only moment it is being watched.
 export const ZONE_CAPACITY: Record<NotificationZone, number> = {
   guidance: 1,
   stage: 1,
-  dock: 3,
+  dock: 4,
 }
 
 // The CSS `order` a member carries inside its zone. The guidance zone runs top

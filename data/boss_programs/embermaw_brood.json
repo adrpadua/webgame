@@ -54,16 +54,6 @@
       "minion": "whelp",
       "count": 2,
       "escalation_if_unanswered": 1
-    },
-    {
-      "id": "heat_warning",
-      "title": "Cull the Brood",
-      "rules_text": "A living Whelp is what pulls the collapse forward.",
-      "kind": "warning",
-      "counter_tags": [
-        "Kill Adds"
-      ],
-      "consequence_tier": "chip"
     }
   ]
 }

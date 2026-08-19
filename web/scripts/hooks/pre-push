@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# The browser half of the pre-merge gate, run where a browser actually is.
+#
+# The smoke suite is the only coverage for the 390x844 portrait contract, the
+# 44px target contract, the notification zones, and deterministic record
+# replay through a real browser. It used to run in CI and could not be relied
+# on there: `playwright install --with-deps` shells out to apt-get on a hosted
+# runner, and a slow Ubuntu mirror turned the check red for reasons no author
+# could act on. A gate that fails for reasons you cannot fix is one everybody
+# learns to ignore, which is worse than not having it.
+#
+# So it runs here, before the push that a pull request is opened from. The
+# machine already has a browser, the run is a couple of minutes, and a failure
+# is always about the diff.
+#
+# Install with: cd web && npm run hooks:install
+# Skip one push with: git push --no-verify
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root/web"
+
+# Nothing to verify on a branch delete (`git push origin :branch`), and no
+# working tree to build from either.
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+  if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+    echo "pre-push: branch delete, nothing to verify"
+    exit 0
+  fi
+done
+
+if [ ! -d node_modules ]; then
+  echo "pre-push: web/node_modules is missing — run 'npm ci' in web/ first" >&2
+  exit 1
+fi
+
+echo "pre-push: running the browser gate (npm run verify:local)"
+npm run verify:local

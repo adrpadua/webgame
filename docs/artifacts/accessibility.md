@@ -48,10 +48,18 @@ npm run build && node scripts/smoke.mjs
 
 The smoke suite asserts the pointer-target and portrait contracts directly in a real browser at the canonical `390x844` canvas: the whole board on screen with nothing cropped, every enabled control at `44x44` or larger, no sideways scroll, nothing floating over a hex a player may step to, and the full HUD fitting without scrolling. It also replays the session's Encounter Record headlessly and compares fingerprints.
 
-Since 2026-08-16 this runs in CI on every pull request
-(`.github/workflows/verify-workbench.yml`), so the contract is enforced rather
-than merely documented. The workflow does not run again after merge; `main`
-goes directly through the Pages build and deployment workflow.
+From 2026-08-16 to 2026-08-19 this ran in CI on every pull request. It runs
+locally now, on push, through the pre-push hook `npm run hooks:install`
+installs — the contract is still enforced rather than merely documented, and
+still before a pull request exists, but it is enforced where a browser
+actually is. `playwright install --with-deps` shells out to apt-get on a
+hosted runner, and a slow Ubuntu mirror failed the check for reasons no author
+could act on; a gate that goes red for reasons you cannot fix is one everybody
+learns to ignore. What stayed in CI
+(`.github/workflows/verify-workbench.yml`) is everything that needs no
+browser: the Vitest suite, the mutation audit, lint, and the build. Neither
+workflow runs again after merge; `main` goes directly through the Pages build
+and deployment workflow.
 
 ## Historical: The Godot Probe Suite
 
