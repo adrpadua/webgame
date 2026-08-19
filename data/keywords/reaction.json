@@ -1,5 +1,6 @@
 {
   "id": "reaction",
   "title": "Reaction",
+  "kind": "trait",
   "rules_text": "Marks cards that answer an immediate danger."
 }

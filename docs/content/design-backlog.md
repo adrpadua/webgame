@@ -28,6 +28,7 @@ Status labels: `Now` means content/design work can begin after its stated proof;
 | 10 | A live-deck card that applies a status to an Enemy (D-034) | The status vocabulary ships with no card using it, so Sundered and Weakened are authored but unapplied. | One authored card plus a focused scenario and the baseline cohort, per the deck-evaluation rubric — it changes the damage economy the D-016/D-017 walls were measured against. |
 | 11 | Encounter Responsibilities (D-029) | Repeat clears have no social variation, and decision concentration has no structural lever beyond demand density. | An assignable transferable duty independent of Archetype, plus its handoff action. Needs the Party model. |
 | 12 | Module Slot and Raid Seed (D-024) | Without bounded variation a returning player has learned the whole Boss after a few attempts, and attempts cannot be compared across groups. | One authored slot per Boss Program, seed-driven module selection settled at setup, and a printed seed value. Selection must obey D-022. |
+| 13 | Whether permanently Scorched ground drops the Counters on it (D-048) | A structural Escalation Threshold lays a permanent Hazard rather than removing the hex, so a hex Counter on burnt ground survives. The liveness rule handles a hex that leaves the board; nothing removes one. | A ruling, then either a test that Scorch clears Counters or a note that it deliberately does not. |
 
 ## Later
 

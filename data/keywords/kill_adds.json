@@ -1,0 +1,6 @@
+{
+  "id": "kill_adds",
+  "title": "Kill Adds",
+  "kind": "answer",
+  "rules_text": "Answered by removing Minions from the board."
+}

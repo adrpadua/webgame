@@ -1,4 +1,4 @@
-import type { EscalationThreshold } from './content/schemas'
+import type { CounterReader, EscalationThreshold } from './content/schemas'
 import type { Axial, HexKey } from './hex'
 import type { RngState } from './rng'
 
@@ -83,26 +83,27 @@ export interface PhaseTrigger {
   roundAtOrAfter: number | null
 }
 
-export type StatusTrigger = 'on_round_start' | 'on_enter_hex' | 'on_damage_taken' | 'on_slot_fired'
-
-export interface StatusInstance {
+// One Counter held by one combatant (D-047). A Counter is a named, counted
+// marker; `readers` is the only thing that makes it do anything, and it is
+// copied from the authored definition so a live instance never has to look
+// its own meaning back up.
+export interface CounterInstance {
   id: string
   title: string
+  // The count is the Counter. Fortified's count *is* its banked Armor, which
+  // is why additive stacking (D-019) needs no flag any more.
+  count: number
+  max: number
   remainingRounds: number
-  triggers: StatusTrigger[]
-  armorOnRoundStart: number
-  damageReduction: number
+  readers: CounterReader[]
+  // Engine-built Counters only. Riposte Ready's graded consumption (D-015) is
+  // exactly what an authoring vocabulary models badly, so D-033 left it in
+  // code and these fields are where it lives.
   bonusBossDamageOnSlotFired: number
   bonusBossDamageOffPayoff: number
-  // Enemy-facing payload (D-034). The mechanism is shared with Hero statuses;
-  // only which fields matter differs.
-  damageTakenBonus: number
-  damageDealtPenalty: number
-  // Non-stacking by default: a second copy is refused rather than refreshed.
-  stacking: boolean
-  triggerReason: string
-  expiresAtWindowEnd: Phase | ''
   consumeOnCardId: string
+  expiresAtWindowEnd: Phase | ''
+  triggerReason: string
   sourceId: string
   sourceBeatId: string
   triggerRound: number
@@ -133,7 +134,9 @@ export interface EncounterState {
   enrageText: string
   board: BoardState
   heroes: Record<string, HeroState>
-  statusEffects: Record<string, StatusInstance[]>
+  // Keyed by Counter host ref (`combatant:<id>`, `hex:<q,r>`, `slot:<hero>:<n>`),
+  // never by bare entity id — see `counters.ts` (D-048).
+  counters: Record<string, CounterInstance[]>
   bossId: string
   primaryHeroId: string
   // `programIds` stays the authored pool — what this Boss can do. The order it

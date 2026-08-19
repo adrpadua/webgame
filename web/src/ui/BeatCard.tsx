@@ -1,3 +1,4 @@
+import { keywordTitle } from "@/engine";
 import { usePlayout } from "@/store/playout";
 import { selectState, useWorkbench } from "@/store/workbench";
 import { beatCardStats, findLiveBeat, standingDemand } from "./beatCard";
@@ -93,9 +94,12 @@ export function BeatCard() {
             {found.beat.rules_text}
           </span>
         )}
-        {found && found.beat.counter_tags.length > 0 && (
+        {found && found.beat.answer_tags.length > 0 && (
+          // Content stores Keyword ids; the card shows their authored titles,
+          // so renaming an answer's wording never means editing five program
+          // files.
           <span className="text-[10px] text-steel-500">
-            {found.beat.counter_tags.join(" · ")}
+            {found.beat.answer_tags.map((tag) => keywordTitle(catalog, tag)).join(" · ")}
           </span>
         )}
       </button>

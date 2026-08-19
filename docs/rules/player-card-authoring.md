@@ -15,7 +15,10 @@ Every player card has these authored fields:
 | `max_charge` | The Top Card's Charge Value: the maximum number of tucked cards it can hold. The engine default is `2`; the foundation cards `Steady Strike` and `Iron Guard` use `3`. |
 | `target_type` and `range_tiles` | Define what must be selected and where it is legal to use the card. `none` needs no selection, `piece` selects a Minion, `hex` selects an on-board hex (including empty ground) for a Burst, and `board_slot` selects an ally's Top Card. Never imply a target in text that the data model does not enforce. |
 | Effect fields | State the base effect in the corresponding data field: Boss damage, Armor, healing, targeted Minion damage, Push/Pull distance, or a Burst radius. A positive `burst_radius` requires positive `damage` and `target_type: hex`. |
-| `applies_status` | A status id from `data/statuses/` (D-033). Where it lands follows `target_type`: `none` applies it to the firing Hero, `piece` to the selected Enemy, `board_slot` to an ally's Top Card. Apply an existing status rather than authoring a near-duplicate — a second Sundered with different text is how a shared vocabulary stops being shared. |
+| `places_counter` | A Counter id from `data/counters/` (D-033, D-047). Where it lands follows `target_type`, which must be able to supply the Counter's host (D-048): `none` or `piece` for a `combatant` Counter, `hex` for a `hex` Counter, `board_slot` for a `slot` Counter. Place an existing Counter rather than authoring a near-duplicate — a second Sundered with different text is how a shared vocabulary stops being shared. |
+| `damage_keywords` | What this card's damage is made of and who it is aimed at, as registered `damage_type` Keyword ids (D-049). A Counter Reader can narrow itself to one of these, so keywording a card's damage is what lets a Counter answer it. A card declaring these must actually deal damage. |
+| `counter_amount` | How many Counters `places_counter` lands, default `1`. Placement stops at the Counter's `max`, and the fact records how many actually landed; a card that could never place what it declares fails the build. |
+| `reads` | What the card does with Counters when it fires (D-047). Three verbs: `gate` (refuse the fire unless the count is `at_least` N), `scale` (add `per` to one `effect` for each Counter held), `spend` (remove `amount`, at `cost` timing before the card's effects are computed or `resolution` after). Name exactly one of `counter` or `counter_keyword`, and read `on` the firing Hero (`self`) or the chosen piece (`target`). A `spend` must name one `counter`. There is no `or` and no nesting: every gate must pass. |
 | `tags` | Registered Keyword IDs from `data/keywords/` (ADR 0020). |
 | `charge_modifiers` | Explicit Charge Modifier Resources; never imply a bonus that is absent from data. |
 
@@ -138,5 +141,6 @@ The deck tests the choice between firing a reusable Top Card immediately and sav
 - [ ] The primary job is obvious from the title and first sentence.
 - [ ] The Compact Card can be scanned from title, timing, and Charge Value alone.
 - [ ] Card Inspection contains the same canonical rules text.
-- [ ] Any `applies_status` id exists in `data/statuses/`, and the status's `applies_to` side matches the card's `target_type`.
+- [ ] Any `places_counter` id exists in `data/counters/`, `counter_amount` does not exceed that Counter's `max`, and `target_type` can supply that Counter's `host`.
+- [ ] Every entry in `reads` names exactly one of `counter`/`counter_keyword`, carries the number its verb needs (`at_least`, `per`, or `amount`), and only reads `on: "target"` when the card chooses a target at all.
 - [ ] A card applying a status to an Enemy has been through the deck-evaluation gate before joining the live deck: it changes the damage economy the solo-ceiling walls were measured against.

@@ -1,7 +1,7 @@
 import { neighbors } from './board'
 import { legality } from './legality'
 import { hexesWithinRadius, parseHexKey, type Axial } from './hex'
-import type { ContentCatalog } from './content/catalog'
+import { cardNeedsPieceTarget, type ContentCatalog } from './content/catalog'
 import type { EncounterActionInput } from './actions'
 import type { EncounterState } from './types'
 
@@ -37,8 +37,7 @@ export function fireTargeting(
       previewHexes: hoveredIsLegal ? hexesWithinRadius(state.board.hexes, hoveredHex, card.burst_radius) : [],
     }
   }
-  const appliedStatus = card.applies_status === '' ? undefined : catalog.statuses[card.applies_status]
-  if (card.damage > 0 || card.push_tiles > 0 || card.pull_tiles > 0 || appliedStatus?.applies_to === 'enemy') {
+  if (card.damage > 0 || card.push_tiles > 0 || card.pull_tiles > 0 || cardNeedsPieceTarget(card)) {
     const legalTargetIds = Object.keys(state.board.entities)
       .sort()
       .filter((targetId) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }).legal)

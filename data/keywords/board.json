@@ -1,5 +1,6 @@
 {
   "id": "board",
   "title": "Board",
+  "kind": "trait",
   "rules_text": "Marks cards that establish persistent board pressure."
 }

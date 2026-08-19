@@ -1,0 +1,6 @@
+{
+  "id": "tank_hit",
+  "title": "Tank Hit",
+  "kind": "damage_type",
+  "rules_text": "A Boss blow aimed at the Party's front-line Hero. Absorbing one cleanly on the Guarded Front is what grants Riposte Ready."
+}

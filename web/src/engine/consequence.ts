@@ -30,15 +30,15 @@ export function highestTier(program: BossProgram): ConsequenceTier {
   return highest
 }
 
-// The union of a program's counter tags, in first-appearance order across
+// The union of a program's answer tags, in first-appearance order across
 // Instant then Incoming: what kind of answer this Round wants. Read by the
 // authoring tests that keep the three Phase I programs asking different
 // questions (D-036) — a distinctness the player now has to notice by playing
 // rather than by reading it off a row.
-export function programCounterTags(program: BossProgram): string[] {
+export function programAnswerTags(program: BossProgram): string[] {
   const tags: string[] = []
   for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
-    for (const tag of beat.counter_tags) {
+    for (const tag of beat.answer_tags) {
       if (!tags.includes(tag)) {
         tags.push(tag)
       }

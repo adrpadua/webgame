@@ -8,7 +8,7 @@ import {
   keywordSchema,
   minionSchema,
   scenarioSchema,
-  statusSchema,
+  counterSchema,
   type BossBeat,
   type BossProgram,
   type Card,
@@ -19,8 +19,10 @@ import {
   type Keyword,
   type Minion,
   type Scenario,
-  type StatusDefinition,
+  type CounterDefinition,
 } from './schemas'
+import { ENGINE_KEYWORDS, KEYWORD_REFERENCES, type KeywordKind } from '../keywords'
+import { ENGINE_COUNTERS, READABLE_READER_PAIRS } from '../counters'
 import { hexDistance } from '../hex'
 
 // The Beat kinds that ask a distance question, and therefore must author one.
@@ -42,7 +44,7 @@ export interface ContentCatalog {
   chargeModifiers: Record<string, ChargeModifier>
   hazards: Record<string, Hazard>
   minions: Record<string, Minion>
-  statuses: Record<string, StatusDefinition>
+  counters: Record<string, CounterDefinition>
   programs: Record<string, BossProgram>
   encounters: Record<string, EncounterDefinition>
   decks: Record<string, EvaluationDeck>
@@ -72,7 +74,7 @@ export interface RawContent {
   chargeModifiers: unknown[]
   hazards: unknown[]
   minions: unknown[]
-  statuses?: unknown[]
+  counters?: unknown[]
   programs: unknown[]
   encounters: unknown[]
   decks?: unknown[]
@@ -145,6 +147,25 @@ function indexById<T extends { id: string }>(entries: ParsedEntry<T>[], label: s
   return result
 }
 
+// One check for every join into the Keyword namespace. The id has to exist,
+// and it has to name the right sort of thing — a reference that resolves to a
+// Keyword of the wrong kind is a category error, not a working reference.
+function requireKeyword(
+  catalog: { keywords: Record<string, Keyword> },
+  id: string,
+  kinds: KeywordKind[],
+  owner: string,
+  field: string,
+): void {
+  const keyword = catalog.keywords[id]
+  if (!keyword) {
+    throw new Error(`${owner} references unknown keyword ${id} in ${field}`)
+  }
+  if (!kinds.includes(keyword.kind)) {
+    throw new Error(`${owner} names ${id} in ${field}, but that Keyword is ${keyword.kind} and ${field} takes ${kinds.join(' or ')}`)
+  }
+}
+
 function sourceAwareLabel<T extends { id: string }>(entries: ParsedEntry<T>[], label: string): (id: string) => string {
   const sources = new Map(entries.map((entry) => [entry.value.id, entry.source]))
   return (id) => {
@@ -155,6 +176,13 @@ function sourceAwareLabel<T extends { id: string }>(entries: ParsedEntry<T>[], l
 
 // Parses every payload and validates cross-references, taking over the job
 // the frozen ContentValidator.gd did for .tres resources (ADR 0020).
+// Which `target_type` values can supply each Counter host.
+const HOST_TARGETS: Record<CounterDefinition['host'], string[]> = {
+  combatant: ['none', 'piece'],
+  hex: ['hex'],
+  slot: ['board_slot'],
+}
+
 export function buildCatalog(raw: RawContent): ContentCatalog {
   const parsedCards = parseAll(raw.cards, cardSchema, 'card')
   const cardAt = sourceAwareLabel(parsedCards, 'Card')
@@ -170,7 +198,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     chargeModifiers: indexById(parseAll(raw.chargeModifiers, chargeModifierSchema, 'charge modifier'), 'charge modifier'),
     hazards: indexById(parseAll(raw.hazards, hazardSchema, 'hazard'), 'hazard'),
     minions: indexById(parseAll(raw.minions, minionSchema, 'minion'), 'minion'),
-    statuses: indexById(parseAll(raw.statuses ?? [], statusSchema, 'status'), 'status'),
+    counters: indexById(parseAll(raw.counters ?? [], counterSchema, 'counter'), 'counter'),
     programs: indexById(parseAll(raw.programs, bossProgramSchema, 'boss program'), 'boss program'),
     encounters: indexById(parsedEncounters, 'encounter'),
     decks: indexById(parseAll(raw.decks ?? [], evaluationDeckSchema, 'deck'), 'deck'),
@@ -200,29 +228,120 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       }
     }
     for (const tag of card.tags) {
-      if (!catalog.keywords[tag]) {
-        throw new Error(`Card ${card.id} references unknown keyword ${tag}`)
+      requireKeyword(catalog, tag, KEYWORD_REFERENCES.cardTag, `Card ${card.id}`, 'tag')
+    }
+    for (const keywordId of card.damage_keywords) {
+      requireKeyword(catalog, keywordId, KEYWORD_REFERENCES.damageKeywords, `Card ${card.id}`, 'damage_keywords')
+    }
+    if (card.damage_keywords.length > 0 && card.damage === 0 && card.boss_damage === 0) {
+      throw new Error(`Card ${card.id} declares damage_keywords but deals no damage`)
+    }
+    if (card.places_counter !== '') {
+      const counter = catalog.counters[card.places_counter]
+      if (!counter) {
+        throw new Error(`Card ${card.id} references unknown counter ${card.places_counter}`)
+      }
+      // `target_type` is the whole rule for where a Counter lands (D-033,
+      // kept by D-047): `none` places on the firing Hero, `piece` on a
+      // selected piece. D-034's `applies_to` cross-check is gone with the
+      // field, and nothing is lost — "written for an Enemy" stopped being a
+      // property of the Counter the moment its payload became Readers. A
+      // Counter whose Reader fires on `host_takes_damage` does the same thing
+      // to whoever holds it, and a card that Sunders its own Hero is a bad
+      // card rather than an incoherent one.
+      // A Counter's host and a card's target have to agree (D-048): only a hex
+      // target can supply a hex, only a Slot target a Slot. Checked here so
+      // resolution never has to ask what to do with a card that targets
+      // nothing and places ground.
+      if (!HOST_TARGETS[counter.host].includes(card.target_type)) {
+        throw new Error(
+          `Card ${card.id} places ${counter.id}, a ${counter.host} Counter, but targets ${card.target_type}; that host needs ${HOST_TARGETS[counter.host].join(' or ')}`,
+        )
+      }
+      if (card.counter_amount > counter.max) {
+        throw new Error(`Card ${card.id} places ${card.counter_amount} ${counter.id} but that Counter caps at ${counter.max}`)
       }
     }
-    if (card.applies_status !== '') {
-      const status = catalog.statuses[card.applies_status]
-      if (!status) {
-        throw new Error(`Card ${card.id} references unknown status ${card.applies_status}`)
+    for (const reader of card.reads) {
+      const named = [reader.counter, reader.counter_keyword].filter((value) => value !== '')
+      if (named.length !== 1) {
+        throw new Error(`Card ${card.id} has a ${reader.verb} reader naming ${named.length} of counter/counter_keyword; it must name exactly one`)
       }
-      // Targeting reuses the existing rule per kind (D-034), so the card's
-      // declared target has to match the side the status is written for.
-      const expected = status.applies_to === 'enemy' ? 'piece' : card.target_type
-      if (status.applies_to === 'enemy' && card.target_type !== 'piece') {
-        throw new Error(`Card ${card.id} applies the enemy status ${status.id} but does not target a piece`)
+      if (reader.counter !== '' && !catalog.counters[reader.counter]) {
+        throw new Error(`Card ${card.id} reads unknown counter ${reader.counter}`)
       }
-      if (status.applies_to === 'hero' && card.target_type !== 'none' && card.target_type !== 'board_slot') {
-        throw new Error(`Card ${card.id} applies the hero status ${status.id} but targets ${expected}`)
+      if (reader.counter_keyword !== '') {
+        requireKeyword(catalog, reader.counter_keyword, KEYWORD_REFERENCES.counterKeyword, `Card ${card.id}`, 'counter_keyword')
+      }
+      // A verb with none of its own numbers set is a reader that does nothing,
+      // which is the failure this whole vocabulary exists to make loud.
+      if (reader.verb === 'gate' && reader.at_least < 1) {
+        throw new Error(`Card ${card.id} has a gate reader with no at_least`)
+      }
+      if (reader.verb === 'scale' && reader.per === 0) {
+        throw new Error(`Card ${card.id} has a scale reader with no per`)
+      }
+      if (reader.verb === 'spend' && reader.amount < 1) {
+        throw new Error(`Card ${card.id} has a spend reader with no amount`)
+      }
+      // A spend has to name one Counter. "Remove 3 of any fire Counter" would
+      // make the rules pick which, and a rule that picks for the player is a
+      // rule the player cannot plan against.
+      if (reader.verb === 'spend' && reader.counter === '') {
+        throw new Error(`Card ${card.id} spends by keyword; a spend must name one counter`)
+      }
+      if (reader.on === 'target' && card.target_type === 'none') {
+        throw new Error(`Card ${card.id} has a ${reader.verb} reader on the target but chooses no target`)
       }
     }
   }
+  for (const counter of Object.values(catalog.counters)) {
+    for (const keywordId of counter.keywords) {
+      requireKeyword(catalog, keywordId, KEYWORD_REFERENCES.counterKeyword, `Counter ${counter.id}`, 'keywords')
+    }
+    for (const reader of counter.readers) {
+      if (!READABLE_READER_PAIRS.some((pair) => pair.when === reader.when && pair.effect === reader.effect)) {
+        throw new Error(
+          `Counter ${counter.id} authors a ${reader.when}/${reader.effect} reader, which nothing reads; the readable pairs are ${READABLE_READER_PAIRS.map((pair) => `${pair.when}/${pair.effect}`).join(', ')}`,
+        )
+      }
+      if (reader.per === 0) {
+        throw new Error(`Counter ${counter.id} has a ${reader.when} reader with per 0, which does nothing`)
+      }
+      if (reader.event_keyword !== '') {
+        // Only a damage event carries Keywords. A Round starting and a Slot
+        // firing are not made of anything, so narrowing them by Keyword would
+        // author a Reader that can never fire.
+        if (reader.when !== 'host_takes_damage' && reader.when !== 'host_deals_damage') {
+          throw new Error(`Counter ${counter.id} narrows a ${reader.when} reader by event_keyword, but only damage events carry Keywords`)
+        }
+        requireKeyword(catalog, reader.event_keyword, KEYWORD_REFERENCES.damageKeywords, `Counter ${counter.id}`, 'event_keyword')
+      }
+    }
+    // Every `when` in the Reader vocabulary names something that happens to a
+    // combatant — a Round's Armor grant, taking or dealing damage, firing a
+    // Slot. Ground and prepared cards do none of those, so a Counter hosted
+    // there is a pure marker: it is read by cards, and authoring a Reader on
+    // it would be authoring an effect that can never fire.
+    if (counter.host !== 'combatant' && counter.readers.length > 0) {
+      throw new Error(`Counter ${counter.id} is hosted on a ${counter.host} but declares readers, and every reader event is a combatant's`)
+    }
+    // The reachability half that can be enforced today: a Counter nothing
+    // reads is an unreachable mechanic. The other half — a Counter nothing
+    // places — is deliberately not an error yet, because Sundered and
+    // Weakened are exactly that and are waiting on the deck-evaluation gate
+    // for their first card (backlog item 10). Enforcing it now would delete
+    // authored content to satisfy a lint.
+    const readByCard = Object.values(catalog.cards).some((card) =>
+      card.reads.some((reader) => reader.counter === counter.id || (reader.counter_keyword !== '' && counter.keywords.includes(reader.counter_keyword))),
+    )
+    if (counter.readers.length === 0 && !readByCard && !ENGINE_COUNTERS.includes(counter.id)) {
+      throw new Error(`Counter ${counter.id} has no readers and no card reads it, so nothing can ever make it matter`)
+    }
+  }
   for (const modifier of Object.values(catalog.chargeModifiers)) {
-    if (modifier.keyword_id !== '' && !catalog.keywords[modifier.keyword_id]) {
-      throw new Error(`Charge modifier ${modifier.id} references unknown keyword ${modifier.keyword_id}`)
+    if (modifier.keyword_id !== '') {
+      requireKeyword(catalog, modifier.keyword_id, KEYWORD_REFERENCES.chargeModifierMatch, `Charge modifier ${modifier.id}`, 'keyword_id')
     }
   }
   for (const program of Object.values(catalog.programs)) {
@@ -232,6 +351,20 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       }
       if (beat.minion && !catalog.minions[beat.minion]) {
         throw new Error(`Boss Beat ${beat.id} references unknown minion ${beat.minion}`)
+      }
+      // The three Beat fields that were free text until now. All three are
+      // joins into the Keyword namespace, and `damage_keywords` is the
+      // one that mattered: the rules compare it against `tank_hit` to grant
+      // Riposte Ready, so an unchecked typo here disabled a Counter grant
+      // silently, at load, with every test still green.
+      for (const keywordId of beat.damage_keywords) {
+        requireKeyword(catalog, keywordId, KEYWORD_REFERENCES.damageKeywords, `Boss Beat ${beat.id}`, 'damage_keywords')
+      }
+      if (beat.target_selector !== '') {
+        requireKeyword(catalog, beat.target_selector, KEYWORD_REFERENCES.targetSelector, `Boss Beat ${beat.id}`, 'target_selector')
+      }
+      for (const tag of beat.answer_tags) {
+        requireKeyword(catalog, tag, KEYWORD_REFERENCES.answerTag, `Boss Beat ${beat.id}`, 'answer_tags')
       }
       // Reach is authored, and a Beat kind that asks a distance question has to
       // answer it. Left to the schema default a cone would collapse to nothing
@@ -246,6 +379,18 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       if (!RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles > 0) {
         throw new Error(`Boss Beat ${beat.id} is a ${beat.kind} and must not author range_tiles`)
       }
+    }
+  }
+  // A Keyword the engine names by id has to be there, and be the right kind.
+  // Content can rename a Keyword's wording freely; it cannot rename one out
+  // from under the rules that compare against it.
+  for (const required of ENGINE_KEYWORDS) {
+    const keyword = catalog.keywords[required.id]
+    if (!keyword) {
+      throw new Error(`The rules name Keyword ${required.id}, which is not authored in data/keywords/`)
+    }
+    if (keyword.kind !== required.kind) {
+      throw new Error(`The rules name Keyword ${required.id} as ${required.kind}, but it is authored as ${keyword.kind}`)
     }
   }
   for (const encounter of Object.values(catalog.encounters)) {
@@ -335,8 +480,8 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
         addKeyword(modifier.keyword_id)
       }
     }
-    if (card.applies_status !== '') {
-      requireDefinition('status', card.applies_status, catalog.statuses)
+    if (card.places_counter !== '') {
+      requireDefinition('counter', card.places_counter, catalog.counters)
     }
   }
   const visitedPrograms = new Set<string>()
@@ -353,6 +498,15 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
       if (beat.minion) {
         requireDefinition('minion', beat.minion, catalog.minions)
       }
+      // A Beat's Keywords are reachable content like anything else it names:
+      // the answer the Forecast Row promises and the kind of blow the Beat
+      // lands are both things a player reads, so retitling one starts a new
+      // evidence cohort the same way retitling a Hazard does.
+      beat.damage_keywords.forEach(addKeyword)
+      if (beat.target_selector) {
+        addKeyword(beat.target_selector)
+      }
+      beat.answer_tags.forEach(addKeyword)
     }
   }
 
@@ -362,6 +516,14 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
     addProgram(programId)
   }
   return reachable
+}
+
+// Whether firing this card needs a chosen piece — because it puts a Counter
+// on one, or reads Counters there. One predicate, because legality and the
+// targeting projection the board draws from have to agree about which pieces
+// are offerable; two copies of it is how they come to disagree.
+export function cardNeedsPieceTarget(card: Card): boolean {
+  return card.target_type === 'piece' && (card.places_counter !== '' || card.reads.some((reader) => reader.on === 'target'))
 }
 
 // The Top Card alone determines activation timing; legacy "fast" reads as quick.

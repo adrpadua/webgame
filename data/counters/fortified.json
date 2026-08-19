@@ -2,8 +2,10 @@
   "id": "fortified",
   "title": "Fortified",
   "rules_text": "At the start of the next Round, immediately after the Armor wipe, gain the stored Armor.",
-  "applies_to": "hero",
-  "triggers": ["on_round_start"],
-  "stacking": true,
-  "duration_rounds": 1
+  "host": "combatant",
+  "max": 30,
+  "duration_rounds": 1,
+  "readers": [
+    { "when": "round_start", "effect": "armor", "per": 1 }
+  ]
 }
