@@ -46,7 +46,7 @@ interface SimResult {
 }
 
 // Cards we prefer to burn as Stamina (movement fuel), least useful first.
-const MOVE_FUEL_ORDER = ['grow_presence', 'anchor_presence', 'gather_strength', 'fortify', 'sweeping_blow', 'strike_hex', 'shield_slam', 'iron_guard']
+const MOVE_FUEL_ORDER = ['grow_presence', 'anchor_presence', 'gather_strength', 'fortify', 'sweeping_blow', 'strike_hex', 'iron_guard']
 
 function isGuardTagged(cardId: string): boolean {
   return catalog.cards[cardId].tags.includes('guard')
@@ -216,6 +216,15 @@ function simulate(seed: number, knobs: PolicyKnobs): SimResult {
             submit({ kind: 'fire_slot', sourceId: heroId, slotIndex })
           }
         }
+        // The Signature Slot (D-064): fire it whenever it holds an earned
+        // Charge. Cash-at-one is the measured floor of the banking decision;
+        // the ceiling needs a policy that reads the hand, which a fixed
+        // script cannot.
+        state.heroes[heroId].actionBar.forEach((slotState, slotIndex) => {
+          if (slotState.fixed && slotState.earnedCharges > 0) {
+            submit({ kind: 'fire_slot', sourceId: heroId, slotIndex })
+          }
+        })
         advance()
         break
       }

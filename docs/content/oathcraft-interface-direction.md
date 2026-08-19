@@ -126,6 +126,10 @@ The rule: **horizontal padding is the rake offset plus the gap you actually want
 
 Vertical padding is unaffected — the rake only moves the horizontal edges.
 
+**Content that cannot reach the top or bottom edge meets a shallower cut.** Both edges are furthest in at a corner and travel to zero at the opposite one, so a mark held to the plate's vertical middle — an Action Bar Rail's glyph — meets each edge at *half* the offset. Such a plate may pad from half the offset instead of the whole, which is how a 57px rail keeps its full rake and still gives its mark room. This is a statement about where the content sits, not a licence to trim: a plate whose content spans its height pads from the whole offset, and one that claims the middle band while filling top to bottom is drawing its own face across its own text.
+
+**Shipped as one derived rule, not as a table.** The table above is the arithmetic, not the implementation: every raked plate computes `padding-inline` once, as `--wb-inset + --wb-gutter`, where the inset is the rake's real depth against that plate's content (the offset, halved for a middle-band plate) and the gutter is the only figure chosen by eye. Sizes declare the rake and their gutter; nothing else sets horizontal padding. The rule was written here first and drifted anyway — it had become seven hand-set `padding-inline` values, a `px-*` utility per caller, and two inline styles that no class could beat, with four plate kinds sitting inside their own cut at once. A browser check now holds every visible plate to `padding >= inset`, so the drift is caught the day it happens rather than the day someone squints at a screenshot.
+
 ### Accents Run Parallel To The Cut
 
 An accent bar inside a raked clip is not a bar — the clip shaves it into a tapering wedge, which reads as a rendering fault rather than a decision. **Every leading-edge accent is skewed to the same 8°** so it stays parallel to the edge it belongs to, and it **runs that edge's full length**.
@@ -283,7 +287,7 @@ Two consequences worth holding:
 
 **Tacticus has no hand.** Its units carry abilities as icons that appear on selection, so its bottom chrome is two floating buttons. A card game has to show four cards well enough to choose between them, and a card is a wider, denser object than an ability icon. The Hand's ~104pt is a real floor: the win is that it is absent for the phases where it is inert, not that it gets smaller.
 
-**Unit state on the token cuts the other way.** Tacticus puts health bars and status pips on every unit. This project moved the opposite direction, taking the mini bars off tiles so the Stat Panel is the only readout. With two or three pieces on the board that is defensible; a game managing ten needs state on the token. Board-first argues for putting it back, the Stat Panel decision argues against, and the tension should be resolved deliberately rather than drifted through.
+**Unit state on the token cuts the other way.** Tacticus puts health bars and status pips on every unit. This project moved the opposite direction, taking the mini bars off tiles so the Stat Panel is the only readout. With two or three pieces on the board that is defensible; a game managing ten needs state on the token. Board-first argues for putting it back, the Stat Panel decision argues against, and the tension should be resolved deliberately rather than drifted through. **Resolved 2026-08-19 (D-065, ADR 0033), on the Hero's side only:** the primary Hero's readout became the persistent Hero Frame — the Signature's earned Charges made some of "your own state" into controls and currency, which cannot live on a surface that is sometimes closed — while Enemy state keeps the tap-summoned Stat Panel. The distinction between reading your own machine and inspecting the Enemy is now spatial rather than temporal, and per-token state on tiles stays deferred to the multi-Hero milestone.
 
 ### Sequence
 

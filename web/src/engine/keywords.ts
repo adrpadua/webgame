@@ -6,8 +6,9 @@ export type KeywordKind = Keyword['kind']
 // The Keywords the engine names by id. Every one of these is a contract
 // between engine code and `data/keywords/`, and it used to be an unwritten
 // one: the Beat damage keyword was an unvalidated string on both sides, so a
-// typo in a Beat — or a renamed keyword — silently stopped Riposte Ready from
-// ever being granted, with no load error and no failing test. Naming them here
+// typo in a Beat — or a renamed keyword — silently stopped the riposte grant
+// (then a Counter, now the Signature's standing clause, D-064) from ever
+// firing, with no load error and no failing test. Naming them here
 // lets the catalog assert at load that every id the rules will compare against
 // exists, and exists as the right kind.
 export const TANK_HIT = 'tank_hit'

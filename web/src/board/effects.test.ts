@@ -49,6 +49,33 @@ describe('board effects', () => {
     expect(effects.some((effect) => effect.kind === 'scorch')).toBe(true)
   })
 
+  it('floats the Signature earn where the block happened, and the waste at the cap (D-065)', () => {
+    let state = createEncounterState(catalog, 'embermaw_prototype')
+    const heroId = state.primaryHeroId
+    const tankHit = (): { state: EncounterState; effects: BoardEffect[] } => {
+      state.heroes[heroId].armor = 5
+      return apply(state, {
+        kind: 'damage',
+        sourceId: state.bossId,
+        targetId: heroId,
+        amount: 4,
+        reasonText: 'Raking Claw',
+        factContext: { damage_keywords: ['tank_hit'] },
+      })
+    }
+    const first = tankHit()
+    state = first.state
+    // The earn: a block floater and the Signature's own, both at the Hero.
+    expect(first.effects.some((effect) => effect.kind === 'block')).toBe(true)
+    const earn = first.effects.find((effect) => effect.label === '+1 Riposte')
+    expect(earn).toMatchObject({ kind: 'cast', entityId: heroId, tone: 'guard' })
+    state = tankHit().state
+    const third = tankHit()
+    // A qualifying block at the full bank is a wasted earn, and it says so.
+    const waste = third.effects.find((effect) => effect.label === 'Riposte wasted')
+    expect(waste).toMatchObject({ kind: 'cast', entityId: heroId, tone: 'hazard' })
+  })
+
   it('plays no lunge for a claw that reached nothing', () => {
     // Board Feedback is derived from Resolution Facts so the board can never
     // show a blow the Encounter did not resolve. Since D-062 a claw can come up
@@ -313,6 +340,8 @@ describe('board effects', () => {
       charges: [{ instanceId: 'charge', cardId: 'iron_guard' }],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
     const center = { q: 0, r: -1 }
     const result = resolve(variant, state, {
@@ -350,6 +379,8 @@ describe('board effects', () => {
       charges: [{ instanceId: 'charge', cardId: 'iron_guard' }],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
     const result = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
     const effects = deriveBoardEffects(variant, state, result.state, result.facts)
@@ -484,6 +515,8 @@ describe('board effects', () => {
       charges: [{ instanceId: 'charge', cardId: 'iron_guard' }],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
     const result = resolve(variant, state, {
       kind: 'fire_slot',

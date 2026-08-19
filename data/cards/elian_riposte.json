@@ -1,0 +1,26 @@
+{
+  "id": "elian_riposte",
+  "title": "Riposte",
+  "rules_text": "Standing: absorb a Tank Hit on the Guarded Front for zero Health loss — this Slot gains one Charge. Activation: spend all Charges for 3 Boss damage, +2 per Charge. Spent 2? The Boss is Sundered.",
+  "speed": "quick",
+  "fixed": true,
+  "resource_title": "Ripostes",
+  "max_charge": 2,
+  "target_type": "none",
+  "boss_damage": 3,
+  "tags": ["tank", "attack"],
+  "damage_keywords": [],
+  "charge_modifiers": ["riposte_payback"],
+  "full_charge": {
+    "places_counter": "sundered",
+    "counter_amount": 1
+  },
+  "standing": [
+    {
+      "when": "host_takes_damage",
+      "event_keyword": "tank_hit",
+      "gates": ["health_loss_zero", "guarded_front"],
+      "grants_charge": 1
+    }
+  ]
+}

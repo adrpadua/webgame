@@ -28,7 +28,7 @@
           "q": 1,
           "r": 0
         },
-        "cardInstanceId": "sweeping_blow_12"
+        "cardInstanceId": "iron_guard_12"
       }
     },
     {
@@ -82,7 +82,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "fortify_14"
+        "cardInstanceId": "sweeping_blow_14"
       }
     },
     {
@@ -138,7 +138,7 @@
           "q": 2,
           "r": -1
         },
-        "cardInstanceId": "fortify_13"
+        "cardInstanceId": "fortify_16"
       }
     },
     {
@@ -154,7 +154,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "shield_slam_16"
+        "cardInstanceId": "sweeping_blow_13"
       }
     },
     {
@@ -194,7 +194,7 @@
           "q": 2,
           "r": -2
         },
-        "cardInstanceId": "shield_slam_15"
+        "cardInstanceId": "fortify_15"
       }
     },
     {
@@ -242,7 +242,7 @@
           "q": 1,
           "r": -2
         },
-        "cardInstanceId": "sweeping_blow_11"
+        "cardInstanceId": "iron_guard_11"
       }
     },
     {

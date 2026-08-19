@@ -65,6 +65,11 @@ export interface WorkbenchStore {
   // lands on an empty hex. Session transitions close it; ordinary play
   // (submits, advances) leaves it up as a live gauge.
   inspectedEntityId: string | null
+  // Bumped when the player taps the primary Hero's tile: the Hero Frame is
+  // the Hero's readout (D-065), so the tap pulses the frame instead of
+  // opening a Stat Panel. A counter rather than a flag, so every tap replays
+  // the pulse.
+  heroFramePulse: number
   heroRoutePreview: boolean
   // The hex the pointer is currently over, or null when it is off the board.
   // Presentation only: the board already paints where the Hero may step, and
@@ -200,6 +205,7 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
     pendingReplacement: null,
     pendingMove: null,
     inspectedEntityId: null,
+    heroFramePulse: 0,
     heroRoutePreview: false,
     hoveredHexKey: null,
     showCoordinates: false,
@@ -364,10 +370,17 @@ export const useWorkbench = create<WorkbenchStore>((set, get) => {
         get().cardDroppedOnHex(selectedCardId, coords)
         return
       }
-      // A bare tap inspects: a tile holding a piece opens that piece's Stat
+      // A bare tap inspects: a tile holding an Enemy opens that piece's Stat
       // Panel, an empty hex closes it. Occupancy is the board's question
-      // (ADR 0017), so the engine answers it.
+      // (ADR 0017), so the engine answers it. The Hero's readout is the
+      // persistent Hero Frame (D-065): tapping the Hero pulses the frame —
+      // the tap points at the chrome that answers it — and closes any open
+      // Enemy panel rather than opening one.
       const tappedId = getEntityIdAt(state.board, coords)
+      if (tappedId !== '' && state.heroes[tappedId] !== undefined) {
+        set({ inspectedEntityId: null, heroFramePulse: get().heroFramePulse + 1 })
+        return
+      }
       set({ inspectedEntityId: tappedId === '' ? null : tappedId })
     },
 
@@ -503,6 +516,8 @@ declare global {
     __workbench?: {
       exportRecord: () => Promise<string>
       exportScenario: () => string
+      heroFramePulse: () => number
+      bossHealth: () => number
       hexRects: () => { key: string; left: number; right: number; top: number; bottom: number }[]
     }
   }
@@ -511,6 +526,16 @@ if (typeof window !== 'undefined') {
   window.__workbench = {
     exportRecord: () => useWorkbench.getState().exportRecord(),
     exportScenario: () => useWorkbench.getState().exportScenario(),
+    // The Hero Frame's pulse counter, so a browser check can prove a Hero
+    // tap reached the frame (D-065) without reading an animation.
+    heroFramePulse: () => useWorkbench.getState().heroFramePulse,
+    // The Boss's live health. The Stat Panel shows it only while open, so a
+    // check that wants a before/after around one press would otherwise have
+    // to tap the Boss's tile twice and disturb what it is measuring.
+    bossHealth: () => {
+      const live = selectState(useWorkbench.getState())
+      return live.board.entities[live.bossId]?.health ?? 0
+    },
     // Every hex's on-screen bounding box, so a browser check can ask whether
     // an overlay covers a hex rather than whether it overlaps the canvas —
     // the canvas is a hexagon's bounding box and its corners are empty.

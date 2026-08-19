@@ -267,8 +267,16 @@ The temporary reading surface for any named HUD object — a Compact Card, a Slo
 _Avoid_: Tooltip, card menu, help screen
 
 **Stat Panel**:
-The persistent readout for one piece on the board — the Boss, a Hero, or a Minion — opened by tapping that piece's tile and floated over the board's lower edge. It carries the piece's gauges: health and Counters for every piece, plus armor and deck for a Hero. A Counter chip shows its count whenever more than one is held, because a count the player cannot see is a count they cannot spend deliberately. The panel follows the piece rather than the hex and shows the staggered playout values while a Boss Row replays, so it reads as a live gauge; it closes from its own control, a tap on an empty hex, or a session transition, and stays up through ordinary play. Unlike a Detail Popup it persists instead of dismissing on release. Presentation only: it is never a rules surface.
+The readout a tapped Enemy tile opens — the Boss or a Minion — floated over the board's lower edge. It carries the piece's health gauge and Counter chips; a chip shows its count whenever more than one is held, because a count the player cannot see is a count they cannot spend deliberately. The panel follows the piece rather than the hex and shows the staggered playout values while a Boss Row replays, so it reads as a live gauge; it closes from its own control, a tap on an empty hex, or a session transition, and stays up through ordinary play. Unlike a Detail Popup it persists instead of dismissing on release. Enemy-only since D-065: the Hero's readout is the Hero Frame, and tapping the Hero's tile pulses that frame instead of opening a panel here. Presentation only: it is never a rules surface.
 _Avoid_: Tooltip, Detail Popup, HUD gauge, unit frame
+
+**Hero Frame**:
+The primary Hero's persistent readout, built to unit-frame anatomy (D-065, ADR 0033): a left-justified vertical stack of the Hero's name, a dominant health bar carrying the Armor overlay, the `Class Resource` as a thinner bar directly beneath it, and the deck and discard counts. The resource bar is unlabelled — its position under the health bar is what names it. Counter chips sit beside the frame rather than inside it, where an MMO puts its buffs, because each is its own authored rule and so its own control. The frame floats over the board's bottom edge without resizing the board, never dismisses, and is the notification dock's floor: transient prompts stack upward from its top edge. A tap on the Hero's tile pulses it rather than opening a Stat Panel; a hold anywhere on it opens one Detail Popup for the whole readout. It is read, never pressed — the `Signature Button` is what takes the press. Built as the party-frame seed: shaped so a second Hero's frame can sit beside it when the multi-Hero model lands, with only the primary Hero's built today. Presentation only: it is never a rules surface.
+_Avoid_: Unit frame, HUD gauge, stat bar, portrait
+
+**Signature Button**:
+The control that fires a Hero's Signature (D-065, ADR 0033), standing beside the Hero Frame as its own plate. It is on screen if and only if the Signature can be fired right now — it arrives when the fixed Slot's window opens on an earned Charge, and leaves when that Charge is spent or the window turns — so a Signature Button the player can see is always one they can press. It carries readiness and nothing else; the resource it spends is read on the Hero Frame's resource bar, which is what lets the button be absent without hiding the mechanic. Transient by design, so it is not one of the HUD's persistent buttons (ADR 0006).
+_Avoid_: Ultimate button, hero power, Action Bar Slot
 
 **Scripted First Turn**:
 The guided Round a first-time player meets: it walks prepare, charge, fire in the Quick Window, step out of a telegraph, and fire in the Slow Window, gating input to one control at a time. Its current step is derived from the live Encounter state rather than counted off, so it stays correct when the player wanders, restarts, or time-travels. It runs once, and finishing or skipping it retires it.
@@ -283,12 +291,12 @@ Continuous board motion that carries no rules information and applies uniformly 
 _Avoid_: Idle animation, Board Feedback, juice
 
 **Bottom Interaction Zone**:
-The thumb-reachable portrait HUD area that contains the Action Bar immediately above the Hand. It is reserved for player input rather than encounter telemetry.
+The thumb-reachable portrait HUD area that contains the Action Bar immediately above the Hand. It is reserved for player input rather than encounter telemetry; the Hero Frame and the `Signature Button` sit above it, over the board's edge, and are not members — the frame is a readout, and the button is transient, so the zone's persistent controls are still the Action Bar's alone (ADR 0006, ADR 0033).
 _Avoid_: Footer, toolbar
 
 **Class Resource**:
-A role-specific resource spent on signature actions. For the tank, this is currently `Guard`.
-_Avoid_: Stamina, charge
+A Hero-specific resource spent on the Signature: the fixed Slot's earned Charges, displayed on the Hero Frame as pips under the authored `resource_title` (Elian's are Ripostes; Kessa's designed resource is Momentum). Earned only — the standing clause is its sole income — banked across Rounds to the printed cap, and spent whole by the Signature's activation (D-064). The rules vocabulary says Charges; the resource title is presentation. `Guard` is not a Class Resource: it is a Keyword the tank's Charge Modifiers match on.
+_Avoid_: Stamina, mana, charge meter
 
 **Armor**:
 A Hero's temporary damage shield. Armor blocks incoming damage before Health and does not convert into damage, protection, or another effect unless a future explicit rule changes this.

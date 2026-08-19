@@ -127,11 +127,52 @@ export const cardReaderSchema = z.object({
   timing: z.enum(['cost', 'resolution']).default('cost'),
 })
 
+// A Signature's standing clause: a Grant, the mirror of a Counter Reader
+// (D-064). It answers one event from the same closed `when` set, narrowed by
+// the same `event_keyword` mechanism (D-049), and produces a Charge on the
+// fixed Slot where a Reader produces a number. Gates follow the cardReader
+// rule verbatim: a closed enumerated set, every gate must pass, and there is
+// no boolean combination — the moment this wants `or`, what is being written
+// is an interpreter.
+export const signatureGrantSchema = z.object({
+  when: z.enum(['round_start', 'host_takes_damage', 'host_deals_damage', 'slot_fired']),
+  event_keyword: z.string().default(''),
+  // The closed gate list. `health_loss_zero` is the perfect block —
+  // mitigation fully answered the blow — and `guarded_front` is the Warden
+  // sentence as a predicate. Both already exist as engine computations; a
+  // Grant only exposes them (D-064).
+  gates: z.array(z.enum(['health_loss_zero', 'guarded_front'])).default([]),
+  grants_charge: z.number().int().min(1).default(1),
+})
+
+// What a fixed card does only when fired at its full Charge cap — ADR 0008's
+// anticipated "class-specific full-charge mechanics", first exercised by the
+// Riposte's Sundered rider (D-064 decision 13). The Counter lands on the
+// Boss, following the card's Boss damage rather than its `target_type`, and
+// lands after that damage resolves: the follow-through opens the wound; the
+// rider's own hit does not benefit.
+export const fullChargeSchema = z.object({
+  places_counter: z.string().default(''),
+  counter_amount: z.number().int().min(1).default(1),
+})
+
 export const cardSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   rules_text: z.string().default(''),
   speed: z.enum(['quick', 'slow', 'fast']),
+  // A Signature card (D-064, ADR 0032): printed on a Hero, never in the deck,
+  // never drawn, never replaceable, never discarded. Its Slot charges only
+  // through the `standing` Grants below — hand cards physically cannot reach
+  // it — and firing spends the whole stack while the card stays. Only a card
+  // an Encounter names as its `signature_card` may set this.
+  fixed: z.boolean().default(false),
+  standing: z.array(signatureGrantSchema).default([]),
+  full_charge: fullChargeSchema.default({ places_counter: '', counter_amount: 1 }),
+  // What the Hero Frame calls this Signature's earned Charges (D-065):
+  // Elian's are "Ripostes", Kessa's will be "Momentum". Empty falls back to
+  // the card title. Presentation vocabulary only — the rules say Charges.
+  resource_title: z.string().default(''),
   max_charge: z.number().int().min(0).default(2),
   target_type: z.enum(['none', 'hex', 'board_slot', 'piece']).default('none'),
   armor_delta: z.number().int().default(0),
@@ -316,6 +357,11 @@ export const encounterSchema = z.object({
   rules_text: z.string().default(''),
   primary_hero_id: z.string().min(1),
   primary_hero_title: z.string().min(1),
+  // The Hero's Signature (D-064): a `fixed: true` card installed as an
+  // always-present third Slot at setup. Empty means the Hero fields no
+  // Signature in this Encounter — the teaching slice keeps its two-Slot bar
+  // until its script learns the third.
+  signature_card: z.string().default(''),
   boss_id: z.string().min(1),
   boss_title: z.string().min(1),
   round_limit: z.number().int().min(1),
@@ -385,6 +431,7 @@ export const scenarioSchema = z.object({
 export type Keyword = z.infer<typeof keywordSchema>
 export type ChargeModifier = z.infer<typeof chargeModifierSchema>
 export type Card = z.infer<typeof cardSchema>
+export type SignatureGrant = z.infer<typeof signatureGrantSchema>
 export type Hazard = z.infer<typeof hazardSchema>
 export type Minion = z.infer<typeof minionSchema>
 export type CounterDefinition = z.infer<typeof counterSchema>

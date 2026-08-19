@@ -23,6 +23,7 @@ import {
   fireTargeting,
   hexDistance,
   readCounterEvent,
+  readSignatureEvent,
   hexKey,
   isLegalMove,
   neighbors,
@@ -83,6 +84,15 @@ interface PolicyKnobs {
   // third horizon falsifiable. It returned a verdict (identical outcomes to two
   // decimal places), the row was removed on that evidence (ADR 0031), and the
   // pair collapsed into the one plan that remains worth sweeping.
+  // `banker` is the turtle's engine with one difference: it rides the
+  // Signature to its full Charge cap before firing (D-064 decision 13). It is
+  // built on turtle because the cohort's first run showed only Fortify's
+  // banked Armor can produce the zero-loss Instant-row block the standing
+  // clause reads — Iron Guard's Armor lands in the Quick Window, after the
+  // Tank Hit — so an offense plan never earns and would measure nothing.
+  // Without this plan, Sundered uptime — the number the ruling told the
+  // cohort to watch — would be structurally zero in every row.
+  //
   // `reactive_quench` is `dual_steady`'s slot plan until the Counter it answers
   // is standing at its cap, and `quencher`'s for exactly as long as it is. The
   // pair exists because the fixed plans bracket a decision rather than making
@@ -90,7 +100,7 @@ interface PolicyKnobs {
   // `quencher` gives up a Steady Strike slot every Round whether or not there
   // is anything to cool. Neither is how the card would be played, and the gap
   // between them is the whole value of the card.
-  slotPlan: 'dual_steady' | 'sword_shield' | 'turtle' | 'culler' | 'shover' | 'quencher' | 'reactive_quench'
+  slotPlan: 'dual_steady' | 'sword_shield' | 'turtle' | 'culler' | 'shover' | 'quencher' | 'banker' | 'reactive_quench'
   position: 'far' | 'dodge' | 'stay'
   spike: boolean
 }
@@ -115,7 +125,7 @@ const PRICED_COUNTERS = new Set(
     .map((beat) => beat.counter),
 )
 
-const MOVE_FUEL_ORDER = ['grow_presence', 'anchor_presence', 'gather_strength', 'fortify', 'sweeping_blow', 'strike_hex', 'shield_slam', 'iron_guard']
+const MOVE_FUEL_ORDER = ['grow_presence', 'anchor_presence', 'gather_strength', 'fortify', 'sweeping_blow', 'strike_hex', 'iron_guard']
 const isGuardTagged = (cardId: string): boolean => catalog.cards[cardId].tags.includes('guard')
 
 interface RunMetrics {
@@ -127,9 +137,11 @@ interface RunMetrics {
   bossDamage: number
   heroHealth: number
   checkpoint: boolean
-  riposteGranted: number
-  riposteFull: number
-  riposteEarly: number
+  signatureGranted: number
+  signatureWasted: number
+  signatureFiredFull: number
+  signatureFiredEarly: number
+  sunderedPlaced: number
   rejected: number
   minionsKilled: number
   burntHexes: number
@@ -175,6 +187,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     // Quench's first run cost 22% of Boss damage purely because two Steady
     // Strike left the deck and nothing played what replaced them.
     quencher: { 0: 'quench', 1: 'iron_guard' },
+    banker: { 0: 'iron_guard', 1: 'fortify' },
     // Placeholder: `reactive_quench` picks between this and `quencher` per
     // call, and never reads this entry.
     reactive_quench: { 0: 'steady_strike', 1: 'iron_guard' },
@@ -369,6 +382,23 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     }
   }
 
+  // The Signature Slot (D-064): fire it in the Quick Window whenever it holds
+  // an earned Charge. Cash-at-one is the measured floor of the banking
+  // decision — the ceiling is a hand-reading line no fixed script can walk,
+  // the same limit the Slow-window comment below records for Fortify.
+  const fireSignature = () => {
+    state.heroes[heroId].actionBar.forEach((slotState, slotIndex) => {
+      if (!slotState.fixed || slotState.earnedCharges === 0) {
+        return
+      }
+      // The banker holds for the full-bank rider; everyone else cashes at one.
+      if (knobs.slotPlan === 'banker' && slotState.topCard !== null && slotState.earnedCharges < cardChargeCap(catalog.cards[slotState.topCard.cardId])) {
+        return
+      }
+      submit({ kind: 'fire_slot', sourceId: heroId, slotIndex })
+    })
+  }
+
   let checkpoint = false
   let guard = 0
   while (state.active && guard < 400) {
@@ -427,6 +457,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
           }
         }
         fireReadySlots()
+        fireSignature()
         advance()
         break
       }
@@ -457,27 +488,40 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     checkpoint = true
   }
 
-  // Metric extraction from the recorded facts.
-  let riposteGranted = 0
-  let riposteFull = 0
-  let riposteEarly = 0
+  // Metric extraction from the recorded facts. The Signature replaces the
+  // Riposte Ready Counter (D-064): grants and overcap waste ride the
+  // signature_event on damage facts, fires are the fire_slot facts that
+  // spent Charges, and the full-bank rider is the Sundered placement.
+  let signatureGranted = 0
+  let signatureWasted = 0
+  let signatureFiredFull = 0
+  let signatureFiredEarly = 0
+  let sunderedPlaced = 0
   let rejected = 0
+  const signatureCap = 2
   for (const fact of facts) {
     if (!fact.succeeded) {
       rejected += 1
       continue
     }
     const rf = fact.resolutionFact as Record<string, unknown> | undefined
-    const counterEvent = readCounterEvent(rf)
-    if (counterEvent?.counterId === 'riposte_ready' && counterEvent.event === 'placed') {
-      riposteGranted += 1
+    const signatureEvent = readSignatureEvent(rf)
+    if (signatureEvent?.event === 'charge_granted') {
+      signatureGranted += 1
     }
-    if (counterEvent?.counterId === 'riposte_ready' && counterEvent.event === 'consumed') {
-      if (counterEvent.reason === 'matching_card_fired') {
-        riposteFull += 1
-      } else {
-        riposteEarly += 1
+    if (signatureEvent?.event === 'wasted') {
+      signatureWasted += 1
+    }
+    if (fact.kind === 'fire_slot' && typeof fact.detail.spentSignatureCharges === 'number') {
+      if (fact.detail.spentSignatureCharges >= signatureCap) {
+        signatureFiredFull += 1
+      } else if (fact.detail.spentSignatureCharges > 0) {
+        signatureFiredEarly += 1
       }
+    }
+    const counterEvent = readCounterEvent(rf)
+    if (counterEvent?.counterId === 'sundered' && counterEvent.event === 'placed') {
+      sunderedPlaced += 1
     }
   }
 
@@ -548,9 +592,11 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     bossDamage: bossStartHealth - (state.board.entities[state.bossId]?.health ?? 0),
     heroHealth: state.heroes[heroId].health,
     checkpoint,
-    riposteGranted,
-    riposteFull,
-    riposteEarly,
+    signatureGranted,
+    signatureWasted,
+    signatureFiredFull,
+    signatureFiredEarly,
+    sunderedPlaced,
     rejected,
     minionsKilled,
     burntHexes,
@@ -565,7 +611,7 @@ if (POLICY) {
   const [slotPlan, position, spike] = POLICY.split(',')
   variants.push({ slotPlan: slotPlan as PolicyKnobs['slotPlan'], position: position as PolicyKnobs['position'], spike: spike === 'true' })
 } else {
-  for (const slotPlan of ['dual_steady', 'sword_shield', 'turtle', 'culler', 'shover', 'quencher', 'reactive_quench'] as const) {
+  for (const slotPlan of ['dual_steady', 'sword_shield', 'turtle', 'culler', 'shover', 'quencher', 'banker', 'reactive_quench'] as const) {
     for (const position of ['far', 'dodge', 'stay'] as const) {
       for (const spike of [true, false]) {
         variants.push({ slotPlan, position, spike })
@@ -632,9 +678,11 @@ for (const knobs of variants) {
     burnt: avg((run) => run.burntHexes),
     bossDmg: avg((run) => run.bossDamage),
     dmgSpread: spread((run) => run.bossDamage),
-    ripGrant: avg((run) => run.riposteGranted),
-    ripFull: avg((run) => run.riposteFull),
-    ripEarly: avg((run) => run.riposteEarly),
+    sigGrant: avg((run) => run.signatureGranted),
+    sigWaste: avg((run) => run.signatureWasted),
+    sigFull: avg((run) => run.signatureFiredFull),
+    sigEarly: avg((run) => run.signatureFiredEarly),
+    sundered: avg((run) => run.sunderedPlaced),
     rejected: avg((run) => run.rejected),
   })
 }

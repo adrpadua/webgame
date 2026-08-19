@@ -30,7 +30,11 @@ interface LayerValue {
 const LayerContext = createContext<LayerValue | null>(null)
 const ZoneContext = createContext<NotificationZone | null>(null)
 
-export function NotificationLayer({ children }: { children: ReactNode }) {
+// `clearanceClass` is the bottom padding the column keeps clear. The default
+// hugs the Action Bar; a play surface with a persistent Hero Frame (D-065)
+// passes the frame's clearance instead, so the dock's rank 1 stacks from the
+// frame's top edge — the frame is the dock's floor, not a dock member.
+export function NotificationLayer({ children, clearanceClass = 'pb-1' }: { children: ReactNode; clearanceClass?: string }) {
   const [live, setLive] = useState<ReadonlySet<NotificationId>>(() => new Set())
   const register = useCallback((id: NotificationId) => {
     setLive((previous) => {
@@ -55,7 +59,7 @@ export function NotificationLayer({ children }: { children: ReactNode }) {
   return (
     <LayerContext.Provider value={value}>
       <div
-        className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between gap-1.5 px-2 pt-2 pb-1"
+        className={`pointer-events-none absolute inset-0 z-20 flex flex-col justify-between gap-1.5 px-2 pt-2 ${clearanceClass}`}
         data-testid="notification-layer"
       >
         {children}

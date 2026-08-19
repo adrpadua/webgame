@@ -53,16 +53,22 @@ export function cardDetail(card: Card, idPrefix: string, hint?: string): HoldDet
 }
 
 // A prepared Slot: the same card detail plus where this Slot stands right now.
+// The Signature Slot (D-064) counts earned Charges instead of tucked cards,
+// and its uncharged hint names the earn rule rather than asking for a card
+// the rules would refuse.
 export function slotDetail(card: Card, slot: SlotState, slotIndex: number, phase: Phase): HoldDetail {
   const speed = cardWindowSpeed(card)
   const cap = cardChargeCap(card)
   const detail = cardDetail(card, `slot-${slotIndex}`)
-  const stats = [{ label: 'Charge stack', value: `${slot.charges.length} / ${cap}` }, ...cardStats(card).slice(1)]
+  const chargeCount = slot.fixed ? slot.earnedCharges : slot.charges.length
+  const stats = [{ label: slot.fixed ? 'Earned Charges' : 'Charge stack', value: `${chargeCount} / ${cap}` }, ...cardStats(card).slice(1)]
   const hint =
     slot.activatedWindow !== null
       ? 'Already fired this window.'
-      : slot.charges.length === 0
-        ? 'Needs at least one Charge before it can fire.'
+      : chargeCount === 0
+        ? slot.fixed
+          ? 'Charges are earned by its standing clause, never from hand.'
+          : 'Needs at least one Charge before it can fire.'
         : speed === phase
           ? 'Tap to fire it now.'
           : `Fires in the ${speed === 'quick' ? 'Quick' : 'Slow'} Window.`

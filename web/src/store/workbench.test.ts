@@ -106,6 +106,18 @@ describe('dragging the Hero to a hex', () => {
     expect(store().lastRejection).toContain('Quick Window')
   })
 
+  it('pulses the Hero Frame on a Hero tap instead of opening a panel (D-065)', () => {
+    openQuickWindow()
+    const pulseBefore = store().heroFramePulse
+    store().hexClicked(heroCoords())
+    // The Hero's readout is the persistent Hero Frame: the tap points at it.
+    expect(store().inspectedEntityId).toBeNull()
+    expect(store().heroFramePulse).toBe(pulseBefore + 1)
+    // An Enemy tap still opens the Stat Panel, and it stays Enemy-only.
+    store().hexClicked(state().board.entities[state().bossId].coords)
+    expect(store().inspectedEntityId).toBe(state().bossId)
+  })
+
   it('takes the offer down when the board is touched again', () => {
     const origin = heroCoords()
     store().heroDraggedToHex(firstLegalDestination())
@@ -126,6 +138,8 @@ describe('dragging the Hero to a hex', () => {
       charges: [{ instanceId: 'targeting-charge', cardId: 'iron_guard' }],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
     useWorkbench.setState({ targetingSlotIndex: 0 })
 
@@ -177,6 +191,8 @@ describe('targeting a burst Card', () => {
       charges: [{ instanceId: 'charge', cardId: 'iron_guard' }],
       activatedWindow: null,
       placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
     }
   })
 

@@ -1,0 +1,252 @@
+# Design Proposal: The Signature Slot — the Hero's Engine, Given a Home
+
+Date: 2026-08-19 (revised twice same day; design-settled the same day — see *Settled decisions*)
+Status: **Adopted as D-064 (ADR 0032) and shipped 2026-08-19.** The container's constraints are in the ADR; gate step 2's prototype falsified the bank line under the original activation numbers ([finding below](#prototype-finding-2026-08-19-the-bank-line-is-dominated)) and the designer ruled **R3** the same day — fired at the cap, the Riposte also places `Sundered` (decision 13). The migration increment is live — see the [migration record](#migration-record-2026-08-19-shipped) for the cohort verdicts, including the one authored claim the cohort falsified (decision 11's earn mechanism).
+Context: [Fixed hero powers and command zones research note](../research/2026-08-19-fixed-hero-powers-and-command-zones.md), [champion design note](../research/2026-08-16-lol-champion-design-lessons.md), [riposte deepening proposal](riposte-payoff-deepening.md), [ADR 0002](../../adr/0002-use-a-persistent-action-bar-with-charge-stacks.md), [ADR 0008](../../adr/0008-use-persistent-charge-stacks-and-full-charge-cleanup.md), [Character Design Bible](../../rules/character-design-bible.md), [tank solo-ceiling note](../research/2026-08-17-tank-solo-ceiling-design.md) (D-016).
+
+## Settled decisions (designer-approved 2026-08-19)
+
+1. **The Signature is the Hero's identity and engine**, not a floor. (The first draft's "floor, not a ceiling" rule is retracted.)
+2. **Per Hero**, not per role.
+3. **Everything authorable in `data/`** — that is where this project's rules and game components live, and a Hero's engine is a game component. No part of a Signature stays in TypeScript.
+4. **Earned charge**: the activation can never be charged from hand; it charges only when the standing clause triggers.
+5. **The earn is the charge directly** — the Riposte Ready Counter retires; the Signature's Charge Stack *is* the riposte count.
+6. **Shield Slam retires.** Its job moved to the Hero, whole.
+7. **D-015 retires**, superseded with its diagnosis intact: an earned proc that silently evaporates is the worst payoff failure mode, and banked charge cures evaporation at the root where the graded cash-out only priced it.
+8. **Earned charges persist across Rounds** up to `max_charge: 2`, with no expiry. Overcap is the waste: a perfect block while full earns nothing.
+9. **No repetition tax.** The authored Tank Hit cadence is the rate limiter.
+10. **Migration numbers are Shield Slam's own**: base `3` Boss damage, `+2` per charge, Quick.
+11. **`Iron Guard` fills Shield Slam's two slots** (×6 → ×8). Guard density *is* the earn rate — Armor sized to the incoming Tank Hit is what produces zero-loss blocks, so the same card now pays twice (survival + Charge) and the deck literally feeds the engine. Flagged honestly: more mitigation leans toward the stalemate wall, which Escalation exists to close; the cohort measures it. Raising `Sweeping Blow` instead was deliberately held out — it moves D-003's escalation acceleration, a lever that deserves its own change and cohort, not a rider on the migration. *(Mechanism claim falsified by the migration cohort — see the [migration record](#migration-record-2026-08-19-shipped), step 6: the Instant-row Tank Hit resolves before the Quick Window, so `Fortify`'s banked Armor is the earn's fuel and `Iron Guard` pays in survival and Charge fodder. The ×8 fill stands; the reasoning is corrected in the bible.)*
+12. **The bible revision is engine-centric**: the four-part machine loop stays but its payoff relocates to the Signature, the Card Family and Elian Application tables are rewritten under that framing, the Hero Design Contract gains a Signature row, and the authoring contract below ports into the bible — every changed section marked as contingent (⏳) on this proposal's formal adoption, since the bible is active canonical guidance and the engine change had not shipped. *(The markers cleared when the migration shipped later the same day.)*
+13. **The full-bank rider** (ruled 2026-08-19, from the [prototype finding](#prototype-finding-2026-08-19-the-bank-line-is-dominated) below): an activation fired at `max_charge` also places **`Sundered`** on the Boss, *after* its own damage resolves — the follow-through opens the wound; its own hit does not benefit. Decision 10's numbers are kept unchanged. This is what makes banking a live decision: the bank line trades ~`3` base damage per cycle for a Round in which every source's hits land `+1`, so the choice is contextual on what is in hand and who else is swinging. It is also the D-034 status vocabulary's first consumer, and the "class-specific full-charge mechanic" ADR 0008 anticipated.
+
+Nothing remains open. The grilling session that produced decisions 1–12 closed its frontier on 2026-08-19; decision 13 was added the same day by the evaluation gate's own prototype, which is the gate doing its job.
+
+## Problem
+
+Two problems, and the second one only became visible while writing the first.
+
+**The measured one.** The deck is the only source of capability, so every authored demand is answered by the shuffle first and the player second. Over the live 20-card list (research finding 7): each 2-of is in hand on **~37% of Rounds**, and **43%** of 8-Round runs contain a four-or-more-Round drought on a given answer. Escalation charges for standing demands, so a drought becomes lost time through no decision the player made. The controlled cohort saw the same thing from the play side: the Riposte payoff converted in one of three seeds because Shield Slam (2 of 20 cards) was its only spender.
+
+**The structural one.** *Elian already has a fixed hero power. It is Riposte Ready, and it lives in the rules engine rather than in the game.* `createRiposteReady()` hard-codes his constants in TypeScript — `consumeOnCardId: SHIELD_SLAM`, `+2`/`+1`, one Round, Quick expiry — and the grant predicate is a branch in `resolve.ts`. D-033 left it there deliberately, and rightly for its day. But the consequence is that **the one thing that most defines how Elian plays has no home**: invisible on the bar, unauthorable in `data/`, and needing a fresh code branch for every future Hero (Kessa's Momentum would be the next).
+
+The champion note already named it: "Riposte Ready **is** an Ashe R." An Ashe R is not a fallback — it is the ability the champion is built around. The Signature Slot is the place that ability becomes visible, authorable, and per-Hero. Solving the drought falls out as a side effect, because an engine you always have is an engine the shuffle cannot take away.
+
+## The framing correction
+
+The question was posed as a choice: *pre-set actions charged with cards*, **or** *a dedicated fixed slot that does not expire*. The research says these are not alternatives — every game that ships a fixed power ships both halves at once, a permanent undrawable ability whose *rate* is bound to the turn's economy. ADR 0008 already split a Slot into installed module (Top Card) and configuration (Charge Stack), so a fixed power here is a Top Card that was never in the deck and never leaves.
+
+The split that *is* real: **generic pre-set verbs guarantee a floor and carry no identity** (Marvel Champions' basic powers are the same four verbs for every hero), while **a signature power carries identity**. This proposal builds only the second. The floor already exists — paid movement is a pre-set action, printed on the Hero, always offered in the Quick Window, charged by a discarded hand card.
+
+## Rejected shapes (kept for the record)
+
+- **Option A — free hero power, Hearthstone shape.** Rejected. An unconditional per-Round effect is a *numeric* addition to the solo ceiling (D-016), and it imports Brode's trap: the power must be tuned to be almost-not-worth-pressing or it flattens every Round into the same opening — fatal for something meant to be an identity.
+- **Option B — generic pre-set verbs for every Hero.** Rejected. Marvel Champions is the evidence that they prevent dead turns and carry no identity; a shared menu also flattens role superiority (D-025) and is disqualified outright by the identity direction.
+- **Option C2 — threshold Signature reading the other Slots' stacks** (Spirit Island shape: elements checked, never spent). Held as the second experiment. Attractive as an engine, but free at the point of use — Option A's trap in a better hat.
+- **Option D — Gloomhaven default faces on every card.** Held. Solves the drought with no new object, but makes cards partly interchangeable, eroding the card-family vocabulary — and it is a floor, so it never answers the identity question.
+- **Rising-Charge-Value repetition tax** (the commander-tax knob, part of the first two drafts). Dropped. It priced repetition *from hand*; under earned charge the earn rate is already limited by authored Tank Hit cadence, and a tax on top would double-limit the engine. If evaluation shows the engine too rich, tune the earn conditions, not a meta-counter.
+
+## The settled shape
+
+A third Action Bar Slot, always present, whose Top Card is printed on the Hero and carries **two clauses**.
+
+| Clause | Shape | Precedent |
+| --- | --- | --- |
+| **Standing** | Always on, never charged, cannot be turned off. Watches for one authored event and, when its gates pass, **grants this Slot one Charge**. | LoL passive; Sentinels innate power |
+| **Activation** | Fires in its printed window like any Slot — at least one Charge required, once per window. On firing it **spends its whole Charge Stack and its Top Card stays**. | Aeon's End charge ability; LoL ultimate |
+
+Slot properties:
+
+| Property | Rule |
+| --- | --- |
+| Origin | Authored on the Hero, never in the deck, never drawn, never discarded |
+| Persistence | Never replaceable at Loadout; survives its own firing |
+| Charging | **Earned only.** Hand cards can never be tucked here; the standing clause is the sole source of Charge |
+| Banking | Earned Charges persist across Rounds up to `max_charge`; a trigger while full earns nothing |
+| Rate | The authored encounter is the limiter: the Boss decides how often the standing clause can possibly fire |
+
+**Why two clauses.** An engine is a conversion, not a button. The standing clause makes the Hero *play* differently every Round without being pressed; the activation makes the conversion pay. Riposte Ready already had exactly this shape — a grant condition plus a spend — which is the strongest evidence the container is right.
+
+**Why earned charge solves the battery problem by construction.** The prior drafts' largest risk was the other two Slots decaying into charge fuel for the Signature, deleting the Slot Tension ADR 0002 names as the main player pressure. Hand cards physically cannot flow into the Signature, so the normal Slots keep their fuel and their tension. It also flips the D-016 risk back down: the engine's rate is bound to the authored Tank Hit cadence — a *structural* bound, the kind the tank research says holds where numeric ones erode.
+
+**Where the decision lives.** Fire at one Charge for tempo, or ride to the cap for the Sundering hit. Gate step 2 falsified the first draft of this paragraph — under decision 10's numbers alone the cash line dominated and the overcap read was trivial (see the [prototype finding](#prototype-finding-2026-08-19-the-bank-line-is-dominated)) — so decision 13 is what makes the sentence true: banking buys a *kind* effect, not a bigger number, and the read is contextual rather than arithmetic. Cash at one when the hand is empty and tempo is the need; bank to two when Steady Strike and Sweeping Blow are waiting to land through a Sundered Boss, or when the party's burst Round is coming. This is the builder/spender loop the [riposte deepening proposal](riposte-payoff-deepening.md) named as Option B, arrived at structurally.
+
+## What the standing clause is
+
+A standing clause is a **Grant**: the mirror of a Counter Reader.
+
+| | Answers | Produces |
+| --- | --- | --- |
+| **Reader** (shipped) | an event from a closed `when` set | a number — `effect` × `per`, once per Counter held |
+| **Grant** (new) | an event from *the same* closed `when` set | one Charge on the Signature Slot, if its gates pass |
+
+Riposte's event is already in the shipped vocabulary: `host_takes_damage` narrowed by `event_keyword: "tank_hit"` — the same D-049 mechanism Readers use. Gates follow the `cardReader` rule verbatim: a closed enumerated set, every gate must pass, no boolean combination — *"the moment this wants `or`, what is being written is an interpreter."* The first Grant needs **no new engine predicates**: `resolve.ts` already computes `health_loss` and `isGuardedFront()` when the Tank Hit resolves. Authoring them is exposure, not new rules.
+
+### The authored form
+
+The Signature is a **card** — not a new component kind — so it inherits `speed`, `max_charge`, `boss_damage`, `target_type`, and Charge Modifiers unchanged. With decisions 5–10 settled, the activation is **entirely shipped vocabulary**: `Charged Assault` (`each_charge_boss_damage`) is already the keyword-less per-charge scaling Steady Strike uses. The card schema gains exactly two things: `fixed: true` and the `standing` array.
+
+```jsonc
+// data/cards/elian_riposte.json
+{
+  "id": "elian_riposte",
+  "title": "Riposte",
+  "fixed": true,
+  "speed": "quick",
+  "max_charge": 2,
+  "target_type": "none",
+  "boss_damage": 3,
+  "tags": ["tank", "attack"],
+  "charge_modifiers": ["riposte_payback"],   // effect: boss_damage, amount_per_match: 2
+  "full_charge": {                           // decision 13: only when fired at max_charge
+    "places_counter": "sundered",            // on the Boss, after this card's damage resolves
+    "counter_amount": 1
+  },
+  "standing": [
+    {
+      "when": "host_takes_damage",
+      "event_keyword": "tank_hit",
+      "gates": ["health_loss_zero", "guarded_front"],
+      "grants_charge": 1
+    }
+  ]
+}
+```
+
+No `data/counters/riposte_ready.json` is needed — the Counter retires entirely (decision 5). The Grant, its gate list, and the `full_charge` block (decision 13) are the only new schema in the proposal. One placement note: `full_charge.places_counter` follows the card's **Boss damage**, not its `target_type` — a `target_type: "none"` card normally places Counters on the firing Hero (D-048), but the rider marks the thing the riposte struck.
+
+### What gets deleted
+
+The migration is a net removal from the engine:
+
+- `createRiposteReady()` and the `RIPOSTE_READY` entry in `ENGINE_COUNTERS` (`counters.ts`);
+- the `SHIELD_SLAM` card-id constant hard-coded in the rules engine (`counters.ts:9`) — `shield_slam.json` carries no Riposte behaviour at all today; the interaction is prose in its `rules_text` and a card id inside the engine, the same disease one card over;
+- the grant branch in `resolve.ts` (replaced by generic Grant evaluation);
+- the four D-033 engine-only fields on `CounterInstance` (`bonusBossDamageOnSlotFired`, `bonusBossDamageOffPayoff`, `consumeOnCardId`, `expiresAtWindowEnd`), once nothing constructs them.
+
+## The first increment: migrate Riposte, author nothing new
+
+> **Elian Voss — Signature: *Riposte***
+> *Standing:* When you absorb a Tank Hit on the Guarded Front for zero Health loss, this Slot gains one Charge (max `2`; a block while full earns nothing).
+> *Activation (Quick):* Spend all Charges: deal `3` damage to the Boss, `+2` per Charge spent. Spent `2`? The Boss is **Sundered**.
+
+Why this is the right first increment:
+
+- **It is measurable against a known baseline.** The Riposte engine is already tuned and has an evaluation cohort; before/after is a real comparison.
+- **It proves the container before any content.** If the two-clause form cannot express the engine already shipped, the form is wrong and we learn that cheaply.
+- **It removes hard-coded special cases** and unblocks the seam Kessa Varn's Momentum needs.
+- **It makes the Second Hero Of A Role rule enforceable** — the Signature is exactly where a Warden and a Vanguard should differ, and now there is somewhere for the difference to live.
+
+**One honest caveat on "identical numbers."** The per-charge rate is Shield Slam's own, but banking to the cap creates a `7`-damage ceiling (`3 + 2×2`) where today's is `5` — partly offset by retiring D-015's `+1` on every other Boss-damage card. The net damage economy shift is exactly what the cohort exists to measure; it is flagged here so it cannot masquerade as a zero-surface change.
+
+## What this settles about Shield Slam and D-015
+
+**Shield Slam retires** (decision 6). The case for keeping it was whiff insurance and a second spend route; earned charge deletes both — the earn banks itself on the Signature, and a second spender would need the graded-consumption plumbing back, the exact thing the per-Hero decision dissolved. Kept, it would compete with the Signature for the same identity while being strictly less reliable. The kit's five identities become four plus the Signature; what fills its two deck slots is the remaining open decision.
+
+**D-015 retires with it** (decision 7), recorded as superseded, not as a mistake: its diagnosis (the whiffing proc) was correct, and its cure was the best available before a guaranteed spender existed. Retiring it also removes an anti-synergy trap the guaranteed spender would have created — firing Steady Strike in the same window silently eating the riposte you were saving.
+
+**Why the D-033 blocker dissolves.** D-033 left Riposte Ready in code because graded consumption (`+2` from the payoff card, `+1` from anything else) authored badly. That grading existed *only because* two different things could spend one Counter at two values. Per-Hero Signature + earned charge leaves one payoff route and no Counter at all — nothing graded remains to author. D-033 was right about the vocabulary of its day; these decisions change its premise.
+
+## What the identity-and-engine framing still costs
+
+1. **D-016 vigilance stays mandatory.** Earned charge bounds the engine structurally, but the ceiling caveat above is a real damage-economy change, and the standing rules hold: the Signature produces **no Health income** and **no free tempo** (Elian's stated price is low personal tempo — an engine that repairs it deletes him). Every number scales with Charges earned, never a flat printed value alone.
+2. **The deck's card-family shape changes.** With the payoff on the Hero, the deck's job becomes setup, converters, and fuel — and under earned charge, specifically the cards that *cause* perfect blocks: Armor sizing is now literally the earn rate. The Character Design Bible's Card Family table (its Payoff row above all) is written for a deck that owns its own payoffs; it needs a revision pass, being worked in-session.
+
+## Authoring contract for a Signature
+
+1. **No Health income and no free tempo** — the Signature may not repair what the tank principles reserve for the Healer, or the price that defines the Hero's pattern.
+2. **Earned, never bought** — the standing clause is the only source of Charge; if a Hero's Signature wants hand-charging, it is not a Signature, it is a third deck slot.
+3. **The spine of a good hand, not the fallback in a bad one** — if a well-drawn hand routinely ignores the Signature, the design has failed.
+4. **Two clauses, one idea** — the Complexity Budget allows one signature interaction per Hero; a Signature needing two unrelated paragraphs has become two Heroes.
+5. **Permanently visible means permanently short** — Brode's readability constraint applies with full force to a card that never leaves the screen.
+6. **The earn condition is the Hero's job, stated as a rule** — Elian's is the Warden sentence (*absorb the intended hit on the Guarded Front*). A Signature whose earn condition a new player cannot connect to the Hero's raid job fails the Recognition test.
+
+## Canon this touches
+
+| Canon | Interaction |
+| --- | --- |
+| ADR 0008 | Full-charge cleanup discards the Top Card unconditionally, and activation never consumes the stack. The Signature inverts both: **its Top Card never discards, and firing always spends its whole stack.** First exception; needs the new ADR. |
+| ADR 0002 | A third Slot is reserved for progression; the Signature must be a separate, always-present Slot or progression re-planned. Earned charge protects the Slot Tension ADR 0002 depends on. |
+| D-015 | Retired by decision 7, superseded with rationale. |
+| D-033 | Revisited: its premise (two graded spenders) no longer exists. Riposte Ready leaves `ENGINE_COUNTERS`. |
+| D-016 | The evaluation cohort is mandatory; the `7`-ceiling caveat is the number to watch. |
+| D-046 / D-049 | The Grant reuses the Keyword namespace and the `event_keyword` narrowing; no second tag namespace. |
+| D-048 | A Slot is already a legal Counter host, so if a future card needs to *read* Elian's earn-state, the door reopens without re-plumbing — this is what made retiring the Counter safe. |
+
+## Implementation seam
+
+`HeroState.actionBar: SlotState[]` plus the deletions above:
+
+- `types.ts` — `fixed` flag on `SlotState`; earned charges need a token representation (today `charges: CardInstance[]` assumes a tucked card — the one genuinely new engine structure);
+- `setup.ts` — install the Signature Slot at encounter creation;
+- `legality.ts` / `legalActions.ts` — refuse `prepare`/`replace`/`charge_slot` against a fixed Slot;
+- `resolve.ts` — generic Grant evaluation where the hard-coded Riposte branch sits; on a fixed Slot's fire, spend the stack and keep the Top Card;
+- `content/schemas.ts` — the `standing` array (Grant: `when`, `event_keyword`, `gates`, `grants_charge`), `fixed`, and the `full_charge` block (decision 13: effects applied only when fired at `max_charge`; its `places_counter` follows the card's Boss damage, not `target_type`); catalog validation that only a Hero-referenced card may be `fixed`;
+- `data/` — `elian_riposte.json`, the `riposte_payback` Charge Modifier, and the deck-list change in `embermaw_prototype.json`: `Shield Slam` out, `Iron Guard` to 8 (decision 11).
+
+UI: a permanent Slot must read as different from two replaceable ones on a portrait phone, and the standing clause needs a visible surface — the earn moment should be Board Feedback, not a silent state change (the failure mode Riposte Ready has today).
+
+## Prototype finding (2026-08-19): the bank line is dominated
+
+Gate step 2 was run as a throwaway sim ([`web/prototypes/signature-banking.mjs`](../../../web/prototypes/signature-banking.mjs), deterministic, 40k trials × 8 Rounds). It models the Signature economy alone: the earn opportunity is the `tank_hit` Beat (`Raking Claw`), present in 2 of 3 Phase I programs, ordered per ADR 0028's pinned-opener-plus-shuffled-bags, converting to a Charge at a swept zero-loss block rate `p`. The question the gate asked — *does banking versus cashing feel like a read of the Timeline, or does one line dominate?* — has a measured answer: **one line dominates, and it is the wrong one.**
+
+| block rate `p` | cash at 1 Charge | bank to cap | oracle (perfect foresight) | predictor (66%) |
+| --- | --- | --- | --- | --- |
+| 0.6 | **16.96** | 12.62 | 12.62 | 11.76 |
+| 0.8 | **22.69** | 16.63 | 16.63 | 14.97 |
+| 1.0 | **28.32** | 20.33 | 20.33 | 17.88 |
+
+(Signature damage per run under decision 10's numbers, `3` base `+2`/Charge.)
+
+Three facts, each worse than the last:
+
+1. **Cashing at one Charge beats banking by +30–40% at every block rate.** The repeated base is the whole cause: every fire collects a free `3`, so firing frequency is worth more than any stack. Two earns cashed separately are `10` damage; banked and cashed together, `7`.
+2. **The overcap-avoidance "mastery read" is trivial.** The Tank Hit resolves in **Boss Instant**, *before* that Round's Quick Window — so a player who reaches the cap can always fire in the same Round, no foresight required. The blind bank-to-cap policy wastes zero earns.
+3. **Foresight is actively harmful at the live predictability.** A policy that holds a full stack based on schedule prediction (right 66% of the time, the post-ADR-0031 `programPredictability` number) *underperforms* blind banking, because a wrong hold walks a full stack into an earn.
+
+So the settled card would play as a metronome: block, fire, block, fire. The engine survives — the earn condition is still the Hero's job stated as a rule, and fire-on-earn is still correct play converted — but decision 8's banked charge would be dead weight, and the bible's play-feel requirement (*"banking to the cap has to stay a live choice"*) fails as authored. Rate-neutral numbers (`0` base, `3`/Charge) were also measured: they make every policy exactly equal, which is indifference, not a decision — ADR 0031's law is that a decision only matters if it is priced, and rate-neutral prices banking at zero.
+
+### The candidate responses (designer ruling needed)
+
+- **R1 — Accept the cadence.** Fire-on-earn is the intended rhythm; the Signature's real decision surface is the *earn* (Armor sizing, front-holding), not the spend. Then `max_charge: 2` is dead weight — drop to `1`, card text simplifies, damage is `5` per earned block, and decision 8's banking story is retracted honestly. Cheapest, but it abandons the builder/spender texture the deepening proposal wanted.
+- **R2 — Rate-neutral numbers.** `0` base, `3`/Charge: banking becomes free rather than dominated. Rejected above — indifference is not a decision, and it lowers the floor fire to `3`.
+- **R3 — A full-bank rider (recommended).** Keep decision 10's numbers, and at the cap the activation gains a *kind* effect, not more of the same number: **fired at `2` Charges, the Riposte also places `Sundered` on the Boss** (`+1` damage from every source, one Round — authored since D-034, consumed by nothing). The bank line then forgoes ~`3` base damage per cycle to buy a Round where every follow-up hits harder: roughly break-even solo with two or three follow-up hits in hand, and strictly better in a party — which makes the choice *contextual* (what is in hand, who else is hitting this Round), the exact shape of a live decision. It gives the status vocabulary its first consumer (backlog item 10's gap), it is the Warden creating a burst window for the team — a raid job, not a bigger number — and ADR 0008's anticipated "class-specific full-charge mechanics" is exactly this hook. Cost: one small schema addition (a `full_charge` effect block on `fixed` cards) and a slightly longer card text, to be weighed against authoring rule 5 (permanently visible means permanently short).
+
+Recommendation: **R3**, with the rider placing `Sundered` *after* the Riposte's own damage resolves (the follow-through opens the wound; its own hit does not benefit), keeping the `7`-ceiling caveat's arithmetic unchanged.
+
+**Ruled 2026-08-19: R3, as recommended** — recorded as settled decision 13. The first-increment card text and the authored form above carry the `full_charge` block, and the cohort watches Sundered uptime alongside the ceiling. The container (D-064, ADR 0032) was unaffected throughout — nothing in this section changed the Slot, the Grant, or earned charge.
+
+## Evaluation gate (before any live change)
+
+1. ~~Formal `D-0xx` entry, then the ADR (ADR 0008 exception, D-015 retirement, D-033 revisit).~~ **Done 2026-08-19: D-064 (minted as D-050, renumbered by the decision-log renumbering merged from `main`), ADR 0032.**
+2. ~~Throwaway prototype of the earned-charge loop against the scripted Embermaw cadence: does banking versus cashing feel like a read of the Timeline, or does one line dominate?~~ **Run 2026-08-19: the cash line dominated as originally numbered; ruled R3 (decision 13) the same day — the full-bank `Sundered` rider is what keeps the bank line alive.**
+3. **Engine test:** a well-drawn hand still wants the Signature; if good hands route around it, it is a floor wearing an engine's name.
+4. **Battery verification:** earned charge should protect the normal Slots by construction — verify the cohort shows their fire rate unchanged anyway.
+5. `npm run evaluate` against the existing Riposte baseline, watching the `7`-ceiling caveat, with D-016's rule: **any solo Boss kill is a red-flag finding.**
+6. **Earn-rate honesty:** if the cohort shows the standing clause triggering so rarely the Signature never fires (the "too tight" risk), the fallback is loosening the earn gates — never reopening hand-charging.
+
+## Execution record (2026-08-19, same session)
+
+Landed alongside this proposal, all guidance-side (no rules or engine change):
+
+- The [Character Design Bible](../../rules/character-design-bible.md) revised per decision 12, with ⏳ contingency markers on every changed section.
+- [elian-voss-starter.md](../decks/elian-voss-starter.md) corrected to the live JSON (it had drifted: `Steady Strike` ×8 with no `Drive Back`, while `46d2a61` had shipped ×6 plus `Drive Back` ×2), and given a pending-revision note for the Signature migration.
+- The same stale list fixed in [prototype-rules.md](../../rules/prototype-rules.md).
+
+Adoption pass (later the same day):
+
+- **D-064** recorded in the [design decision log](../design-decision-log.md); D-015 marked Superseded in place; D-033 annotated with the revisit. (Minted as D-050; renumbered when the merge from `main` brought the log renumbering that resolved the old `D-045`–`D-047` ID collision — main's D-050 is the Scorched-ground ruling.)
+- **[ADR 0032](../../adr/0032-give-each-hero-a-fixed-signature-slot-with-earned-charges.md)** written for the container: the ADR 0008 exception scoped to `fixed` cards, the legality refusals that protect ADR 0002, the Grant vocabulary, and ADR 0002's progression-Slot reservation transferring to a fourth Slot.
+- Gate step 2 run: [`signature-banking.mjs`](../../../web/prototypes/signature-banking.mjs) and the prototype finding above.
+- **Ruled the same day: R3** — settled decision 13 (the full-bank `Sundered` rider), folded into the authored form, the card text, and the seam.
+
+## Migration record (2026-08-19, shipped)
+
+The migration increment landed the same day, exactly along the seam above: `fixed`/`earnedCharges` on `SlotState` (earned Charges are a token count — hand cards structurally cannot reach a fixed Slot); the Grant evaluated generically in `signature.ts` where the hard-coded branch sat; the `full_charge` rider riding the card's Boss damage; `elian_riposte.json`, `riposte_payback`, and the deck change authored; and the full deletion list executed — `createRiposteReady`, the `SHIELD_SLAM` engine constant, the graded-consumption path, the four D-033 `CounterInstance` fields, and the `expire_counter` window-expiry machinery that existed only for the old Counter. `shield_slam.json` stays authored as a plain 3-damage card (its Riposte clause left its rules text per D-001), out of the live deck. The teaching slice (`embermaw_first_turn`) deliberately keeps its two-Slot bar until its scripted first turn learns the third Slot.
+
+**Evaluation gate verdicts (steps 3–6):**
+
+- **Step 3 (engine test):** partially answered by script, honestly. The Signature is the *only* throughput a blocking line has — turtle went from `0` to `2–4.2` Boss damage — so blocking hands want it structurally. Whether a well-drawn *offense* hand wants it is a human question the sweep cannot reach, because of the timing finding below.
+- **Step 4 (battery verification):** the normal Slots' fire rates and the offense lines' damage are within noise of the baseline (dual_steady byte-identical, sword_shield −0.3 to −1.3 from D-015's retired `+1`). The battery risk is absent by construction and now by measurement.
+- **Step 5 (cohort under D-016):** 30 seeds × 42 policies, before/after: **zero solo victories in either sweep**; the ADR 0027 enrage wall holds and widens (488→507 qualifying runs); the Round-4 checkpoint still discriminates (28 clear / 14 fail); the regenerated Scenario search's solo ceiling ends at **Boss HP `2`** — the same margin as pre-migration, so the `7`-ceiling caveat did not move the wall in script play. The new `banker` policy measures the full-bank line: ~`0.2` Sundered placements per engaged run.
+- **Step 6 (earn-rate honesty):** the earn converts on the defense lines (`0.4–0.93` grants/run) and is **zero on every offense line** — which surfaced a real timing truth: the Tank Hit resolves in Boss Instant, *before* the Quick Window, so `Iron Guard`'s same-Round Armor can never produce the zero-loss block. **Decision 11's mechanism claim ("Guard density is the earn rate") is falsified as authored** — `Fortify`'s banked Armor is the earn's fuel, and `Iron Guard`'s density pays in survival and Charge fodder instead. Recorded in the bible's Signature section as an authoring rule: an earn condition's fuel must be able to arrive before the event it answers. The retained fallback stands: if human play still finds the earn too tight, loosen the gates — never reopen hand-charging.

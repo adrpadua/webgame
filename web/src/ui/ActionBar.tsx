@@ -72,7 +72,9 @@ const LOCK_STATE: Record<SlotStateName, LockState> = {
 }
 
 // The bar is a twelve-unit ladder: 2 | 4 | 4 | 2. The rails take two units
-// each and the Slots share the eight between them.
+// each and the replaceable Slots share the eight between them. The Signature
+// Slot never renders here — its face is the Hero Frame's control (D-065) —
+// so the bar carries exactly the Slots a hand card can reach.
 //
 // The rails are why the ladder exists. Undo and the advance control are the
 // two most-pressed things in the interface and both used to be somewhere
@@ -82,7 +84,8 @@ const LOCK_STATE: Record<SlotStateName, LockState> = {
 // the ladder is the contract: the Slots must not resize when a rail changes
 // what it is, and two fr-sized rails around two flex-1 Slots would do
 // exactly that.
-const SLOT_SPAN: Record<number, string> = { 1: 'col-span-8', 2: 'col-span-4', 4: 'col-span-2' }
+// Keyed by the units one Slot spans (Tailwind needs the literal class names).
+const SLOT_SPAN: Record<number, string> = { 8: 'col-span-8', 4: 'col-span-4', 2: 'col-span-2' }
 
 export function ActionBar() {
   const state = useWorkbench(selectState)
@@ -91,12 +94,16 @@ export function ActionBar() {
     return null
   }
   // px-2, not px-4: the ladder spends its width on four controls now, and
-  // the eight units the Slots share have to carry a card title.
-  const span = SLOT_SPAN[hero.actionBar.length] ?? 'col-span-4'
+  // the eight units the Slots share have to carry a card title. Fixed Slots
+  // are filtered, not hidden: the map below only ever mints plates for the
+  // Slots a card can be dragged to.
+  const replaceable = hero.actionBar.map((slot, slotIndex) => ({ slot, slotIndex })).filter(({ slot }) => !slot.fixed)
+  const units = replaceable.length > 0 ? Math.floor(8 / replaceable.length) : 8
+  const span = SLOT_SPAN[units] ?? 'col-span-4'
   return (
     <div className="grid grid-cols-12 gap-1.5 border-t border-steel-800 bg-steel-950/80 px-2 py-2" data-testid="action-bar">
       <UndoControl />
-      {hero.actionBar.map((_, slotIndex) => (
+      {replaceable.map(({ slotIndex }) => (
         <Slot key={slotIndex} slotIndex={slotIndex} span={span} />
       ))}
       <AdvanceControl />

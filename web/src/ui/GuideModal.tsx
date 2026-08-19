@@ -45,7 +45,7 @@ function PrepareDiagram() {
         </div>
       </div>
       {/* The hand card that rises into the Slot, on a loop. */}
-      <div className="wb-card-rise wb-plate wb-plate-md wb-face-steel wb-acc-glass absolute bottom-3 left-1/2 w-24 -translate-x-1/2 to-steel-900 p-1.5 shadow-lg">
+      <div className="wb-card-rise wb-plate wb-plate-md wb-face-steel wb-acc-glass absolute bottom-3 left-1/2 w-24 -translate-x-1/2 to-steel-900 py-1.5 shadow-lg">
         <span className="text-[8px] font-bold text-ceramic-200">Hand card</span>
       </div>
       <span className="text-[9px] text-steel-500">drag or tap · card goes to the Slot</span>

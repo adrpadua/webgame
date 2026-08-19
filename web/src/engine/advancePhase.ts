@@ -4,7 +4,6 @@ import { applyAction, checkResolution } from './resolve'
 import { ESCALATION_MAX, escalationActionsForRoundEnd, escalationModifiers, minionDemandTerms } from './escalation'
 import { detonationDue, minionDetonation, minionIntent } from './minions'
 import { actionsForTrack, refreshTelegraphs } from './timeline'
-import { getCounters, counterEvent, refEntityId, type CounterRef } from './counters'
 import { RAID_HIT } from './keywords'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
 import type { EncounterState, Phase, ResolveResult, ResolvedActionFact } from './types'
@@ -15,6 +14,12 @@ function advanceAction(fromPhase: Phase, toPhase: Phase, round: number): Encount
 
 // Emits the Full-Charge Cleanup actions for every Slot matching the rule: the
 // Slot activated in this window and its Charge Stack equals the Charge Value.
+// A fixed Slot is exempt structurally, not by a guard here (ADR 0032's
+// exception to ADR 0008): its `charges` array is always empty — legality
+// refuses both hand routes onto a Signature — and its earned token stack was
+// already spent by the fire itself, so this predicate can never match one.
+// The behavioural pin is the engine test that fires the Signature at its
+// whole cap and watches the window close without a cleanup.
 function cleanupActions(catalog: ContentCatalog, draft: EncounterState, window: Phase): EncounterActionInput[] {
   const actions: EncounterActionInput[] = []
   for (const heroId of Object.keys(draft.heroes)) {
@@ -24,28 +29,6 @@ function cleanupActions(catalog: ContentCatalog, draft: EncounterState, window: 
         actions.push({ kind: 'full_charge_cleanup', sourceId: heroId, slotIndex, window })
       }
     })
-  }
-  return actions
-}
-
-function counterExpiryActions(draft: EncounterState, window: Phase): EncounterActionInput[] {
-  const actions: EncounterActionInput[] = []
-  for (const ref of Object.keys(draft.counters) as CounterRef[]) {
-    for (const counter of getCounters(draft, ref)) {
-      if (counter.expiresAtWindowEnd !== window) {
-        continue
-      }
-      actions.push({
-        kind: 'expire_counter',
-        // The host is the ref, not an entity: ground and prepared cards hold
-        // Counters too, and only the ref can say which one expired.
-        sourceId: refEntityId(ref) === '' ? ENCOUNTER_SOURCE : refEntityId(ref),
-        hostRef: ref,
-        counterId: counter.id,
-        window,
-        counterEvent: counterEvent(counter, 'expired', 'expiry_window_ended'),
-      })
-    }
   }
   return actions
 }
@@ -79,9 +62,6 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
       refreshTelegraphs(catalog, draft)
       break
     case 'quick': {
-      for (const action of counterExpiryActions(draft, 'quick')) {
-        submit(action)
-      }
       for (const action of cleanupActions(catalog, draft, 'quick')) {
         submit(action)
       }
