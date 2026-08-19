@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "verify:local": "npm run build && node scripts/smoke.mjs",
+    "hooks:install": "bash scripts/install-hooks.sh",
     "mutate": "node scripts/mutate.mjs",
     "lint": "eslint .",
     "headless": "vite-node scripts/runHeadless.ts --",

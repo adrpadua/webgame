@@ -5,6 +5,7 @@ import { useDamageFlash } from './useDamageFlash'
 import { BossEmblem, HeartIcon, HeroEmblem, ShieldIcon } from './icons'
 import { encounterTerms, HERO_STAT_DETAILS } from './holdDetails'
 import { useHold, type HoldDetail } from './HoldPopover'
+import { Notify } from './NotificationLayer'
 import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS, healthBarScale } from './theme'
 
 // The Stat Panel (CONTEXT.md) a tapped tile opens. Persistent gauges left
@@ -142,8 +143,7 @@ function CounterChip({ counter, rulesText }: { counter: CounterInstance; rulesTe
 // (D-032), so the readout is one component both branches of the panel mount
 // rather than a Hero-only row. The popup quotes the authored rules text when
 // the Counter came from `data/counters/`, and falls back to the instance's
-// trigger reason for the ones engine code still builds (Riposte Ready,
-// D-033).
+// trigger reason for the ones engine code still builds (Riposte Ready).
 function CounterChips({ entityId }: { entityId: string }) {
   const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)
@@ -258,50 +258,55 @@ export function EntityInspect() {
     : isBoss
       ? 'wb-face-steel wb-acc-ember text-ceramic-200'
       : 'wb-face-steel wb-acc-none text-ceramic-200'
+  // The dock's outermost rank: a readout the player opened deliberately and
+  // can reopen with a tap, so it is the one member that yields when the lane
+  // is full, and it rides above every prompt rather than under one.
   return (
-    <div
-      data-testid="entity-inspect"
-      data-entity={entity.id}
-      className={`wb-slide-up wb-plate wb-plate-lg ${shell} pointer-events-auto flex items-center gap-1 py-1`}
-    >
-      <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold">
-        {/* A Minion is an Enemy, never a Hero: it wears the Enemy emblem in
-            its own tone, not the Hero's blue. */}
-        {isHero ? (
-          // cloth-500 here and cloth-300 in the guide is not a disagreement:
-          // the step follows the ground. The dark step reads on this ceramic
-          // face at 6.18:1 where the light one manages 2.15:1, and the two
-          // swap over on the guide's dark wells.
-          <HeroEmblem className="h-4 w-4 text-cloth-500" />
-        ) : (
-          <BossEmblem className={`h-4 w-4 ${isBoss ? 'text-coral-400' : 'text-coral-500'}`} />
-        )}
-        {entity.title}
-      </span>
-      {isHero ? (
-        <HeroRows heroId={entity.id} />
-      ) : (
-        <>
-          <EnemyGauge entity={entity} testId={isBoss ? 'boss-health' : undefined} detail={bossDetail} />
-          {/* A Boss or a Minion carries its afflictions on the same panel the
-              Hero carries its boons on: one Stat Panel, one place to read what
-              is currently true of a piece. */}
-          <CounterChips entityId={entity.id} />
-        </>
-      )}
-      <button
-        type="button"
-        data-testid="inspect-dismiss"
-        aria-label="Close the stat panel"
-        onClick={dismissInspect}
-        // A live control never dims its own glyph: at opacity-60 the ✕ scored
-        // 3.99:1 on the Hero's ceramic face. It carries the shell's colour at
-        // full strength and answers the pointer by growing instead.
-        className={`min-h-11 min-w-11 shrink-0 text-xs font-bold transition hover:scale-110 ${FOCUS_RING_CLASS}`}
+    <Notify id="stat-panel">
+      <div
+        data-testid="entity-inspect"
+        data-entity={entity.id}
+        className={`wb-slide-up wb-plate wb-plate-lg ${shell} pointer-events-auto flex items-center gap-1 py-1`}
       >
-        ✕
-      </button>
-    </div>
+        <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold">
+          {/* A Minion is an Enemy, never a Hero: it wears the Enemy emblem in
+              its own tone, not the Hero's blue. */}
+          {isHero ? (
+            // cloth-500 here and cloth-300 in the guide is not a disagreement:
+            // the step follows the ground. The dark step reads on this ceramic
+            // face at 6.18:1 where the light one manages 2.15:1, and the two
+            // swap over on the guide's dark wells.
+            <HeroEmblem className="h-4 w-4 text-cloth-500" />
+          ) : (
+            <BossEmblem className={`h-4 w-4 ${isBoss ? 'text-coral-400' : 'text-coral-500'}`} />
+          )}
+          {entity.title}
+        </span>
+        {isHero ? (
+          <HeroRows heroId={entity.id} />
+        ) : (
+          <>
+            <EnemyGauge entity={entity} testId={isBoss ? 'boss-health' : undefined} detail={bossDetail} />
+            {/* A Boss or a Minion carries its afflictions on the same panel the
+                Hero carries its boons on: one Stat Panel, one place to read
+                what is currently true of a piece. */}
+            <CounterChips entityId={entity.id} />
+          </>
+        )}
+        <button
+          type="button"
+          data-testid="inspect-dismiss"
+          aria-label="Close the stat panel"
+          onClick={dismissInspect}
+          // A live control never dims its own glyph: at opacity-60 the ✕ scored
+          // 3.99:1 on the Hero's ceramic face. It carries the shell's colour at
+          // full strength and answers the pointer by growing instead.
+          className={`min-h-11 min-w-11 shrink-0 text-xs font-bold transition hover:scale-110 ${FOCUS_RING_CLASS}`}
+        >
+          ✕
+        </button>
+      </div>
+    </Notify>
   )
 }
 

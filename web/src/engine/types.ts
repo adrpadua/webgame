@@ -121,7 +121,10 @@ export interface EncounterState {
   round: number
   roundLimit: number
   // Escalation is the only clock (ADR 0027). `roundLimit` survives as the
-  // authored budget the start Round derives from and the round track shows.
+  // authored budget the tick start derives from. Nothing ends an Encounter
+  // at it, so the HUD no longer prints it beside the Round: the Round mark
+  // is a coordinate and the budget is a hold away, qualified as the length
+  // automatic ticks alone would reach.
   escalation: number
   escalationStartRound: number
   escalationThresholds: EscalationThreshold[]

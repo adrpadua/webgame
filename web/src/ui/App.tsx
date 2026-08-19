@@ -15,8 +15,8 @@ import { GuideModal } from './GuideModal'
 import { Hand } from './Hand'
 import { HoldPopoverLayer } from './HoldPopover'
 import { BeatCard, StandingDemand } from './BeatCard'
-import { MovePad } from './MovePad'
 import { MovePaymentCue } from './MovePaymentCue'
+import { NotificationLayer, NotificationZone, Notify } from './NotificationLayer'
 import { PhaseBanner } from './PhaseBanner'
 import { PhaseControl } from './PhaseControl'
 import { ProgramStrip } from './ProgramStrip'
@@ -36,12 +36,18 @@ function RejectionToast() {
   if (lastRejection === null) {
     return null
   }
+  // Docked: the refusal answers a tap on the Action Bar or the Hand, so it
+  // belongs above them rather than at a fixed offset off the bottom of the
+  // frame — which is how it used to land on the Action Bar itself.
   return (
-    <div className="pointer-events-none absolute right-3 bottom-40 left-3 z-10" data-testid="rejection-toast">
-      <div className="wb-plate wb-plate-sm wb-face-steel wb-acc-ember py-2 text-center text-xs font-semibold text-ember-100">
+    <Notify id="rejection">
+      <div
+        className="wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-ember py-2 text-center text-xs font-semibold text-ember-100"
+        data-testid="rejection-toast"
+      >
         {lastRejection}
       </div>
-    </div>
+    </Notify>
   )
 }
 
@@ -54,9 +60,15 @@ function TargetingBanner() {
     return null
   }
   const targetMode = fireTargeting(catalog, state, state.primaryHeroId, targetingSlotIndex).mode
+  // Docked. At its old fixed `top-40` this prompt printed across the advance
+  // control, which then sat in the phase strip — the one control the player
+  // must not lose while a Top Card waits for its target.
   return (
-    <div className="absolute top-40 right-3 left-3 z-10" data-testid="targeting-banner">
-      <div className="wb-plate wb-plate-sm wb-face-steel wb-acc-gold flex items-center justify-between py-2 text-xs font-semibold text-gold-100 shadow-lg">
+    <Notify id="targeting">
+      <div
+        className="wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-gold flex items-center justify-between py-2 text-xs font-semibold text-gold-100 shadow-lg"
+        data-testid="targeting-banner"
+      >
         <span>{targetMode === 'hex' ? 'Pick a hex' : 'Pick a piece'}</span>
         <button
           type="button"
@@ -66,7 +78,7 @@ function TargetingBanner() {
           Cancel
         </button>
       </div>
-    </div>
+    </Notify>
   )
 }
 
@@ -79,12 +91,17 @@ function OutcomeBanner() {
     return null
   }
   const victory = state.outcome === 'victory'
+  // The stage's top rank. The Encounter ending outranks any phase word, and
+  // the two never coexist anyway: this needs `state.active` to be false and
+  // the phase banner needs it to be true.
   return (
-    <div className="absolute inset-x-3 top-1/3 z-20" data-testid="outcome-banner" data-outcome={state.outcome}>
+    <Notify id="outcome">
       <div
         className={`wb-pop-in wb-plate wb-plate-xl py-6 text-center ${
           victory ? 'wb-face-steel wb-acc-gold text-gold-100' : 'wb-face-steel wb-acc-ember text-ember-100'
         }`}
+        data-testid="outcome-banner"
+        data-outcome={state.outcome}
       >
         {victory ? (
           <HeroEmblem className="wb-float mx-auto h-12 w-12 text-gold-400" />
@@ -94,7 +111,7 @@ function OutcomeBanner() {
         <div className="mt-2 text-2xl font-black tracking-widest uppercase">{victory ? 'Victory' : 'Defeat'}</div>
         <div className="mt-2 text-sm">{state.outcomeReason}</div>
       </div>
-    </div>
+    </Notify>
   )
 }
 
@@ -115,41 +132,48 @@ export default function App() {
         <PhaseControl />
         {/* overflow-hidden: the fixed-size Phaser canvas centers here and must
             clip, never spill over (or steal pointer events from) the HUD. */}
-        {/* The board takes the full width of the play surface. It used to
-            reserve 44px gutters on each side for the MovePad, which pinned the
-            width-bound canvas at 302px and left 145px of the board area empty;
-            the pad now sits in the strip below the bottom hex row, which a
-            hexagonal board leaves empty across the full canvas width, so
-            nothing has to be set aside for it. */}
+        {/* The board takes the full width of the play surface, and nothing
+            is set aside beside it: the direction pad that once claimed 44px
+            gutters — pinning the width-bound canvas at 302px — and then the
+            strip below the bottom hex row is gone entirely. A step is named
+            by pointing at the hex, which is the gesture the board already
+            teaches. */}
         <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <PhaserBoard />
-          <MovePad />
-          {/* Transient guidance — the scripted cue, coach tips, the playout's
-              Continue bar — floats over the board's top edge: bars appearing
-              and disappearing must never resize the board mid-Encounter, and
-              the top edge keeps them out of the thumb path between the board
-              and the Hand. pointer-events pass through the stack's empty
-              space so the hexes underneath stay tappable. */}
-          <div className="pointer-events-none absolute inset-x-2 top-2 z-10 flex flex-col gap-1.5">
-            <FirstTurnCue />
-            <CoachMark />
-            <MovePaymentCue />
-            <StandingDemand />
-            <BeatCard />
-          </div>
-          {/* The tapped piece's Stat Panel floats over the board's lower
-              edge — the persistent Boss and Hero bars left the HUD. */}
-          <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10">
-            <EntityInspect />
-          </div>
+          {/* Every floating surface on the play field lands in one of three
+              zones, and the zones are flex siblings of one column — so no two
+              of them can share a pixel, and a bar appearing or leaving never
+              resizes the board mid-Encounter. Which zone a member belongs to
+              and where it sits inside it are settled in `notifications.ts`,
+              not by the order they are written here; pointer-events pass
+              through the empty space so the hexes stay tappable.
+
+              Guidance floats over the top hexes: teaching the player may
+              ignore. The stage takes the middle for one announcement at a
+              time. The dock hugs the Action Bar with everything that asks for
+              a tap on the controls just below it. */}
+          <NotificationLayer>
+            <NotificationZone zone="guidance">
+              <FirstTurnCue />
+              <CoachMark />
+            </NotificationZone>
+            <NotificationZone zone="stage">
+              <PhaseBanner />
+              <OutcomeBanner />
+            </NotificationZone>
+            <NotificationZone zone="dock">
+              <BeatCard />
+              <StandingDemand />
+              <TargetingBanner />
+              <MovePaymentCue />
+              <RejectionToast />
+              <EntityInspect />
+            </NotificationZone>
+          </NotificationLayer>
         </div>
         <ActionBar />
         <Hand />
-        <RejectionToast />
-        <TargetingBanner />
-        <PhaseBanner />
         <ReplaceConfirmModal />
-        <OutcomeBanner />
         <GuideModal />
       </main>
       {/* The rail is a design tool, not part of the game. It renders in the

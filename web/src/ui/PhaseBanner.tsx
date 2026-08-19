@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Phase } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
+import { Notify } from './NotificationLayer'
 
 // A short, non-blocking banner that names each phase as it begins: the word
 // and its colour, nothing else. What the phase means lives behind a hold on
@@ -75,20 +76,26 @@ export function PhaseBanner() {
 
   // Never linger over the outcome banner: an Encounter that ends mid-banner
   // (or with the hide timer already cleared) drops the banner immediately.
+  // The stage zone, centred in whatever the guidance and dock zones leave.
+  // It used to sit at a hard `top-[34%]` of the play surface, which is how it
+  // came to print across the guidance stack once that stack had two bars in
+  // it. It carries no control and stays inert: the hexes under it are live.
   if (shownBreak !== null && state.active) {
     const program = catalog.programs[shownBreak]
     return (
-      <div className="pointer-events-none absolute inset-x-6 top-[34%] z-20 flex justify-center" data-testid="phase-banner">
-        <div
-          key={`break-${shownBreak}`}
-          className="wb-banner-long wb-plate wb-plate-lg wb-face-steel wb-acc-ember py-2.5 text-center text-coral-100"
-          data-testid="phase-break-banner"
-          data-program={shownBreak}
-        >
-          <div className="text-lg font-black tracking-widest uppercase">{program?.title ?? 'Phase II'}</div>
-          {state.phaseBreakText !== '' && <p className="mt-1 text-[11px] leading-snug font-semibold text-coral-200">{state.phaseBreakText}</p>}
+      <Notify id="phase-banner">
+        <div className="pointer-events-none flex justify-center" data-testid="phase-banner">
+          <div
+            key={`break-${shownBreak}`}
+            className="wb-banner-long wb-plate wb-plate-lg wb-face-steel wb-acc-ember py-2.5 text-center text-coral-100"
+            data-testid="phase-break-banner"
+            data-program={shownBreak}
+          >
+            <div className="text-lg font-black tracking-widest uppercase">{program?.title ?? 'Phase II'}</div>
+            {state.phaseBreakText !== '' && <p className="mt-1 text-[11px] leading-snug font-semibold text-coral-200">{state.phaseBreakText}</p>}
+          </div>
         </div>
-      </div>
+      </Notify>
     )
   }
   if (shownPhase === null || !state.active) {
@@ -96,10 +103,12 @@ export function PhaseBanner() {
   }
   const copy = PHASE_COPY[shownPhase]
   return (
-    <div className="pointer-events-none absolute inset-x-6 top-[34%] z-20 flex justify-center" data-testid="phase-banner">
-      <div key={shownPhase} className={`wb-banner wb-plate wb-plate-lg py-2.5 text-center ${copy.tone}`}>
-        <div className="text-lg font-black tracking-widest uppercase">{copy.title}</div>
+    <Notify id="phase-banner">
+      <div className="pointer-events-none flex justify-center" data-testid="phase-banner">
+        <div key={shownPhase} className={`wb-banner wb-plate wb-plate-lg py-2.5 text-center ${copy.tone}`}>
+          <div className="text-lg font-black tracking-widest uppercase">{copy.title}</div>
+        </div>
       </div>
-    </div>
+    </Notify>
   )
 }

@@ -4,6 +4,7 @@ import { useOnboarding } from '@/store/onboarding'
 import { selectState, useWorkbench, type WorkbenchCatalog } from '@/store/workbench'
 import { BootIcon, HexIcon, ShieldIcon, SwordIcon } from './icons'
 import { useHold, type HoldDetail } from './HoldPopover'
+import { Notify } from './NotificationLayer'
 import { slotCanFire } from './slots'
 import { FOCUS_RING_CLASS } from './theme'
 
@@ -124,23 +125,26 @@ export function CoachMark() {
     return null
   }
   const Icon = visibleTip.icon
-  // Rendered inside the board's overlay stack: a tip floats over the lower
-  // hexes rather than shrinking the board when it appears.
+  // The guidance zone's second rank, and in practice its only occupant: the
+  // scripted cue above it suppresses tips outright rather than stacking with
+  // them, so the zone speaks once at a time.
   return (
-    <div data-testid="coach-mark" data-tip={visibleTip.id}>
-      <div {...hold.holdProps} className={`wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-gold pointer-events-auto flex items-center gap-2 py-1.5 ${visibleTip.tone}`}>
-        <Icon className="h-4 w-4 shrink-0 opacity-80" />
-        <p className="flex-1 text-xs font-semibold">{visibleTip.cue}</p>
-        <button
-          type="button"
-          data-testid="coach-dismiss"
-          aria-label="Dismiss tip"
-          onClick={() => dismissTip(visibleTip.id)}
-          className={`min-h-11 min-w-11 shrink-0 px-2 text-[10px] font-bold tracking-wide uppercase transition hover:scale-110 ${FOCUS_RING_CLASS}`}
-        >
-          Got it
-        </button>
+    <Notify id="coach-tip">
+      <div data-testid="coach-mark" data-tip={visibleTip.id}>
+        <div {...hold.holdProps} className={`wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-gold pointer-events-auto flex items-center gap-2 py-1.5 ${visibleTip.tone}`}>
+          <Icon className="h-4 w-4 shrink-0 opacity-80" />
+          <p className="flex-1 text-xs font-semibold">{visibleTip.cue}</p>
+          <button
+            type="button"
+            data-testid="coach-dismiss"
+            aria-label="Dismiss tip"
+            onClick={() => dismissTip(visibleTip.id)}
+            className={`min-h-11 min-w-11 shrink-0 px-2 text-[10px] font-bold tracking-wide uppercase transition hover:scale-110 ${FOCUS_RING_CLASS}`}
+          >
+            Got it
+          </button>
+        </div>
       </div>
-    </div>
+    </Notify>
   )
 }
