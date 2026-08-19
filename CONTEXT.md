@@ -307,11 +307,11 @@ The primary player pressure created by deciding whether to keep charging a slot,
 _Avoid_: Hand tension, mana tension
 
 **Tank Hit**:
-Boss damage authored as a Targeted Boss Hit and intended to be answered by the Tank through mitigation, interception, or threat control. A Boss Beat's Tank Hit identity is explicit; it is not inferred from generic damage, Hazards, or Minions. Moving out of a board pattern does not evade a Tank Hit unless that Beat explicitly says it is avoidable.
+Boss damage authored as a Targeted Boss Hit and intended to be answered by the Tank through mitigation, interception, or threat control. A Boss Beat's Tank Hit identity is explicit; it is not inferred from generic damage, Hazards, or Minions. Moving out of a board pattern does not evade a Tank Hit: a Tank Hit is aimed at the Tank rather than at whoever is standing in a pattern. Moving out of its **reach** does, when the Beat authors one — Raking Claw reaches `1` hex (D-062), so the answer to it is Armor or a step, and never a change of pattern.
 _Avoid_: Single-target damage, front damage
 
 **Targeted Boss Hit**:
-Boss damage resolved against the Hero selected by the Beat's explicit Target Selector, rather than against Heroes standing in a board pattern. It creates planned attrition that remains after perfect movement; mitigation, interception, threat control, or an explicit Beat exception may answer it. A Targeted Boss Hit is not an unavoidable Raid Hit by default.
+Boss damage resolved against the Hero selected by the Beat's explicit Target Selector, rather than against Heroes standing in a board pattern. The selector answers *who*; the Beat's authored reach answers *whether*, so a Targeted Boss Hit is not automatically unanswerable by footwork and is never an unavoidable Raid Hit by default. Mitigation, interception, threat control, or standing outside its reach may answer it. What a Beat may not do is bill the same decision twice: Raking Claw stopped pricing distance in Health when `demand_proximity` began pricing it in Escalation (D-062).
 _Avoid_: Dodgeable cone, generic damage
 
 **Avoidable Board Pattern**:

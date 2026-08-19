@@ -16,15 +16,15 @@
     {
       "id": "raking_claw",
       "title": "Raking Claw",
-      "rules_text": "Target: Tank. Deal 6 damage. Movement does not evade this hit. An unheld Guarded Front suffers +5.",
+      "rules_text": "Target: Tank, within 1 hex. Deal 6 damage.",
       "kind": "targeted_hit",
       "consequence_tier": "chip",
       "target_selector": "tank",
+      "range_tiles": 1,
       "damage": 6,
-      "unguarded_bonus": 5,
       "answer_tags": [
         "mitigate",
-        "position"
+        "move"
       ],
       "damage_keywords": [
         "tank_hit"

@@ -88,16 +88,29 @@ export function resolveBossBeat(
     case 'advance_toward_player':
       advanceTiles = beat.move_tiles
       break
+    // A claw reaches as far as a claw reaches (D-062). The selector still says
+    // *who* — a Tank Hit is aimed at the Tank rather than at whoever is
+    // standing in a pattern — but whether it lands is now a question of
+    // distance, read from the same authored `range_tiles` every other reaching
+    // Beat uses. What used to make this the hit footwork could not answer is
+    // `demand_proximity`'s job since D-041: standing out of reach is priced in
+    // Escalation, which is the currency that ends the fight, rather than in
+    // Health, which it was never able to hold a camper to anyway.
     case 'targeted_hit':
       patternHexes = frontArc(draft.board.hexes, bossCoords, bossFacing)
-      playerDamage = beat.damage
-      // Authored counter-pressure (D-017): the targeted hit cannot be evaded,
-      // and an unheld Guarded Front suffers the beat's unguarded bonus.
-      if (beat.unguarded_bonus > 0 && !isGuardedFront(draft.board, bossId, draft.primaryHeroId)) {
-        unguardedBonusApplied = beat.unguarded_bonus
-        playerDamage += unguardedBonusApplied
+      if (hexDistance(bossCoords, playerCoords) <= beat.range_tiles) {
+        playerDamage = beat.damage
+        // Kept for a Boss that authors a claw reaching past the hex it faces,
+        // where in-reach-but-unbraced is still worth pricing. Embermaw no
+        // longer authors it: at reach `1` every hex in reach *is* the Guarded
+        // Front once `turn_toward_player` has run, so the bonus could never
+        // fire (D-062).
+        if (beat.unguarded_bonus > 0 && !isGuardedFront(draft.board, bossId, draft.primaryHeroId)) {
+          unguardedBonusApplied = beat.unguarded_bonus
+          playerDamage += unguardedBonusApplied
+        }
+        impactedHexes.push(playerCoords)
       }
-      impactedHexes.push(playerCoords)
       break
     // Named for the field it actually reads. `scorch_last_pattern` claimed
     // `lastPattern` — the telegraphed shape — when it has always used
