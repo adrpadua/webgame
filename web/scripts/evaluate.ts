@@ -7,7 +7,7 @@
 // never as a success.
 //
 // Usage (from web/):
-//   npm run evaluate                        # all 18 policy variants, 30 seeds
+//   npm run evaluate                        # all 42 policy variants, 30 seeds
 //   npm run evaluate -- --seeds 100
 //   npm run evaluate -- --policy turtle,stay,false --seeds 200
 //   npm run evaluate -- --json out.json
@@ -17,6 +17,8 @@ import {
   advancePhase,
   programPredictability,
   cardChargeCap,
+  combatantRef,
+  counterCount,
   createEncounterState,
   fireTargeting,
   hexDistance,
@@ -90,10 +92,38 @@ interface PolicyKnobs {
   // Tank Hit — so an offense plan never earns and would measure nothing.
   // Without this plan, Sundered uptime — the number the ruling told the
   // cohort to watch — would be structurally zero in every row.
-  slotPlan: 'dual_steady' | 'sword_shield' | 'turtle' | 'culler' | 'shover' | 'quencher' | 'banker'
+  //
+  // `reactive_quench` is `dual_steady`'s slot plan until the Counter it answers
+  // is standing at its cap, and `quencher`'s for exactly as long as it is. The
+  // pair exists because the fixed plans bracket a decision rather than making
+  // one: `dual_steady` never plays the answer now sitting in its deck, and
+  // `quencher` gives up a Steady Strike slot every Round whether or not there
+  // is anything to cool. Neither is how the card would be played, and the gap
+  // between them is the whole value of the card.
+  slotPlan: 'dual_steady' | 'sword_shield' | 'turtle' | 'culler' | 'shover' | 'quencher' | 'banker' | 'reactive_quench'
   position: 'far' | 'dodge' | 'stay'
   spike: boolean
 }
+
+// The Counter Quench answers and the stack that makes it worth answering, read
+// off the content rather than named here. A harness that hardcodes `heat` and
+// `2` stops measuring the card the moment either is retuned, and would go on
+// reporting numbers as though it still were.
+const QUENCH_COUNTER = catalog.cards.quench.reads.find((reader) => reader.verb === 'spend')?.counter ?? ''
+const QUENCH_THRESHOLD = catalog.counters[QUENCH_COUNTER]?.max ?? 0
+
+// Every Counter a priced `place_counter` Beat places, which is exactly the set
+// `peakCtr` is a diagnostic about. Naming the set matters: an earlier version
+// measured the peak of every Counter but Riposte, which meant a `turtle` run
+// reported `5.20` off its own Fortified stack while the Counter the demand
+// actually prices sat at 2 — a column that answered a different question than
+// its own comment claimed, which is the failure it exists to catch.
+const PRICED_COUNTERS = new Set(
+  Object.values(catalog.programs)
+    .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
+    .filter((beat) => beat.kind === 'place_counter' && beat.escalation_if_unanswered > 0)
+    .map((beat) => beat.counter),
+)
 
 const MOVE_FUEL_ORDER = ['grow_presence', 'anchor_presence', 'gather_strength', 'fortify', 'sweeping_blow', 'strike_hex', 'iron_guard']
 const isGuardTagged = (cardId: string): boolean => catalog.cards[cardId].tags.includes('guard')
@@ -115,6 +145,8 @@ interface RunMetrics {
   rejected: number
   minionsKilled: number
   burntHexes: number
+  peakPricedCounter: number
+  countersSpent: number
 }
 
 // Same policy shape as generateScenarios.ts, instrumented for metrics instead
@@ -156,18 +188,39 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     // Strike left the deck and nothing played what replaced them.
     quencher: { 0: 'quench', 1: 'iron_guard' },
     banker: { 0: 'iron_guard', 1: 'fortify' },
+    // Placeholder: `reactive_quench` picks between this and `quencher` per
+    // call, and never reads this entry.
+    reactive_quench: { 0: 'steady_strike', 1: 'iron_guard' },
   }
-  const wanted: Record<number, string> = WANTED_BY_PLAN[knobs.slotPlan]
+
+  // Asked fresh every time rather than fixed for the run, because a reactive
+  // plan is a different plan on different Rounds. Every other plan returns the
+  // same record it always did.
+  //
+  // The swap lands a Round late by construction, and that is the decision being
+  // measured, not a flaw in the script. Stoke the Forge banks the cap in the
+  // Instant Row, after the Loadout Window has closed, and a Slot already
+  // holding a card cannot be swapped outside Loadout — so a party that did not
+  // pre-load Quench on a hunch pays one Round-end bill and answers on the next
+  // Loadout. Pay once, then clear it.
+  const wanted = (): Record<number, string> => {
+    if (knobs.slotPlan !== 'reactive_quench') {
+      return WANTED_BY_PLAN[knobs.slotPlan]
+    }
+    const standing = QUENCH_COUNTER !== '' && counterCount(state, combatantRef(state.bossId), QUENCH_COUNTER) >= QUENCH_THRESHOLD
+    return standing ? WANTED_BY_PLAN.quencher : WANTED_BY_PLAN.dual_steady
+  }
   const hand = () => state.heroes[heroId].hand
   const slot = (index: number) => state.heroes[heroId].actionBar[index]
 
   const moveFuel = (): CardInstance | undefined => {
-    const wantedIds = new Set(Object.values(wanted))
+    const plan = wanted()
+    const wantedIds = new Set(Object.values(plan))
     const spare = hand().filter((card) => {
       if (!wantedIds.has(card.cardId)) {
         return true
       }
-      const copiesWanted = [0, 1].filter((index) => slot(index).topCard === null && wanted[index] === card.cardId).length
+      const copiesWanted = [0, 1].filter((index) => slot(index).topCard === null && plan[index] === card.cardId).length
       const copiesInHand = hand().filter((other) => other.cardId === card.cardId).length
       return copiesInHand > copiesWanted
     })
@@ -181,14 +234,15 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
   }
 
   const loadWantedSlots = () => {
+    const plan = wanted()
     for (const slotIndex of [0, 1]) {
-      if (slot(slotIndex).topCard?.cardId === wanted[slotIndex]) {
+      if (slot(slotIndex).topCard?.cardId === plan[slotIndex]) {
         continue
       }
       if (slot(slotIndex).topCard !== null && state.phase !== 'loadout') {
         continue
       }
-      const inHand = hand().find((card) => card.cardId === wanted[slotIndex])
+      const inHand = hand().find((card) => card.cardId === plan[slotIndex])
       if (inHand) {
         submit({ kind: 'load_slot', sourceId: heroId, slotIndex, cardInstanceId: inHand.instanceId })
       }
@@ -213,7 +267,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     if (!top) {
       return []
     }
-    const wantedIds = new Set(Object.values(wanted))
+    const wantedIds = new Set(Object.values(wanted()))
     const pool = hand().filter((card) => {
       if (!wantedIds.has(card.cardId)) {
         return true
@@ -480,6 +534,39 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     }
   }
 
+  // The highest a priced Counter ever got, across the whole run. A Counter
+  // demand is priced at the cap (ADR 0027), so this is the reading that says
+  // whether that price is reachable at all: if a run this long can never stack
+  // past 2 on a Counter capped at 4, the demand is authored but dead, and every
+  // aggregate downstream of it would show "no change" for a reason that has
+  // nothing to do with whether the mechanic works.
+  let peakPricedCounter = 0
+  for (const fact of facts) {
+    if (!fact.succeeded) {
+      continue
+    }
+    const event = readCounterEvent(fact.resolutionFact as Record<string, unknown> | undefined)
+    if (event !== null && PRICED_COUNTERS.has(event.counterId) && event.count > peakPricedCounter) {
+      peakPricedCounter = event.count
+    }
+  }
+
+  // Counters the party actually drew off through a Card's `spend` reader,
+  // summed — Riposte's consumption runs a different path and is reported by its
+  // own columns. `reactive_quench` is a policy
+  // that can silently decline to react — a swap that never fires reads exactly
+  // like `dual_steady` in every other column, which is how a dead instrument
+  // gets mistaken for a null result. This is the column that tells them apart.
+  let countersSpent = 0
+  for (const fact of facts) {
+    if (!fact.succeeded) {
+      continue
+    }
+    for (const spend of (fact.detail.spentCounters as { amount?: number }[] | undefined) ?? []) {
+      countersSpent += spend.amount ?? 0
+    }
+  }
+
   let escalationFromDemands = 0
   for (const fact of facts) {
     if (fact.kind === 'gain_escalation' && fact.succeeded) {
@@ -513,6 +600,8 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     rejected,
     minionsKilled,
     burntHexes,
+    peakPricedCounter,
+    countersSpent,
   }
 }
 
@@ -522,7 +611,7 @@ if (POLICY) {
   const [slotPlan, position, spike] = POLICY.split(',')
   variants.push({ slotPlan: slotPlan as PolicyKnobs['slotPlan'], position: position as PolicyKnobs['position'], spike: spike === 'true' })
 } else {
-  for (const slotPlan of ['dual_steady', 'sword_shield', 'turtle', 'culler', 'shover', 'quencher', 'banker'] as const) {
+  for (const slotPlan of ['dual_steady', 'sword_shield', 'turtle', 'culler', 'shover', 'quencher', 'banker', 'reactive_quench'] as const) {
     for (const position of ['far', 'dodge', 'stay'] as const) {
       for (const spike of [true, false]) {
         variants.push({ slotPlan, position, spike })
@@ -584,6 +673,8 @@ for (const knobs of variants) {
     escalation: avg((run) => run.escalation),
     escFromAdds: avg((run) => run.escalationFromDemands),
     whelpKills: avg((run) => run.minionsKilled),
+    peakCtr: avg((run) => run.peakPricedCounter),
+    ctrSpent: avg((run) => run.countersSpent),
     burnt: avg((run) => run.burntHexes),
     bossDmg: avg((run) => run.bossDamage),
     dmgSpread: spread((run) => run.bossDamage),

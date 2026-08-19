@@ -16,15 +16,15 @@
     {
       "id": "raking_claw",
       "title": "Raking Claw",
-      "rules_text": "Target: Tank. Deal 6 damage. Movement does not evade this hit. An unheld Guarded Front suffers +5.",
+      "rules_text": "Target: Tank, within 1 hex. Deal 6 damage.",
       "kind": "targeted_hit",
       "consequence_tier": "chip",
       "target_selector": "tank",
+      "range_tiles": 1,
       "damage": 6,
-      "unguarded_bonus": 5,
       "answer_tags": [
         "mitigate",
-        "position"
+        "move"
       ],
       "damage_keywords": [
         "tank_hit"
@@ -47,7 +47,7 @@
     {
       "id": "brood_call",
       "title": "Brood Call",
-      "rules_text": "Whelps emerge at the marked edge hexes. Any Whelp still standing at the next Round end raises Escalation by 1.",
+      "rules_text": "Whelps emerge at the marked edge hexes. Each one detonates on the next Round's Incoming Row, burning every Hero within 1 hex and raising Escalation by 1.",
       "kind": "spawn_minions",
       "consequence_tier": "severe",
       "minion": "whelp",

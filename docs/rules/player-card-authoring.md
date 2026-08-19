@@ -74,7 +74,7 @@ A Keyword that marks which Role a card belongs to — rather than what the card 
 
 `Charged card` means a card tucked under the same Top Card's Charge Stack. A charged card does not resolve as its own effect. A card may have multiple Keywords; it counts once for each explicit matching check on the Top Card.
 
-Do not use vague phrases such as `scales with charge`, `becomes stronger`, or `fully charged` without a printed threshold and outcome. `Primed` is a Slot state, not a free card bonus.
+Do not use vague phrases such as `scales with charge`, `becomes stronger`, or `fully charged` without a printed threshold and outcome. `Full` is a Slot state, not a free card bonus.
 
 ### One Card, One Primary Job
 
@@ -100,7 +100,7 @@ An incidental rider is acceptable only when it reinforces that job. The default 
 - The Signature Slot (D-057, ADR 0032) is the exception to the hand routes: its Top Card is printed on the Hero, it never takes a prepared or charged hand card, its Charges are earned by its standing clause and bank across Rounds, and firing spends the whole stack while the Top Card stays. It is never Full-Charge-Cleaned and never replaced at Loadout.
 - A Slot activates once in its matching player window. It cannot receive more charged cards after it activates in that window.
 - Activating a Slot leaves its Charge Stack in place. If the stack equals the Charge Value, discard the Top Card and every charged card at the end of that matching window.
-- A full unactivated Slot is `Primed` and persists for later use or an explicit special interaction.
+- A full unactivated Slot is `Full` and persists for later use or an explicit special interaction.
 - The beginning-of-Round Loadout Step replaces a Slot for free: discard its old Top Card and Charge Stack, then load a new Top Card from hand at `0 Charge`.
 - An empty Slot may receive a Top Card for free during either player window.
 - Preparing, charging, and activating are free. To move one hex, discard a hand card for `1 Stamina`; that card's text and Keywords do not resolve.

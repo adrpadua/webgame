@@ -136,7 +136,7 @@ An accent bar inside a raked clip is not a bar — the clip shaves it into a tap
 
 Skew it from the bottom-left origin and the bar's left face lands exactly on the plate's raked edge at every height, so it needs no inset: the notch trims its top and the clip trims the rest. An inset version was tried and rejected — pulling the accent back from both ends leaves it reading as a floating tick mark in the middle of an edge rather than as the edge itself.
 
-With every plate carrying one, that edge becomes the status channel: gold on a Primed Slot and on the control that advances the encounter, steel-grey when idle, signal cloth on the Hero's panel, ember on the Boss, and cyan or gold for a card's window speed. One reading position answers *what is this, and is it live.*
+With every plate carrying one, that edge becomes the status channel: gold on a Full Slot and on the control that advances the encounter, steel-grey when idle, signal cloth on the Hero's panel, ember on the Boss, and cyan or gold for a card's window speed. One reading position answers *what is this, and is it live.*
 
 ### The Top-Left Corner Is Notched, Not Ticked
 
@@ -158,34 +158,34 @@ A card is a gate plate. Elian's identity is a folding Gate Rig with oathsteel ri
 
 | Part | Material | Carries |
 | --- | --- | --- |
-| Lock head | Living gold, keyhole cut, top-left | Card identity; blooms when Primed |
+| Lock head | Living gold, keyhole cut, top-left | Card identity; blooms when the Slot is Full |
 | Frame and rake | Oathsteel, raked 8°, top-left notched | The plate itself |
 | Inlay seam | Runeglass hairline, inset 3px | Nothing — it is the material signature |
 | Timing seam | Cyan (Quick) or gold (Slow), left edge | Window speed, readable at thumbnail size |
 | Art pane | Runeglass over the illustration | The card's one dominant visual idea |
 | Tumblers | Gold pins in recessed slots, bottom rail | Charge Value and current Charge Stack |
 
-A Charge Stack is tumblers seating in a lock. **Primed** is a state of a *Slot*, not of a card: a Slot whose Charge Stack equals its Top Card's Charge Value and which has not activated in the current matching window. So the gold bloom belongs to the lock head of a Slot's Top Card, and a card in hand never wears it. That is the lock wound and ready to turn. Nothing else in the Action Bar glows, which makes a Primed Slot unmissable across two Slots and a hand of four.
+A Charge Stack is tumblers seating in a lock. **Full** is a state of a *Slot*, not of a card: a Slot whose Charge Stack equals its Top Card's Charge Value and which has not activated in the current matching window. So the gold bloom belongs to the lock head of a Slot's Top Card, and a card in hand never wears it. That is the lock wound and ready to turn. Nothing else in the Action Bar glows, which makes a Full Slot unmissable across two Slots and a hand of four.
 
 The pane is why the frame stays quiet. The frame is dark, the seams are hairlines, and the illustration is the only saturated thing inside the border.
 
-## Slot States, And Why Primed Needs Its Own
+## Slot States, And Why Full Needs Its Own
 
-**Primed is not "full".** The glossary's `Avoid` line rejects "fully charged" outright, and the reason is mechanical: a Primed Slot has a full Charge Stack and **has not activated** in the current matching window, so it can fire and it persists. A Slot with the same full stack that *did* activate cannot fire again, cannot take more charges, and Full-Charge Cleanup discards its Top Card and the whole stack at the end of the window.
+**`Full` names the Slot, not the stack.** A Full Slot has a Charge Stack at its Top Card's Charge Value **and has not activated** in the current matching window, so it can fire and it persists. A Slot carrying the same complete stack that *did* activate is not Full: it cannot fire again, cannot take more charges, and Full-Charge Cleanup discards its Top Card and the whole stack at the end of the window. Both show every pin seated, which is exactly why the live one needs its own name and its own picture.
 
 One of those is a resource the player is holding. The other is a card they are about to lose. Rendering both as a row of seated pins shows one picture for two opposite outcomes, and a player who cannot tell them apart cannot plan the window.
 
 ### The Signal Is Alignment, Not Brightness
 
-Protocol magic is strongest when caster, tool, vow, and pattern **align** — the bible's own word. A lock states the same thing mechanically: when every pin clears the shear line, the plug turns. Priming a Slot is that moment, so the visual is alignment.
+Protocol magic is strongest when caster, tool, vow, and pattern **align** — the bible's own word. A lock states the same thing mechanically: when every pin clears the shear line, the plug turns. A Slot going Full is that moment, so the visual is alignment.
 
 Three signals, each readable at a different distance:
 
 | Signal | Reads at | Carries | Why not brightness |
 | --- | --- | --- | --- |
-| Ward ring closed | A glance across the whole HUD | Primed or not | Closure is a shape change, so it survives peripheral vision and colour blindness; a brighter gold does not |
+| Ward ring closed | A glance across the whole HUD | Full or not | Closure is a shape change, so it survives peripheral vision and colour blindness; a brighter gold does not |
 | Shear line | Looking at the Action Bar | Stack full, gaps gone | Segmented becoming solid is a bigger perceptual jump at 62px than any change of value |
-| Gold leading edge | Looking at the Slot | This Slot is the live one | The accent is already the status channel for every plate, so Primed invents no new place to look |
+| Gold leading edge | Looking at the Slot | This Slot is the live one | The accent is already the status channel for every plate, so Full invents no new place to look |
 
 The **ward ring** is a ring around the lock head, broken while charging and closed at full stack, with a second faint concentric ring outside it. That outer ring is bloom drawn as a line rather than a blur, which is how it survives flat cel shading and the ban on unmotivated glow — a lock seating is the source.
 
@@ -198,7 +198,7 @@ The **shear line** is the Charge Stack itself. Tumblers are discrete pins with g
 | Empty | — | — | Steel |
 | Loaded, 0 charge | Broken, steel | Down | Steel |
 | Charging | Broken, gold | Rising, gaps open | Steel |
-| **Primed** | **Closed, gold, outer ring** | **Shear line** | **Gold** |
+| **Full, window open** | **Closed, gold, outer ring** | **Shear line** | **Gold** |
 | Fired this window | Reopened, one runeglass strike | Seated but dulled | Steel |
 | Full, window closed | Closed in steel | Shear line, desaturated | Steel |
 
@@ -206,11 +206,11 @@ The runeglass strike on a spent Slot is the one place a cyan mark lands on a gol
 
 ### Motion
 
-The seat fires **once**, when the last pin drops, and stops. A Primed Slot can persist for several rounds, and a signal that breathes for that long becomes furniture the eye edits out — which is the meter-that-means-nothing failure that got Presence deleted.
+The seat fires **once**, when the last pin drops, and stops. A Full Slot can persist for several rounds, and a signal that breathes for that long becomes furniture the eye edits out — which is the meter-that-means-nothing failure that got Presence deleted.
 
 **The general rule: motion that carries state fires once; ambient motion may loop, but must never distinguish one element from another.** An earlier revision banned idle motion outright, which was too broad — a loop that applies uniformly and carries no information cannot be misread as a status signal. The board's `Board Ambience` is the sanctioned case and is bounded in `CONTEXT.md`.
 
-A Compact Card in hand has a Charge Value but no Charge Stack and no Slot, so it can never be Primed. The card frame must not imply otherwise.
+A Compact Card in hand has a Charge Value but no Charge Stack and no Slot, so it can never be Full. The card frame must not imply otherwise.
 
 ## Controls
 
@@ -233,18 +233,19 @@ That distinction carries more weight than it would have as two persistent panels
 
 ## Layout: The Board Is The Interface
 
-Measured in the running Workbench at 390×844, not estimated: **the board canvas gets 318 of 844 points — 38%.** Four chrome bands stack top to bottom and the board takes what is left.
+Measured in the running Workbench at 390×844, not estimated: **the board canvas gets 411 of 844 points — 49%.** Three chrome bands stack top to bottom and the board takes what is left.
 
 | Region | Points | Share |
 | --- | --- | --- |
-| Boss program strip | 102 | 12% |
-| Phase strip | 61 | 7% |
-| Board container | 463 | 55% |
-| — hex grid actually drawn | 318 | 38% |
+| Phase band (Round track + Escalation gauge) | 101 | 12% |
+| Board container | 525 | 62% |
+| — hex grid actually drawn | 411 | 49% |
 | Action Bar | 97 | 11% |
 | Hand | 121 | 14% |
 
-**145 points sit empty inside the board's own container**, because the hex grid is centred in a box taller than it needs. That is a fit defect rather than a layout decision, and reclaiming it is the largest single gain available at no cost to information.
+Re-measured after the Boss program strip was removed (D-060). It cost 102 points and the phase band it merged into now costs 101, because the Escalation gauge it carried came with it and took its own 44-point line under the Round track: **one band above the board where there were two, and 61 points back for the board.**
+
+**114 points sit empty inside the board's own container**, because the hex grid is centred in a box taller than it needs. The canvas is width-bound — it scales to fit 380×400 in whatever the HUD leaves, and at 390 wide that is settled by the width — so height handed back by a band that leaves is headroom, not larger hexes. That is a fit defect rather than a layout decision, and reclaiming it is the largest single gain still available at no cost to information.
 
 The target is **roughly 80% board**, which is what comparable hex tactics on the same screen size give it.
 
@@ -376,7 +377,7 @@ The board keeps tiles clean until tapped. Board-first layout argues for health o
 
 ## What This Does Not Decide
 
-Typography for the game itself, status-effect iconography, and motion beyond the Primed seat are all open. The Layout section above decides how much of the frame the board gets and what may float over it, but not what the board itself draws.
+Typography for the game itself, status-effect iconography, and motion beyond the Full seat are all open. The Layout section above decides how much of the frame the board gets and what may float over it, but not what the board itself draws.
 
 So is the board's own rendering, and it is not a blank slate. Telegraphs and hazards already have canon — pattern projectors in runeglass, hazards in ember coral — but the board also carries an inherited tint language documented in [art-prompts/board-and-tiles.md](art-prompts/board-and-tiles.md): the hover tile is green and the target tile is orange, applied as runtime `modulate` rather than baked into the art. Both sit outside this palette, and the orange target is close enough to ember to be a real collision — ember is supposed to mean *this hurts you*, and a target marker means the opposite. Reconciling that needs a pass against the Phaser scene, which draws on a different surface under different constraints than the React chrome, and which cannot simply inherit these values.
 
@@ -392,7 +393,7 @@ Before approving a new interface element, ask:
 - Does its horizontal padding clear the offset, so the top-left and bottom-right corners do not pinch?
 - Does its accent run parallel to the cut, along that edge's full length?
 - Does it carry at most one texture and at most one gradient?
-- If it shows a Slot, can a player tell Primed from a full Slot that already fired?
+- If it shows a Slot, can a player tell a Full Slot from one that already fired on the same complete stack?
 - Does it float over the board rather than adding a band that displaces it?
 - If it is on the board: is it an object taking a material, or a tint taking a temperature?
 - If it moves continuously, does it apply uniformly and carry no state?

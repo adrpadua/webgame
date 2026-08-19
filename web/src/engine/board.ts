@@ -192,13 +192,28 @@ export function facingToward(origin: Axial, target: Axial, currentFacing: number
 }
 
 // Guarded Front: the Boss-facing adjacent hex directly in front of the Boss.
-export function isGuardedFront(board: BoardState, bossId: string, heroId: string): boolean {
+// Null when there is no Boss to stand in front of.
+//
+// The facing is a parameter rather than read off the Boss because the board
+// draws a Boss coming round over several frames, and a mark on the ground has
+// to follow the facing on screen rather than the one the state has already
+// moved to — otherwise the Guarded Front jumps to its new hex before the Boss
+// has turned toward it. Callers with no such quarrel omit it and get the
+// Boss's own facing, which is what every rules path asks for.
+export function guardedFrontHex(board: BoardState, bossId: string, facing?: number): Axial | null {
   const boss = board.entities[bossId]
+  if (!boss) {
+    return null
+  }
+  return axialAdd(boss.coords, axialDeltaFor(facing ?? boss.facing))
+}
+
+export function isGuardedFront(board: BoardState, bossId: string, heroId: string): boolean {
   const hero = board.entities[heroId]
-  if (!boss || !hero) {
+  const guardedHex = guardedFrontHex(board, bossId)
+  if (!hero || guardedHex === null) {
     return false
   }
-  const guardedHex = axialAdd(boss.coords, axialDeltaFor(boss.facing))
   return hero.coords.q === guardedHex.q && hero.coords.r === guardedHex.r
 }
 

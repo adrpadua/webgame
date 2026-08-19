@@ -76,6 +76,19 @@ describe('board effects', () => {
     expect(waste).toMatchObject({ kind: 'cast', entityId: heroId, tone: 'hazard' })
   })
 
+  it('plays no lunge for a claw that reached nothing', () => {
+    // Board Feedback is derived from Resolution Facts so the board can never
+    // show a blow the Encounter did not resolve. Since D-062 a claw can come up
+    // short, and a lunge is what a landed hit looks like — playing one anyway
+    // would tell the player they were struck on a Round they stepped clear.
+    const state = openedRound()
+    const away = { q: -2, r: 2 }
+    state.board.entities[state.primaryHeroId].coords = { ...away }
+    const { effects } = advance(state)
+    expect(effects.some((effect) => effect.kind === 'strike')).toBe(false)
+    expect(effects.some((effect) => effect.kind === 'hit' && effect.entityId === state.primaryHeroId)).toBe(false)
+  })
+
   it('plays a boss track out one beat at a time: announced, staggered, and in program order', () => {
     const state = openedRound()
     const { effects } = advance(state)
@@ -418,6 +431,42 @@ describe('board effects', () => {
       }
     }
     throw new Error('no Brood Call spawned within 25 phase steps')
+  })
+
+  it('blows the ground up around a Whelp whose fuse ran out, and takes the piece with it', () => {
+    // D-063. The detonation resolves in the Incoming Row alongside the Boss
+    // Beats, so it has to claim its own moment: sharing one with the Beat that
+    // follows would show a blast that Beat did not cause.
+    let state = openedRound()
+    state.heroes[state.primaryHeroId].maxHealth = 500
+    state.heroes[state.primaryHeroId].health = 500
+    for (let step = 0; step < 30; step += 1) {
+      const before = state
+      const result = advancePhase(catalog, state)
+      const effects = deriveBoardEffects(catalog, before, result.state, result.facts)
+      state = result.state
+      // The Boss's own cone is a blast too, so the Whelp's is found through the
+      // fact that produced it rather than by taking the first one on the board.
+      const detonated = result.facts.find((fact) => fact.kind === 'detonate_minion' && fact.succeeded)
+      if (!detonated) {
+        continue
+      }
+      const blast = effects.find((effect) => effect.kind === 'blast' && effect.entityId === detonated.sourceId)
+      expect(blast?.tone).toBe('hazard')
+      expect((blast?.hexes ?? []).length).toBeGreaterThan(1)
+      // The piece leaves with its own blast, from the hex the blast centred on.
+      const leaving = effects.find((effect) => effect.kind === 'defeat' && effect.entityId === detonated.sourceId)
+      expect(leaving?.at).toEqual(blast?.at)
+      expect(state.board.entities[detonated.sourceId]).toBeUndefined()
+      // Its own moment, ahead of every Boss Beat in the same batch.
+      const script = derivePlayoutScript(before, state, result.facts, effects)
+      expect(script?.moments[0].beatId).toBeNull()
+      expect(script?.moments[0].beatTitle).toBe('Whelp detonates')
+      expect(script?.moments[0].effects.some((effect) => effect.kind === 'blast')).toBe(true)
+      expect((script?.moments.length ?? 0)).toBeGreaterThan(1)
+      return
+    }
+    throw new Error('no Whelp detonated within 30 phase steps')
   })
 
   it('shows Armor a guard actually granted rather than the number printed on the card', () => {

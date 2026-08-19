@@ -25,7 +25,7 @@
   "player_deck": [
     {
       "card": "steady_strike",
-      "copies": 6
+      "copies": 4
     },
     {
       "card": "iron_guard",
@@ -41,6 +41,10 @@
     },
     {
       "card": "drive_back",
+      "copies": 2
+    },
+    {
+      "card": "quench",
       "copies": 2
     }
   ],
@@ -111,7 +115,7 @@
     {
       "value": 3,
       "title": "Fed on Ash",
-      "rules_text": "Whelp bites deal 1 more damage.",
+      "rules_text": "Whelp bites and detonations deal 1 more damage.",
       "minion_damage_bonus": 1
     },
     {

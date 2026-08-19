@@ -37,7 +37,7 @@ import { hexDistance } from '../hex'
 // would not fail — it would simply stop matching, and the validation below
 // would go quiet on the rule it exists to enforce. The annotation turns that
 // into a compile error at the moment of the rename.
-const RANGED_BEAT_KINDS = new Set<BossBeat['kind']>(['forward_cone', 'demand_proximity'])
+const RANGED_BEAT_KINDS = new Set<BossBeat['kind']>(['forward_cone', 'demand_proximity', 'targeted_hit'])
 
 export interface ContentCatalog {
   cards: Record<string, Card>
@@ -401,6 +401,18 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       throw new Error(`Counter ${counter.id} has no readers and no card reads it, so nothing can ever make it matter`)
     }
   }
+  for (const minion of Object.values(catalog.minions)) {
+    // A fuse is two authored halves and neither is usable alone (D-063):
+    // damage with no radius is a blast that reaches nothing, and a radius with
+    // no damage is a Minion that removes itself for free. Stated both ways so
+    // a half-authored fuse fails at load rather than resolving to nothing.
+    if (minion.explode_damage > 0 && minion.explode_radius < 1) {
+      throw new Error(`Minion ${minion.id} declares explode_damage ${minion.explode_damage} but no explode_radius`)
+    }
+    if (minion.explode_radius > 0 && minion.explode_damage < 1) {
+      throw new Error(`Minion ${minion.id} declares explode_radius ${minion.explode_radius} but no explode_damage`)
+    }
+  }
   for (const modifier of Object.values(catalog.chargeModifiers)) {
     if (modifier.keyword_id !== '') {
       requireKeyword(catalog, modifier.keyword_id, KEYWORD_REFERENCES.chargeModifierMatch, `Charge modifier ${modifier.id}`, 'keyword_id')
@@ -450,9 +462,9 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       if (RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles < 1) {
         throw new Error(`Boss Beat ${beat.id} is a ${beat.kind} but authors no range_tiles`)
       }
-      // The other half of the same rule. `targeted_hit` is the hit footwork
-      // cannot answer (D-017); giving it a reach would quietly turn Raking Claw
-      // into something a camping Hero can stand outside of.
+      // The other half of the same rule: a Beat kind with no distance question
+      // to ask must not answer one, because a reach nothing reads is a number
+      // an author can set and watch do nothing.
       if (!RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles > 0) {
         throw new Error(`Boss Beat ${beat.id} is a ${beat.kind} and must not author range_tiles`)
       }
@@ -527,6 +539,31 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
         if (hexDistance(coords, encounter.boss_start) <= 1) {
           throw new Error(
             `${encounterAt(encounter.id)} threshold ${threshold.value} ("${threshold.title}") Scorches (${coords.q}, ${coords.r}), which is adjacent to the Boss at (${encounter.boss_start.q}, ${encounter.boss_start.r}) — the Guarded Front must stay standable`,
+          )
+        }
+      }
+    }
+    // The Round-end step prices one demand per kind, taking the dearest priced
+    // Beat in the pool and asking *its* question (`escalation.ts`). That is
+    // fine while every priced Beat of a kind asks the same question, and a
+    // silent drop the moment two disagree: two priced `place_counter` Beats
+    // naming different Counters would leave the cheaper Counter authored with a
+    // price and never billed, and two `demand_proximity` Beats at different
+    // reaches would bill the party at a distance one of them never asked
+    // about. Neither shows up as a failure — it shows up as a demand that
+    // quietly does nothing, which is exactly the shape this pass was written to
+    // stop shipping. Refuse the content instead.
+    const pooled = [...encounter.boss_programs, ...encounter.phase_two_programs]
+      .flatMap((programId) => catalog.programs[programId] ?? [])
+      .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
+      .filter((beat) => beat.escalation_if_unanswered > 0)
+    for (const kind of new Set(pooled.map((beat) => beat.kind))) {
+      const sameKind = pooled.filter((beat) => beat.kind === kind)
+      for (const field of ['counter', 'range_tiles'] as const) {
+        const asked = new Set(sameKind.map((beat) => beat[field]))
+        if (asked.size > 1) {
+          throw new Error(
+            `${encounterAt(encounter.id)} prices ${sameKind.length} ${kind} Beats (${sameKind.map((beat) => beat.id).join(', ')}) that disagree on ${field} (${[...asked].join(', ')}); the Round-end step prices one ${kind} demand, so all of them must ask the same question`,
           )
         }
       }

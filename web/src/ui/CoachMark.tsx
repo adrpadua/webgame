@@ -56,7 +56,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | nul
       'border-gold-700 bg-gold-950/80 text-gold-100',
       'Slots set — press Next',
       'Loadout done',
-      'Embermaw acts first. Its coming beats are named on the amber strip up top.',
+      'Embermaw acts first. Each of its beats is dealt as a card above the Action Bar — read it, then resolve it.',
     )
   }
   if (state.phase === 'instant' || state.phase === 'incoming') {
@@ -66,7 +66,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | nul
       'wb-face-steel wb-acc-ember text-coral-100',
       "Embermaw's beat",
       'The Boss acts',
-      'The amber beats resolve one at a time. Hold any beat chip to read what it does; Next moves on once they land.',
+      'The beats resolve one at a time. Each card names what it does and what answers it; Next moves on once they land.',
     )
   }
   if (fireable) {

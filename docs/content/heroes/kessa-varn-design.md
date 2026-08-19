@@ -111,7 +111,7 @@ These parallel Elian's Settled Rules but are **proposed**, pending the engine se
 | Facing turn | `Turn the Boss one facing step` rotates the Boss's facing one hex edge clockwise or counter-clockwise, chosen at activation. It never moves the Boss's hex. Already-resolved Beats are unaffected; a telegraphed directional Beat resolves using the Boss's facing at resolution time, which is exactly what makes the turn matter. |
 | Braced Beats | A Boss Beat or state may be authored `Braced`: facing-turn effects against it are rejected with visible feedback. `Turn` becomes a counter tag only on content that can actually be turned. |
 | Defense | Armor works exactly as shared rules define. Kessa has no Riposte-class status; her mitigation ceiling is deliberately below Elian's. |
-| Action Bar | Standard shared Top Card, Charge Stack, Primed, and cleanup rules. `Drive` is a Keyword, not a meter. |
+| Action Bar | Standard shared Top Card, Charge Stack, Full, and cleanup rules. `Drive` is a Keyword, not a meter. |
 | Movement | The shared discard-for-Stamina gesture is unchanged and additionally grants Kessa +1 Momentum on completion. Card-granted movement (`Breach Step`) follows the same adjacency and occupancy legality. |
 
 ## Proposed Starter Kit

@@ -53,7 +53,7 @@ The tier used to set a Beat's earliest legal *horizon*, with `Severe` required t
 
 The `Severe` tier has **no justification clause**. The old rule allowed a top-tier hit to ship from the `Instant` row with an explicit design justification; with the opener rule doing the work instead, there is nothing left for an excuse to buy. **The floor in `Severe` is load-bearing, and it was added after measurement.** "Can down a Hero" with no floor is not a per-Beat property at all: it depends on accumulated attrition, so the same Beat qualifies or not depending on when it lands. A 30-seed survival-policy run through Phase II makes that concrete — Heroes enter Phase II at `9.7` health on average (min `2`, max `17`) against a `34` maximum, where Phase II's Raking Claw (`6`) and Cinder Breath (`7`) are each routinely lethal, and where Phase I's Cinder Breath (`5`) is equally lethal to a Hero at `4`. Reading the test that way makes nearly every Beat `Severe` by the late Rounds and the tier stops discriminating. Anchoring it to full health keeps it stable per Beat, which is what an authored tier needs.
 
-Consequence for Embermaw: **`Brood Call` is `Severe`, on the Escalation clause rather than the damage one.** No Embermaw Beat downs a Hero from full health — the largest single hit is Phase II's Raking Claw at `11` against an unheld Guarded Front (`6` plus a `+5` unguarded bonus, up from Phase I's `4` plus `+3`), nearly a third of a Hero's health, real pressure but not a spike that needs a Round of banked preparation. Phase II is more dangerous than Phase I because attrition has already run, not because its Beats changed kind, and that is a balance observation rather than a tier one. What earned the tier is that Brood Call can now cross an Escalation Threshold (D-036): a living Whelp at a Round end raises Escalation by `1`, which is one of the three run-ending outcomes, so the Beat is `Severe` by definition and can never open a phase.
+Consequence for Embermaw: **`Brood Call` is `Severe`, on the Escalation clause rather than the damage one.** No Embermaw Beat downs a Hero from full health — the largest single hit is Phase II's Raking Claw at `11` against an unheld Guarded Front (`6` plus a `+5` unguarded bonus, up from Phase I's `4` plus `+3`), nearly a third of a Hero's health, real pressure but not a spike that needs a Round of banked preparation. Phase II is more dangerous than Phase I because attrition has already run, not because its Beats changed kind, and that is a balance observation rather than a tier one. What earned the tier is that Brood Call can now cross an Escalation Threshold (D-036): a Whelp the party failed to answer raises Escalation by `1`, which is one of the three run-ending outcomes, so the Beat is `Severe` by definition and can never open a phase. Since D-063 that charge is billed where the Whelp detonates rather than at a Round end it never reaches; the tier is unchanged, because what makes it `Severe` is that the Beat can cross a Threshold at all.
 
 The tier is authored on each Beat rather than computed — "can down a Hero" depends on Hero health and would be fragile to derive — but its implications are enforced by tests over live content: a Beat that can add Escalation must be `Severe`, and a Beat that spawns a Minion or leaves a Hazard must be at least `Structural`.
 
@@ -68,8 +68,8 @@ When Party-scale encounters are authored, each encounter must name which Beats a
 - **Pattern:** the three hexes in Embermaw's forward arc, range 1.
 - **Origin:** Embermaw's current facing.
 - **Answer:** tank occupies the center-front hex (the Guarded Front) and mitigates; other party members leave the arc.
-- **Failure:** the frontmost target takes a Tank Hit; every additional target in the arc takes a Raid Hit. If no Hero holds the Guarded Front, the targeted Tank Hit rakes deeper for `+3` (D-017) — the claw cannot be outrun, only braced.
-- **Teaching value:** facing defines a front, position changes who is responsible for the hit, and abandoning the front has a price.
+- **Failure:** the frontmost target takes a Tank Hit; every additional target in the arc takes a Raid Hit. A Hero standing outside the claw's authored reach is not hit at all (D-062) — what standing there costs is charged by `Within Reach` in Escalation, never by the claw in Health.
+- **Teaching value:** facing defines a front, position changes who is responsible for the hit, and stepping out of reach answers the blow while starting a different clock.
 
 This is the baseline tank check. It is deliberately survivable in the one-player demo, where Elian Voss is always the frontmost target.
 
@@ -99,7 +99,7 @@ This is a future human-readable example only, not current Embermaw resource cont
 - **Pattern:** one spawn hex adjacent to each party member, selected from legal empty neighboring hexes; in solo, two edge spawns.
 - **Origin:** each party member or the arena edge.
 - **Answer:** clear Whelps before they occupy safe movement routes; use cleaves and targeted attacks efficiently.
-- **Failure:** each living Whelp acts at the next `End` step: it advances one hex toward its nearest player, and bites for one Raid Hit once adjacent. The D-006 implementation gates the bite on adjacency — evaluation showed an unconditional same-round bite made the solo Round-4 checkpoint unreachable in principle, while the creep-then-bite form makes the advance itself the deadline.
+- **Failure:** each Whelp acts once at the `End` step of the Round it arrived in — it advances one hex toward its nearest player, or bites for one Raid Hit if it arrived adjacent — and then, on the next Round's `Incoming Row`, detonates for `3` against every Hero within one hex and is consumed (D-063). The bite stays adjacency-gated from D-006, where evaluation showed an unconditional same-round bite made the solo Round-4 checkpoint unreachable in principle. The fuse makes the deadline hard rather than open-ended: the creep is now what carries the blast into range, and the party has two windows to kill the Whelp or to be standing somewhere else. Only killing it answers the demand — a step dodges the damage, not the Escalation.
 - **Teaching value:** adds are board pressure and route blockers, not merely extra health bars.
 
 Whelps must visibly show their next movement/attack intent. Their number scales with party size; their behavior does not change with difficulty.
@@ -155,11 +155,11 @@ Phase II mirrors the split at harder values and in the order `Ashfall, Molting`,
 | --- | --- | --- | --- |
 | `1` | Ashen Verge | The western edge burns away permanently: `(-2,0)`, `(-2,1)`, `(-2,2)`. | End of Round 4 |
 | `2` | Wider Brood | Brood Call summons one additional Whelp, and the telegraph shows it. | End of Round 5 |
-| `3` | Fed on Ash | Whelp bites deal `+1`. | End of Round 6 |
+| `3` | Fed on Ash | Whelp bites and detonations deal `+1`. | End of Round 6 |
 | `4` | Closing Jaws | The burn spreads around both western corners: `(-1,-1)`, `(-1,2)`. | End of Round 7 |
 | `5` | `Worldfire` | The party is defeated. | End of Round 8 |
 
-The `Lands` column is the **automatic-tick** schedule: where each threshold falls for a party that answers every demand. Acceleration only shortens it. Since D-036 priced Brood Call at `1`, a party that leaves Whelps standing crosses each threshold about a Round early and meets `Worldfire` around Round `6` — and in the solo sweep the only policy that still sees Round `8` is the one that spends its Quick Slot clearing Whelps. The Encounter Clock is the length a party earns, not the length it is given.
+The `Lands` column is the **automatic-tick** schedule: where each threshold falls for a party that answers every demand. Acceleration only shortens it. Since D-036 priced Brood Call at `1`, a party that lets its Whelps go off crosses each threshold about a Round early and meets `Worldfire` around Round `6` — and in the solo sweep the only policy that still sees Round `8` is the one that spends its Quick Slot clearing Whelps. The Encounter Clock is the length a party earns, not the length it is given.
 
 **Ash Trail is the Tank's own contribution to that closing (D-039).** The claw cannot be evaded, so the only question is what it costs the floor: a hit that draws blood burns the hex the Tank was standing on, permanently, while a hit absorbed on the Guarded Front for zero Health loss spills its ash one hex further from Embermaw instead. It never spills less — the arena loses the same ground either way, and the Tank only chooses whether that ground is the front they have to keep holding. Backed against the rim there is nowhere to spill and the ash lands underfoot regardless, which is the rule refusing to reward perfect play with immunity.
 
@@ -169,7 +169,7 @@ Honest dose, recorded rather than implied: **Ash Trail currently accounts for ab
 
 Two of the Thresholds were `+1` damage each until D-031 replaced them: escalation is felt as the arena closing toward Embermaw, not as a larger number. The ground that burns is always the ground furthest from the Boss, and never a hex adjacent to it — burning the Guarded Front would leave the Tank unable to move into the place their kit exists to hold.
 
-The "Lands" column is the automatic schedule — ticks begin at `Encounter Clock - 4` and run one per Round end. Acceleration can pull every row earlier; Embermaw's Brood Call prices its unanswered demand at `0` until the deck holds a Whelp answer (D-003), so today the schedule is the whole story.
+The "Lands" column is the automatic schedule — ticks begin at `Encounter Clock - 4` and run one per Round end. Acceleration can pull every row earlier: Embermaw's Brood Call prices its unanswered demand at `1`, charged for any Round a Whelp detonated in (D-063), and Within Reach prices range camping at another `1`.
 
 ## Phase Break: Molting Roar
 

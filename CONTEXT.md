@@ -27,7 +27,7 @@ One full cycle of boss resolution and player response. A round adds exactly one 
 _Avoid_: Turn, tick
 
 **Escalation**:
-A counted Boss value on one fixed scale from `0` to `5`, identical on every Boss so the party reads it without arithmetic. It gains `1` automatically at the end of each Round once automatic escalation begins, which is derived so that automatic ticks alone reach the top threshold exactly at the Encounter Clock. It gains more, from Round `1` onward, from authored Beat penalties when a demand goes unanswered — so ignoring a demand pulls the collapse forward. Two demands are supported: a Minion that survived a full Round, and no Hero standing within reach of the Boss at the Round end (D-041). The second is how range camping is closed, and it has to be a demand rather than a chase: on a small board being close is *safer* than being far, so a Boss that pursues a camper only rewards them. It is the encounter's only clock: the Boss has no separate round-limit timer. Boss identity lives in the effects at each threshold, never in the length of the scale; a Boss may name it something else in its own rules text, but Escalation is the only mechanical name for it (ADR 0027).
+A counted Boss value on one fixed scale from `0` to `5`, identical on every Boss so the party reads it without arithmetic. It gains `1` automatically at the end of each Round once automatic escalation begins, which is derived so that automatic ticks alone reach the top threshold exactly at the Encounter Clock. It gains more, from Round `1` onward, from authored Beat penalties when a demand goes unanswered — so ignoring a demand pulls the collapse forward. Two demands are supported: a Minion the party failed to answer, and no Hero standing within reach of the Boss at the Round end (D-041). The first is asked at the Round end for a Minion that survived a full Round, and at the fuse for one that detonates (D-063), because a Minion that removes itself never reaches a Round end; either way it is charged at most once in a Round. The second is how range camping is closed, and it has to be a demand rather than a chase: on a small board being close is *safer* than being far, so a Boss that pursues a camper only rewards them. It is the encounter's only clock: the Boss has no separate round-limit timer. Boss identity lives in the effects at each threshold, never in the length of the scale; a Boss may name it something else in its own rules text, but Escalation is the only mechanical name for it (ADR 0027).
 _Avoid_: Enrage timer, dread meter, per-boss scale
 
 **Escalation Threshold**:
@@ -35,7 +35,7 @@ The authored effect a Boss applies on reaching one Escalation value. Values `1` 
 _Avoid_: Soft enrage stage, phase trigger
 
 **Encounter Clock**:
-The number of Rounds that automatic Escalation ticks alone need to reach the top Escalation Threshold, usually eight before modifiers. Player count, difficulty, or boss rules may adjust it, and authored acceleration can only shorten it in play. Because acceleration is live, the nominal length is the length a party earns by answering demands, not the length it gets by default: on Embermaw, a party that leaves Whelps standing reaches the wipe around Round `6`, and only a line that clears them sees Round `8`.
+The number of Rounds that automatic Escalation ticks alone need to reach the top Escalation Threshold, usually eight before modifiers. Player count, difficulty, or boss rules may adjust it, and authored acceleration can only shorten it in play. Because acceleration is live, the nominal length is the length a party earns by answering demands, not the length it gets by default: on Embermaw, a party that lets its Whelps go off reaches the wipe around Round `6`, and only a line that clears them sees Round `8`.
 _Avoid_: Turn cap, hard timer, enrage timer
 
 **End-of-Clock Behavior**:
@@ -43,7 +43,7 @@ The effect a Boss applies at its top Escalation Threshold. Different bosses may 
 _Avoid_: Global enrage rule, overtime, parallel timer
 
 **Boss Timeline**:
-The visible sequence of boss actions arranged into two horizons: the `Instant` row and the `Incoming` row, both belonging to the current Round. Row names state when, never how much is known. A third horizon, the `Forecast` row, existed until ADR 0031 removed it: next Round's schedule is now learned by playing rather than shown. The boss timeline is mostly scripted rather than random.
+The sequence of boss actions arranged into two horizons: the `Instant` row and the `Incoming` row, both belonging to the current Round. Row names state when, never how much is known. A third horizon, the `Forecast` row, existed until ADR 0031 removed it: next Round's schedule is now learned by playing rather than shown. The boss timeline is mostly scripted rather than random. It is a rules structure, not a HUD band: the strip that listed both rows by name was removed (D-060), and a Beat is read as a `Beat Card` when it resolves, while the `Incoming` row's threat stands on the board ahead of the `Quick Window` as its telegraph.
 _Avoid_: Deck, queue, stack
 
 **Boss Program**:
@@ -141,11 +141,15 @@ When a resolved damage action reduces a Minion's Health to `0`, it immediately r
 _Avoid_: Delayed despawn, end-of-turn cleanup, defeated-but-blocking
 
 **Minion Intent**:
-The visible end-step action a living Minion will take: advance one hex toward its nearest Hero, or bite for its authored attack once adjacent. Intent is derived deterministically from the live board, resolves after the Slow Window before the Round wraps, and Minion damage is a Raid Hit — never a Tank Hit and never a Riposte Ready trigger.
+The visible end-step action a living Minion will take: advance one hex toward its nearest Hero, or bite for its authored attack once adjacent. Intent is derived deterministically from the live board, resolves after the Slow Window before the Round wraps, and Minion damage is a Raid Hit — never a Tank Hit and never a Riposte Ready trigger. A Minion with a `Minion Detonation` gets exactly one end step, so its creep is what brings its blast into range rather than a deadline of its own.
 _Avoid_: Hidden AI, random wander, aggro table
 
+**Minion Detonation**:
+A Minion's authored end. A Minion carrying a blast — `explode_damage` and `explode_radius`, both authored or neither — detonates on the `Incoming Row` of the Round after the one it arrived in, before that Row's Boss Beats resolve, and is consumed. Its blast is a Raid Hit against every Hero within the radius and against nothing else: an Enemy blast never touches the Boss or another Minion, which is `Burst` pointed the other way and closes the same hole D-042 closed for Hazards. A detonation is not a `Minion Defeat` — no damage action removed the piece, so nothing records `target_removed` and no Hero is credited a kill. The board paints the footprint for the whole Round the fuse burns through, as a wash with one outline around the outside of it — the same warm step the cone takes, separated by shape rather than by colour. It has two answers rather than one: kill the Minion inside its single Round, or stand outside the blast. Only the first answers the demand — a Minion that reaches its fuse charges the Escalation its spawning Beat authored, once for the Round it went off in, because footwork dodges the damage and not the fact that the add is still there. Whether a Minion has a fuse at all is content: one authored without a blast creeps and bites indefinitely, and that Minion is the one a Round-end demand still prices for standing.
+_Avoid_: Suicide bomber, death rattle, on-death trigger, Minion Defeat
+
 **Commitment**:
-An authored card effect bound to one named Boss Beat, visible to the Party, resolving when that Beat resolves (D-028). A Commitment may only bind to a Beat whose parameters are disclosed — one in the `Incoming Row` or `Instant Row`. With the Forecast Row gone (ADR 0031) every visible Beat qualifies, so the constraint now bites in a different place: there is no surface naming a *future* Beat, which is what the mechanism was designed to bind to. Commitments prepare for a named future problem; they may never redirect its target or change what it is, and that ban is effect-level — it binds any mechanism that could produce the same effect. Nothing implements a Commitment yet: Fortify was reclassified as one and the reclassification was retracted, because it prepares for whatever the next Round opens with rather than for a named Beat.
+An authored card effect bound to one named Boss Beat, visible to the Party, resolving when that Beat resolves (D-028). A Commitment may only bind to a Beat whose parameters are disclosed — one in the `Incoming Row` or `Instant Row`. With the Forecast Row gone (ADR 0031) every disclosed Beat qualifies, so the constraint now bites in a different place: there is no surface naming a *future* Beat, which is what the mechanism was designed to bind to. Removing the program strip (D-060) sharpened that — no surface names an `Incoming Row` Beat before it resolves either — so whatever ships a Commitment owes it a naming surface of its own. Commitments prepare for a named future problem; they may never redirect its target or change what it is, and that ban is effect-level — it binds any mechanism that could produce the same effect. Nothing implements a Commitment yet: Fortify was reclassified as one and the reclassification was retracted, because it prepares for whatever the next Round opens with rather than for a named Beat.
 _Avoid_: Attachment, counterspell, reaction
 _Not yet in the engine_
 
@@ -159,7 +163,7 @@ The boss actions that resolve before the party's `Quick Window`. These are urgen
 _Avoid_: Fast row, active row
 
 **Incoming Row**:
-The boss actions that resolve before the party's `Slow Window`. These are telegraphed mechanics that the party can plan around.
+The boss actions that resolve before the party's `Slow Window`. These are telegraphed mechanics that the party can plan around — telegraphed on the board, since D-060, rather than named in a strip: the breath cone and the marked spawn hexes are painted before the row resolves.
 _Avoid_: Future row, pending row
 
 **Quick Window**:
@@ -207,12 +211,12 @@ A Slot may activate once during its Top Card's matching player window. A Slot ca
 _Avoid_: Cooldown, repeat cast
 
 **Full-Charge Cleanup**:
-At the end of a Top Card's matching player window, discard the Top Card and every card in its Charge Stack when the stack equals that card's Charge Value and the Slot activated during that window. A full but unactivated Slot persists for later use or an explicit special interaction. A Quick Top Card cleans up at the end of Quick; a Slow Top Card cleans up at the end of Slow.
+At the end of a Top Card's matching player window, discard the Top Card and every card in its Charge Stack when the stack equals that card's Charge Value and the Slot activated during that window. A full but unactivated Slot is `Full` and persists for later use or an explicit special interaction. A Quick Top Card cleans up at the end of Quick; a Slow Top Card cleans up at the end of Slow.
 _Avoid_: End-of-round cleanup, automatic expiration
 
-**Primed**:
-The state of a Slot whose Charge Stack equals its Top Card's Charge Value and has not activated in the current matching player window. A Primed Slot persists until it is activated, consumed by an explicit effect, or otherwise removed by a rule.
-_Avoid_: Fully charged, ready by default
+**Full**:
+The state of a Slot whose Charge Stack equals its Top Card's Charge Value and has not activated in the current matching player window. A Full Slot persists until it is activated, consumed by an explicit effect, or otherwise removed by a rule. A Slot carrying the same complete stack that *did* activate is not Full: it cannot fire again, cannot take another Charge, and Full-Charge Cleanup discards it at the end of the window.
+_Avoid_: Primed, ready by default
 
 **Slot Replacement**:
 Replacing a Top Card is a free beginning-of-Round action, before new charges are committed. Replacing a Slot discards its old Top Card and every card in its existing Charge Stack, then moves the chosen hand card into the Slot at `0 Charge`. Exception: re-loading a Slot that began the current Loadout Step empty is a Swap — the tentative Top Card and its Charge Stack return to hand rather than discarding, so a decision made moments ago can be reconsidered without cost.
@@ -248,7 +252,7 @@ _Avoid_: Active card, lead card
 
 **Loaded**:
 The neutral presentation state of an occupied Slot whose Top Card exists and whose Charge Stack is empty. A Loaded Slot is not actionable: it needs at least one Charge before it can activate. `Loaded` describes a UI-visible state derived from the existing Slot snapshot; it does not add a rules action, timing permission, or resource cost.
-_Avoid_: Ready, Primed, Activated, Locked
+_Avoid_: Ready, Full, Activated, Locked
 
 **Hand**:
 The player's currently available cards, presented as compact cards in the bottom interaction zone of the portrait combat HUD. Four is the normal end-of-Round refill target, not a hard maximum; the authored First Turn Encounter refills to five so the scripted Round can spend one card on every gesture it teaches.
@@ -259,7 +263,7 @@ A hand-sized card that exposes only what the card is for in the current window, 
 _Avoid_: Full card, tooltip card
 
 **Detail Popup**:
-The temporary reading surface for any named HUD object — a Compact Card, a Slot, a Boss Beat chip, a Hero stat, the Round track. It carries that object's numbers and complete authored text. Each input opens it its own way: touch presses and holds, a mouse hovers, the keyboard holds `Enter` or `Space`; it dismisses on release or when the pointer leaves. The HUD proper carries names, numbers, and colour; the sentences live here, one gesture away. Card Inspection is the Compact Card case of a Detail Popup.
+The temporary reading surface for any named HUD object — a Compact Card, a Slot, a phase mark, the Round track, the Escalation gauge, a Hero stat. It carries that object's numbers and complete authored text. Each input opens it its own way: touch presses and holds, a mouse hovers, the keyboard holds `Enter` or `Space`; it dismisses on release or when the pointer leaves. The HUD proper carries names, numbers, and colour; the sentences live here, one gesture away. Card Inspection is the Compact Card case of a Detail Popup.
 _Avoid_: Tooltip, card menu, help screen
 
 **Stat Panel**:
@@ -307,7 +311,7 @@ The next one damage event that would affect the ally selected by an Interception
 _Avoid_: Permanent redirect, damage split
 
 **Guarded Front**:
-The hex adjacent to the Boss on the side the Boss faces. A Shield Wall Hero holds the Guarded Front by standing in it, which is where the Guardian's positional protection and front-line duties apply; it is not a universal safe zone.
+The hex adjacent to the Boss on the side the Boss faces. A Shield Wall Hero holds the Guarded Front by standing in it, which is where the Guardian's positional protection and front-line duties apply; it is not a universal safe zone. The board marks it, and marks it only where the Player Hero's Role is Tank: what it is worth to stand there is a Tank Hit answered, so on anyone else's board the same mark would invite a Hero to stand where the Boss is looking in exchange for nothing. The mark is presentation, derived from the Boss's position and facing; it creates no legal action and is not a rules surface.
 _Avoid_: Tank lane, front row
 
 **Slot Tension**:
@@ -315,11 +319,11 @@ The primary player pressure created by deciding whether to keep charging a slot,
 _Avoid_: Hand tension, mana tension
 
 **Tank Hit**:
-Boss damage authored as a Targeted Boss Hit and intended to be answered by the Tank through mitigation, interception, or threat control. A Boss Beat's Tank Hit identity is explicit; it is not inferred from generic damage, Hazards, or Minions. Moving out of a board pattern does not evade a Tank Hit unless that Beat explicitly says it is avoidable.
+Boss damage authored as a Targeted Boss Hit and intended to be answered by the Tank through mitigation, interception, or threat control. A Boss Beat's Tank Hit identity is explicit; it is not inferred from generic damage, Hazards, or Minions. Moving out of a board pattern does not evade a Tank Hit: a Tank Hit is aimed at the Tank rather than at whoever is standing in a pattern. Moving out of its **reach** does, when the Beat authors one — Raking Claw reaches `1` hex (D-062), so the answer to it is Armor or a step, and never a change of pattern.
 _Avoid_: Single-target damage, front damage
 
 **Targeted Boss Hit**:
-Boss damage resolved against the Hero selected by the Beat's explicit Target Selector, rather than against Heroes standing in a board pattern. It creates planned attrition that remains after perfect movement; mitigation, interception, threat control, or an explicit Beat exception may answer it. A Targeted Boss Hit is not an unavoidable Raid Hit by default.
+Boss damage resolved against the Hero selected by the Beat's explicit Target Selector, rather than against Heroes standing in a board pattern. The selector answers *who*; the Beat's authored reach answers *whether*, so a Targeted Boss Hit is not automatically unanswerable by footwork and is never an unavoidable Raid Hit by default. Mitigation, interception, threat control, or standing outside its reach may answer it. What a Beat may not do is bill the same decision twice: Raking Claw stopped pricing distance in Health when `demand_proximity` began pricing it in Escalation (D-062).
 _Avoid_: Dodgeable cone, generic damage
 
 **Avoidable Board Pattern**:

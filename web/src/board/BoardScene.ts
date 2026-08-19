@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
-import { facingName, hexKey, parseHexKey, type Axial, type EncounterState } from '@/engine'
-import { axialToPixel, hexCorners, pixelToAxial, BOARD_CENTER_X, BOARD_CENTER_Y, BOARD_HEIGHT, BOARD_WIDTH, HEX_SIZE } from './layout'
+import { facingName, guardedFrontHex, hexKey, parseHexKey, type Axial, type EncounterState } from '@/engine'
+import { axialToPixel, boundaryEdges, hexCorners, pixelToAxial, BOARD_CENTER_X, BOARD_CENTER_Y, BOARD_HEIGHT, BOARD_WIDTH, HEX_SIZE } from './layout'
 import { BACKDROP_DEPTH, BACKDROPS, backdropFor } from './backdrop'
 import { freeFloaterLane, type BoardEffect, type EffectTone } from './effects'
 import { idleBobOffset } from './ambience'
@@ -8,7 +8,15 @@ import { BURN_MS, COOL_MS, charProgress, coolProgress, dyingEmbers, emberAlpha, 
 import { easeOutCubic, hexNoiseFor } from './math'
 import { SPAWN_MS, arrivalScale, breakRing, groundHeat, spawnShards } from './spawn'
 import { BOSS_DEFEAT_MS, buckleOffset, groundFlare, heatLoss, slumpScale, ventsOpening } from './defeat'
-import { boardPalette, composite, shade, HOT_SHADE, TELEGRAPH_ALPHA, toneColors } from './palette'
+import { boardPalette, composite, shade, BLAST_EDGE, HOT_SHADE, TELEGRAPH_ALPHA, toneColors } from './palette'
+import {
+  guardedFrontOutline,
+  GUARDED_FRONT_ARC_WIDTH,
+  GUARDED_FRONT_FAR_ALPHA,
+  GUARDED_FRONT_FILL_ALPHA,
+  GUARDED_FRONT_NEAR_ALPHA,
+  GUARDED_FRONT_RADIUS,
+} from './guardedFront'
 import { bossSheetKey, idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
 
 // The board is three layers: tiles and their tints, then the pieces, then the
@@ -35,6 +43,15 @@ export interface BoardSnapshot {
   targetPreviewHexKeys: string[]
   targetPreviewCenterKey: string | null
   legalMoveKeys: string[]
+  // Whether the Guarded Front is marked at all — an Encounter in play, held by
+  // a Tank. Which hex that is stays the scene's to ask, because the answer
+  // depends on the facing being drawn rather than the one the state holds:
+  // see drawnFacing.
+  guardedFront: boolean
+  // The footprint every Minion whose fuse is up will burn when the Incoming
+  // Row resolves (D-063). Rules-derived like the target keys above: the scene
+  // paints the blast but never decides how far one reaches.
+  blastHexKeys: string[]
   // Hexes the scripted first turn is pointing the player at.
   guidedMoveKeys: string[]
   // The hex a dragged move is waiting to be paid for, if any. The player is
@@ -90,12 +107,14 @@ const {
   heroFill: HERO_FILL,
   moveOverlay: MOVE_OVERLAY,
   coneOverlay: CONE_OVERLAY,
+  blastOverlay: BLAST_OVERLAY,
   spawnOverlay: SPAWN_OVERLAY,
   bossFill: BOSS_FILL,
   minionFill: MINION_FILL,
   scorchedFill: SCORCHED_FILL,
   guidedStroke: GUIDED_STROKE,
   targetStroke: TARGET_STROKE,
+  guardedFrontOverlay: GUARDED_FRONT_OVERLAY,
 } = boardPalette()
 
 // One light direction for the whole board, from the upper left. Every piece
@@ -714,6 +733,16 @@ export class BoardScene extends Phaser.Scene {
     const guidedMoves = new Set(snapshot.guidedMoveKeys)
     const targetableHexes = new Set(snapshot.targetableHexKeys)
     const targetPreviewHexes = new Set(snapshot.targetPreviewHexKeys)
+    const blastHexes = new Set(snapshot.blastHexKeys)
+    // The Guarded Front, taken from the facing the board is currently drawing
+    // rather than the one the state holds, so the post moves with the Boss
+    // coming round instead of ahead of it. The arc is aimed from the Boss's
+    // own hex, which is where the blow comes from even while its sprite is
+    // still sliding into that hex.
+    const boss = state.board.entities[state.bossId]
+    const guardedFront = snapshot.guardedFront && boss ? guardedFrontHex(state.board, state.bossId, this.drawnFacing(boss.id, boss.facing)) : null
+    const guardedFrontKey = guardedFront === null ? null : hexKey(guardedFront)
+    const bossCenter = boss ? axialToPixel(boss.coords) : null
     // The snapshot is the batch's final state, but a staggered playout means
     // some of it has not "happened" on screen yet: ground scorched by a
     // later moment stays clean and a Whelp a later moment spawns stays
@@ -810,6 +839,18 @@ export class BoardScene extends Phaser.Scene {
     for (const tile of tiles) {
       const { key, coords, x, y, corners } = tile
       this.fillHex(graphics, corners, tile.fill, 1, TILE_STROKE)
+      // Laid straight onto the tile face, under every other mark: the post has
+      // been there all fight, and anything else painted on this hex — a
+      // telegraph landing next window, a destination being chosen — is the
+      // more imminent read and has to sit on top of it.
+      if (key === guardedFrontKey && bossCenter !== null) {
+        const outline = guardedFrontOutline({ x, y }, bossCenter)
+        this.fillHex(graphics, hexCorners(x, y, GUARDED_FRONT_RADIUS), GUARDED_FRONT_OVERLAY, GUARDED_FRONT_FILL_ALPHA)
+        graphics.lineStyle(GUARDED_FRONT_ARC_WIDTH, GUARDED_FRONT_OVERLAY, GUARDED_FRONT_FAR_ALPHA)
+        this.strokeOpenPath(graphics, outline.far)
+        graphics.lineStyle(GUARDED_FRONT_ARC_WIDTH, GUARDED_FRONT_OVERLAY, GUARDED_FRONT_NEAR_ALPHA)
+        this.strokeOpenPath(graphics, outline.near)
+      }
       const telegraph = state.telegraphs[key]
       if (telegraph === 'cone' || telegraph === 'spawn') {
         const warm = telegraph === 'cone' ? CONE_OVERLAY : SPAWN_OVERLAY
@@ -821,6 +862,28 @@ export class BoardScene extends Phaser.Scene {
         // reads first anyway.
         graphics.lineStyle(2, warm, 0.9)
         this.strokeHex(graphics, hexCorners(x, y, HEX_SIZE - 6))
+      }
+      // A Minion's fuse, painted for the whole Round it burns through (D-063).
+      // Same material as the cone, because a blast landing in the Incoming Row
+      // is exactly as imminent as the breath landing in it; what separates the
+      // two is shape. The cone edges every tile it covers and reads as a fan
+      // of hexes. The blast is washed and then edged once, around the outside
+      // of the whole footprint, so it reads as one area with a Whelp sitting
+      // inside it — which is what it is, and which is also the shape of the
+      // answer, since stepping over that line is one of the two ways to
+      // survive it. The line is where the warning lives here; see palette.ts
+      // for why the wash under it is deliberately quiet.
+      //
+      // Two overlapping fuses produce one outline around their union rather
+      // than two rings, because the question the line answers is "am I in it",
+      // and a player standing where both reach is not in it twice.
+      if (blastHexes.has(key)) {
+        const corners = hexCorners(x, y, HEX_SIZE - 6)
+        this.fillHex(graphics, corners, BLAST_OVERLAY, TELEGRAPH_ALPHA.blast)
+        graphics.lineStyle(BLAST_EDGE.width, BLAST_OVERLAY, BLAST_EDGE.alpha)
+        for (const edge of boundaryEdges(blastHexes, coords)) {
+          this.strokeOpenPath(graphics, [corners[edge], corners[(edge + 1) % corners.length]])
+        }
       }
       if (legalMoves.has(key)) {
         this.fillHex(graphics, hexCorners(x, y, HEX_SIZE - 6), MOVE_OVERLAY, 0.35)
@@ -1053,6 +1116,18 @@ export class BoardScene extends Phaser.Scene {
     graphics.fillPath()
   }
 
+  // A line along part of an outline rather than a shape: no closing segment
+  // back to the first point, which on a three-edge arc would draw the chord
+  // across the hex.
+  private strokeOpenPath(graphics: Phaser.GameObjects.Graphics, points: { x: number; y: number }[]): void {
+    graphics.beginPath()
+    graphics.moveTo(points[0].x, points[0].y)
+    for (const point of points.slice(1)) {
+      graphics.lineTo(point.x, point.y)
+    }
+    graphics.strokePath()
+  }
+
   private strokePath(graphics: Phaser.GameObjects.Graphics, corners: { x: number; y: number }[]): void {
     graphics.beginPath()
     graphics.moveTo(corners[0].x, corners[0].y)
@@ -1088,6 +1163,24 @@ export class BoardScene extends Phaser.Scene {
 
   private facingAngle(facing: number): number {
     return (BoardScene.FACING_ANGLES[((facing % 6) + 6) % 6] * Math.PI) / 180
+  }
+
+  // The facing a piece is drawn with right now, as one of the six rather than
+  // as an angle: what a mark on the ground follows. A turn in flight keeps the
+  // facing it swings from for the whole swing and lands on the new one with
+  // it, because a hex either is the Guarded Front or is not — there is no
+  // halfway hex to move the mark to, and snapping it at the start would put
+  // the post in front of a Boss that has not turned yet. Reduced motion has no
+  // swing to wait for, so it takes the new facing at once, exactly as the
+  // wedge above does.
+  private drawnFacing(entityId: string, finalFacing: number): number {
+    for (const effect of this.active) {
+      if (effect.kind !== 'turn' || effect.entityId !== entityId || effect.fromFacing === undefined) {
+        continue
+      }
+      return this.reducedMotion && effect.elapsed >= 0 ? finalFacing : effect.fromFacing
+    }
+    return this.snapshot?.pendingFacings[entityId] ?? finalFacing
   }
 
   // The angle a piece's facing indicator draws at right now. The snapshot's

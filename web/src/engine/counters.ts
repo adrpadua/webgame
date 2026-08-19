@@ -280,12 +280,22 @@ export function roundUpkeep(state: EncounterState): { ref: CounterRef; counter: 
 // through one reader, so the keys are named in exactly one place.
 export function readCounterEvent(
   resolutionFact: Record<string, unknown> | undefined,
-): { counterId: string; event: string; reason: string } | null {
+): { counterId: string; event: string; reason: string; count: number } | null {
   const raw = resolutionFact?.counter_event as Record<string, unknown> | undefined
   if (raw === undefined || typeof raw.counter_id !== 'string') {
     return null
   }
-  return { counterId: raw.counter_id, event: String(raw.event ?? ''), reason: String(raw.reason ?? '') }
+  // `count` is the stack *after* the event, which is what a reader watching a
+  // stream of events needs to know how high a Counter actually got. The field
+  // was already written by `counterEvent`; it simply had no reader, so nothing
+  // outside the engine could tell a Counter that reached its cap from one that
+  // was placed once and sat there.
+  return {
+    counterId: raw.counter_id,
+    event: String(raw.event ?? ''),
+    reason: String(raw.reason ?? ''),
+    count: typeof raw.count === 'number' ? raw.count : 0,
+  }
 }
 
 export function counterEvent(counter: CounterInstance, event: string, reason: string): Record<string, unknown> {

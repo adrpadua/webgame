@@ -218,6 +218,16 @@ export const minionSchema = z.object({
   rules_text: z.string().default(''),
   max_health: z.number().int().min(1),
   attack_damage: z.number().int().min(0).default(0),
+  // A Minion's fuse (D-063). A Minion authoring a blast detonates on the
+  // Incoming Row of the Round after it arrived, and the pair is authored here
+  // rather than defaulted for the reason a Beat's reach is (D-043): how far a
+  // blast reaches is the whole difference between one a step answers and one
+  // it does not, and ADR 0020 puts that decision in `data/`.
+  //
+  // Both or neither, enforced in the catalog: damage with no radius is a blast
+  // that hits nothing, and a radius with no damage is a fuse that does nothing.
+  explode_damage: z.number().int().min(0).default(0),
+  explode_radius: z.number().int().min(0).max(3).default(0),
 })
 
 export const bossBeatSchema = z.object({
@@ -266,7 +276,8 @@ export const bossBeatSchema = z.object({
   unguarded_bonus: z.number().int().min(0).default(0),
   // Escalation acceleration (ADR 0027): what it costs to leave this Beat's
   // demand standing at a Round end. Carried by any Beat kind the Escalation
-  // step knows how to price — `spawn_minions` and `demand_proximity` today.
+  // step knows how to price — `spawn_minions`, `demand_proximity` and
+  // `place_counter` today.
   escalation_if_unanswered: z.number().int().min(0).default(0),
   // How far this Beat reaches, in hexes. Authored rather than defaulted,
   // because reach is the whole difference between a Beat that footwork answers
@@ -278,8 +289,11 @@ export const bossBeatSchema = z.object({
   // Three constants for two Beats, none of them content, and the only place the
   // number appeared to a reader was inside a `rules_text` string.
   //
-  // `targeted_hit` has no reach on purpose and must not gain one here: Raking
-  // Claw's whole job is being the hit footwork cannot answer.
+  // `targeted_hit` reads it too since D-062. It was deliberately rangeless
+  // under D-017, which wanted a hit footwork could not answer; D-041 gave that
+  // job to `demand_proximity`, which prices standing out of reach in Escalation
+  // instead — so the claw was left as the one Beat whose reach was infinite for
+  // a reason that had moved somewhere better.
   range_tiles: z.number().int().min(0).default(0),
   // How far an `advance_toward_player` Beat closes. Distance is authored because
   // it is the Boss's counter-pressure against standing out of reach, and how

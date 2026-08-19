@@ -1,11 +1,13 @@
 import { selectState, useWorkbench } from '@/store/workbench'
+import { EscalationGauge } from './EscalationGauge'
 import { encounterTerms, phaseDetail } from './holdDetails'
 import { useHold } from './HoldPopover'
 import { OwnerWedge, PHASE_TRACK, phaseMark, roundTrackDetail, type PhaseMark } from './phaseTrack'
 import { FOCUS_RING_CLASS } from './theme'
 
-// The Round track and the Encounter Clock beside it: what the Round is
-// doing, and nothing that does it.
+// The Round track, the Encounter Clock beside it, and the Escalation gauge
+// stacked underneath: what the Round is doing, how far into the fight it is,
+// and nothing that does it.
 //
 // The one control that moved the Round used to sit here too. It went to the
 // Action Bar's right rail (AdvanceControl), which is where the thumb already
@@ -25,6 +27,13 @@ import { FOCUS_RING_CLASS } from './theme'
 // the device has. Hovering a mark names its window and explains it; holding
 // anywhere on the track draws the whole Round in order with the live window
 // lit, which is the reading a finger cannot assemble a mark at a time.
+//
+// Under the track, on its own line, is the Escalation gauge. It used to ride
+// the Boss program strip's header — the strip is gone, and the clock had to
+// keep its permanent seat, so it came here. The seat is better than the one
+// it left: the two readouts stack into one band that says where the Round is
+// and where the fight is, in that order, and a bar given the whole width
+// reads as the clock it is rather than as a 64px ornament beside a title.
 
 // One window's mark. It carries its own detail so a mouse can learn the row
 // a mark at a time; the track underneath it holds for touch.
@@ -93,9 +102,9 @@ export function PhaseControl() {
   // Worse than retired, it was misleading: since D-036 priced Brood Call, a
   // line that ignores its adds dies around Round 6, so `2/8` promised six
   // more Rounds to a party that had three. The clock is the Escalation gauge
-  // on the Boss's own strip, which is the only readout that answers to
-  // acceleration; this is a coordinate — which Round the Forecast, the
-  // program pool, and every fact-log line are talking about.
+  // on the line below, which is the only readout that answers to
+  // acceleration; this is a coordinate — which Round the program pool and
+  // every fact-log line are talking about.
   //
   // The nominal budget keeps its seat in the popup, where a qualifier fits:
   // `ticks alone` is what makes the number honest, because it says out loud
@@ -108,30 +117,33 @@ export function PhaseControl() {
     stats: [{ label: 'Ticks alone reach the wipe', value: `Round ${state.roundLimit}` }],
   })
   return (
-    <div className="flex items-center gap-2 border-b border-steel-800 bg-steel-950/60 px-3 py-1.5" data-phase={state.phase}>
-      <button
-        type="button"
-        {...hold.holdProps}
-        data-testid="phase-track"
-        aria-label={`Round track: ${phaseMark(state.phase).title}. Hold for every window in order.`}
-        // min-w-0 lets the track shrink below its marks' natural width; without
-        // it flex-1 will not go under content size and the row overflows the
-        // surface, which then scrolls sideways under any focus or modal.
-        className={`flex min-h-11 min-w-0 flex-1 items-center gap-1 text-left ${FOCUS_RING_CLASS}`}
-      >
-        {PHASE_TRACK.map((mark) => (
-          <PhaseWindowMark key={mark.phase} mark={mark} active={state.phase === mark.phase} />
-        ))}
-      </button>
-      <button
-        type="button"
-        {...clockHold.holdProps}
-        data-testid="round-display"
-        aria-label={`Round ${state.round}`}
-        className={`min-h-11 min-w-11 shrink-0 text-[11px] font-semibold text-steel-400 ${FOCUS_RING_CLASS}`}
-      >
-        R{state.round}
-      </button>
+    <div className="border-b border-steel-800 bg-steel-950/60 px-3 py-1.5" data-testid="phase-band" data-phase={state.phase}>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          {...hold.holdProps}
+          data-testid="phase-track"
+          aria-label={`Round track: ${phaseMark(state.phase).title}. Hold for every window in order.`}
+          // min-w-0 lets the track shrink below its marks' natural width; without
+          // it flex-1 will not go under content size and the row overflows the
+          // surface, which then scrolls sideways under any focus or modal.
+          className={`flex min-h-11 min-w-0 flex-1 items-center gap-1 text-left ${FOCUS_RING_CLASS}`}
+        >
+          {PHASE_TRACK.map((mark) => (
+            <PhaseWindowMark key={mark.phase} mark={mark} active={state.phase === mark.phase} />
+          ))}
+        </button>
+        <button
+          type="button"
+          {...clockHold.holdProps}
+          data-testid="round-display"
+          aria-label={`Round ${state.round}`}
+          className={`min-h-11 min-w-11 shrink-0 text-[11px] font-semibold text-steel-400 ${FOCUS_RING_CLASS}`}
+        >
+          R{state.round}
+        </button>
+      </div>
+      <EscalationGauge state={state} enrageText={state.enrageText} />
     </div>
   )
 }

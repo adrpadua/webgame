@@ -9,13 +9,14 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify:local": "node scripts/check-browser.mjs && npm test && npm run lint && npm run build && node scripts/smoke.mjs && npm run mutate",
+    "verify:local": "node scripts/check-browser.mjs && npm run log:ids && npm test && npm run lint && npm run build && node scripts/smoke.mjs && npm run mutate",
     "hooks:install": "bash scripts/install-hooks.sh",
     "mutate": "node scripts/mutate.mjs",
     "lint": "eslint .",
     "headless": "vite-node scripts/runHeadless.ts --",
     "film": "node scripts/film.mjs",
-    "evaluate": "vite-node scripts/evaluate.ts --"
+    "evaluate": "vite-node scripts/evaluate.ts --",
+    "log:ids": "vite-node scripts/decisionIds.ts --"
   },
   "dependencies": {
     "phaser": "3.90.0",

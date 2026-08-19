@@ -1,10 +1,10 @@
 {
   "id": "embermaw_brood_pressure",
-  "title": "Round 4: Whelps on the board",
+  "title": "Round 3: Whelps on the board",
   "version": 1,
-  "description": "The solo-ceiling line paused entering Round 4: Whelps standing, slot engines running.",
+  "description": "The solo-ceiling line paused entering Round 3: Whelps standing, slot engines running.",
   "encounter": "embermaw_prototype",
-  "seed": 8,
+  "seed": 61,
   "steps": [
     {
       "action": {
@@ -28,7 +28,7 @@
           "q": 1,
           "r": 0
         },
-        "cardInstanceId": "fortify_17"
+        "cardInstanceId": "sweeping_blow_12"
       }
     },
     {
@@ -36,7 +36,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "sweeping_blow_15"
+        "cardInstanceId": "quench_20"
       }
     },
     {
@@ -44,7 +44,7 @@
         "kind": "charge_slot",
         "sourceId": "guardian",
         "slotIndex": 0,
-        "cardInstanceId": "fortify_18"
+        "cardInstanceId": "iron_guard_7"
       }
     },
     {
@@ -68,7 +68,7 @@
         "kind": "load_slot",
         "sourceId": "guardian",
         "slotIndex": 1,
-        "cardInstanceId": "steady_strike_5"
+        "cardInstanceId": "steady_strike_3"
       }
     },
     {
@@ -79,13 +79,10 @@
     },
     {
       "action": {
-        "kind": "move_hero",
+        "kind": "charge_slot",
         "sourceId": "guardian",
-        "destination": {
-          "q": 2,
-          "r": -1
-        },
-        "cardInstanceId": "sweeping_blow_16"
+        "slotIndex": 0,
+        "cardInstanceId": "fortify_14"
       }
     },
     {
@@ -95,43 +92,6 @@
         "slotIndex": 1,
         "cardInstanceId": "iron_guard_10"
       }
-    },
-    {
-      "action": {
-        "kind": "charge_slot",
-        "sourceId": "guardian",
-        "slotIndex": 1,
-        "cardInstanceId": "iron_guard_8"
-      }
-    },
-    {
-      "action": {
-        "kind": "fire_slot",
-        "sourceId": "guardian",
-        "slotIndex": 0
-      }
-    },
-    {
-      "action": {
-        "kind": "fire_slot",
-        "sourceId": "guardian",
-        "slotIndex": 1
-      }
-    },
-    {
-      "advance": true
-    },
-    {
-      "advance": true
-    },
-    {
-      "advance": true
-    },
-    {
-      "advance": true
-    },
-    {
-      "advance": true
     },
     {
       "action": {

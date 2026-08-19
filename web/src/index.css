@@ -224,6 +224,54 @@ body {
    keeps the full rake and the mark keeps the room. Only for plates whose
    content genuinely cannot reach the top or bottom edge. */
 @utility wb-plate-centered { --wb-inset: calc(var(--wb-off) / 2); }
+
+/* --- Per-side gutters on a raked plate ------------------------------------
+   The rule above derives one symmetric padding from --wb-inset, which is
+   right for the plates holding one short line: whatever the cut leaves on
+   the left it leaves on the right, near enough, and no row sits far enough
+   from the middle for the wedge to show.
+
+   The dock's two plates are not those. Both carry a text column pinned to
+   the leading edge, and a raked box read as a column is a wedge — the gutter
+   changes with every row. On the ~99px Beat Card that came out as 3px
+   between "Boss · Instant" and the ember edge at the top against 8px under
+   it at the rules text, and 11px of air right of "Resolve" against 6px where
+   the plate's bottom corner cuts in; on the Standing Demand, 6px of leading
+   gutter against 10px trailing on the one row it has. The text edges read as
+   ragged against the plate because they are: the column is straight and the
+   plate is not.
+
+   So measure each side at the corner that side is worst at, and give both
+   the same 10px the roomier plates spend. The leading edge is furthest in at
+   the top and carries the 3px accent band on top of the offset; the trailing
+   edge is furthest in at the bottom and carries nothing. Same gutter at the
+   top-left as at the bottom-right, so the wedge is spent on the plate's
+   silhouette rather than on the text.
+
+   The block padding is measured the same way, off --wb-gutter-block: the
+   bottom of the face is flat, but the top is notched down by --wb-notch
+   right where the leading edge starts, which is where both plates put their
+   first line. Add the notch back to the top so the top line gets the air the
+   bottom one already has. A plate that wants a tighter block sets
+   --wb-gutter-block; the default is the 8px a card wants.
+
+   This is the third way a plate can answer the cut, after lowering
+   --wb-gutter and declaring where its content sits (wb-plate-centered): it
+   is the one for a plate whose content reaches both extremes at once. It
+   re-declares padding-inline, which nothing else may do — set it instead of
+   a `px-`/`py-` in the markup, not alongside one.
+
+   A plain rule rather than an `@utility`, for the same reason `.wb-plate`'s
+   own layers are: it overrides the size class it sits next to, and Tailwind
+   sorts utilities against each other by name, so as an `@utility` this would
+   win against `wb-plate-md` and lose against `wb-plate-sm` — the sort has no
+   idea one is a size and the other a correction to it. Unlayered, it beats
+   both, which is what "instead of, not alongside" needs to mean. */
+.wb-gutter-raked {
+  padding-inline: calc(var(--wb-off) + 13px) calc(var(--wb-off) + 10px);
+  padding-block: calc(var(--wb-notch) + var(--wb-gutter-block, 8px))
+    var(--wb-gutter-block, 8px);
+}
 /* Faces and accents. The accent is the status channel: gold on the live
    thing, ember on the irreversible one, glass on a player affordance. */
 @utility wb-face-steel   { --wb-face: var(--color-steel-900); --wb-edge: var(--color-steel-700); }
@@ -304,9 +352,9 @@ body {
   animation: wb-card-offer 380ms ease-out both;
 }
 
-/* --- The Primed seat -----------------------------------------------------
+/* --- The Full seat -----------------------------------------------------
    Fires once when a Slot's last tumbler drops and the lock head's ward ring
-   closes, then stops. No idle pulse: a Primed Slot can persist for rounds,
+   closes, then stops. No idle pulse: a Full Slot can persist for rounds,
    and anything that breathes that long becomes furniture the eye edits out
    — the failure that got Presence deleted. Motion that carries state fires
    once; only ambient motion may loop. */

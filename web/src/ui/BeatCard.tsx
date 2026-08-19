@@ -19,10 +19,13 @@ import { FOCUS_RING_CLASS } from "./theme";
 // "Raking Claw · Resolve" reads as a promise to show the claw, and naming the
 // beat already on the board made every press look like it skipped one. Every
 // beat of a Boss Row gets its own press, the opening one included, so the card
-// is the first thing the Row says. What has already resolved stays readable
-// beside it: the Boss Beat chips in the strip keep their light until the next
-// moment fires. The rules already resolved the whole track — this only paces
-// the telling.
+// is the first thing the Row says. The rules already resolved the whole track —
+// this only paces the telling.
+//
+// Since the program strip was removed (D-060) this card is the only place a
+// Boss Beat is named and priced, which raises what it owes: every parameter
+// resolution depends on has to be printed here, because there is no longer a
+// chip to hold for the rest.
 //
 // Making it a card is also what a board-game port needs (D-055): if a Beat is
 // going to be printed, everything resolution depends on has to be *on* it. That
@@ -56,7 +59,13 @@ export function BeatCard() {
         data-next-beat={nextBeatTitle ?? ""}
         data-beat-id={found?.beat.id ?? ""}
         onClick={continuePlayout}
-        className={`wb-beat-deal wb-accent-pulse pointer-events-auto wb-plate wb-plate-md wb-face-steel wb-acc-ember flex w-full flex-col gap-1.5 py-2 text-left shadow-xl ${FOCUS_RING_CLASS}`}
+        // No `px-`/`py-` here, deliberately. A flat Tailwind padding on a
+        // raked plate overrides the clearance the size class derives from the
+        // cut, and 12px was 3px short of what this one needs — which is how
+        // the label came to sit against the ember edge. `wb-gutter-raked` is
+        // that clearance, measured per side at the corner it is worst at,
+        // which is what a plate carrying a column of text needs.
+        className={`wb-beat-deal wb-accent-pulse pointer-events-auto wb-plate wb-plate-md wb-gutter-raked wb-face-steel wb-acc-ember flex w-full flex-col gap-1.5 text-left shadow-xl ${FOCUS_RING_CLASS}`}
       >
         <span className="flex items-baseline justify-between gap-2">
           <span className="shrink-0 text-[9px] font-semibold tracking-widest text-steel-400 uppercase">
@@ -137,7 +146,15 @@ export function StandingDemand() {
       <div
         data-testid="standing-demand"
         data-answered={answered ? "true" : "false"}
-        className={`wb-slide-up pointer-events-none wb-plate wb-plate-sm wb-face-steel flex w-full items-center justify-between gap-2 py-1.5 shadow-lg ${
+        // Same gutter as the Beat Card, for the same reason: "Standing" is
+        // pinned to the leading edge under the accent band, and a flat `px-3`
+        // left it 6px clear there against 10px on the trailing side. One row
+        // rather than four, so the wedge is smaller — but this bar docks
+        // directly above the card, and two plates disagreeing about where
+        // their text starts is the pair of them looking crooked.
+        // The block gutter stays at the thin bar's 6px; only the Beat Card
+        // wants a card's 8px.
+        className={`wb-slide-up pointer-events-none wb-plate wb-plate-sm wb-gutter-raked [--wb-gutter-block:6px] wb-face-steel flex w-full items-center justify-between gap-2 shadow-lg ${
           answered ? "wb-acc-gold" : "wb-acc-ember"
         }`}
       >

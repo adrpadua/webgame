@@ -41,11 +41,19 @@ export {
   FACING_SE,
 } from './facing'
 export { buildProgramSequence, currentProgram } from './timeline'
-export { keywordTitle } from './keywords'
+export { keywordTitle, heroRole, TANK } from './keywords'
 export { combatantRef, counterCount, readCounterEvent, counterCountByKeyword, getCounters, hexCounterRef, slotRef, type CounterRef } from './counters'
 export { readSignatureEvent, slotChargeCount, EVALUATED_GRANT_WHENS } from './signature'
-export { getEntityIdAt, isLegalMove, neighbors, isGuardedFront } from './board'
-export { minionIntent, minionIntents, type MinionIntent } from './minions'
+export { getEntityIdAt, isLegalMove, neighbors, isGuardedFront, guardedFrontHex } from './board'
+export {
+  minionIntent,
+  minionIntents,
+  minionDetonation,
+  minionDetonations,
+  detonationDue,
+  type MinionIntent,
+  type MinionDetonation,
+} from './minions'
 export { ESCALATION_MAX, escalationModifiers, escalationStartRound, type EscalationModifiers } from './escalation'
 export { highestTier, programAnswerTags, type ConsequenceTier } from './consequence'
 export { programPredictability, type ProgramPredictability, type RoundPredictability } from './predictability'

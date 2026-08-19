@@ -1,4 +1,4 @@
-import { parseHexKey, type Axial, type ContentCatalog, type EncounterState, type ResolvedActionFact } from '@/engine'
+import { hexDistance, parseHexKey, type Axial, type ContentCatalog, type EncounterState, type ResolvedActionFact } from '@/engine'
 import { BOSS_DEFEAT_MS } from './defeat'
 
 // Resolution Facts are the only thing the board animates from. Every beat of
@@ -232,7 +232,7 @@ export function deriveBoardEffects(
           break
         }
         // The beat announces itself: the Boss pulses and the beat's name
-        // floats up, tying each moment of feedback to a chip on the strip.
+        // floats up, tying each moment of feedback to the card that dealt it.
         const title = detailString(fact, 'beatTitle') !== '' ? detailString(fact, 'beatTitle') : (beat?.title ?? '')
         add({ kind: 'cast', entityId: before.bossId, at: bossCoords, label: title === '' ? undefined : title, tone: 'boss' })
         if (beat?.kind === 'turn_toward_player') {
@@ -242,7 +242,13 @@ export function deriveBoardEffects(
             add({ kind: 'turn', entityId: before.bossId, at: bossCoords, fromFacing, tone: 'boss' })
           }
         } else if (beat?.kind === 'targeted_hit') {
-          add({ kind: 'strike', entityId: before.bossId, at: bossCoords, toward: heroCoords ?? undefined, tone: 'boss' })
+          // Only when it connected. Board Feedback is derived from Resolution
+          // Facts precisely so the board can never show a blow the Encounter
+          // did not resolve, and since D-062 a claw can reach nothing at all —
+          // a lunge is what a landed hit looks like, not what a miss does.
+          if (heroCoords && hexDistance(heroCoords, bossCoords) <= beat.range_tiles) {
+            add({ kind: 'strike', entityId: before.bossId, at: bossCoords, toward: heroCoords, tone: 'boss' })
+          }
         } else if (beat?.kind === 'forward_cone') {
           const hexes = telegraphedCone(before)
           if (hexes.length > 0) {
@@ -276,6 +282,23 @@ export function deriveBoardEffects(
         if (coords) {
           add({ kind: 'spawn', entityId: detailString(fact, 'minionId'), at: coords, tone: 'boss' })
         }
+        break
+      }
+
+      case 'detonate_minion': {
+        // The fuse running out (D-063). The blast is drawn in the hazard tone
+        // rather than the boss tone: it is the ground going up around a piece,
+        // the same thing a Cinder Breath cone shows, and the piece it came
+        // from is gone by the time it lands.
+        const center = detailAxial(fact, 'blastCenter')
+        if (!center) {
+          break
+        }
+        add({ kind: 'blast', entityId: fact.sourceId, at: center, hexes: detailAxials(fact, 'blastHexes'), tone: 'hazard' })
+        // The Minion leaves with its own blast. It is not a Minion Defeat, but
+        // the board shows the same thing a Defeat shows — a piece coming off
+        // the hex — because that is what happens to it.
+        add({ kind: 'defeat', entityId: fact.sourceId, at: center, tone: 'hazard' })
         break
       }
 
@@ -316,19 +339,28 @@ export function deriveBoardEffects(
   return effects
 }
 
-// Facts arrive depth-first: each top-level `resolve_boss` fact is followed
-// by everything that beat generated. Every beat claims the next stagger
-// slot before anything it shows — even a beat with no motion of its own (a
-// warning) takes its moment — and its children ride that slot, so a boss
-// track plays out sequentially instead of as one simultaneous burst. Facts
-// outside any beat carry no delay.
+// A fact that owns a moment of the playout: something the player watches
+// happen on its own before the next thing does. A Boss Beat is one, and since
+// D-063 so is a Minion detonating — it resolves in the Incoming Row alongside
+// the Beats, and sharing a moment with the Beat that follows it would show a
+// blast the Beat did not cause.
+function ownsMoment(fact: ResolvedActionFact): boolean {
+  return fact.depth === 0 && fact.succeeded && (fact.kind === 'resolve_boss' || fact.kind === 'detonate_minion')
+}
+
+// Facts arrive depth-first: each top-level moment fact is followed by
+// everything it generated. Every moment claims the next stagger slot before
+// anything it shows — even a Beat with no motion of its own takes its
+// moment — and its children ride that slot, so a boss track plays out
+// sequentially instead of as one simultaneous burst. Facts before the first
+// moment carry no delay.
 function* factsWithBeatDelays(facts: ResolvedActionFact[]): Generator<[ResolvedActionFact, number]> {
   let delay = 0
-  let beatsSeen = 0
+  let momentsSeen = 0
   for (const fact of facts) {
-    if (fact.kind === 'resolve_boss' && fact.depth === 0 && fact.succeeded) {
-      delay = beatsSeen * BEAT_STAGGER_MS
-      beatsSeen += 1
+    if (ownsMoment(fact)) {
+      delay = momentsSeen * BEAT_STAGGER_MS
+      momentsSeen += 1
     }
     yield [fact, delay]
   }
@@ -384,9 +416,15 @@ export function derivePlayoutScript(
   facts: ResolvedActionFact[],
   effects: BoardEffect[],
 ): PlayoutScript | null {
-  const beats = facts
-    .filter((fact) => fact.kind === 'resolve_boss' && fact.depth === 0 && fact.succeeded)
-    .map((fact) => ({ id: detailString(fact, 'beatId'), title: detailString(fact, 'beatTitle') }))
+  // One entry per moment fact, in resolution order — the same order and count
+  // `factsWithBeatDelays` staggers, so a moment's slot and its effects' delays
+  // can never disagree. A detonation carries no authored Beat, so it takes a
+  // null id and names itself; the Beat card renders the title alone.
+  const beats = facts.filter(ownsMoment).map((fact) =>
+    fact.kind === 'detonate_minion'
+      ? { id: '', title: `${detailString(fact, 'minionTitle')} detonates`.trim() }
+      : { id: detailString(fact, 'beatId'), title: detailString(fact, 'beatTitle') },
+  )
   const endsEncounter = before.active && !after.active
   if (beats.length === 0 && !endsEncounter) {
     return null
