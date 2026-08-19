@@ -267,8 +267,12 @@ The readout a tapped Enemy tile opens — the Boss or a Minion — floated over 
 _Avoid_: Tooltip, Detail Popup, HUD gauge, unit frame
 
 **Hero Frame**:
-The primary Hero's persistent readout and the one piece of permanent chrome beyond the Action Bar Rails (D-058, ADR 0033): name, health with the Armor overlay, Counter chips, the deck gauge, and — where the Encounter fields a Signature — the resource pips and the Signature control. It floats over the board's bottom edge without resizing the board, never dismisses, and is the notification dock's floor: transient prompts stack upward from its top edge. The Signature control is permanent and doubles as the resource meter — dark while empty, steel while a bank waits out a closed window, ignited gold when the fixed Slot can fire — and a tap on the ignited control fires it. Built as the party-frame seed: shaped so a second Hero's frame can sit beside it when the multi-Hero model lands, with only the primary Hero's built today. Presentation only: it is never a rules surface.
+The primary Hero's persistent readout, built to unit-frame anatomy (D-058, ADR 0033): the Hero's name attached to a dominant health bar carrying the Armor overlay, with the `Class Resource` as a thinner bar directly beneath it, plus the Counter chips and the deck gauge. It floats over the board's bottom edge without resizing the board, never dismisses, and is the notification dock's floor: transient prompts stack upward from its top edge. A tap on the Hero's tile pulses it rather than opening a Stat Panel. It is read, never pressed — the `Signature Button` beside it is what takes the press. Built as the party-frame seed: shaped so a second Hero's frame can sit beside it when the multi-Hero model lands, with only the primary Hero's built today. Presentation only: it is never a rules surface.
 _Avoid_: Unit frame, HUD gauge, stat bar, portrait
+
+**Signature Button**:
+The one persistent ability control the HUD carries beyond the two Action Bar Rails (D-058, ADR 0033), standing beside the Hero Frame as its own plate. It never comes or goes: it sits dark while the Signature is unearned, steel while earned Charges wait out a window the Signature cannot fire in, and ignites when the fixed Slot can fire right now — the ignition is what a hero shooter's ultimate prompt actually is, a state change rather than a control appearing. A tap on the ignited button fires the Signature. It shows readiness only; the resource it spends is read on the Hero Frame's resource bar.
+_Avoid_: Ultimate button, hero power, Action Bar Slot
 
 **Scripted First Turn**:
 The guided Round a first-time player meets: it walks prepare, charge, fire in the Quick Window, step out of a telegraph, and fire in the Slow Window, gating input to one control at a time. Its current step is derived from the live Encounter state rather than counted off, so it stays correct when the player wanders, restarts, or time-travels. It runs once, and finishing or skipping it retires it.
@@ -283,7 +287,7 @@ Continuous board motion that carries no rules information and applies uniformly 
 _Avoid_: Idle animation, Board Feedback, juice
 
 **Bottom Interaction Zone**:
-The thumb-reachable portrait HUD area that contains the Action Bar immediately above the Hand. It is reserved for player input rather than encounter telemetry; the Hero Frame sits above it, over the board's edge, and is not a member — its one control (the Signature control) is the exception ADR 0033 records, carried inside the frame rather than granted a bar seat.
+The thumb-reachable portrait HUD area that contains the Action Bar immediately above the Hand. It is reserved for player input rather than encounter telemetry; the Hero Frame and the `Signature Button` sit above it, over the board's edge, and are not members — the button is the one persistent-control exception ADR 0033 records, standing beside the frame rather than taking a seat on the bar.
 _Avoid_: Footer, toolbar
 
 **Class Resource**:

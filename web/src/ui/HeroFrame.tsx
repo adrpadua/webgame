@@ -1,7 +1,7 @@
 import { combatantRef, getCounters, type CounterInstance, type HeroState } from '@/engine'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
-import { signatureControl } from './heroFrame'
+import { signatureControl, type SignatureControl as SignatureControlState } from './heroFrame'
 import { useDamageFlash } from './useDamageFlash'
 import { HeartIcon, HeroEmblem, ShieldIcon } from './icons'
 import { HERO_STAT_DETAILS, slotDetail } from './holdDetails'
@@ -9,17 +9,26 @@ import { useHold, type HoldDetail } from './HoldPopover'
 import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS, healthBarScale } from './theme'
 
 // The Hero Frame (D-058, ADR 0033): the primary Hero's persistent readout,
-// floating over the board's bottom edge. It absorbed the hero branch of the
-// Stat Panel whole — name, health with Armor, Counters, the deck gauge — and
-// carries the Signature's face: the resource pips and the one permanent
-// ability control the HUD owns beyond the two rails. It never dismisses; a
-// tap on Elian's tile pulses it instead of opening a panel. The board never
-// resizes for it — at 390 points the board is width-bound and this floats in
-// the container's spare height, which is the overlay contract.
+// floating over the board's bottom edge, built to the unit-frame anatomy an
+// MMO player already reads — name attached to a dominant health bar, with
+// the class resource as a thinner bar directly beneath it, where mana sits.
+// It absorbed the hero branch of the Stat Panel whole (name, health with the
+// Armor overlay, Counter chips, the deck gauge) and never dismisses; a tap
+// on Elian's tile pulses it instead of opening a panel.
+//
+// The Signature is a separate control beside the frame, not a part of it:
+// the frame is what you read and the button is what you press, which is the
+// division both idioms this HUD borrows from already draw — an MMO keeps its
+// abilities on a bar away from the unit frame, and a hero shooter keeps the
+// ultimate button clear of the health readout. The frame's resource bar and
+// the button are two faces of one state (`heroFrame.ts`): the bar carries
+// the earn, the button carries the readiness.
+//
+// The board never resizes for any of it — at 390 points the board is
+// width-bound and this floats in the container's spare height.
 
-// The notification dock stacks upward from this frame's top edge, so the
-// layer needs to know how much clearance the frame claims (its height plus
-// its bottom margin, in the layer's padding units).
+// The dock stacks upward from this row's top edge, so the notification layer
+// needs the clearance it claims (its height plus its bottom margin).
 export const HERO_FRAME_CLEARANCE_CLASS = 'pb-[60px]'
 
 function StatBar({
@@ -61,10 +70,22 @@ function StatBar({
   )
 }
 
-// Health and Armor share one bar. Both fills sit on the same scale, and when
-// armor lifts the total past max health the scale stretches so the whole
-// stack stays inside the track.
-function HeroHealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing: boolean; flashKey: number }) {
+// The unit frame's gauges: health as the dominant bar with Armor riding it in
+// the same currency, and — where the Hero fields a Signature — the class
+// resource as a thin bar beneath, in the position an MMO reserves for mana.
+// Both live inside one 44px tap target: the stack is what makes the pair read
+// as one frame, and it costs no height over the health bar alone.
+function HeroGauges({
+  hero,
+  flashing,
+  flashKey,
+  signature,
+}: {
+  hero: HeroState
+  flashing: boolean
+  flashKey: number
+  signature: SignatureControlState | null
+}) {
   const hold = useHold({
     ...HERO_STAT_DETAILS.health,
     stats: [
@@ -76,15 +97,20 @@ function HeroHealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing
   const scale = healthBarScale(hero.health, hero.maxHealth, hero.armor)
   const healthFraction = Math.max(0, hero.health) / scale
   const armorFraction = Math.max(0, hero.armor) / scale
+  const resourceLabel = signature === null ? '' : `, ${signature.resourceTitle} ${signature.charges} of ${signature.cap}`
+  // Both bars sit inside one 44px tap target rather than stacking two of
+  // them: the pair is one frame, one hold opens the vitals that explain it,
+  // and the resource costs the frame no height over the health bar alone —
+  // which is what keeps the dock's prompts clear of the bottom hex row.
   return (
     <button
       type="button"
       {...hold.holdProps}
-      aria-label={`Health ${hero.health}/${hero.maxHealth}, Armor ${hero.armor}`}
+      aria-label={`Health ${hero.health}/${hero.maxHealth}, Armor ${hero.armor}${resourceLabel}`}
       data-testid="hero-health"
-      className={`flex min-h-11 min-w-11 flex-1 items-center justify-center ${FOCUS_RING_CLASS}`}
+      className={`flex min-h-11 min-w-11 flex-1 flex-col justify-center gap-[3px] ${FOCUS_RING_CLASS}`}
     >
-      <span className={`${GAUGE_TRACK_CLASS} flex-1`}>
+      <span className={`${GAUGE_TRACK_CLASS} w-full`}>
         <span className={`${GAUGE_FILL_CLASS} bg-ember-500/70`} style={{ width: `${healthFraction * 100}%` }} />
         <span
           className="absolute inset-y-0 bg-glass-500/70 transition-[left,width] duration-300"
@@ -105,7 +131,41 @@ function HeroHealthBar({ hero, flashing, flashKey }: { hero: HeroState; flashing
           )}
         </span>
       </span>
+      {signature !== null && <ResourceBar signature={signature} />}
     </button>
+  )
+}
+
+// The class resource, as a bar rather than a control: it is read, never
+// pressed — the Signature button beside it is what takes the press.
+// Segmented because the resource is counted rather than continuous, so the
+// bar can look like a mana bar without lying about what a Charge is. It is
+// spoken by the gauge's own label, so nothing here needs its own voice.
+function ResourceBar({ signature }: { signature: SignatureControlState }) {
+  const { charges, cap, resourceTitle, face } = signature
+  return (
+    <span className="flex items-center gap-1.5" data-testid="signature-resource" data-charges={charges} aria-hidden="true">
+      <span className="shrink-0 text-[8px] leading-none font-bold tracking-[0.08em] text-ceramic-700 uppercase">{resourceTitle}</span>
+      <span className="flex h-[7px] flex-1 items-stretch gap-[2px] overflow-hidden rounded-xs bg-steel-950 p-[1px]">
+        {Array.from({ length: cap }, (_, index) => (
+          <span
+            // Keyed by whether it is filled, so a fresh earn remounts that
+            // segment and its pop plays exactly once — the frame half of the
+            // earn moment; the board half floats at the Hero's hex.
+            key={`${index}-${index < charges}`}
+            // An empty segment has to be legible as a segment: the meter's
+            // job while unearned is to say how many there are to fill, which
+            // is how a permanently visible resource teaches its own earn.
+            className={`flex-1 rounded-[1px] transition-colors ${
+              index < charges ? `wb-pop-in ${face === 'ready' ? 'bg-gold-300' : 'bg-gold-500'}` : 'bg-steel-700'
+            }`}
+          />
+        ))}
+      </span>
+      <span className="shrink-0 text-[9px] leading-none font-bold text-ceramic-700 tabular-nums">
+        {charges}/{cap}
+      </span>
+    </span>
   )
 }
 
@@ -154,13 +214,24 @@ export function CounterChips({ entityId }: { entityId: string }) {
   )
 }
 
-// The Signature control: one permanent button that is also the resource
-// meter (D-058). The pips are the earned Charge stack; the button ignites
-// gold when the Slot can fire right now, holds steel while a bank waits for
-// its window, and sits visibly dark while empty — the unlit meter is what
-// teaches the earn. A tap fires the fixed Slot through the same store path
-// the Action Bar uses.
-function SignatureControl() {
+// What the button says under the Signature's name. The word is the state,
+// not a label for the control: `Fire` is the only one that names an action,
+// because `ready` is the only face a press does anything in.
+const FACE_WORD: Record<SignatureControlState['face'], string> = {
+  empty: 'Earn it',
+  banked: 'Held',
+  ready: 'Fire',
+  spent: 'Fired',
+}
+
+// The Signature button: its own plate beside the frame, and the one
+// persistent ability control the HUD carries (ADR 0033, superseding ADR
+// 0006's persistent-button clause). It never mounts or unmounts — it sits
+// dark while the Signature is unearned, holds steel while a bank waits out a
+// closed window, and ignites gold the moment the fixed Slot can fire, which
+// is the "it appears" the hero-shooter idiom actually means. A tap fires
+// through the same store path the Action Bar's Slots use.
+function SignatureButton() {
   const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)
   const fireSlot = useWorkbench((store) => store.fireSlot)
@@ -174,6 +245,7 @@ function SignatureControl() {
     return null
   }
   const { face, charges, cap, card, slotIndex, resourceTitle } = control
+  const ready = face === 'ready'
   return (
     <button
       type="button"
@@ -181,36 +253,25 @@ function SignatureControl() {
       data-testid="signature-control"
       data-signature-face={face}
       data-charges={charges}
-      aria-label={`Signature: ${card.title}, ${charges} of ${cap} ${resourceTitle}${face === 'ready' ? ', ready to fire' : ''}`}
+      aria-label={`${card.title}: ${charges} of ${cap} ${resourceTitle}${ready ? ', ready — tap to fire' : ''}`}
       onClick={() => {
         if (hold.consumeHold()) {
           return
         }
-        if (face === 'ready') {
+        if (ready) {
           fireSlot(slotIndex)
         }
       }}
-      // The ignition is the "appears" moment: the button never mounts or
-      // unmounts, it turns gold. Keyed on the face so entering `ready`
-      // remounts the plate and the pop plays once, on that transition only.
+      // Keyed on the face so entering `ready` remounts the plate and the
+      // ignition plays once, on that transition only.
       key={face}
-      className={`wb-plate wb-plate-sm relative -mt-4 flex min-h-13 min-w-13 shrink-0 flex-col items-center justify-center px-2 pt-1 pb-1.5 ${
-        face === 'ready' ? 'wb-pop-in wb-face-gold wb-acc-gold text-gold-950' : 'wb-face-steel wb-acc-none text-ceramic-300'
-      } ${face === 'empty' || face === 'spent' ? 'opacity-80' : ''} ${FOCUS_RING_CLASS}`}
+      className={`wb-plate wb-plate-sm pointer-events-auto flex min-h-13 w-[74px] shrink-0 flex-col items-center justify-center gap-0.5 px-1 py-1.5 ${
+        ready ? 'wb-pop-in wb-face-gold wb-acc-gold text-gold-950' : 'wb-face-steel wb-acc-none text-ceramic-300'
+      } ${face === 'empty' || face === 'spent' ? 'opacity-75' : ''} ${FOCUS_RING_CLASS}`}
     >
-      <span className="text-[10px] leading-none font-black tracking-wide uppercase">{card.title}</span>
-      <span className="mt-1 flex items-center gap-1" data-testid="signature-pips" aria-hidden="true">
-        {Array.from({ length: cap }, (_, index) => (
-          <span
-            // Keyed by whether it is filled so a fresh earn remounts the new
-            // pip and its pop plays exactly once — the frame half of the earn
-            // moment; the board half floats at Elian's hex.
-            key={`${index}-${index < charges}`}
-            className={`h-2 w-3.5 -skew-x-[8deg] ${
-              index < charges ? `wb-pop-in ${face === 'ready' ? 'bg-gold-950' : 'bg-gold-400'}` : 'bg-steel-950 shadow-[inset_0_1px_0_rgba(0,0,0,0.6)]'
-            }`}
-          />
-        ))}
+      <span className="w-full truncate text-center text-[10px] leading-none font-black tracking-wide uppercase">{card.title}</span>
+      <span className={`text-[9px] leading-none font-bold tracking-wide uppercase ${ready ? 'text-gold-900' : 'text-steel-500'}`}>
+        {FACE_WORD[face]}
       </span>
     </button>
   )
@@ -218,6 +279,7 @@ function SignatureControl() {
 
 export function HeroFrame() {
   const state = useWorkbench(selectState)
+  const catalog = useWorkbench((store) => store.catalog)
   const heroId = state.primaryHeroId
   const hero = state.heroes[heroId]
   const override = usePlayout((store) => store.overrides[heroId])
@@ -235,21 +297,21 @@ export function HeroFrame() {
   const preparedCount = hero.actionBar.reduce((count, slot) => count + slot.charges.length + (slot.topCard === null ? 0 : 1), 0)
   const ownedCardCount = hero.deck.length + hero.hand.length + hero.discard.length + preparedCount
   const title = state.board.entities[heroId]?.title ?? heroId
+  const signature = signatureControl(catalog, state)
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 px-2 pb-1">
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-stretch gap-1.5 px-2 pb-1">
       <div
         data-testid="hero-frame"
         // Keyed on the pulse counter: tapping Elian's tile replays the pop,
         // pointing the tap at the chrome that answers it.
         key={pulse}
-        className="wb-pop-in wb-plate wb-plate-lg wb-face-ceramic wb-acc-cloth pointer-events-auto flex items-center gap-1 py-1 text-ceramic-950"
+        className="wb-pop-in wb-plate wb-plate-lg wb-face-ceramic wb-acc-cloth pointer-events-auto flex min-w-0 flex-1 items-center gap-1.5 py-1 text-ceramic-950"
       >
-        <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold">
-          <HeroEmblem className="h-4 w-4 text-cloth-500" />
-          {title}
+        <span className="flex max-w-[92px] shrink-0 items-center gap-1 text-[11px] font-semibold">
+          <HeroEmblem className="h-4 w-4 shrink-0 text-cloth-500" />
+          <span className="truncate">{title}</span>
         </span>
-        <HeroHealthBar hero={shownHero} flashing={flashing} flashKey={flashKey} />
-        <SignatureControl />
+        <HeroGauges hero={shownHero} flashing={flashing} flashKey={flashKey} signature={signature} />
         <CounterChips entityId={heroId} />
         <StatBar
           detail={{
@@ -263,12 +325,13 @@ export function HeroFrame() {
           icon={DeckIcon}
           fillClass="bg-steel-600/80"
           textClass="text-ceramic-300"
-          widthClass="w-14"
+          widthClass="w-12"
           label="Cards in deck"
           value={String(hero.deck.length)}
           fraction={ownedCardCount > 0 ? hero.deck.length / ownedCardCount : 0}
         />
       </div>
+      <SignatureButton />
     </div>
   )
 }

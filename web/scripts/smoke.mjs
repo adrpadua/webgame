@@ -650,7 +650,8 @@ try {
   await tapHeroTile(0, 0)
   assert((await page.locator('[data-testid="entity-inspect"]').count()) === 0, 'tapping the Hero opens no stat panel; the Hero Frame is the readout')
   // The teaching slice fields no Signature, so its frame carries no control.
-  assert((await page.locator('[data-testid="signature-control"]').count()) === 0, 'the teaching slice shows no Signature control')
+  assert((await page.locator('[data-testid="signature-control"]').count()) === 0, 'the teaching slice shows no Signature button')
+  assert((await page.locator('[data-testid="signature-resource"]').count()) === 0, 'a Hero with no Signature gets no resource bar')
   await assertContrast(page, 'with the Hero Frame up')
   await shot(page, 'hero-frame')
   await next()
@@ -1012,9 +1013,26 @@ try {
   // control (D-058): permanent, pip-metered, and named by the authored
   // resource title a hold away. The teaching slice asserted its absence
   // above; this is the presence half of the same contract.
-  assert((await page.locator('[data-testid="signature-control"]').count()) === 1, 'the Ashen Trial Hero Frame carries the Signature control')
+  assert((await page.locator('[data-testid="signature-resource"]').count()) === 1, 'the Ashen Trial Hero Frame carries the class-resource bar')
+  assert((await page.locator('[data-testid="signature-control"]').count()) === 1, 'the Signature button stands beside the frame')
   const signatureFace = await page.locator('[data-testid="signature-control"]').getAttribute('data-signature-face')
-  assert(signatureFace !== null && signatureFace !== '', `the Signature control wears a face (${signatureFace})`)
+  assert(signatureFace !== null && signatureFace !== '', `the Signature button wears a face (${signatureFace})`)
+  // The split is the point (D-058): the bar is read inside the unit frame,
+  // the button is pressed outside it. A button that had drifted back inside
+  // the frame's box would make the frame a control surface again.
+  const framed = await page.evaluate(() => {
+    const frame = document.querySelector('[data-testid="hero-frame"]')
+    const button = document.querySelector('[data-testid="signature-control"]')
+    const bar = document.querySelector('[data-testid="signature-resource"]')
+    if (!frame || !button || !bar) {
+      return null
+    }
+    const box = (node) => node.getBoundingClientRect()
+    const inside = (inner, outer) => box(inner).left >= box(outer).left - 1 && box(inner).right <= box(outer).right + 1
+    return { barInside: inside(bar, frame), buttonInside: inside(button, frame), gap: Math.round(box(button).left - box(frame).right) }
+  })
+  assert(framed !== null && framed.barInside, 'the class-resource bar reads inside the unit frame')
+  assert(framed.buttonInside === false && framed.gap >= 0, `the Signature button stands clear of the frame (${framed?.gap}px)`)
   // An Encounter with no window left to close leaves one move on the rail.
   await page.waitForSelector('[data-testid="restart"]')
   assert((await page.locator('[data-testid="restart"]').getAttribute('data-rail')) === 'restart', 'an ended Encounter turns the rail to Restart')
