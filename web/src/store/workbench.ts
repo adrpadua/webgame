@@ -517,6 +517,7 @@ declare global {
       exportRecord: () => Promise<string>
       exportScenario: () => string
       heroFramePulse: () => number
+      bossHealth: () => number
       hexRects: () => { key: string; left: number; right: number; top: number; bottom: number }[]
     }
   }
@@ -528,6 +529,13 @@ if (typeof window !== 'undefined') {
     // The Hero Frame's pulse counter, so a browser check can prove a Hero
     // tap reached the frame (D-058) without reading an animation.
     heroFramePulse: () => useWorkbench.getState().heroFramePulse,
+    // The Boss's live health. The Stat Panel shows it only while open, so a
+    // check that wants a before/after around one press would otherwise have
+    // to tap the Boss's tile twice and disturb what it is measuring.
+    bossHealth: () => {
+      const live = selectState(useWorkbench.getState())
+      return live.board.entities[live.bossId]?.health ?? 0
+    },
     // Every hex's on-screen bounding box, so a browser check can ask whether
     // an overlay covers a hex rather than whether it overlaps the canvas —
     // the canvas is a hexagon's bounding box and its corners are empty.

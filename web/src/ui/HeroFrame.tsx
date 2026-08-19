@@ -214,23 +214,19 @@ export function CounterChips({ entityId }: { entityId: string }) {
   )
 }
 
-// What the button says under the Signature's name. The word is the state,
-// not a label for the control: `Fire` is the only one that names an action,
-// because `ready` is the only face a press does anything in.
-const FACE_WORD: Record<SignatureControlState['face'], string> = {
-  empty: 'Earn it',
-  banked: 'Held',
-  ready: 'Fire',
-  spent: 'Fired',
-}
-
 // The Signature button: its own plate beside the frame, and the one
 // persistent ability control the HUD carries (ADR 0033, superseding ADR
-// 0006's persistent-button clause). It never mounts or unmounts — it sits
-// dark while the Signature is unearned, holds steel while a bank waits out a
-// closed window, and ignites gold the moment the fixed Slot can fire, which
-// is the "it appears" the hero-shooter idiom actually means. A tap fires
-// through the same store path the Action Bar's Slots use.
+// 0006's persistent-button clause). It is mounted only while the Signature
+// can actually be fired — the button *is* the offer, so a button that cannot
+// be pressed is an offer the rules deny, which is the claim the Action Bar's
+// own dimming rules already refuse to let a Slot make.
+//
+// What a permanent control would have carried, the frame carries instead:
+// the resource bar shows the Charges through every window, so the earn is
+// still taught by a visibly empty meter and a held bank is still readable in
+// the windows the Signature cannot act in. That division is what makes
+// appear-when-usable safe here — without the bar it would hide the whole
+// mechanic, which is why it was refused before the bar existed.
 function SignatureButton() {
   const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)
@@ -241,11 +237,10 @@ function SignatureButton() {
       ? null
       : slotDetail(control.card, state.heroes[state.primaryHeroId].actionBar[control.slotIndex], control.slotIndex, state.phase),
   )
-  if (control === null) {
+  if (control === null || control.face !== 'ready') {
     return null
   }
   const { face, charges, cap, card, slotIndex, resourceTitle } = control
-  const ready = face === 'ready'
   return (
     <button
       type="button"
@@ -253,26 +248,17 @@ function SignatureButton() {
       data-testid="signature-control"
       data-signature-face={face}
       data-charges={charges}
-      aria-label={`${card.title}: ${charges} of ${cap} ${resourceTitle}${ready ? ', ready — tap to fire' : ''}`}
+      aria-label={`${card.title}: ${charges} of ${cap} ${resourceTitle}, ready — tap to fire`}
       onClick={() => {
         if (hold.consumeHold()) {
           return
         }
-        if (ready) {
-          fireSlot(slotIndex)
-        }
+        fireSlot(slotIndex)
       }}
-      // Keyed on the face so entering `ready` remounts the plate and the
-      // ignition plays once, on that transition only.
-      key={face}
-      className={`wb-plate wb-plate-sm pointer-events-auto flex min-h-13 w-[74px] shrink-0 flex-col items-center justify-center gap-0.5 px-1 py-1.5 ${
-        ready ? 'wb-pop-in wb-face-gold wb-acc-gold text-gold-950' : 'wb-face-steel wb-acc-none text-ceramic-300'
-      } ${face === 'empty' || face === 'spent' ? 'opacity-75' : ''} ${FOCUS_RING_CLASS}`}
+      className={`wb-pop-in wb-plate wb-plate-sm wb-face-gold wb-acc-gold pointer-events-auto flex min-h-13 w-[74px] shrink-0 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-gold-950 ${FOCUS_RING_CLASS}`}
     >
       <span className="w-full truncate text-center text-[10px] leading-none font-black tracking-wide uppercase">{card.title}</span>
-      <span className={`text-[9px] leading-none font-bold tracking-wide uppercase ${ready ? 'text-gold-900' : 'text-steel-500'}`}>
-        {FACE_WORD[face]}
-      </span>
+      <span className="text-[9px] leading-none font-bold tracking-wide text-gold-900 uppercase">Fire</span>
     </button>
   )
 }

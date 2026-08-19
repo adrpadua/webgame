@@ -1014,25 +1014,19 @@ try {
   // resource title a hold away. The teaching slice asserted its absence
   // above; this is the presence half of the same contract.
   assert((await page.locator('[data-testid="signature-resource"]').count()) === 1, 'the Ashen Trial Hero Frame carries the class-resource bar')
-  assert((await page.locator('[data-testid="signature-control"]').count()) === 1, 'the Signature button stands beside the frame')
-  const signatureFace = await page.locator('[data-testid="signature-control"]').getAttribute('data-signature-face')
-  assert(signatureFace !== null && signatureFace !== '', `the Signature button wears a face (${signatureFace})`)
-  // The split is the point (D-058): the bar is read inside the unit frame,
-  // the button is pressed outside it. A button that had drifted back inside
-  // the frame's box would make the frame a control surface again.
-  const framed = await page.evaluate(() => {
+  // The bar is permanent; the button is not. Nothing is earned in this
+  // terminal Scenario state, so the offer must not be on screen (D-058).
+  assert((await page.locator('[data-testid="signature-control"]').count()) === 0, 'no Signature button while the Signature cannot fire')
+  const barInFrame = await page.evaluate(() => {
     const frame = document.querySelector('[data-testid="hero-frame"]')
-    const button = document.querySelector('[data-testid="signature-control"]')
     const bar = document.querySelector('[data-testid="signature-resource"]')
-    if (!frame || !button || !bar) {
+    if (!frame || !bar) {
       return null
     }
     const box = (node) => node.getBoundingClientRect()
-    const inside = (inner, outer) => box(inner).left >= box(outer).left - 1 && box(inner).right <= box(outer).right + 1
-    return { barInside: inside(bar, frame), buttonInside: inside(button, frame), gap: Math.round(box(button).left - box(frame).right) }
+    return box(bar).left >= box(frame).left - 1 && box(bar).right <= box(frame).right + 1
   })
-  assert(framed !== null && framed.barInside, 'the class-resource bar reads inside the unit frame')
-  assert(framed.buttonInside === false && framed.gap >= 0, `the Signature button stands clear of the frame (${framed?.gap}px)`)
+  assert(barInFrame === true, 'the class-resource bar reads inside the unit frame')
   // An Encounter with no window left to close leaves one move on the rail.
   await page.waitForSelector('[data-testid="restart"]')
   assert((await page.locator('[data-testid="restart"]').getAttribute('data-rail')) === 'restart', 'an ended Encounter turns the rail to Restart')
@@ -1282,6 +1276,95 @@ try {
   const pulseAfter = await phone.evaluate(() => window.__workbench.heroFramePulse())
   assert(pulseAfter === pulseBefore + 1, `the paid drag stepped the Hero onto the hex it was dragged to (frame pulse ${pulseBefore} -> ${pulseAfter})`)
   await phone.close()
+
+  // The Signature's whole loop, driven through the UI on a seed where it is
+  // reachable: the button appears exactly when the power can be fired and at
+  // no other time (D-058), which is the half a presence check alone cannot
+  // prove. Seed 5 puts Fortify in the opening Hand, and its banked Armor is
+  // the only Armor that arrives before the Instant row's Tank Hit — the
+  // timing the migration cohort measured.
+  const sig = await browser.newPage({ viewport: { width: 390, height: 900 } })
+  await sig.addInitScript(() => {
+    // A returning player opens the Ashen Trial, which is the Encounter that
+    // fields a Signature; the teaching slice does not.
+    localStorage.setItem('workbench.firstTurnDone', 'true')
+    localStorage.setItem('workbench.guideSeen', 'true')
+  })
+  await sig.goto(`${BASE_URL}?debug=1`)
+  await sig.waitForSelector('[data-testid="hero-frame"]')
+  await sig.locator('[data-testid="seed-input"]').fill('5')
+  await sig.locator('[data-testid="restart-with-seed"]').click()
+  await sig.waitForTimeout(400)
+  const sigButton = () => sig.locator('[data-testid="signature-control"]')
+  const sigCharges = () => sig.locator('[data-testid="signature-resource"]').getAttribute('data-charges')
+  const sigPhase = () => sig.locator('[data-phase]').getAttribute('data-phase')
+  // Press through any paced Beat cards, then close the window; an unfired
+  // Slot asks before it is skipped.
+  const sigNext = async () => {
+    for (let press = 0; press < 40; press += 1) {
+      if ((await sig.locator('[data-testid="playout-continue"]').count()) === 0) {
+        break
+      }
+      await sig.locator('[data-testid="playout-continue"]').click({ force: true })
+      await sig.waitForTimeout(320)
+    }
+    await sig.locator('[data-testid="next-phase"]').click({ force: true })
+    await sig.waitForTimeout(220)
+    if ((await sig.locator('[data-testid="confirm-skip"]').count()) > 0) {
+      await sig.locator('[data-testid="confirm-skip"]').click()
+    }
+    await sig.waitForTimeout(650)
+    for (let press = 0; press < 40; press += 1) {
+      if ((await sig.locator('[data-testid="playout-continue"]').count()) === 0) {
+        break
+      }
+      await sig.locator('[data-testid="playout-continue"]').click({ force: true })
+      await sig.waitForTimeout(320)
+    }
+  }
+  const sigAdvanceTo = async (want) => {
+    for (let step = 0; step < 12; step += 1) {
+      if ((await sigPhase()) === want) {
+        return true
+      }
+      await sigNext()
+    }
+    return false
+  }
+  assert((await sigCharges()) === '0', `the Signature opens unearned (${await sigCharges()} charges)`)
+  assert((await sigButton().count()) === 0, 'an unearned Signature offers no button')
+  await sig.locator('[data-testid="hand-card"][data-card-id="fortify"]').first().click()
+  await sig.locator('[data-testid="slot-1"]').click()
+  await sig.waitForTimeout(250)
+  assert((await sig.locator('[data-testid="slot-1"]').getAttribute('data-top-card')) === 'fortify', 'Fortify prepares into the slow Slot')
+  assert(await sigAdvanceTo('slow'), 'the Round reaches its Slow Window')
+  await sig.locator('[data-testid="hand-card"]').first().click()
+  await sig.locator('[data-testid="slot-1"]').click()
+  await sig.waitForTimeout(250)
+  await sig.locator('[data-testid="slot-1"]').click()
+  await sig.waitForTimeout(700)
+  assert((await sig.locator('[data-testid="slot-1"]').getAttribute('data-slot-state')) === 'fired', 'Fortify commits its Armor in the Slow Window')
+  assert(await sigAdvanceTo('instant'), 'the next Round opens on the Boss Instant row')
+  await sig.waitForTimeout(1500)
+  // The Claw landed on banked Armor for zero Health loss: the standing clause
+  // pays out, and the bar is where that shows.
+  assert((await sigCharges()) === '1', `the blocked Tank Hit earns a Charge on the bar (${await sigCharges()})`)
+  assert((await sigButton().count()) === 0, 'a banked Charge outside its window still offers no button')
+  assert(await sigAdvanceTo('quick'), 'the Quick Window opens')
+  await sig.waitForSelector('[data-testid="signature-control"]', { timeout: 4000 })
+  assert((await sigButton().getAttribute('data-signature-face')) === 'ready', 'the Signature button appears the moment the power can fire')
+  const bossBeforeSignature = await sig.evaluate(() => window.__workbench.bossHealth())
+  await sigButton().click()
+  await sig.waitForTimeout(700)
+  assert((await sigButton().count()) === 0, 'firing the Signature takes its button away again')
+  assert((await sigCharges()) === '0', 'firing spends the whole Charge stack')
+  const bossAfterSignature = await sig.evaluate(() => window.__workbench.bossHealth())
+  assert(
+    bossAfterSignature < bossBeforeSignature,
+    `the Signature dealt its damage (${bossBeforeSignature} -> ${bossAfterSignature})`,
+  )
+  await shot(sig, 'signature-fired')
+  await sig.close()
 
   await browser.close()
 

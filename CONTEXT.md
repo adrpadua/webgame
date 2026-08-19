@@ -271,7 +271,7 @@ The primary Hero's persistent readout, built to unit-frame anatomy (D-058, ADR 0
 _Avoid_: Unit frame, HUD gauge, stat bar, portrait
 
 **Signature Button**:
-The one persistent ability control the HUD carries beyond the two Action Bar Rails (D-058, ADR 0033), standing beside the Hero Frame as its own plate. It never comes or goes: it sits dark while the Signature is unearned, steel while earned Charges wait out a window the Signature cannot fire in, and ignites when the fixed Slot can fire right now — the ignition is what a hero shooter's ultimate prompt actually is, a state change rather than a control appearing. A tap on the ignited button fires the Signature. It shows readiness only; the resource it spends is read on the Hero Frame's resource bar.
+The control that fires a Hero's Signature (D-058, ADR 0033), standing beside the Hero Frame as its own plate. It is on screen if and only if the Signature can be fired right now — it arrives when the fixed Slot's window opens on an earned Charge, and leaves when that Charge is spent or the window turns — so a Signature Button the player can see is always one they can press. It carries readiness and nothing else; the resource it spends is read on the Hero Frame's resource bar, which is what lets the button be absent without hiding the mechanic. Transient by design, so it is not one of the HUD's persistent buttons (ADR 0006).
 _Avoid_: Ultimate button, hero power, Action Bar Slot
 
 **Scripted First Turn**:
@@ -287,7 +287,7 @@ Continuous board motion that carries no rules information and applies uniformly 
 _Avoid_: Idle animation, Board Feedback, juice
 
 **Bottom Interaction Zone**:
-The thumb-reachable portrait HUD area that contains the Action Bar immediately above the Hand. It is reserved for player input rather than encounter telemetry; the Hero Frame and the `Signature Button` sit above it, over the board's edge, and are not members — the button is the one persistent-control exception ADR 0033 records, standing beside the frame rather than taking a seat on the bar.
+The thumb-reachable portrait HUD area that contains the Action Bar immediately above the Hand. It is reserved for player input rather than encounter telemetry; the Hero Frame and the `Signature Button` sit above it, over the board's edge, and are not members — the frame is a readout, and the button is transient, so the zone's persistent controls are still the Action Bar's alone (ADR 0006, ADR 0033).
 _Avoid_: Footer, toolbar
 
 **Class Resource**:
