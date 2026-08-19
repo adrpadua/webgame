@@ -115,7 +115,7 @@ Current movement rules:
 Movement can be asked for three ways, and all three resolve as the same paid move:
 
 - drag a hand card onto a valid adjacent empty hex — the dragged card pays;
-- tap a hand card, then tap a legal hex or a `MovePad` direction — the selected card pays;
+- tap a hand card, then tap a legal hex — the selected card pays;
 - drag the Hero itself onto a valid adjacent empty hex — the gesture names only the destination, so the Hand answers: its cards rise and wait, the board holds the chosen hex lit, and the card tapped is the card spent. Calling the step off — `Stay put`, `Escape`, or touching the board again — spends nothing.
 
 Pressing and holding the Hero still previews legal routes; a press that releases on the Hero's own hex is the ordinary tap that opens its Stat Panel.

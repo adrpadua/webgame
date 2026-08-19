@@ -408,7 +408,7 @@ try {
       }
       // GATED_CLASS is `pointer-events-none opacity-30 saturate-50`. Match
       // both halves: pointer-events-none alone rides live overlay wrappers
-      // (the toast, the Phase Banner, the MovePad), whose text is checked.
+      // (the toast, the Phase Banner), whose text is checked.
       const isGated = (el) => {
         for (let a = el; a && a !== document.body; a = a.parentElement) {
           if (a.classList.contains('pointer-events-none') && a.classList.contains('opacity-30')) return true
@@ -502,6 +502,63 @@ try {
     )
     const fails = await contrastFailures(pg)
     assert(fails.length === 0, `text contrast meets WCAG 1.4.3 ${label} (${fails.join(' | ') || 'all pass'})`)
+  }
+  // The notification zones (web/src/ui/notifications.ts). Every floating
+  // surface on the play field carries data-notification and lives in one of
+  // three lanes that are flex siblings of a single column, so two of them
+  // sharing a pixel is supposed to be unrepresentable. It was not, when each
+  // placed itself: the targeting prompt sat at a fixed offset that covered
+  // the phase strip's Next button, the phase word at a percentage that
+  // covered whatever the guidance stack had grown to, and the rejection toast
+  // at an offset off the bottom that covered the Action Bar. Measure it in
+  // the states where several are live at once rather than trust the CSS.
+  const notificationLayout = (view) =>
+    view.evaluate(() => {
+      const box = (node) => node.getBoundingClientRect()
+      // 1px of slack: adjacent boxes may share an edge, and a rounded
+      // sub-pixel is not a collision.
+      const overlaps = (a, b) =>
+        Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1
+      const shown = [...document.querySelectorAll('[data-notification]')].filter((node) => !node.hidden && box(node).height > 0)
+      const problems = []
+      for (let left = 0; left < shown.length; left += 1) {
+        for (let right = left + 1; right < shown.length; right += 1) {
+          if (overlaps(box(shown[left]), box(shown[right]))) {
+            problems.push(`${shown[left].dataset.notification} overlaps ${shown[right].dataset.notification}`)
+          }
+        }
+      }
+      // Nothing floating may cover a band that carries the fight's own
+      // controls. Next is the specific casualty worth naming: losing it while
+      // a prompt is up is losing the only way forward.
+      for (const bandId of ['program-strip', 'next-phase', 'action-bar', 'hand']) {
+        const band = document.querySelector(`[data-testid="${bandId}"]`)
+        if (band === null) {
+          continue
+        }
+        for (const node of shown) {
+          if (overlaps(box(node), box(band))) {
+            problems.push(`${node.dataset.notification} covers ${bandId}`)
+          }
+        }
+      }
+      // The dock's contract: it hugs the Action Bar from above, never over it.
+      const bar = document.querySelector('[data-testid="action-bar"]')
+      const docked = shown.filter((node) => node.dataset.zone === 'dock')
+      if (bar !== null) {
+        for (const node of docked) {
+          const gap = box(bar).top - box(node).bottom
+          if (gap < -1 || gap > 200) {
+            problems.push(`${node.dataset.notification} sits ${Math.round(gap)}px from the Action Bar`)
+          }
+        }
+      }
+      return { problems, shown: shown.map((node) => node.dataset.notification) }
+    })
+  const assertNotificationLayout = async (view, label) => {
+    const { problems, shown } = await notificationLayout(view)
+    assert(problems.length === 0, `the notification zones stay out of each other's way ${label} (${problems.join(' | ') || shown.join(', ') || 'none live'})`)
+    return shown
   }
   // The card the scripted turn is pointing at is the only live card in Hand.
   const scriptedCard = () => page.locator('[data-testid="hand-card"][data-scripted="true"]')
@@ -645,6 +702,11 @@ try {
     (await page.locator('[data-testid="move-payment-cue"]').getAttribute('data-direction')) === 'W',
     'dragging the Hero west asks for the step west',
   )
+  // Two dock members at once: the step's prompt and whatever stat panel is
+  // open behind it. The panel rides above the prompt rather than under it,
+  // which is the ranking in web/src/ui/notifications.ts doing its job.
+  const payingLive = await assertNotificationLayout(page, 'while a step waits for its card')
+  assert(payingLive.includes('move-payment'), `the step's prompt docks above the Hand it points at (${payingLive.join(', ')})`)
   // The Hand is the prompt: every card is offered, and the offer is a real
   // animation rather than a class name nothing is listening to.
   await page.waitForSelector('[data-testid="hand"][data-paying="true"]')
@@ -723,7 +785,11 @@ try {
   await next()
   assert((await phase()) === 'loadout', 'the Slow Window rolls into the next Round')
   const round = await page.locator('[data-testid="round-display"]').textContent()
-  assert(round?.includes('2/8'), `the Boss Timeline rolled forward (${round?.trim()})`)
+  // The mark is a coordinate, not a countdown: Escalation is the only clock
+  // (ADR 0027), so the Round carries no denominator to promise Rounds the
+  // rules never guaranteed.
+  assert(round?.trim() === 'R2', `the Boss Timeline rolled forward (${round?.trim()})`)
+  assert(!/\d\s*\/\s*\d/.test(round ?? ''), `the Round mark states no round limit (${round?.trim()})`)
   assert((await page.locator('[data-testid="hand-card"]').count()) === 5, 'end-of-Round draw refilled the Hand')
 
   // The script retires itself with the Round it taught, and ordinary
@@ -766,6 +832,30 @@ try {
   const stepsAfterConfirm = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
   assert(stepsAfterConfirm === stepsBeforeConfirm + 1, 'a confirmed replacement records exactly one Scenario step')
 
+  // The Action Bar's left rail. Undo reaches exactly as far as the open
+  // window: it takes back the replacement that just landed, and then greys,
+  // because the only thing left behind it is the advance that opened this
+  // Loadout — and the Boss's side of the Round is not the player's to rewind.
+  const undo = page.locator('[data-testid="undo"]')
+  assert((await undo.getAttribute('data-can-undo')) === 'true', 'a landed action arms the undo rail')
+  await undo.click()
+  await page.waitForTimeout(150)
+  assert((await slot0.getAttribute('data-top-card')) === slot0CardBefore, `undo put the replaced Top Card back (${slot0CardBefore})`)
+  assert(
+    JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length === stepsBeforeConfirm,
+    'the undone replacement is off the Scenario line',
+  )
+  assert((await undo.getAttribute('data-can-undo')) === 'false', 'undo greys at the window it opened in')
+  assert(await undo.isDisabled(), 'a greyed undo rail is not pressable')
+  // Put it back the way the walk found it: the rest of the Round is written
+  // against the replaced Slot.
+  await page.locator('[data-testid="hand-card"]').first().click()
+  await slot0.click()
+  await page.waitForSelector('[data-testid="replace-confirm"]')
+  await page.locator('[data-testid="confirm-replace"]').click()
+  await page.waitForSelector('[data-testid="replace-confirm"]', { state: 'detached' })
+  assert((await slot0.getAttribute('data-top-card')) === replacementCardId, 'redoing the replacement restores the walk')
+
   // Outside the script, a Boss Row steps through beat by beat: the batch
   // that opens the window replays paced, and every beat — the opening one
   // included — waits behind a Continue prompt that names it, so the player
@@ -773,6 +863,22 @@ try {
   await next()
   await page.waitForSelector('[data-testid="playout-continue"]')
   assert((await phase()) === 'instant', 'Round 2 Next opens Boss Instant and paces its beats')
+  // The busiest guidance-and-dock moment, and the one that used to collide:
+  // the phase word announcing Boss Instant on the stage, the coach mark over
+  // the board's top edge, and the Continue prompt docked above the Action
+  // Bar. All three were placed by hand before, and the banner printed across
+  // whichever of the other two had grown into its percentage.
+  // The Action Bar's right rail is the one control that moves the fight on,
+  // and it says which move it is about to make: playing the next beat of a
+  // Boss Row and closing the window are different presses, so they are
+  // different marks.
+  assert(
+    (await page.locator('[data-testid="next-phase"]').getAttribute('data-rail')) === 'continue',
+    'the advance rail turns to Continue while a Boss row is paced',
+  )
+  const pacedLive = await assertNotificationLayout(page, 'while a Boss row is paced')
+  assert(pacedLive.includes('beat-card'), `the Beat Card docks above the Action Bar during a Boss row (${pacedLive.join(', ')})`)
+  assert(pacedLive.includes('phase-banner'), `the phase word takes the stage while the dock is occupied (${pacedLive.join(', ')})`)
   await assertContrast(page, 'during a paced Boss row')
   await shot(page, 'boss-row-paced')
   // The Row lands announced, not already swinging: no chip is lit yet.
@@ -822,6 +928,10 @@ try {
   assert((await page.locator('[data-testid="playout-continue"]').count()) === 0, 'the last beat needs no prompt and the playout settles')
   // The resolved track waits in the Boss's window; Next moves on.
   assert((await phase()) === 'instant', 'the settled track waits in Boss Instant for Next')
+  assert(
+    (await page.locator('[data-testid="next-phase"]').getAttribute('data-rail')) === 'next',
+    'the advance rail turns back to Next once the row has finished telling',
+  )
   // During a Boss row no card in hand has a legal action, so the Hand
   // recedes — and it must come back the moment a player window opens. A
   // Hand that hides has to be provably reachable, or the recession is a
@@ -872,6 +982,10 @@ try {
     (await page.locator('[data-testid="outcome-banner"]').getAttribute('data-outcome')) === 'defeat',
     'the solo-ceiling Scenario replays to its Defeat banner',
   )
+  // An Encounter with no window left to close leaves one move on the rail.
+  await page.waitForSelector('[data-testid="restart"]')
+  assert((await page.locator('[data-testid="restart"]').getAttribute('data-rail')) === 'restart', 'an ended Encounter turns the rail to Restart')
+  assert((await page.locator('[data-testid="next-phase"]').count()) === 0, 'a finished Encounter offers no Next')
 
   const position = await page.locator('[data-testid="time-travel-position"]').textContent()
   assert(/Step \d+ \/ \d+/.test(position ?? ''), `time travel shows the Scenario line (${position?.trim()})`)
@@ -882,7 +996,7 @@ try {
   await page.waitForTimeout(100)
   assert((await phase()) === 'loadout', 'sliding to step 0 shows the seeded Loadout')
   const roundAtStart = await page.locator('[data-testid="round-display"]').textContent()
-  assert(roundAtStart?.includes('1/8'), 'step 0 is Round 1')
+  assert(roundAtStart?.trim() === 'R1', `step 0 is Round 1 (${roundAtStart?.trim()})`)
 
   await page.screenshot({ path: process.env.SMOKE_SHOT ?? 'smoke.png', fullPage: false })
 
@@ -902,9 +1016,59 @@ try {
   // below reaches the busiest state.
   const spilling = await cardSpill(phone)
   assert(spilling.length === 0, `no Compact Card's text overflows its plate at 390x844 (${spilling.join(' | ') || 'all contained'})`)
+  // The Action Bar's twelve-unit ladder: 2 | 4 | 4 | 2. The rails carry the
+  // fight's two most-pressed moves and the Slots carry the cards, and the
+  // ratio is the contract — a rail that grew into a Slot would take the
+  // width a card title needs, which is the whole reason the Slot plate wears
+  // a tighter rake than its size class.
+  const ladder = await phone.evaluate(() => {
+    const bar = document.querySelector('[data-testid="action-bar"]')
+    if (bar === null) {
+      return null
+    }
+    const gap = Number.parseFloat(getComputedStyle(bar).columnGap) || 0
+    const widths = ['undo', 'slot-0', 'slot-1', 'next-phase'].map((id) => {
+      const node = bar.querySelector(`[data-testid="${id}"]`)
+      return node === null ? 0 : node.getBoundingClientRect().width
+    })
+    // A span of n units is n columns plus the n-1 gaps between them, so back
+    // the gaps out before comparing a 2 against a 4.
+    return { widths, units: widths.map((width, index) => (width - ([2, 4, 4, 2][index] - 1) * gap) / [2, 4, 4, 2][index]) }
+  })
+  assert(ladder !== null && ladder.widths.every((width) => width > 0), 'the Action Bar carries both rails and both Slots')
+  const unitDrift = Math.max(...ladder.units) - Math.min(...ladder.units)
+  assert(
+    unitDrift < 1,
+    `the Action Bar runs 2 | 4 | 4 | 2 on one unit (${ladder.widths.map((width) => Math.round(width)).join(' | ')} = ${ladder.units.map((unit) => unit.toFixed(1)).join(', ')} per unit)`,
+  )
+  // The rails are marks, not words, and a mark still has to be a 44px target.
+  const railTargets = await phone.evaluate(() =>
+    ['undo', 'next-phase'].map((id) => {
+      const node = document.querySelector(`[data-testid="${id}"]`)
+      const rect = node?.getBoundingClientRect()
+      return `${id} ${Math.round(rect?.width ?? 0)}x${Math.round(rect?.height ?? 0)}`
+    }),
+  )
+  assert(
+    railTargets.every((entry) => {
+      const [width, height] = entry.split(' ')[1].split('x').map(Number)
+      return width >= 44 && height >= 44
+    }),
+    `both Action Bar rails meet the 44px target (${railTargets.join(' | ')})`,
+  )
+  // A Slot's title is what a player chooses between, so it must not be
+  // truncated by the rails taking their four units.
+  const slotSpill = await phone.evaluate(() =>
+    [...document.querySelectorAll('[data-testid^="slot-"]')].flatMap((slot) =>
+      [...slot.querySelectorAll('span')]
+        .filter((node) => node.children.length === 0 && (node.textContent ?? '').trim() !== '' && node.scrollWidth > node.clientWidth + 1)
+        .map((node) => `${slot.dataset.testid} "${(node.textContent ?? '').trim()}"`),
+    ),
+  )
+  assert(slotSpill.length === 0, `no Slot's text is truncated by the ladder (${slotSpill.join(' | ') || 'all contained'})`)
   // Walk to the Quick Window and select a card, so the measurements below
-  // run against the busiest state the phone ever shows: the move pad out
-  // beside the board.
+  // run against the busiest state the phone ever shows: a step lined up on
+  // the board with the dock loaded under it.
   // Park the cursor somewhere harmless before the touch-only section. Clicking
   // Skip leaves the mouse resting where that button was, and an element that
   // later lays out under a stationary cursor gets a real pointerenter — so the
@@ -934,33 +1098,54 @@ try {
   await phone.locator('[data-testid="next-phase"]').click()
   await phone.waitForTimeout(400)
   await phoneScripted().click()
-  await phone.waitForSelector('[data-testid="move-pad"]')
   // The board refits itself when the HUD changes; give the scale manager
   // its poll interval before measuring.
   await phone.waitForTimeout(700)
-  // Test overlap against the hexes themselves, not the canvas rectangle: the
-  // canvas is a hexagon's bounding box, and the strip below its bottom hex
-  // row is empty. The pad lives in that strip, so a canvas-box test would
-  // fail every button while none of them touches a hex.
-  const padOverHex = await phone.evaluate(() => {
+  // A selected card in the Quick Window is a step waiting for a hex, and the
+  // board is the only thing that names one now — the direction pad that used
+  // to sit in the strip below the bottom hex row is gone. Nothing may cover
+  // that strip in its place: a destination a player is being asked to step to
+  // has to stay tappable, which is the reason the pad had to live there in
+  // the first place.
+  //
+  // Load the dock with a refusal — a drag onto a hex the Hero cannot reach —
+  // so the measurement runs with the lane occupied rather than empty.
+  const phoneHexes = await phone.evaluate(() => window.__workbench.hexRects())
+  const farHex = phoneHexes.find((hex) => hex.key === '2,0') ?? phoneHexes[phoneHexes.length - 1]
+  await phone.mouse.move((farHex.left + farHex.right) / 2, (farHex.top + farHex.bottom) / 2)
+  const phoneBoardCanvas = phone.locator('[data-testid="board"] canvas')
+  await phoneBoardCanvas.dragTo(phoneBoardCanvas, {
+    sourcePosition: await hexPosition(phoneBoardCanvas, 0, 0),
+    targetPosition: await hexPosition(phoneBoardCanvas, 2, 0),
+  })
+  const crowdedLive = await assertNotificationLayout(phone, 'with a step waiting for a hex at 390x844')
+  assert(crowdedLive.includes('rejection'), `the refusal docks above the Action Bar (${crowdedLive.join(', ')})`)
+  // Test against the hexes themselves, not the canvas rectangle: the canvas
+  // is a hexagon's bounding box and its corners are empty, so a canvas-box
+  // test would fail every docked plate while none of them touches a hex.
+  const dockOverHex = await phone.evaluate(() => {
     const hexes = window.__workbench.hexRects()
     if (hexes.length === 0) {
       return ['no hexes']
     }
-    return [...document.querySelectorAll('[data-testid="move-pad"] button')]
-      .map((node) => ({ id: node.dataset.testid, rect: node.getBoundingClientRect() }))
-      .flatMap(({ id, rect }) =>
-        hexes
+    return [...document.querySelectorAll('[data-zone="dock"] [data-notification]')]
+      .filter((node) => !node.hidden)
+      .flatMap((node) => {
+        const rect = node.getBoundingClientRect()
+        return hexes
           .map((hex) => ({
             key: hex.key,
             w: Math.min(rect.right, hex.right) - Math.max(rect.left, hex.left),
             h: Math.min(rect.bottom, hex.bottom) - Math.max(rect.top, hex.top),
           }))
           .filter(({ w, h }) => w > 0 && h > 0)
-          .map(({ key, w, h }) => `${id} covers ${Math.round(w)}x${Math.round(h)} of hex ${key}`),
-      )
+          .map(({ key, w, h }) => `${node.dataset.notification} covers ${Math.round(w)}x${Math.round(h)} of hex ${key}`)
+      })
   })
-  assert(padOverHex.length === 0, `the move pad sits below the bottom hex row without covering a hex (${padOverHex.join(' | ') || 'no overlap'})`)
+  assert(dockOverHex.length === 0, `the dock stays below the bottom hex row without covering a hex (${dockOverHex.join(' | ') || 'no overlap'})`)
+  await shot(phone, 'phone-dock-stacked')
+  // Let the refusal retire before the contrast and target sweeps below.
+  await phone.waitForSelector('[data-testid="rejection-toast"]', { state: 'detached', timeout: 6000 })
   const cropped = await phone.evaluate(() => {
     const canvas = document.querySelector('[data-testid="board"] canvas')
     const area = document.querySelector('[data-testid="board"]')

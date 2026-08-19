@@ -263,6 +263,17 @@ Each rule keys to something the engine already knows, so none of this needs new 
 | Action Bar, two Slots | 97pt band, always | Compact 44pt plates floating bottom-left; full width only while loading or charging | ~53pt |
 | Stat Panel | Already on demand | A piece is tapped — no change | — |
 
+### The Action Bar Is A Twelve-Unit Ladder
+
+`2 | 4 | 4 | 2`. The Slots take four units each and a **rail** takes two on either side: `Undo` on the left, and on the right the single control that moves the fight forward — playing the next Boss Beat while a row is being told, closing the window otherwise, Restart once the Encounter has ended.
+
+The rails are the point. The advance control used to sit in the phase strip at the top of the frame, which put the most-pressed thing in the interface as far from the thumb as a portrait surface allows, and put a control inside a band that is otherwise pure readout. Undo existed only in the debug rail, which is to say it did not exist for a player. Both now sit in the `Bottom Interaction Zone`, and the phase strip is a readout — one step toward the state bar this document already asks for.
+
+Two consequences worth holding:
+
+- **A rail is a mark, not a word.** Two units is about 57 points at 390 — room for a glyph and not a label. That is a floor on how many rails the bar can carry: a third one would have to take its units from a Slot, and a Slot's four units are already the tightest thing on the bar.
+- **The Slot plate wears a tighter rake than its size class.** Four units leaves about 120 points, and `wb-plate-lg`'s symmetric clearance spent 38 of them on the cut — enough to truncate `Steady Strike`. `wb-plate-slot` clears the cut where the content actually sits, for the same reason `wb-plate-card` does. The lock head and the timing dot moved off the title row onto the row below, where each sits beside what it is about: the head with its own tumblers, the dot with the Keywords.
+
 **A correction, made after the board took its full width.** The recovery figures in this table were computed while the board was width-bound at 302px by the MovePad's reserved gutters. Once those gutters went and the board reached the full 390px, it became width-bound at the viewport itself: no amount of vertical space can make it larger on this phone. So hiding the Hand recovers **nothing for the board**, and shrinking the band would also break the contract that the board never resizes mid-Encounter. What the Hand rule still buys is hierarchy — during a Boss row the Hand recedes in place and the board becomes the loudest thing on screen — and that is the part worth having.
 
 **The Hand rule is the one to defend, because it is rules-derived rather than borrowed.** Boss Rows resolve in the Instant and Incoming phases, and a player cannot play a card in either — the window model and the Slot Activation Limit already say so. A Hand at full height through a phase where every card is illegal is the interface asserting something the rules deny.

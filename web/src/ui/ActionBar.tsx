@@ -1,5 +1,7 @@
 import { cardChargeCap, cardWindowSpeed, legality, type SlotState } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
+import { AdvanceControl } from './AdvanceControl'
+import { UndoControl } from './UndoControl'
 import { blocksTarget } from './firstTurnScript'
 import { useFirstTurnStep } from './useFirstTurn'
 import { slotCanFire, slotTakesCharge, slotWantedKeywords } from './slots'
@@ -69,22 +71,40 @@ const LOCK_STATE: Record<SlotStateName, LockState> = {
   fired: 'spent',
 }
 
+// The bar is a twelve-unit ladder: 2 | 4 | 4 | 2. The rails take two units
+// each and the Slots share the eight between them.
+//
+// The rails are why the ladder exists. Undo and the advance control are the
+// two most-pressed things in the interface and both used to be somewhere
+// else — advance parked in the phase strip at the top of the frame, undo
+// only in the debug rail — which put the fight's pacing as far from the
+// thumb as a portrait surface allows. A grid rather than a flex row because
+// the ladder is the contract: the Slots must not resize when a rail changes
+// what it is, and two fr-sized rails around two flex-1 Slots would do
+// exactly that.
+const SLOT_SPAN: Record<number, string> = { 1: 'col-span-8', 2: 'col-span-4', 4: 'col-span-2' }
+
 export function ActionBar() {
   const state = useWorkbench(selectState)
   const hero = state.heroes[state.primaryHeroId]
   if (!hero) {
     return null
   }
+  // px-2, not px-4: the ladder spends its width on four controls now, and
+  // the eight units the Slots share have to carry a card title.
+  const span = SLOT_SPAN[hero.actionBar.length] ?? 'col-span-4'
   return (
-    <div className="flex gap-2 border-t border-steel-800 bg-steel-950/80 px-4 py-2" data-testid="action-bar">
+    <div className="grid grid-cols-12 gap-1.5 border-t border-steel-800 bg-steel-950/80 px-2 py-2" data-testid="action-bar">
+      <UndoControl />
       {hero.actionBar.map((_, slotIndex) => (
-        <Slot key={slotIndex} slotIndex={slotIndex} />
+        <Slot key={slotIndex} slotIndex={slotIndex} span={span} />
       ))}
+      <AdvanceControl />
     </div>
   )
 }
 
-function Slot({ slotIndex }: { slotIndex: number }) {
+function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
   const state = useWorkbench(selectState)
   const catalog = useWorkbench((store) => store.catalog)
   const fireSlot = useWorkbench((store) => store.fireSlot)
@@ -177,7 +197,7 @@ function Slot({ slotIndex }: { slotIndex: number }) {
           cardDroppedOnSlot(cardInstanceId, slotIndex)
         }
       }}
-      className={`wb-plate wb-plate-lg min-h-20 flex-1 py-2 text-left transition ${FOCUS_RING_CLASS} ${
+      className={`wb-plate wb-plate-slot ${span} min-h-20 min-w-0 py-2 text-left transition ${FOCUS_RING_CLASS} ${
         // A Slot is a raked oathsteel plate. Its state lives in the leading-edge
         // accent — the status channel every plate shares — and in the face:
         // gold when the Slot is live (Primed, or about to take a card), ember
@@ -212,19 +232,24 @@ function Slot({ slotIndex }: { slotIndex: number }) {
       )}
       {card ? (
         <>
-          <div className="flex items-center gap-1.5">
-            {/* Keyed on the state so entering Primed remounts the head and the
-                seat plays once, on that transition only. */}
-            <LockHead key={stateName} state={LOCK_STATE[stateName]} className={`h-4 w-4 shrink-0 ${stateName === 'primed' ? 'wb-seat' : ''}`} />
-            <span className={`min-w-0 flex-1 truncate text-xs font-bold ${stateName === 'fired' ? 'text-steel-400' : 'text-ceramic-200'}`}>{card.title}</span>
-            <span className={`h-2 w-2 shrink-0 rounded-full ${windowDotClass(cardWindowSpeed(card))}`} aria-hidden="true" />
-          </div>
+          {/* The title has the row to itself. Four units of the ladder is
+              about 120px, and a lock head and a timing dot flanking the name
+              took 36 of the ~96 that leaves — enough to truncate "Steady
+              Strike", which is a card the player is choosing between. Both
+              marks moved down to the row where they already belong: a lock
+              head sits with its own tumblers, and the timing dot sits with
+              the Keywords, which is the other half of "what does this Slot
+              want and when". */}
+          <span className={`block truncate text-xs font-bold ${stateName === 'fired' ? 'text-steel-400' : 'text-ceramic-200'}`}>{card.title}</span>
           {/* Charge tumblers. Separate raked pins with gaps while charging;
               when the last one seats the gaps close and they read as one
               continuous bar — the shear line clear, the lock free to turn.
               Segmented becoming solid is a bigger perceptual change at this
               size than any shift of value, and it is what a lock does. */}
           <div className="mt-1.5 flex items-center gap-1.5">
+            {/* Keyed on the state so entering Primed remounts the head and the
+                seat plays once, on that transition only. */}
+            <LockHead key={stateName} state={LOCK_STATE[stateName]} className={`h-4 w-4 shrink-0 ${stateName === 'primed' ? 'wb-seat' : ''}`} />
             <div className={`flex items-center ${stateName === 'primed' || stateName === 'fired' ? 'gap-0' : 'gap-[3px]'}`} data-testid="charge-tumblers">
               {Array.from({ length: chargeCap }, (_, index) => (
                 <span
@@ -243,8 +268,9 @@ function Slot({ slotIndex }: { slotIndex: number }) {
                 lights those Keywords in hand — and steel when it cannot, so
                 a card's appetite stays learnable through the window it spends
                 unable to act on it. */}
+            <span className={`ml-auto h-2 w-2 shrink-0 rounded-full ${windowDotClass(cardWindowSpeed(card))}`} aria-hidden="true" />
             {wanted.length > 0 && (
-              <div className="ml-auto flex shrink-0 items-center gap-1" data-testid="slot-wants">
+              <div className="flex shrink-0 items-center gap-1" data-testid="slot-wants">
                 {wanted.map((keywordId) => {
                   const Icon = keywordIcon(state.primaryHeroId, keywordId)
                   return <Icon key={keywordId} className={`h-4 w-4 ${takesCharge ? 'text-gold-400' : 'text-steel-600'}`} />
