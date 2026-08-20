@@ -1,6 +1,6 @@
 # Event Registry Migration
 
-Status: delivered (issues 01–03 merged: PRs #128, #129, #130; follow-up D-087 routed to Game Design)
+Status: delivered (issues 01–03 merged: PRs #128, #129, #130; follow-up D-087 decided Adopted, implementation awaiting routing)
 
 ## Triggering decision
 
