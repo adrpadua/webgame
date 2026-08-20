@@ -535,20 +535,22 @@ function resolveOne(
       // An Incapacitated Hero has no cards and no board presence, so each of
       // these is free and none of them touches the Boss's health (ADR 0036).
       const ally = action.targetId === undefined ? undefined : draft.heroes[action.targetId]
-      if (action.action === 'steady_an_ally' && ally) {
+      if (action.action === 'grant_ally_armor' && ally) {
         ally.armor += 1
-        fact.detail.steadied = ally.id
+        fact.detail.armoredAlly = ally.id
       }
-      if (action.action === 'urge_an_ally' && ally) {
+      if (action.action === 'ally_draws_card' && ally) {
         generated.push(...cardDrawActions(ally, ally.id, 1))
-        fact.detail.urged = ally.id
+        fact.detail.drewForAlly = ally.id
       }
-      if (action.action === 'steel_the_party') {
+      if (action.action === 'reduce_escalation') {
         // The one that is not aimed at a single ally: it buys the Party a
         // little of the clock back, which is the contribution an Incapacitated
-        // Hero can still make to a fight they can no longer stand in.
+        // Hero can still make to a fight they can no longer stand in. It is
+        // also the only effect in the game that moves Escalation *down*, which
+        // is why it is worth measuring before the diminished set grows.
         draft.escalation = Math.max(0, draft.escalation - 1)
-        fact.detail.steeled = true
+        fact.detail.reducedEscalation = true
       }
       succeed(fact)
       break

@@ -229,7 +229,7 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       }
       // The two ally-facing choices need a living ally to aim at; a Party with
       // none is a Party that has already lost.
-      if (action.action !== 'steel_the_party') {
+      if (action.action !== 'reduce_escalation') {
         const ally = action.targetId === undefined ? undefined : state.heroes[action.targetId]
         if (!ally || ally.status !== 'living') {
           return illegal('That action needs a living ally.')

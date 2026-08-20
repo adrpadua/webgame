@@ -498,26 +498,26 @@ describe('the zero-health lifecycle (ADR 0036)', () => {
     const out = resolve(catalog, downed, { kind: 'incapacitate_hero', sourceId: 'mender' }).state
     out.heroes.warden.armor = 0
 
-    const steadied = resolve(catalog, out, {
-      kind: 'diminished_action', sourceId: 'mender', action: 'steady_an_ally', targetId: 'warden',
+    const armored = resolve(catalog, out, {
+      kind: 'diminished_action', sourceId: 'mender', action: 'grant_ally_armor', targetId: 'warden',
     })
-    expect(steadied.facts[0].succeeded).toBe(true)
-    expect(steadied.state.heroes.warden.armor).toBe(1)
+    expect(armored.facts[0].succeeded).toBe(true)
+    expect(armored.state.heroes.warden.armor).toBe(1)
     // The Boss's health is untouched by every diminished action.
-    expect(steadied.state.board.entities.probe_boss.health).toBe(out.board.entities.probe_boss.health)
+    expect(armored.state.board.entities.probe_boss.health).toBe(out.board.entities.probe_boss.health)
 
     const withEscalation = { ...out, escalation: 2 }
-    const steeled = resolve(catalog, withEscalation, {
-      kind: 'diminished_action', sourceId: 'mender', action: 'steel_the_party',
+    const reduced = resolve(catalog, withEscalation, {
+      kind: 'diminished_action', sourceId: 'mender', action: 'reduce_escalation',
     })
-    expect(steeled.state.escalation).toBe(1)
+    expect(reduced.state.escalation).toBe(1)
     expect(DIMINISHED_ACTIONS).toHaveLength(3)
   })
 
   it('refuses a diminished action from a Hero who is still standing', () => {
     const { catalog, state } = wounded()
     const refused = resolve(catalog, state, {
-      kind: 'diminished_action', sourceId: 'warden', action: 'steel_the_party',
+      kind: 'diminished_action', sourceId: 'warden', action: 'reduce_escalation',
     })
     expect(refused.facts[0].reason).toBe('Only an Incapacitated Hero takes a diminished action.')
   })

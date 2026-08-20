@@ -40,7 +40,13 @@ redeploys on every push to `main` or the active workbench branch that touches
    — or copy the closest existing JSON file if an existing design is the
    better starting point.
 2. Give it a stable lowercase `snake_case` `id` — the filename should match it —
-   and complete player-facing `title` and `rules_text`.
+   and complete player-facing `title` and `rules_text`. **An id is a working
+   name; flavour rides the `title`.** A card or Hero id may be evocative
+   because it names one specific thing (`iron_guard`, `elian_riposte`), but
+   anything in a *closed set the whole game shares* — a Beat kind, a target
+   family, a Counter Reader event — is named for the mechanic, so that a
+   second Boss or Hero wanting different words for the same effect renames a
+   title rather than forking the vocabulary.
 3. Reference it by `id` from a Card, Boss Program, Encounter, or deck.
 4. Validate and play:
 

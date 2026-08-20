@@ -125,5 +125,14 @@ export function expiredRescues(state: EncounterState): string[] {
 // ally-facing and none of them touches the Boss's health: an Incapacitated
 // Hero who could still push the kill is a Hero the Party has little reason to
 // rescue, which would invert the rescue demand into an option (ADR 0036).
-export const DIMINISHED_ACTIONS = ['steady_an_ally', 'urge_an_ally', 'steel_the_party'] as const
+//
+// Named for the mechanic, never for the flavour — the same rule `bossBeatSchema`
+// states for Beat kinds, and for the same reason: a flavoured identifier is one
+// Hero's voice welded into a shared contract, and the moment a second Hero wants
+// a different word for the same effect the name is either wrong or duplicated.
+// `Steel the Party` is a fine thing to *call* `reduce_escalation` on screen; it
+// is not what the rules should call it. Player-facing wording arrives with the
+// UI, or with the per-Hero authored abilities that eventually replace this
+// universal set — either way it rides a title, not the id.
+export const DIMINISHED_ACTIONS = ['grant_ally_armor', 'ally_draws_card', 'reduce_escalation'] as const
 export type DiminishedAction = (typeof DIMINISHED_ACTIONS)[number]
