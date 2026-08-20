@@ -183,24 +183,24 @@ describe("Maren's loop (D-080)", () => {
 
   it('converts overflow into Boss damage, capped at the printed healing', () => {
     const state = start()
-    const bossBefore = state.board.entities.embermaw.health
+    const bossBefore = state.board.entities[state.bossId].health
     // The guardian is 1 short of full: Surplus of Care heals 3, so 1 lands
     // and 2 convert.
     state.heroes.guardian.health = state.heroes.guardian.maxHealth - 1
     const after = marenFires(state, 'surplus_of_care', 'guardian')
     expect(after.state.heroes.guardian.health).toBe(after.state.heroes.guardian.maxHealth)
     expect(after.facts[0].detail.overflowConverted).toBe(2)
-    expect(after.state.board.entities.embermaw.health).toBe(bossBefore - 2)
+    expect(after.state.board.entities[state.bossId].health).toBe(bossBefore - 2)
   })
 
   it('does not convert on a card without the Keyword', () => {
     const state = start()
-    const bossBefore = state.board.entities.embermaw.health
+    const bossBefore = state.board.entities[state.bossId].health
     // Braced Recovery heals 3 into a full Hero: everything is lost, nothing
     // converts — the conversion is the Keyword's, not healing's.
     const after = marenFires(state, 'braced_recovery', 'guardian')
     expect(after.facts[0].detail.overflowConverted).toBeUndefined()
-    expect(after.state.board.entities.embermaw.health).toBe(bossBefore)
+    expect(after.state.board.entities[state.bossId].health).toBe(bossBefore)
   })
 
   it('charges the Signature from converted overflow, and only from a blow that landed', () => {
@@ -357,22 +357,30 @@ describe('the overflow cap under scaling', () => {
   })
 })
 
-// The no-healer-clear line, played and pinned (D-082's outstanding evidence).
-// The full measurement lives in scripts/attritionLine.ts — 30 seeds, both
-// arms — and its numbers are recorded in the Brand gate doc. What this test
-// pins is the replayable half: the committed duo line ends in victory, and
-// the victory is attributable — her kit actually fired on the way there.
-describe('the played no-healer-clear line', () => {
-  it('replays the committed duo line to victory, through her kit', () => {
+// The composition lines, played and pinned. The measurement lives in
+// scripts/attritionLine.ts — 30 seeds, both arms — and its numbers are in the
+// Brand gate doc. Two claims survived the retune that made the Damage seats
+// load-bearing: without Maren the front line dies to attrition; with her the
+// Party survives to the Clock and still cannot end the fight, because ending
+// it is the Damage Role's job and nobody fields one. What this test pins is
+// the replayable half of the second claim.
+describe('the played composition line', () => {
+  it('replays the duo line to a survived loss: alive at the Clock, Boss standing', () => {
     const scenario = catalog.scenarios.brand_trial_duo_line
     expect(scenario).toBeDefined()
     const replay = runScenario(catalog, scenario)
     const finalState = replay.entries[replay.entries.length - 1].state
-    expect(finalState.outcome).toBe('victory')
-    expect(finalState.board.entities[finalState.bossId]?.health ?? 0).toBe(0)
-    // Attribution: the line cleansed a Sear and fired her heals — a victory
-    // that never touched her kit would be the guardian soloing after all,
-    // which is exactly what the control arm proves he cannot do.
+    // The we-need-damage shape: the run ends by the Encounter Clock with both
+    // Heroes living and the Boss holding most of its pool — not a wipe, and
+    // not a win. A duo that clears here means the Damage seats stopped being
+    // load-bearing, which is the retune's whole claim.
+    expect(finalState.outcome).toBe('defeat')
+    expect(finalState.heroes.guardian.status).toBe('living')
+    expect(finalState.heroes.maren.status).toBe('living')
+    expect(finalState.board.entities[finalState.bossId]?.health ?? 0).toBeGreaterThan(0)
+    // Attribution: the survival is hers — the line cleansed Sears and landed
+    // her heals. The control arm proves the guardian alone does not live to
+    // see this loss.
     const facts = replay.entries.flatMap((entry) => entry.facts)
     const cleansed = facts.some(
       (fact) => fact.succeeded && fact.kind === 'fire_slot' && (fact.detail.spentCounters as { counter_id?: string }[] | undefined)?.some((spent) => spent.counter_id === 'seared'),

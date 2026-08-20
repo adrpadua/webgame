@@ -52,7 +52,7 @@
       ]
     }
   ],
-  "boss": "embermaw",
+  "boss": "embermaw_branded",
   "round_limit": 8,
   "enrage_text": "Enrage: the brand finishes what the blows started.",
   "board_radius": 2,

@@ -67,19 +67,24 @@ Tests 6 and 7 are the ones that will start failing when the Restorative's cleans
 
 ## The Played Line
 
-The no-healer-clear measurement has been run (`npm run probe:attrition`, `web/scripts/attritionLine.ts`): both arms over the same 30 seeds, the same guardian sword-and-shield plan in each, with Maren's authored loop — clear, cover, bank — piloting the second seat in the duo arm only. The control arm is `embermaw_attrition_solo_probe`, an evaluation-only Encounter that is the trial with her seat removed.
+The composition measurement has been run twice (`npm run probe:attrition`, `web/scripts/attritionLine.ts`): both arms over the same 30 seeds, the same guardian sword-and-shield plan in each, with Maren's authored loop — clear, cover, bank — piloting the second seat in the duo arm only. The control arm is `embermaw_attrition_solo_probe`, an evaluation-only Encounter that is the trial with her seat removed.
 
-| Arm | Clears | Loss shape | Avg guardian health at end | Avg boss health left | Sear rounds standing | Cleanses / run |
-| --- | --- | --- | --- | --- | --- | --- |
-| Solo — no Healer | **0 / 30** | Dead to attrition at avg Round 7.1, before the Clock | 0.1 | 25.0 | 5.7 | 0 |
-| Duo — Maren playing | **5 / 30** | Mostly the Enrage Clock, boss nearly dead, party alive | 15.9 | 14.4 | 5.7 | 1.8 |
+The first run, against the shipped 48-health Embermaw, found the duo clearing 5 of 30 — a Tank and a Healer ending the fight with no Damage seat at the table. That is a composition failure, not a success: the Role Contract fields 1–2 Damage Heroes because ending the fight is *their* job. The trial now fields **`embermaw_branded`**, the same drake at two-seat scale (72 health) — the party-scaling rule applied as authored content: the walls rise with the Party, the Tank's numbers stay constant.
+
+Against the wall, over the same 30 seeds:
+
+| Arm | Clears | Loss shape | Avg guardian health at end | Avg boss health left | Cleanses / run |
+| --- | --- | --- | --- | --- | --- |
+| Solo — no Healer | **0 / 30** | Dead to attrition at avg Round 7.1, before the Clock | 0.1 | 49.0 of 72 | 0 |
+| Duo — Maren playing | **0 / 30** | The Enrage Clock, both Heroes alive, Boss holding half its pool | 15.8 | 37.9 of 72 | 1.8 |
 
 What the numbers say:
 
-- **The gate holds in play.** Without her, the front line dies to the priced blows before the Clock ever matters, with the Boss barely half down. With her, the guardian ends alive at 15.9 of 34 — the same fight, survived — and full clears exist. The loss reads "I need my Healer", which is Principle 5's shape.
-- **The clears are hers.** The pinned line (`data/scenarios/brand_trial_duo_line.json`, seed 1002, 68 steps, victory at Round 8) cleanses Sears and lands her heals on the way to the kill; `attrition.test.ts` replays it and asserts the attribution.
-- **These are policy floors, not ceilings** — the same caveat every sweep row carries. Two tuning reads for the next pass, recorded rather than acted on: at this floor her overflow game barely fires (0.7 damage/run — the guardian is usually hurt, so heals land instead of converting), which means the Signature almost never reaches full bank (0.2 covers/run). Q23's cap and the earn rate should be re-read against a line that overheals on purpose before either number moves.
-- **Most duo losses are the Clock with the Boss under 15 health** — the pair's damage output is marginal for an 8-Round limit. Whether that is the trial's tuning or the intended pressure is a design question the next grilling can price; nothing here forces it.
+- **Both composition gates hold in play.** Without the Healer, the front line dies to the priced blows before the Clock matters — the loss names the missing Healer. With her, the Party survives the full fight and still cannot end it — the loss names the missing Damage seats. Each Role's absence produces its own legible failure, which is Principle 5's shape twice over.
+- **The wall is sized for the seats that are missing.** The duo removes ~34 health across a full run; a single Damage Hero contributing ~5–8 per Round closes the remaining ~38, so a trio clears where a duo cannot and a full four-seat Party clears with room. Those forward numbers are assumptions until a Damage Hero exists to measure — the third arm this probe grows when one lands.
+- **The pinned line** (`data/scenarios/brand_trial_duo_line.json`, seed 1002, 71 steps) is the survived loss: defeat by the Clock with both Heroes living and the Boss standing. `attrition.test.ts` replays it asserting exactly that shape plus her kit's attribution — a duo that clears here again means the Damage seats stopped being load-bearing.
+- **These are policy floors, not ceilings** — the sweep's standing caveat. The floor-vs-ceiling gap is why the wall sits at 72 rather than snug against the measured 48: a human duo playing the ceiling (deliberate overheal, banked covers) beats these scripts and must still fall short.
+- Two tuning reads carried forward unchanged: at the policy floor her overflow game barely fires (0.7 damage/run) so the Signature reached full bank in under a quarter of runs — Q23's cap and the earn rate still want a deliberate-overheal line before either number moves.
 
 ## Related
 
