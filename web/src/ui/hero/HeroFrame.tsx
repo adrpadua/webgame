@@ -1,5 +1,5 @@
 import { useCatalog } from '@/content/CatalogContext'
-import { combatantRef, getCounters, type CounterInstance, type HeroState } from '@/engine'
+import { type HeroState } from '@/engine'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { signatureControl, type SignatureControl as SignatureControlState } from './heroFrame'
@@ -7,6 +7,7 @@ import { useDamageFlash } from '../common/useDamageFlash'
 import { HeartIcon, HeroEmblem, ShieldIcon } from '../common/icons'
 import { HERO_STAT_DETAILS, slotDetail } from '../common/holdDetails'
 import { useHold } from '../common/HoldPopover'
+import { StatusIcons } from '../common/StatusIcons'
 import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS, healthBarScale } from '../common/theme'
 
 // The Hero Frame (D-065, ADR 0033): the primary Hero's persistent readout,
@@ -22,8 +23,9 @@ import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLAS
 // 44px tap target, so a stack of four interactive rows would be 176px of
 // chrome over a board that has 95px to spare below its last hex row. One
 // target over the stack costs 58px and still carries the sentences a hold is
-// for. The Counter chips stay their own controls beside the frame, where an
-// MMO puts buffs, because each one explains a different authored rule.
+// for. The Status Icons beside the frame answer the same constraint the same
+// way (D-088): one tray, one target, and a popup that names every Counter in
+// it, rather than 44px of chrome per mark.
 //
 // The Signature is a separate control (`SignatureButton`), on screen only
 // while it can fire. The frame's resource bar and that button are two faces
@@ -110,51 +112,6 @@ function ResourceBar({ signature }: { signature: SignatureControlState }) {
         />
       ))}
     </span>
-  )
-}
-
-// One chip per live Counter, on whichever piece is holding it. Shared with
-// the (now Enemy-only) Stat Panel: the mechanism is two-sided (D-032), so
-// one component renders a piece's Counters wherever that piece's readout
-// lives. The popup quotes the authored rules text when the Counter came from
-// `data/counters/`, and falls back to the trigger reason for engine-built
-// ones.
-function CounterChip({ counter, rulesText }: { counter: CounterInstance; rulesText: string }) {
-  const stats = [{ label: 'Held', value: String(counter.count) }]
-  if (counter.remainingRounds > 0) {
-    stats.push({ label: 'Rounds left', value: String(counter.remainingRounds) })
-  }
-  const hold = useHold({
-    id: `counter:${counter.id}`,
-    title: counter.title,
-    badge: 'Counter',
-    tone: 'guard',
-    stats,
-    text: rulesText,
-  })
-  return (
-    <button
-      type="button"
-      {...hold.holdProps}
-      data-testid="counter-chip"
-      data-counter={counter.id}
-      className={`min-h-11 min-w-11 bg-gold-900 px-1.5 text-[10px] font-semibold text-gold-200 ${FOCUS_RING_CLASS}`}
-    >
-      {counter.title}
-      {counter.count > 1 && <span className="ml-1 text-gold-100">{counter.count}</span>}
-    </button>
-  )
-}
-
-export function CounterChips({ entityId }: { entityId: string }) {
-  const state = useWorkbench(selectState)
-  const catalog = useCatalog()
-  return (
-    <>
-      {getCounters(state, combatantRef(entityId)).map((counter) => (
-        <CounterChip key={counter.id} counter={counter} rulesText={catalog.counters[counter.id]?.rules_text ?? counter.triggerReason} />
-      ))}
-    </>
   )
 }
 
@@ -279,9 +236,11 @@ export function HeroFrame() {
         </span>
       </button>
       {/* Counters sit beside the frame, where an MMO puts its buffs: they are
-          the Hero's state, but each is its own authored rule and so its own
-          control, which a single frame-wide hold target cannot contain. */}
-      <CounterChips entityId={heroId} />
+          the Hero's state, but each is its own authored rule, which a hold on
+          the frame's own numbers cannot explain. The tray is their readout and
+          their hold target both — packed at the density the direction drew,
+          because the row has to hold three of them beside a 208px frame. */}
+      <StatusIcons entityId={heroId} />
       <SignatureButton />
     </div>
   )
