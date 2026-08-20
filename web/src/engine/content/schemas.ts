@@ -141,7 +141,15 @@ export const signatureGrantSchema = z.object({
   // mitigation fully answered the blow — and `guarded_front` is the Warden
   // sentence as a predicate. Both already exist as engine computations; a
   // Grant only exposes them (D-064).
-  gates: z.array(z.enum(['health_loss_zero', 'guarded_front'])).default([]),
+  // The closed gate list. `health_loss_zero` is the perfect block —
+  // mitigation fully answered the blow — and `guarded_front` is the Warden
+  // sentence as a predicate; both are questions about a blow taken.
+  // `effect_landed` asks whether the event actually did anything, which is
+  // what stops an offensive or tempo earn being farmed by firing into
+  // nothing (ADR 0037). Which gates each `when` may use is a closed pairing
+  // the catalog checks, because a gate asking about a blow is incoherent on
+  // an event that is not one.
+  gates: z.array(z.enum(['health_loss_zero', 'guarded_front', 'effect_landed'])).default([]),
   grants_charge: z.number().int().min(1).default(1),
 })
 
@@ -431,6 +439,12 @@ export const encounterSchema = z.object({
   boss_health: z.number().int().min(1),
   slot_count: z.number().int().min(1).max(8),
   hand_refill_target: z.number().int().min(1).max(12),
+  // What a Revived Hero comes back on, as a fraction of their maximum, rounded
+  // up (ADR 0036). Authored rather than compiled in because it decides how
+  // forgiving the whole fight is — the mistake `range_tiles` was before D-043,
+  // where the number that set the difficulty lived where no designer could
+  // reach it. `0.25` is CONTEXT.md's baseline.
+  revive_health_fraction: z.number().min(0.05).max(1).default(0.25),
   player_deck: z.array(deckEntrySchema).min(1),
   boss_programs: z.array(z.string()).min(1),
   loop_boss_programs: z.boolean().default(true),

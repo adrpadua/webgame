@@ -83,4 +83,25 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // The catalog is injected into the component tree, not reached for
+    // (ADR 0038). Components read it with `useCatalog()`; the singleton is
+    // for the code that renders outside React and has no context to read.
+    files: ['src/ui/**/*.ts', 'src/ui/**/*.tsx'],
+    ignores: ['src/ui/onboarding/useFirstTurn.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/store/catalog',
+              importNames: ['catalog'],
+              message: 'Components read the catalog with useCatalog() (ADR 0038). The singleton is for code rendering outside React.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 )

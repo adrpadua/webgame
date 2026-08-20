@@ -33,6 +33,15 @@ export interface SlotState {
   earnedCharges: number
 }
 
+// Where a Hero stands in the zero-health lifecycle (ADR 0036).
+//
+// `living` is the ordinary state. `downed` is a Hero at `0` health while a
+// rescue is still possible: a blocking, non-targetable body that answers no
+// demand. `incapacitated` is a Hero whose rescue window expired: off the
+// board, out of cards, and still choosing one ally-facing action a Round.
+// Never "removed" — nobody leaves the table.
+export type HeroStatus = 'living' | 'downed' | 'incapacitated'
+
 export interface HeroState {
   id: string
   health: number
@@ -43,6 +52,11 @@ export interface HeroState {
   discard: CardInstance[]
   refillTarget: number
   actionBar: SlotState[]
+  status: HeroStatus
+  // The Round this Hero went Downed, so the window's expiry is a comparison
+  // rather than a countdown that has to be ticked in the right order. `0`
+  // whenever the Hero is not Downed.
+  downedRound: number
 }
 
 export interface BoardEntity {

@@ -127,6 +127,8 @@ export function createEncounterState(catalog: ContentCatalog, encounterId: strin
       discard: [],
       refillTarget: Math.max(encounter.hand_refill_target, 1),
       actionBar,
+      status: 'living',
+      downedRound: 0,
     }
     state.heroes[hero.id] = hero
     shuffle(state.rng, hero.deck, 'initial_deck_shuffle')

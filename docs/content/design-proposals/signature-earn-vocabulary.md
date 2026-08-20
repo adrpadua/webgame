@@ -1,7 +1,7 @@
 # Engineering Request: The Signature earn vocabulary is Warden-only
 
 Date: 2026-08-19
-Status: **Open engineering request**, raised by Game Design from the [new-Hero authoring dry run](../authoring-a-new-hero.md).
+Status: **Shipped 2026-08-20** as D-071 / [ADR 0037](../../adr/0037-widen-the-signature-earn-vocabulary.md). All four `when` values are evaluated, gates are paired to the event they can answer, and `effect_landed` is the first non-tank gate. The request text below is kept as the record of what was asked for and why.
 Context: [D-064 / ADR 0032](../../adr/0032-give-each-hero-a-fixed-signature-slot-with-earned-charges.md), [Character Design Bible](../../rules/character-design-bible.md), [Kessa Varn design](../heroes/kessa-varn-design.md) (D-014), [design-team handoff](../design-team-handoff.md).
 
 ## The finding

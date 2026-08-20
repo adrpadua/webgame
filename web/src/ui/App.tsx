@@ -1,119 +1,28 @@
-import { useEffect } from 'react'
 import { PhaserBoard } from '@/board/PhaserBoard'
-import { fireTargeting } from '@/engine'
-import { usePlayout } from '@/store/playout'
-import { selectState, useWorkbench } from '@/store/workbench'
-import { BossEmblem, HeroEmblem } from './icons'
-import { ActionBar } from './ActionBar'
-import { CoachMark } from './CoachMark'
-import { DebugRail } from './DebugRail'
+import { ActionBar } from './actionBar/ActionBar'
+import { BeatCard, StandingDemand } from './overlays/BeatCard'
+import { CoachMark } from './onboarding/CoachMark'
+import { DebugRail, showDebugRail } from './debug/DebugRail'
+import { EntityInspect } from './overlays/EntityInspect'
+import { FirstTurnCue } from './onboarding/FirstTurnCue'
+import { GuideModal } from './onboarding/GuideModal'
+import { Hand } from './hand/Hand'
+import { HeroFrame, HERO_FRAME_CLEARANCE_CLASS } from './hero/HeroFrame'
+import { HoldPopoverLayer } from './common/HoldPopover'
+import { MovePaymentCue } from './overlays/MovePaymentCue'
+import { NotificationLayer, NotificationZone } from './overlays/NotificationLayer'
+import { OutcomeBanner } from './overlays/OutcomeBanner'
+import { PhaseBanner } from './overlays/PhaseBanner'
+import { PhaseControl } from './chrome/PhaseControl'
+import { RejectionToast } from './overlays/RejectionToast'
+import { ReplaceConfirmModal } from './actionBar/ReplaceConfirmModal'
+import { TargetingBanner } from './overlays/TargetingBanner'
+import { FRAME_HEIGHT_CLASS } from './common/theme'
 
-const showDebugRail = import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug')
-import { EntityInspect } from './EntityInspect'
-import { FirstTurnCue } from './FirstTurnCue'
-import { GuideModal } from './GuideModal'
-import { Hand } from './Hand'
-import { HoldPopoverLayer } from './HoldPopover'
-import { BeatCard, StandingDemand } from './BeatCard'
-import { HeroFrame, HERO_FRAME_CLEARANCE_CLASS } from './HeroFrame'
-import { MovePaymentCue } from './MovePaymentCue'
-import { NotificationLayer, NotificationZone, Notify } from './NotificationLayer'
-import { PhaseBanner } from './PhaseBanner'
-import { PhaseControl } from './PhaseControl'
-import { ReplaceConfirmModal } from './ReplaceConfirmModal'
-import { FOCUS_RING_CLASS, FRAME_HEIGHT_CLASS } from './theme'
-
-function RejectionToast() {
-  const lastRejection = useWorkbench((store) => store.lastRejection)
-  const clearRejection = useWorkbench((store) => store.clearRejection)
-  useEffect(() => {
-    if (lastRejection === null) {
-      return
-    }
-    const timer = setTimeout(clearRejection, 3500)
-    return () => clearTimeout(timer)
-  }, [lastRejection, clearRejection])
-  if (lastRejection === null) {
-    return null
-  }
-  // Docked: the refusal answers a tap on the Action Bar or the Hand, so it
-  // belongs above them rather than at a fixed offset off the bottom of the
-  // frame — which is how it used to land on the Action Bar itself.
-  return (
-    <Notify id="rejection">
-      <div
-        className="wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-ember py-2 text-center text-xs font-semibold text-ember-100"
-        data-testid="rejection-toast"
-      >
-        {lastRejection}
-      </div>
-    </Notify>
-  )
-}
-
-function TargetingBanner() {
-  const targetingSlotIndex = useWorkbench((store) => store.targetingSlotIndex)
-  const cancelTargeting = useWorkbench((store) => store.cancelTargeting)
-  const catalog = useWorkbench((store) => store.catalog)
-  const state = useWorkbench(selectState)
-  if (targetingSlotIndex === null) {
-    return null
-  }
-  const targetMode = fireTargeting(catalog, state, state.primaryHeroId, targetingSlotIndex).mode
-  // Docked. At its old fixed `top-40` this prompt printed across the advance
-  // control, which then sat in the phase strip — the one control the player
-  // must not lose while a Top Card waits for its target.
-  return (
-    <Notify id="targeting">
-      <div
-        className="wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-gold flex items-center justify-between py-2 text-xs font-semibold text-gold-100 shadow-lg"
-        data-testid="targeting-banner"
-      >
-        <span>{targetMode === 'hex' ? 'Pick a hex' : 'Pick a piece'}</span>
-        <button
-          type="button"
-          onClick={cancelTargeting}
-          className={`wb-plate wb-plate-sm wb-face-gold wb-acc-gold pointer-events-auto min-h-11 font-bold text-gold-950 ${FOCUS_RING_CLASS}`}
-        >
-          Cancel
-        </button>
-      </div>
-    </Notify>
-  )
-}
-
-function OutcomeBanner() {
-  const state = useWorkbench(selectState)
-  // The batch that ended the Encounter may still be replaying beat by beat;
-  // the reveal waits for the fatal blow to land on screen.
-  const outcomeHeld = usePlayout((store) => store.outcomeHeld)
-  if (state.active || outcomeHeld) {
-    return null
-  }
-  const victory = state.outcome === 'victory'
-  // The stage's top rank. The Encounter ending outranks any phase word, and
-  // the two never coexist anyway: this needs `state.active` to be false and
-  // the phase banner needs it to be true.
-  return (
-    <Notify id="outcome">
-      <div
-        className={`wb-pop-in wb-plate wb-plate-xl py-6 text-center ${
-          victory ? 'wb-face-steel wb-acc-gold text-gold-100' : 'wb-face-steel wb-acc-ember text-ember-100'
-        }`}
-        data-testid="outcome-banner"
-        data-outcome={state.outcome}
-      >
-        {victory ? (
-          <HeroEmblem className="wb-float mx-auto h-12 w-12 text-gold-400" />
-        ) : (
-          <BossEmblem className="wb-float mx-auto h-12 w-12 text-coral-400" />
-        )}
-        <div className="mt-2 text-2xl font-black tracking-widest uppercase">{victory ? 'Victory' : 'Defeat'}</div>
-        <div className="mt-2 text-sm">{state.outcomeReason}</div>
-      </div>
-    </Notify>
-  )
-}
+// The play surface, and nothing but its composition: which components exist,
+// which layer each one sits in, and in what order. Every member below owns
+// its own state, reads the store itself, and can be moved between zones
+// without this file learning anything about what it does.
 
 export default function App() {
   // flex-wrap keeps the portrait frame and the debug rail side by side on

@@ -71,7 +71,7 @@
       "x": -430,
       "y": 0,
       "w": 380,
-      "text": "The current Game UI of Raid Card Tactics, reproduced from the shipped source rather than sketched: the palette and plate geometry from web/src/index.css, the gauge language from web/src/ui/theme.ts, the markup from the components, and every box size measured off the running app at 390x844. The board art in the two screen boards is the game's own render.\n\nTwo screens on the left, six component boards to the right."
+      "text": "The current Game UI of Raid Card Tactics, reproduced from the shipped source rather than sketched: the palette and plate geometry from web/src/index.css, the gauge language from web/src/ui/common/theme.ts, the markup from the components, and every box size measured off the running app at 390x844. The board art in the two screen boards is the game's own render.\n\nTwo screens on the left, six component boards to the right."
     },
     {
       "id": "surface",

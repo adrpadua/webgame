@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { hexKey, isLegalMove, neighbors, type Axial } from '@/engine'
+import { catalog } from './catalog'
 import { selectState, useWorkbench } from './workbench'
 
 // The Hero-drag movement gesture. The board reports a destination and nothing
@@ -34,7 +35,7 @@ function openQuickWindow(): void {
 }
 
 afterEach(() => {
-  delete store().catalog.cards.burst_test
+  delete catalog.cards.burst_test
 })
 
 describe('dragging the Hero to a hex', () => {
@@ -166,8 +167,8 @@ describe('dragging the Hero to a hex', () => {
 describe('targeting a burst Card', () => {
   beforeEach(() => {
     openQuickWindow()
-    store().catalog.cards.burst_test = {
-      ...store().catalog.cards.sweeping_blow,
+    catalog.cards.burst_test = {
+      ...catalog.cards.sweeping_blow,
       id: 'burst_test',
       title: 'Burst Test',
       target_type: 'hex',

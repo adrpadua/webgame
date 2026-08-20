@@ -1,6 +1,7 @@
 import { cardChargeCap } from './content/catalog'
 import type { ContentCatalog } from './content/catalog'
 import { applyAction, checkResolution } from './resolve'
+import { expiredRescues } from './downed'
 import { ESCALATION_MAX, escalationActionsForRoundEnd, escalationModifiers, minionDemandTerms } from './escalation'
 import { detonationDue, minionDetonation, minionIntent } from './minions'
 import { actionsForTrack, refreshTelegraphs } from './timeline'
@@ -180,7 +181,19 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
         return { state: draft, facts }
       }
       submit({ kind: 'round_start', sourceId: ENCOUNTER_SOURCE, round: nextRound })
+      // The rescue window closes (ADR 0036). Checked after the Round has
+      // opened, so a Hero Downed in Round N is rescuable right through Round
+      // N+1 and expires as N+2 begins. The Escalation charge is submitted as
+      // an action rather than applied here, so a failed rescue lands on the
+      // fact stream beside every other demand the Party did not answer.
+      for (const heroId of expiredRescues(draft)) {
+        submit({ kind: 'incapacitate_hero', sourceId: heroId })
+        submit({ kind: 'gain_escalation', sourceId: ENCOUNTER_SOURCE, amount: 1, reason: 'unanswered_rescue', beatId: '' })
+      }
       for (const heroId of Object.keys(draft.heroes)) {
+        if (draft.heroes[heroId].status !== 'living') {
+          continue
+        }
         while (draft.heroes[heroId].hand.length < draft.heroes[heroId].refillTarget) {
           if (draft.heroes[heroId].deck.length === 0) {
             if (draft.heroes[heroId].discard.length === 0) {

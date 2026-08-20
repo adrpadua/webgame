@@ -27,3 +27,7 @@ web/smoke-portrait.png
 
 # Board effect films (scripts/film.mjs rewrites the shot it is filming)
 web/film/
+
+# Python bytecode (design/ build scripts)
+__pycache__/
+*.pyc

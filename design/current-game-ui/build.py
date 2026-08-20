@@ -3,7 +3,7 @@
 
 Every value here is lifted from the shipped Workbench: the palette and the
 plate geometry from `web/src/index.css`, the gauge language from
-`web/src/ui/theme.ts`, the markup from the components themselves, and the
+`web/src/ui/common/theme.ts`, the markup from the components themselves, and the
 measured box sizes from `metrics.json` — captured off the running app at
 390x844. The board art is the game's own render, cropped from that capture.
 
@@ -108,7 +108,7 @@ body{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue","Noto Sans",Arial,sans-serif;
   -webkit-font-smoothing:antialiased;
 }
-/* The gauge language, written once (web/src/ui/theme.ts): a dark track, a
+/* The gauge language, written once (web/src/ui/common/theme.ts): a dark track, a
    fill measured from the left, the number overlaid with a shadow so it stays
    crisp where it straddles the fill edge. */
 .gauge{position:relative;display:block;height:18px;overflow:hidden;border-radius:2px;background:var(--steel-950)}
@@ -118,7 +118,7 @@ body{
 .col{display:flex;flex-direction:column}
 """
 
-# --- Inline SVG art, verbatim from web/src/ui/icons.tsx ---------------------
+# --- Inline SVG art, verbatim from web/src/ui/common/icons.tsx ---------------------
 
 
 def svg(view, body, cls="", extra=""):
@@ -170,7 +170,7 @@ def hero_emblem(cls=""):
 
 
 # Elian Voss's Keyword marks: the folding Gate Rig, one part per Keyword
-# (web/src/ui/keywordIcons.tsx). Open line art at a single weight, which is
+# (web/src/ui/common/keywordIcons.tsx). Open line art at a single weight, which is
 # what separates them at a glance from the filled effect icons.
 def kw(body, cls=""):
     return svg("0 0 20 20", body, cls, 'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"')
@@ -191,7 +191,7 @@ KEYWORD = {
 
 
 def lock_head(state, cls=""):
-    """The lock head on a Slot (web/src/ui/icons.tsx). The ward ring is the
+    """The lock head on a Slot (web/src/ui/common/icons.tsx). The ward ring is the
     glance-distance Full signal: broken while charging, closed at full stack
     with a second faint ring outside it."""
     head = {"full": "#c8a344", "charging": "#a98b39", "spent": "#6a5a2e"}.get(state, "#6e7b93")
@@ -216,7 +216,7 @@ def wedge(owner, cls=""):
     return f'<svg viewBox="0 0 10 6" class="{cls}" fill="currentColor" aria-hidden="true">{path}</svg>'
 
 
-# --- The Round track table, from web/src/ui/phaseTrack.tsx ------------------
+# --- The Round track table, from web/src/ui/chrome/phaseTrack.tsx ------------------
 # phase, label, owner, icon, restClass, faceClass, the face's own 950 ink,
 # and activeClass — what the live mark's wedge wears under its lit chip.
 PHASE_TRACK = [
@@ -940,7 +940,7 @@ straight through a card carrying a Beat's rules text, and no contrast check catc
         ],
         "annotations": [
             {"id": "read-me", "x": -430, "y": 0, "w": 380,
-             "text": "The current Game UI of Raid Card Tactics, reproduced from the shipped source rather than sketched: the palette and plate geometry from web/src/index.css, the gauge language from web/src/ui/theme.ts, the markup from the components, and every box size measured off the running app at 390x844. The board art in the two screen boards is the game's own render.\n\nTwo screens on the left, six component boards to the right."},
+             "text": "The current Game UI of Raid Card Tactics, reproduced from the shipped source rather than sketched: the palette and plate geometry from web/src/index.css, the gauge language from web/src/ui/common/theme.ts, the markup from the components, and every box size measured off the running app at 390x844. The board art in the two screen boards is the game's own render.\n\nTwo screens on the left, six component boards to the right."},
             {"id": "surface", "x": -430, "y": 300, "w": 380,
              "text": "The play surface is 390x844 — a phone in portrait, edge to edge. It is a fixed column: phase band, board, Action Bar, Hand. The board sizes to the space the HUD leaves and must never resize mid-Encounter, which is why every floating surface is absolutely positioned over it and why the Hand keeps its row height as it empties."},
             {"id": "signature", "x": 0, "y": 1730, "w": 400,
