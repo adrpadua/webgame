@@ -313,6 +313,13 @@ const MUTATIONS = [
     to: 'export const ESCALATION_MAX = 6',
   },
   {
+    name: 'a clockless Counter expires anyway',
+    guards: 'D-048: `duration_rounds: 0` means no clock — the Counter sits until something spends it',
+    file: 'engine/counters.ts',
+    from: '  if (counter.remainingRounds <= 0) {\n    return false\n  }',
+    to: '  if (counter.remainingRounds <= 0) {\n    return true\n  }',
+  },
+  {
     name: 'Round upkeep skips every host but the Party',
     guards: 'D-045: the duration tick is every combatant\'s, not the Heroes\' alone',
     file: 'engine/counters.ts',
@@ -423,6 +430,13 @@ const MUTATIONS = [
     file: 'engine/resolve.ts',
     from: 'encounter?.revive_health_fraction ?? 0.25',
     to: '0.25',
+  },
+  {
+    name: "incoming damage ignores the target's own Counters",
+    guards: 'D-047: the target\'s Counters raise what it takes, before mitigation',
+    file: 'engine/resolve.ts',
+    from: "  const takenDelta = readerSum(draft, combatantRef(targetId), 'host_takes_damage', 'target_damage', damageKeywords)",
+    to: '  const takenDelta = 0',
   },
   {
     name: 'a Boss Beat marks the wrong side',

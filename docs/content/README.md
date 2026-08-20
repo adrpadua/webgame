@@ -42,6 +42,8 @@ Current starter docs:
 - [../rules/character-design-bible.md](../rules/character-design-bible.md)
 - [encounters/embermaw-prototype.md](encounters/embermaw-prototype.md)
 - [encounters/embermaw-ashen-trial-design.md](encounters/embermaw-ashen-trial-design.md)
+- [encounters/embermaw-brand-attrition-gate.md](encounters/embermaw-brand-attrition-gate.md)
+- [research/2026-08-20-healer-support-taxonomies-mmo-hero-shooter.md](research/2026-08-20-healer-support-taxonomies-mmo-hero-shooter.md)
 - [boss-scripts/embermaw-script.md](boss-scripts/embermaw-script.md)
 - [current-playable-loop-assessment.md](current-playable-loop-assessment.md)
 - [first-content-pass.md](first-content-pass.md)

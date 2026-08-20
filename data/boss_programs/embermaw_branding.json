@@ -1,0 +1,50 @@
+{
+  "id": "embermaw_branding",
+  "title": "Brand Pattern",
+  "rules_text": "Embermaw stops trying to kill the front line in one blow and starts making it easier to kill later. Nothing this Round is lethal; everything this Round is permanent.",
+  "instant_beats": [
+    {
+      "id": "turn_to_tank",
+      "title": "Read the Line",
+      "rules_text": "Embermaw turns to the guardian.",
+      "kind": "turn_toward_player",
+      "consequence_tier": "chip",
+      "answer_tags": [
+        "position"
+      ]
+    },
+    {
+      "id": "searing_brand",
+      "title": "Searing Brand",
+      "rules_text": "Embermaw marks the guardian with a Sear. Each Sear that Hero carries makes every blow they take land 1 harder, and a Sear does not fade on its own. Armor answers the blow; it does not answer the mark.",
+      "kind": "place_counter",
+      "counter": "seared",
+      "counter_amount": 1,
+      "counter_target": "hero",
+      "target_selector": "tank",
+      "consequence_tier": "structural",
+      "answer_tags": [
+        "cleanse"
+      ]
+    }
+  ],
+  "incoming_beats": [
+    {
+      "id": "test_the_brand",
+      "title": "Test the Brand",
+      "rules_text": "Target: Tank, within 1 hex. Deal 4 damage, plus 1 for each Sear that Hero carries.",
+      "kind": "targeted_hit",
+      "consequence_tier": "structural",
+      "target_selector": "tank",
+      "range_tiles": 1,
+      "damage": 4,
+      "damage_keywords": [
+        "tank_hit"
+      ],
+      "answer_tags": [
+        "mitigate",
+        "cleanse"
+      ]
+    }
+  ]
+}
