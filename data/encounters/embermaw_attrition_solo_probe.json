@@ -1,0 +1,87 @@
+{
+  "id": "embermaw_attrition_solo_probe",
+  "title": "Embermaw: The Brand, No Healer",
+  "rules_text": "An evaluation Encounter: the Brand trial with Maren's seat removed, so the no-healer-clear measurement has its control arm. Same Boss, same programs, same seed \u2014 the only delta is that nobody can strike a Sear from the record. Never shipped to players; it exists to be measured against the two-seat trial (D-082).",
+  "party": [
+    {
+      "hero": "guardian",
+      "start": {
+        "q": 0,
+        "r": 0
+      }
+    }
+  ],
+  "boss": "embermaw_branded",
+  "round_limit": 8,
+  "enrage_text": "Enrage: the brand finishes what the blows started.",
+  "board_radius": 2,
+  "boss_start": {
+    "q": 1,
+    "r": -1
+  },
+  "slot_count": 2,
+  "hand_refill_target": 4,
+  "player_deck": [
+    {
+      "card": "steady_strike",
+      "copies": 4
+    },
+    {
+      "card": "iron_guard",
+      "copies": 8
+    },
+    {
+      "card": "sweeping_blow",
+      "copies": 2
+    },
+    {
+      "card": "fortify",
+      "copies": 2
+    },
+    {
+      "card": "drive_back",
+      "copies": 2
+    },
+    {
+      "card": "quench",
+      "copies": 2
+    }
+  ],
+  "boss_programs": [
+    "embermaw_hunt",
+    "embermaw_branding"
+  ],
+  "loop_boss_programs": true,
+  "random_seed": 2141,
+  "minion_spawn_candidates": [
+    {
+      "q": -1,
+      "r": 2
+    },
+    {
+      "q": 0,
+      "r": 2
+    },
+    {
+      "q": 2,
+      "r": -1
+    }
+  ],
+  "escalation_thresholds": [
+    {
+      "value": 2,
+      "title": "Deeper Burn",
+      "rules_text": "The western edge of the arena burns away for good.",
+      "scorch_hexes": [
+        {
+          "q": -2,
+          "r": 0
+        },
+        {
+          "q": -2,
+          "r": 1
+        }
+      ]
+    }
+  ]
+}

@@ -18,6 +18,7 @@ import {
   readerSum,
   spendCounter,
   counterHostRef,
+  UNDERWRITTEN,
   readerCount,
   readerSubject,
   combatantRef,
@@ -29,7 +30,7 @@ import {
 import { evaluateGrantsFor, evaluateStandingGrants } from './signature'
 import { canBeDowned, goDowned, incapacitateHero, livingHeroIds, reviveHero } from './downed'
 import { cardChargeCap } from './content/catalog'
-import { RAID_HIT, TANK_HIT } from './keywords'
+import { OVERFLOW, RAID_HIT, TANK_HIT } from './keywords'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
 import type { CardReader } from './content/schemas'
 import type { CardInstance, EncounterState, HazardInstance, HeroState, Phase, ResolveResult, ResolvedActionFact } from './types'
@@ -208,9 +209,42 @@ function resolveOne(
       // the untargeted case, which is every card authored before the Party.
       const recipient = card.target_type === 'ally' ? (draft.heroes[action.targetId ?? ''] ?? hero) : hero
       recipient.armor += effects.armor
+      const healthBeforeHealing = recipient.health
       recipient.health = Math.min(recipient.maxHealth, recipient.health + effects.healing)
       if (recipient.id !== hero.id) {
         fact.detail.preservedAlly = recipient.id
+      }
+      // The overflow conversion (D-080): on a card carrying the Keyword,
+      // healing beyond what the ally could hold converts one-to-one into Boss
+      // damage — capped at the *printed* healing, so a scaled-up heal cannot
+      // convert more than the card promises and a full-health target cannot
+      // turn a heal into a full-value damage card. Emitted as an ordinary
+      // damage action so the Restorative's `host_deals_damage` earn reads it
+      // the same way it reads any blow.
+      let overflowConverted = 0
+      if (card.tags.includes(OVERFLOW) && effects.healing > 0) {
+        const absorbed = recipient.health - healthBeforeHealing
+        overflowConverted = Math.min(effects.healing - absorbed, card.healing)
+        if (overflowConverted > 0) {
+          fact.detail.overflowConverted = overflowConverted
+        }
+      }
+      // A healing Burst restores every party Hero standing in it, mirroring
+      // the damage Burst's rule for Enemies — the paper Radial pattern. The
+      // chosen-recipient heal above and this are exclusive in practice: a
+      // burst card targets a hex, so its `recipient` is the firing Hero, who
+      // is healed here only if they stand inside their own pattern.
+      if (burstCenter !== null && effects.healing > 0) {
+        for (const partyHero of Object.values(draft.heroes)) {
+          if (partyHero.status !== 'living' || partyHero.id === recipient.id) {
+            continue
+          }
+          const at = draft.board.entities[partyHero.id]?.coords
+          if (at !== undefined && hexDistance(at, burstCenter) <= effects.burstRadius) {
+            partyHero.health = Math.min(partyHero.maxHealth, partyHero.health + effects.healing)
+            syncHeroEntity(draft, partyHero.id)
+          }
+        }
       }
       slot.activatedWindow = draft.phase
       syncHeroEntity(draft, action.sourceId)
@@ -295,6 +329,16 @@ function resolveOne(
             factContext: cardDamageContext(card),
           })
         }
+        if (overflowConverted > 0) {
+          generated.push({
+            kind: 'damage',
+            sourceId: action.sourceId,
+            targetId: draft.bossId,
+            amount: overflowConverted,
+            reasonText: `${card.title} (overflow)`,
+            factContext: cardDamageContext(card),
+          })
+        }
         if (effects.targetDamage > 0) {
           generated.push({
             kind: 'damage',
@@ -325,7 +369,12 @@ function resolveOne(
         generated.push({
           kind: 'place_counter',
           sourceId: action.sourceId,
-          hostRef: combatantRef(draft.bossId),
+          // An enemy-facing Signature's rider follows its Boss damage (the
+          // Riposte's Sundered). A preservation Signature's rider extends the
+          // cover to a second ally — deterministically the firing Hero, the
+          // one party member the single-target gesture could not choose
+          // (D-080): the card already covered the chosen ally above.
+          hostRef: combatantRef(card.target_type === 'ally' ? action.sourceId : draft.bossId),
           counterId: card.full_charge.places_counter,
           amount: card.full_charge.counter_amount,
           reasonText: 'signature_full_bank',
@@ -993,6 +1042,16 @@ function applyDamage(
   // `damageReduction` field was never set by anything and left with D-047.
   const hero = draft.heroes[targetId]
   if (hero) {
+    // The Underwritten cover (D-080): a Hero holding it converts this blow
+    // into healing instead of taking it, and the blow spends the cover.
+    // Checked before Armor, because a converted blow was never mitigated —
+    // the Armor stays for the next one the cover no longer answers.
+    if (requested > 0 && spendCounter(draft, combatantRef(targetId), UNDERWRITTEN, 1) > 0) {
+      const restored = Math.min(requested, hero.maxHealth - hero.health)
+      hero.health += restored
+      syncHeroEntity(draft, targetId)
+      return { requested, prevented: requested, health_loss: 0, converted_to_healing: restored, target_available: true }
+    }
     const armorBlocked = Math.min(hero.armor, requested)
     hero.armor -= armorBlocked
     const remaining = requested - armorBlocked

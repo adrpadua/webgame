@@ -128,11 +128,14 @@ function CompactCard({
   const selectCard = useWorkbench((store) => store.selectCard)
   const payForMove = useWorkbench((store) => store.payForMove)
   const cancelMove = useWorkbench((store) => store.cancelMove)
+  const payForRevive = useWorkbench((store) => store.payForRevive)
+  const cancelRevive = useWorkbench((store) => store.cancelRevive)
+  const reviving = useWorkbench((store) => store.pendingRevive !== null)
   const selected = useWorkbench((store) => store.selectedCardId === instanceId)
   const dragging = useWorkbench((store) => store.draggingCardId === instanceId)
   const heroId = useWorkbench((store) => selectState(store).primaryHeroId)
   const card = catalog.cards[cardId]
-  const hold = useHold(cardDetail(card, 'hand', offering ? 'Tap it to spend it on the step.' : 'Drop it on a Slot to prepare or charge it.'))
+  const hold = useHold(cardDetail(card, 'hand', offering ? (reviving ? 'Tap it to spend it on the rescue.' : 'Tap it to spend it on the step.') : 'Drop it on a Slot to prepare or charge it.'))
   // With nothing dragged or selected — the Hero is being held instead — no
   // card is committed to the move, so none of them is the one being spent.
   const spending = dragging || selected
@@ -153,7 +156,7 @@ function CompactCard({
         face,
         card,
         keywords.map((tag) => catalog.keywords[tag]?.title ?? tag),
-      )}${offering ? '. Tap to spend it on the step' : ''}`}
+      )}${offering ? (reviving ? '. Tap to spend it on the rescue' : '. Tap to spend it on the step') : ''}`}
       {...hold.holdProps}
       onClick={() => {
         // A press that opened the detail popup is not a selection tap.
@@ -161,7 +164,11 @@ function CompactCard({
           return
         }
         if (offering) {
-          payForMove(instanceId)
+          if (reviving) {
+            payForRevive(instanceId)
+          } else {
+            payForMove(instanceId)
+          }
           return
         }
         selectCard(instanceId)
@@ -172,8 +179,9 @@ function CompactCard({
         setDraggingCard(instanceId)
         // Dragging a card while the Hand is offering is the player changing
         // their mind about where to spend it: the card's own drop decides
-        // now, so the waiting move steps aside rather than racing it.
+        // now, so the waiting payment steps aside rather than racing it.
         cancelMove()
+        cancelRevive()
       }}
       onDragEnd={() => setDraggingCard(null)}
       // The rise is staggered by position, so the row reads left to right as
@@ -219,7 +227,7 @@ export function Hand() {
   const step = useFirstTurnStep()
   // A move dragged from the Hero is waiting on the card that pays for it.
   // The whole Hand is that answer, so the row takes over as the prompt.
-  const offering = useWorkbench((store) => store.pendingMove !== null)
+  const offering = useWorkbench((store) => store.pendingMove !== null || store.pendingRevive !== null)
   const hero = state.heroes[state.primaryHeroId]
   if (!hero) {
     return null

@@ -1,0 +1,6 @@
+{
+  "id": "cleanse",
+  "title": "Cleanse",
+  "kind": "answer",
+  "rules_text": "Answered by removing a Counter the Boss placed on a Hero. Armor, movement, and interrupts do not answer it: the mark is already there."
+}

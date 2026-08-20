@@ -1,0 +1,9 @@
+{
+  "id": "brand_trial_opening",
+  "title": "The Brand: two seats, Round 1",
+  "version": 1,
+  "description": "The attrition trial at its opening state: Elian holding the front, Maren keeping the count. A viewer line for the two-seat Encounter — the played no-healer-clear measurement is still owed (D-082).",
+  "encounter": "embermaw_attrition_trial",
+  "seed": 2141,
+  "steps": []
+}

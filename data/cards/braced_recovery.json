@@ -1,0 +1,10 @@
+{
+  "id": "braced_recovery",
+  "title": "Braced Recovery",
+  "rules_text": "Heal an ally within 3 for 3. The Rig takes the weight the body cannot.",
+  "speed": "slow",
+  "target_type": "ally",
+  "range_tiles": 3,
+  "healing": 3,
+  "tags": ["healer", "support"]
+}

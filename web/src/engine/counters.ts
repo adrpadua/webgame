@@ -12,7 +12,14 @@ export const FORTIFIED = 'fortified'
 // riposte count now, so the last hero mechanic living in engine code — and
 // the graded consumption (D-015) the Reader vocabulary could not express —
 // deleted rather than migrated.
-export const ENGINE_COUNTERS = [FORTIFIED]
+// The Signature cover (D-080): a Hero holding Underwritten converts their
+// next incoming blow into healing instead of taking it, and the Counter is
+// spent by that blow. Engine-named like Fortified because the conversion is
+// a damage-resolution rule, not a Reader pair — "this blow does not happen,
+// its number heals instead" is not expressible as a per-count modifier.
+export const UNDERWRITTEN = 'underwritten'
+
+export const ENGINE_COUNTERS = [FORTIFIED, UNDERWRITTEN]
 
 // The `when`/`effect` pairs the rules actually read. The schema's two enums
 // multiply out to sixteen combinations and `readerSum` is called with four of

@@ -1,0 +1,10 @@
+{
+  "id": "underwritten",
+  "title": "Underwritten",
+  "rules_text": "The Registry certifies this Hero's next rescue before the blow lands: their next incoming blow converts into healing instead, and the cover is spent.",
+  "keywords": [],
+  "host": "combatant",
+  "max": 1,
+  "duration_rounds": 0,
+  "readers": []
+}

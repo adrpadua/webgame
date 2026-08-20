@@ -24,7 +24,7 @@ export function TargetingBanner() {
         className="wb-slide-up wb-plate wb-plate-sm wb-face-steel wb-acc-gold flex items-center justify-between py-2 text-xs font-semibold text-gold-100 shadow-lg"
         data-testid="targeting-banner"
       >
-        <span>{targetMode === 'hex' ? 'Pick a hex' : 'Pick a piece'}</span>
+        <span>{targetMode === 'hex' ? 'Pick a hex' : targetMode === 'ally' ? 'Pick an ally' : 'Pick a piece'}</span>
         <button
           type="button"
           onClick={cancelTargeting}

@@ -83,5 +83,6 @@ What is intentionally undecided?
 ## Current Anchor Articles
 
 - [Elian Voss](../heroes/elian-voss-design.md): Shield Wall Tank from Redwater Locks.
+- [Maren Tallis](../heroes/maren-tallis-design.md): Restorative Healer of the Meridian Concord.
 - [Embermaw Prototype](../encounters/embermaw-prototype.md): first runnable raid-boss shell.
 - [Embermaw Ashen Trial](../encounters/embermaw-ashen-trial-design.md): intended larger Embermaw encounter direction.

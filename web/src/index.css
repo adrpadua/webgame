@@ -286,6 +286,13 @@ body {
 @utility wb-acc-cloth { --wb-acc: var(--color-cloth-500); }
 @utility wb-acc-none  { --wb-acc: transparent; }
 
+/* The Downed track (party-frame direction 1c): the health gauge's ground
+   turns to ember-striped hazard when the body is on the floor, so an empty
+   bar and a fallen Hero never read the same. */
+@utility wb-downed-track {
+  background: repeating-linear-gradient(115deg, var(--color-ember-950) 0 4px, var(--color-steel-950) 4px 9px);
+}
+
 /* --- Face pulse ----------------------------------------------------------
    Breathes a plate's face and accent while a dragged card is over it, and
    nothing else: the pulse lives on the ::before and ::after layers, so the

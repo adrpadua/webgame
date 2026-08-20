@@ -438,6 +438,15 @@ _Avoid_: Role, class
 A Tank Archetype that claims dangerous space, protects allies through direct mitigation and positioning, and makes the Boss's frontal pressure survivable.
 _Avoid_: Battle captain, support tank
 
+**Restorative**:
+A Healer Archetype that undoes landed damage, removes Boss-placed marks, and converts deliberate overhealing into Boss damage. Its skill expression is knowing who is about to be hit before the Boss confirms it.
+_Avoid_: White mage, medic class, enchanter
+
+**Enchanter**:
+A Healer Archetype that prevents damage before it lands, binding wards and augmentations to named future Beats. Requires the Commitment mechanic; no Hero of this Archetype is designed yet beyond its statement.
+_Avoid_: Shield healer, support mage
+_Not yet in the engine_
+
 **Threat**:
 A persistent per-Hero value that normally determines which valid Hero a boss targets. Damage dealt to the boss gains equal Threat unless an effect says otherwise.
 _Avoid_: Aggro, hate

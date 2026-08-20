@@ -1,4 +1,5 @@
 import heroIdleUrl from '@/assets/elian-voss-idle.png'
+import marenIdleUrl from '@/assets/maren-tallis-idle.png'
 import bossIdleUrl from '@/assets/embermaw-idle.png'
 import bossPhaseTwoIdleUrl from '@/assets/embermaw-phase-two-idle.png'
 import minionIdleUrl from '@/assets/whelp-idle.png'
@@ -45,6 +46,7 @@ export interface SheetSpec {
 // and separate by saturation, per the board direction.
 export const SHEETS: Record<string, SheetSpec> = {
   hero: { key: 'elian-idle', url: heroIdleUrl, frameWidth: 162, frameHeight: 210, targetHeight: 74, footOffset: 12 },
+  heroMaren: { key: 'maren-idle', url: marenIdleUrl, frameWidth: 170, frameHeight: 190, targetHeight: 80, footOffset: 12 },
   boss: { key: 'embermaw-idle', url: bossIdleUrl, frameWidth: 238, frameHeight: 176, targetHeight: 80, footOffset: 22 },
   // Embermaw with its containment shed, from the Phase Trigger onward. Drawn
   // larger in its own contact sheet but at the same aspect, so the same
@@ -62,6 +64,16 @@ export const SHEETS: Record<string, SheetSpec> = {
 // has to restore the first form. The last sheet holds for any phase beyond the
 // art, which is wrong by one form rather than a Boss with no art at all.
 const BOSS_PHASES = ['boss', 'bossPhaseTwo'] as const
+
+// Which sheet a Hero wears. Heroes share a kind, so the sheet is the piece's
+// own: an id with authored art gets its body, and every other Hero keeps the
+// first sheet rather than rendering as nobody — wrong by one costume, the
+// same graceful degradation the Boss's phase mapping chose.
+const HERO_SHEETS: Record<string, string> = { maren: 'heroMaren' }
+
+export function heroSheetKey(entityId: string): string {
+  return HERO_SHEETS[entityId] ?? 'hero'
+}
 
 export function bossSheetKey(bossPhase: number): string {
   const index = Number.isFinite(bossPhase) ? Math.floor(bossPhase) - 1 : 0

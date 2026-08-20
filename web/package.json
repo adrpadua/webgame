@@ -17,6 +17,7 @@
     "scaffold": "node scripts/scaffold.mjs",
     "film": "node scripts/film.mjs",
     "evaluate": "vite-node scripts/evaluate.ts --",
+    "probe:attrition": "vite-node scripts/attritionLine.ts --",
     "log:ids": "vite-node scripts/decisionIds.ts --"
   },
   "dependencies": {
