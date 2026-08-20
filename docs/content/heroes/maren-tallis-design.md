@@ -1,6 +1,6 @@
 # Maren Tallis: Restorative Healer
 
-Status: character design adopted (D-078), decks not yet authored. This document defines content intent and rules contracts against the authored attrition gate (D-077). It does not authorize UI-only behavior or unsupported card text.
+Status: character design adopted (D-080), decks not yet authored. This document defines content intent and rules contracts against the authored attrition gate (D-079). It does not authorize UI-only behavior or unsupported card text.
 
 ## Character Promise
 
@@ -46,7 +46,7 @@ Aether-ceramic braces, restorative glyphs, and stabilizing vessels (see the lore
 ## Core Loop
 
 1. **Read** the Timeline: who does the Incoming Row name, and who carries a Sear?
-2. **Cover** — heal the wounded, or deliberately overheal the Hero about to be hit, converting the surplus into Boss damage (the `overflow` Keyword, D-078).
+2. **Cover** — heal the wounded, or deliberately overheal the Hero about to be hit, converting the surplus into Boss damage (the `overflow` Keyword, D-080).
 3. **Clear** — spend a cleansing card to remove a Boss-placed mark before it prices another blow.
 4. **Bank** — converted overflow charges the Signature (`host_deals_damage` + `effect_landed`); at the right moment, spend all Charges to underwrite one ally, turning their next incoming blow into healing. At full bank, a second ally is underwritten.
 
@@ -54,8 +54,8 @@ Aether-ceramic braces, restorative glyphs, and stabilizing vessels (see the lore
 
 | Rule | Value | Source |
 | --- | --- | --- |
-| `max_health` | 18 — provisional until the no-healer-clear line is played | Q16 / D-078 |
-| Role / Archetype | Healer / Restorative | D-078 |
+| `max_health` | 18 — provisional until the no-healer-clear line is played | Q16 / D-080 |
+| Role / Archetype | Healer / Restorative | D-080 |
 | Damage cards | None. All Boss damage is converted overflow or the Signature. | Healer Principle 3 |
 | Overflow conversion | 1:1 into Boss damage, capped at the card's printed healing | Q21 |
 | Conversion carrier | The `overflow` Keyword (trait) on the card, read by one engine rule — never a global rule, never per-card text | Q14 |
@@ -82,7 +82,7 @@ Card authoring is the next step after this document and follows [../../rules/pla
 1. **The `overflow` rule** — the one new engine mechanic: healing routed to an ally at or above `maxHealth`, on a card carrying the Keyword, deals the surplus (capped at printed healing) as Boss damage and stamps `effect_landed`. Everything else she does is expressible today.
 2. **Verify `spend` on an ally target** — Q11's risk: `on: "target"` predates ally targeting. A test must prove it reads the chosen ally, not the caster, with a mutation entry if it does not.
 3. **The Signature cover effect** — a pre-emptive per-Hero conversion of the next incoming blow. Closest existing shape is the Counter system; whether it is a Counter or a new Hero flag is an engineering choice, not a design one.
-4. **The second seat** — `embermaw_attrition_trial` adds `maren` to its `party` when she is authored, which is the moment the D-077 gate tests flip from proving the problem to proving the answer.
+4. **The second seat** — `embermaw_attrition_trial` adds `maren` to its `party` when she is authored, which is the moment the D-079 gate tests flip from proving the problem to proving the answer.
 
 ## Playtest Scorecard
 

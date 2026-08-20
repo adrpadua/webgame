@@ -1,6 +1,6 @@
 # Healer Archetype Statements
 
-Status: adopted design direction (D-078). One page per Archetype, written before either deck is authored, so the two cannot converge by accident — the Second Hero Of A Role rule applied from the first Healer rather than retrofitted at the second.
+Status: adopted design direction (D-080). One page per Archetype, written before either deck is authored, so the two cannot converge by accident — the Second Hero Of A Role rule applied from the first Healer rather than retrofitted at the second.
 
 Both must pass the same Role recognition test: a player who has mained a Healer in any MMO or Hero Shooter recognizes the job in one Round. What differs is the machine, its signature weakness, and the pressure it answers best.
 
@@ -34,10 +34,10 @@ Both must pass the same Role recognition test: a player who has mained a Healer 
 
 ## Shipping Order
 
-The Restorative ships first (D-078): her verbs exist in the engine today — ally targeting, heal routing, `revive_ally`, the four-event Signature vocabulary, `spend` readers. The Enchanter's core verb is a Commitment, ranked 9 on the engineering ladder and deferred with no consumer; authoring her first would either fake the mechanic or build the seam for a Hero that might change.
+The Restorative ships first (D-080): her verbs exist in the engine today — ally targeting, heal routing, `revive_ally`, the four-event Signature vocabulary, `spend` readers. The Enchanter's core verb is a Commitment, ranked 9 on the engineering ladder and deferred with no consumer; authoring her first would either fake the mechanic or build the seam for a Hero that might change.
 
 ## Related
 
 - [../../rules/character-design-bible.md](../../rules/character-design-bible.md) — Healer Design Principles, Second Hero Of A Role
-- [../encounters/embermaw-brand-attrition-gate.md](../encounters/embermaw-brand-attrition-gate.md) — the authored problem the Restorative is designed against (D-077)
+- [../encounters/embermaw-brand-attrition-gate.md](../encounters/embermaw-brand-attrition-gate.md) — the authored problem the Restorative is designed against (D-079)
 - [../research/2026-08-20-healer-support-taxonomies-mmo-hero-shooter.md](../research/2026-08-20-healer-support-taxonomies-mmo-hero-shooter.md) — taxonomy grounding (directional, per D-071's evidence discipline)

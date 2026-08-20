@@ -12,6 +12,7 @@ import { HoldPopoverLayer } from './common/HoldPopover'
 import { MovePaymentCue } from './overlays/MovePaymentCue'
 import { NotificationLayer, NotificationZone } from './overlays/NotificationLayer'
 import { OutcomeBanner } from './overlays/OutcomeBanner'
+import { PartyFrames } from './party/PartyFrames'
 import { PhaseBanner } from './overlays/PhaseBanner'
 import { PhaseControl } from './chrome/PhaseControl'
 import { RejectionToast } from './overlays/RejectionToast'
@@ -91,6 +92,11 @@ export default function App() {
               edge as the dock's floor. Its own layer, not a notification —
               it never comes or goes, so it has no rank to claim. */}
           <HeroFrame />
+          {/* The ally frames (party-frame direction 1A): the primary frame's
+              anatomy minus the console, one 138px column at the bottom-left,
+              growing upward from the Hero Frame. Absent entirely in a solo
+              Encounter. */}
+          <PartyFrames />
         </div>
         <ActionBar />
         <Hand />

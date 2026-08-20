@@ -23,6 +23,10 @@ export interface InteractionSlice {
   // and nothing else, but every move is paid for with a discarded hand card
   // (ADR 0011), so it parks here until the player picks the card that pays.
   pendingMove: { destination: Axial } | null
+  // A revive tapped on a Downed ally's frame. Like a move, the gesture names
+  // a target and nothing else, but every rescue is paid for with a hand card
+  // (ADR 0036), so it parks here until the player picks the card that pays.
+  pendingRevive: { targetId: string } | null
   // The piece whose Stat Panel is open. Persistent gauges left the HUD, so
   // tapping a piece's tile is how health is read; the panel follows the
   // piece (and the playout's staggered values) until dismissed or the tap
@@ -49,6 +53,9 @@ export interface InteractionSlice {
   heroDraggedToHex: (coords: Axial) => void
   payForMove: (cardInstanceId: string) => void
   cancelMove: () => void
+  reviveTapped: (targetId: string) => void
+  payForRevive: (cardInstanceId: string) => void
+  cancelRevive: () => void
   cancelTargeting: () => void
   confirmReplacement: () => void
   cancelReplacement: () => void
@@ -71,6 +78,7 @@ export const CLEARED_INTERACTION = {
   draggingCardId: null,
   pendingReplacement: null,
   pendingMove: null,
+  pendingRevive: null,
   lastRejection: null,
   hoveredHexKey: null,
 } as const
@@ -101,13 +109,13 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
   },
 
   hexClicked: (coords) => {
-    const { targetingSlotIndex, selectedCardId, pendingMove } = get()
+    const { targetingSlotIndex, selectedCardId, pendingMove, pendingRevive } = get()
     const state = selectState(get())
-    // A move waiting on a card is answered in the Hand. Touching the board
-    // again is the player reconsidering the hex, so the offer comes down —
-    // and a fresh drag from the Hero simply names a new destination.
-    if (pendingMove !== null) {
-      set({ pendingMove: null })
+    // A move or a revive waiting on a card is answered in the Hand. Touching
+    // the board again is the player reconsidering, so the offer comes down —
+    // and a fresh gesture simply names a new target.
+    if (pendingMove !== null || pendingRevive !== null) {
+      set({ pendingMove: null, pendingRevive: null })
       return
     }
     if (targetingSlotIndex !== null) {
@@ -247,6 +255,36 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
   },
 
   cancelMove: () => set({ pendingMove: null }),
+
+  // Tapping a Downed ally's frame is the whole aiming gesture: the frame is
+  // the button (party-frame direction 1A), so there is no hex to pick and no
+  // drag. The card that pays comes second, through the same offering the
+  // move payment uses, so the Hand teaches one payment idiom.
+  reviveTapped: (targetId) => {
+    const state = selectState(get())
+    if (state.heroes[state.primaryHeroId].hand.length === 0) {
+      set({ lastRejection: 'Reviving costs a card, and the Hand is empty.' })
+      return
+    }
+    set({ pendingRevive: { targetId }, pendingMove: null, lastRejection: null })
+  },
+
+  payForRevive: (cardInstanceId) => {
+    const { pendingRevive } = get()
+    if (pendingRevive === null) {
+      return
+    }
+    const state = selectState(get())
+    set({ pendingRevive: null })
+    get().submit({
+      kind: 'revive_ally',
+      sourceId: state.primaryHeroId,
+      targetId: pendingRevive.targetId,
+      cardInstanceId,
+    })
+  },
+
+  cancelRevive: () => set({ pendingRevive: null }),
 
   confirmReplacement: () => {
     const { pendingReplacement } = get()
