@@ -542,7 +542,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     }
   }
   for (const program of Object.values(catalog.programs)) {
-    // A Movement Clause belongs to the Instant Row alone (D-NEW). The Incoming
+    // A Movement Clause belongs to the Instant Row alone (D-075). The Incoming
     // Row is telegraphed a phase before it resolves, and where a moving Beat
     // ends up is not knowable then — the Hero moves in between — so the painted
     // cone becomes a promise the player breaks by playing correctly. ADR 0031

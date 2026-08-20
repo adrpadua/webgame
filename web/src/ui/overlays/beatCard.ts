@@ -67,7 +67,7 @@ export function beatCardStats(beat: BossBeat): BeatCardStat[] {
   if (beat.range_tiles > 0) {
     stats.push({ label: 'Reach', value: `${beat.range_tiles} hex${beat.range_tiles === 1 ? '' : 'es'}` })
   }
-  // The Movement Clause, as one line (D-NEW). It has to print at all, and it
+  // The Movement Clause, as one line (D-075). It has to print at all, and it
   // has to print every field the resolution reads, because D-055's gate is
   // exactly that: a field that changes an outcome and never appears here is a
   // port defect. `traversal` changes both the destination and the Hazard bill

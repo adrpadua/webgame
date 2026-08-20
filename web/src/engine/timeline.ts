@@ -355,7 +355,7 @@ export function refreshTelegraphs(catalog: ContentCatalog, draft: EncounterState
         // The telegraph must not lie: it previews the escalated count, and it
         // picks hexes through the same helper the resolution does. It used to
         // hand-roll its own occupancy test, which is two copies of one rule —
-        // and when the rule grew a clause (D-NEW: nothing arrives on impassable
+        // and when the rule grew a clause (D-075: nothing arrives on impassable
         // ground) only one copy would have grown with it.
         const count = beat.count + escalationModifiers(draft).extraSpawnCount
         for (const coords of firstEmptyHexes(draft.spawnCandidates, emptyHexes(draft.board), count)) {

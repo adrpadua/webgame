@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { loadCatalog } from '@/content'
+import { loadCatalog, DEFAULT_ENCOUNTER_ID, FIRST_TURN_ENCOUNTER_ID } from '@/content'
 import { cardSchema } from './content/schemas'
 // Not part of the engine's public surface: the Round-end step is called by
 // `advancePhase`, and a guard on what it prices is sharper when it can ask
@@ -3116,16 +3116,19 @@ describe('Consequence Tier ladder (D-021, ADR 0031)', () => {
     // severe by definition because a Threshold crossing is one of D-025's
     // run-ending outcomes. Every severe Beat here is severe for that reason —
     // Embermaw still has no single hit that downs a Hero from full health.
+    //
+    // Stated as the rule in both directions rather than as a roll-call. The
+    // roll-call listed one entry per *appearance*, so it counted how many
+    // programs happened to field a Beat — and an evaluation Encounter, which
+    // fields variants of the shipped programs on purpose (D-076), doubled every
+    // number without breaking a single rule. The distinct ids are still named,
+    // because which Beats these are is worth reading; how many times each is
+    // authored is not this test's business.
     const severe = everyBeat.filter(({ beat }) => beat.consequence_tier === 'severe')
-    expect(severe.map(({ beat }) => beat.id).sort()).toEqual([
-      'brood_call',
-      'brood_call',
-      'stoke_the_forge',
-      'within_reach',
-      'within_reach',
-      'within_reach',
-    ])
+    const priced = everyBeat.filter(({ beat }) => beat.escalation_if_unanswered > 0)
+    expect([...new Set(severe.map(({ beat }) => beat.id))].sort()).toEqual(['brood_call', 'stoke_the_forge', 'within_reach'])
     expect(severe.every(({ beat }) => beat.escalation_if_unanswered > 0)).toBe(true)
+    expect(priced.every(({ beat }) => beat.consequence_tier === 'severe')).toBe(true)
     const worst = Math.max(...everyBeat.map(({ beat }) => beat.damage + beat.unguarded_bonus))
     expect(worst).toBeLessThan(catalog.heroes[catalog.encounters.embermaw_prototype.party[0].hero].max_health)
   })
@@ -3717,7 +3720,7 @@ describe('One movement rule for every piece (D-072)', () => {
 
     // The same cone carrying a movement clause turns as it closes, and lands.
     // Resolved on the Instant Row, because that is the only Row a Movement
-    // Clause may be authored on (D-NEW) — the shape is a cone Beat that closes
+    // Clause may be authored on (D-075) — the shape is a cone Beat that closes
     // before it breathes, not a telegraphed one.
     const lunging = { ...cone, move_tiles: 8, range_tiles: cone.range_tiles }
     const swept = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: lunging, track: 'instant' })
@@ -3746,7 +3749,7 @@ describe('One movement rule for every piece (D-072)', () => {
   })
 })
 
-describe('Nothing arrives where nothing can stand (D-NEW)', () => {
+describe('Nothing arrives where nothing can stand (D-075)', () => {
   it('keeps every authored spawn candidate off ground the Encounter itself burns', () => {
     // The content half. Embermaw authored two of its five candidates on hexes
     // its own Escalation Thresholds scorch, so past Ashen Verge the brood was
@@ -3764,7 +3767,7 @@ describe('Nothing arrives where nothing can stand (D-NEW)', () => {
   })
 
   it('stops a Hero paid step on impassable ground, not only an Enemy route', () => {
-    // The axis is physics versus choice, not Hero versus Enemy (D-NEW). Under
+    // The axis is physics versus choice, not Hero versus Enemy (D-075). Under
     // the old framing, ground authored impassable stopped a Whelp and Embermaw
     // and let the Tank stroll through it, which is the rule reading as a bug
     // the first time anybody authors a wall.
@@ -3807,6 +3810,49 @@ describe('Nothing arrives where nothing can stand (D-NEW)', () => {
     // only one of which would have grown this clause.
     const telegraphed = stepPhases(state, 2).state
     expect(Object.entries(telegraphed.telegraphs).filter(([, kind]) => kind === 'spawn').map(([key]) => key)).not.toContain(hexKey(firstChoice))
+  })
+})
+
+describe('The traversal probe (D-076)', () => {
+  // An evaluation Encounter earns its place by exercising what it was built to
+  // measure. `--deck` has the same hazard one level down: a candidate list that
+  // stops containing the candidate measures the shipped deck twice and reports
+  // it as evidence.
+  const probe = catalog.encounters.embermaw_traversal_probe
+  const probeBeats = [...probe.boss_programs, ...probe.phase_two_programs]
+    .flatMap((id) => catalog.programs[id] ?? [])
+    .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
+
+  it('exercises every traversal kind, and ground that stops one', () => {
+    expect(probe).toBeDefined()
+    const kinds = new Set(probeBeats.filter((beat) => beat.move_tiles > 0 || beat.traversal !== 'walk').map((beat) => beat.traversal))
+    expect([...kinds].sort()).toEqual(['jump', 'teleport'])
+    // Walk is the shipped Boss's answer, so the probe measures the two kinds
+    // nothing else does — and the ground that tells a walker from a jumper.
+    const laid = new Set(probeBeats.map((beat) => beat.hazard).filter((id): id is string => id !== undefined))
+    expect([...laid].some((id) => catalog.hazards[id]?.impassable)).toBe(true)
+  })
+
+  it('changes nothing but the axis it is measuring', () => {
+    // The comparison is only worth running while the probe differs from the
+    // shipped fight in one place. Board, Hero, deck, clock and thresholds are
+    // held equal on purpose; if one of them drifts, a `far` delta stops being
+    // attributable and the acceptance bar quietly stops meaning anything.
+    const shipped = catalog.encounters.embermaw_prototype
+    for (const field of ['board_radius', 'boss_health', 'round_limit', 'slot_count', 'hand_refill_target', 'boss_id'] as const) {
+      expect(probe[field], `probe drifted from the shipped fight on ${field}`).toEqual(shipped[field])
+    }
+    expect(probe.player_deck).toEqual(shipped.player_deck)
+    expect(probe.escalation_thresholds).toEqual(shipped.escalation_thresholds)
+    expect(probe.minion_spawn_candidates).toEqual(shipped.minion_spawn_candidates)
+    expect(probe.party).toEqual(shipped.party)
+  })
+
+  it('stays out of the Workbench, because it is not a fight anybody plays', () => {
+    // Reachable by id from the sweep and by nothing else: the play surface
+    // names its Encounters through two constants, and neither is this.
+    expect(DEFAULT_ENCOUNTER_ID).not.toBe(probe.id)
+    expect(FIRST_TURN_ENCOUNTER_ID).not.toBe(probe.id)
   })
 })
 

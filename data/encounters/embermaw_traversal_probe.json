@@ -1,0 +1,138 @@
+{
+  "id": "embermaw_traversal_probe",
+  "title": "Embermaw: Traversal Probe",
+  "rules_text": "An evaluation Encounter, not a fight anybody plays. It is the Ashen Trial with one axis changed — how Embermaw crosses the board — so the sweep can measure jump, teleport and impassable ground before any of them is promoted into shipped content. Same board, same Hero, same deck, same clock, same thresholds. Its acceptance bar is the standing three plus one: the `far` policy must not improve, because a Boss that pursues a camper is only pressure if it does not simply deliver them a target.",
+  "party": [
+    {
+      "hero": "guardian",
+      "start": {
+        "q": 0,
+        "r": 0
+      }
+    }
+  ],
+  "boss_id": "embermaw",
+  "boss_title": "Embermaw",
+  "round_limit": 8,
+  "enrage_text": "Enrage: Embermaw overwhelms the party.",
+  "board_radius": 2,
+  "boss_start": {
+    "q": 1,
+    "r": -1
+  },
+  "boss_health": 48,
+  "slot_count": 2,
+  "hand_refill_target": 4,
+  "player_deck": [
+    {
+      "card": "steady_strike",
+      "copies": 4
+    },
+    {
+      "card": "iron_guard",
+      "copies": 8
+    },
+    {
+      "card": "sweeping_blow",
+      "copies": 2
+    },
+    {
+      "card": "fortify",
+      "copies": 2
+    },
+    {
+      "card": "drive_back",
+      "copies": 2
+    },
+    {
+      "card": "quench",
+      "copies": 2
+    }
+  ],
+  "boss_programs": [
+    "embermaw_probe_leap",
+    "embermaw_probe_blink",
+    "embermaw_probe_collapse"
+  ],
+  "phase_trigger": {
+    "boss_health_at_or_below": 18,
+    "round_at_or_after": 5
+  },
+  "phase_two_programs": [
+    "embermaw_ashfall",
+    "embermaw_molting"
+  ],
+  "phase_break_text": "Molting Roar: Embermaw sheds its brittle scales and turns. The Whelps and the Scorched ground remain.",
+  "loop_boss_programs": true,
+  "random_seed": 1337,
+  "minion_spawn_candidates": [
+    {
+      "q": 0,
+      "r": 2
+    },
+    {
+      "q": 0,
+      "r": -2
+    },
+    {
+      "q": 1,
+      "r": 1
+    },
+    {
+      "q": 2,
+      "r": 0
+    },
+    {
+      "q": 2,
+      "r": -1
+    }
+  ],
+  "escalation_thresholds": [
+    {
+      "value": 1,
+      "title": "Ashen Verge",
+      "rules_text": "The western edge of the arena burns away for good.",
+      "scorch_hexes": [
+        {
+          "q": -2,
+          "r": 0
+        },
+        {
+          "q": -2,
+          "r": 1
+        },
+        {
+          "q": -2,
+          "r": 2
+        }
+      ]
+    },
+    {
+      "value": 2,
+      "title": "Wider Brood",
+      "rules_text": "Brood Call summons one additional Whelp.",
+      "extra_spawn_count": 1
+    },
+    {
+      "value": 3,
+      "title": "Fed on Ash",
+      "rules_text": "Whelp bites and detonations deal 1 more damage.",
+      "minion_damage_bonus": 1
+    },
+    {
+      "value": 4,
+      "title": "Closing Jaws",
+      "rules_text": "The burn spreads around both western corners. Only the ground near Embermaw still holds.",
+      "scorch_hexes": [
+        {
+          "q": -1,
+          "r": -1
+        },
+        {
+          "q": -1,
+          "r": 2
+        }
+      ]
+    }
+  ]
+}

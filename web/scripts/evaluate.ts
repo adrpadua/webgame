@@ -7,8 +7,9 @@
 // never as a success.
 //
 // Usage (from web/):
-//   npm run evaluate                        # all 42 policy variants, 30 seeds
+//   npm run evaluate                        # all 48 policy variants, 30 seeds
 //   npm run evaluate -- --seeds 100
+//   npm run evaluate -- --encounter embermaw_traversal_probe
 //   npm run evaluate -- --policy turtle,stay,false --seeds 200
 //   npm run evaluate -- --json out.json
 import { writeFileSync } from 'node:fs'
@@ -36,12 +37,26 @@ import {
 } from '../src/engine'
 
 const catalog = loadCatalog()
-const ENCOUNTER_ID = DEFAULT_ENCOUNTER_ID
 
 const args = process.argv.slice(2).filter((arg) => arg !== '--')
 const flagValue = (name: string): string | undefined => {
   const index = args.indexOf(name)
   return index >= 0 ? args[index + 1] : undefined
+}
+// `--encounter <id>` runs the sweep against a different fight, the same way
+// `--deck` runs it against a different list (D-076).
+//
+// It exists for the same reason, one level up. A candidate *card* could only be
+// measured by promoting it to the default deck first, which is the promotion
+// the rubric says the measurement is supposed to gate — so `--deck` broke the
+// circle. A candidate *Boss mechanic* had the same circle and no way out: the
+// only fight the sweep could measure was the shipped one, so authoring a
+// traversing Boss meant re-baselining Embermaw's walls against content nothing
+// had measured yet. An evaluation Encounter is measured first and promoted
+// after, and until it is promoted it changes no shipped number.
+const ENCOUNTER_ID = flagValue('--encounter') ?? DEFAULT_ENCOUNTER_ID
+if (!catalog.encounters[ENCOUNTER_ID]) {
+  throw new Error(`Unknown encounter ${ENCOUNTER_ID}; authored encounters are ${Object.keys(catalog.encounters).join(', ')}`)
 }
 const SEEDS = Number(flagValue('--seeds') ?? 30)
 const JSON_OUT = flagValue('--json')

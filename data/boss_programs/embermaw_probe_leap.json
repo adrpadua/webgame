@@ -1,0 +1,77 @@
+{
+  "id": "embermaw_probe_leap",
+  "title": "Hunt Pattern (leaping)",
+  "rules_text": "Hunt Pattern with one field changed: Embermaw leaps rather than walks. Everything else is the shipped program.",
+  "instant_beats": [
+    {
+      "id": "turn_to_tank",
+      "title": "Turn to the Tank",
+      "rules_text": "Embermaw faces the nearest guardian.",
+      "kind": "turn_toward_player",
+      "consequence_tier": "chip",
+      "answer_tags": [
+        "position"
+      ]
+    },
+    {
+      "id": "close_the_gap",
+      "title": "Leap the Gap",
+      "rules_text": "Embermaw clears up to three hexes toward the guardian, over whatever lies between, and lands within reach.",
+      "kind": "advance_toward_player",
+      "consequence_tier": "chip",
+      "move_tiles": 3,
+      "range_tiles": 1,
+      "traversal": "jump",
+      "answer_tags": [
+        "position"
+      ]
+    },
+    {
+      "id": "raking_claw",
+      "title": "Raking Claw",
+      "rules_text": "Target: Tank, within 1 hex. Deal 4 damage.",
+      "kind": "targeted_hit",
+      "consequence_tier": "chip",
+      "target_selector": "tank",
+      "range_tiles": 1,
+      "damage": 4,
+      "answer_tags": [
+        "mitigate",
+        "move"
+      ],
+      "damage_keywords": [
+        "tank_hit"
+      ]
+    },
+    {
+      "id": "claw_scorch",
+      "title": "Ash Trail",
+      "rules_text": "The ground the claw struck burns away for good. Absorb the hit cleanly and the ash falls behind you instead.",
+      "kind": "hazard_last_impact",
+      "consequence_tier": "structural",
+      "hazard": "scorched",
+      "permanent": true,
+      "answer_tags": [
+        "mitigate",
+        "move"
+      ]
+    }
+  ],
+  "incoming_beats": [
+    {
+      "id": "cinder_breath",
+      "title": "Cinder Breath",
+      "rules_text": "Forward cone, range 1-2.",
+      "kind": "forward_cone",
+      "consequence_tier": "structural",
+      "range_tiles": 2,
+      "damage": 5,
+      "duration_rounds": 1,
+      "hazard": "scorched",
+      "answer_tags": [
+        "move",
+        "interrupt"
+      ]
+    }
+  ]
+}

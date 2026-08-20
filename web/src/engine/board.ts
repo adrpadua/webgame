@@ -76,7 +76,7 @@ export function damageEntity(board: BoardState, entityId: string, amount: number
 }
 
 // Ground a piece could arrive on: on the board, nobody standing there, and
-// nothing authored impassable (D-NEW).
+// nothing authored impassable (D-075).
 //
 // The last clause is what stops a Minion spawning onto ground the arena has
 // burned away. It used to filter on occupancy alone, and Embermaw authored two
@@ -233,7 +233,7 @@ export function isLegalMove(board: BoardState, entityId: string, destination: Ax
   if (hexDistance(entity.coords, destination) > maximumDistance) {
     return false
   }
-  // Physics first, and it does not care whose move this is (D-NEW). Ground
+  // Physics first, and it does not care whose move this is (D-075). Ground
   // authored impassable stops a paid step exactly as it stops a traversal or a
   // Push; a wall the Whelps have to walk around is not one the Tank strolls
   // through.

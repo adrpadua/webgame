@@ -266,7 +266,7 @@ export const hazardSchema = z.object({
   duration_rounds: z.number().int().min(1).default(1),
   enter_damage: z.number().int().min(0).default(0),
   // The two questions ground answers about being entered, and the axis between
-  // them is **physics versus choice** (D-NEW).
+  // them is **physics versus choice** (D-075).
   //
   // `blocks_voluntary_movement` is choice: a Hero may not *elect* to walk here.
   // It is fire you would not step into, so a shove can still put you on it.
