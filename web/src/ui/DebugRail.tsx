@@ -5,6 +5,13 @@ import { selectState, useWorkbench, type FactEntry } from '@/store/workbench'
 import { SpriteInspector } from './SpriteInspector'
 import { FRAME_HEIGHT_CLASS } from './theme'
 
+// Whether the rail renders at all. It is a design tool rather than part of
+// the game: on in the dev server, and on any build reached with ?debug=1 —
+// so it can be opened on the deployed site when wanted, and a playtester
+// handed the URL cold never sees it. Read once at import, because the answer
+// cannot change without a navigation.
+export const showDebugRail = import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug')
+
 function factSummary(fact: FactEntry): string | null {
   const resolution = fact.resolutionFact
   if (!resolution) {

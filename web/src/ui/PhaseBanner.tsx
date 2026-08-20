@@ -1,7 +1,7 @@
 import { useCatalog } from '@/content/CatalogContext'
 import { useEffect, useRef, useState } from 'react'
 import type { Phase } from '@/engine'
-import { selectState, useWorkbench } from '@/store/workbench'
+import { selectActive, selectBossPhase, selectCurrentProgramId, selectPhase, selectPhaseBreakText, useWorkbench } from '@/store/workbench'
 import { Notify } from './NotificationLayer'
 import { phaseMark } from './phaseTrack'
 
@@ -18,10 +18,17 @@ const PHASE_TONE: Record<Phase, string> = {
   slow: 'wb-face-steel wb-acc-gold text-gold-100',
 }
 
+// Five primitives rather than the Encounter: the banner announces phase
+// changes and the Phase Reveal, and neither is news it can learn from a Charge
+// or a shot. Subscribed to the root it re-rendered on every action and had to
+// re-run both timers' effects to conclude nothing had happened.
 export function PhaseBanner() {
-  const state = useWorkbench(selectState)
   const catalog = useCatalog()
-  const phase = state.phase
+  const phase = useWorkbench(selectPhase)
+  const active = useWorkbench(selectActive)
+  const bossPhase = useWorkbench(selectBossPhase)
+  const currentProgramId = useWorkbench(selectCurrentProgramId)
+  const phaseBreakText = useWorkbench(selectPhaseBreakText)
   const [shownPhase, setShownPhase] = useState<Phase | null>(null)
   const previousPhase = useRef<Phase | null>(phase)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -31,7 +38,6 @@ export function PhaseBanner() {
   // at the Round boundary, so it lands before the first Instant Row and wins
   // the banner while it is up — the phase word underneath it is the smaller
   // news. It dwells longer because it carries a sentence, not a word.
-  const bossPhase = state.bossPhase
   const [shownBreak, setShownBreak] = useState<string | null>(null)
   const previousBossPhase = useRef<number>(bossPhase)
   const breakTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -42,10 +48,10 @@ export function PhaseBanner() {
     // nor announce it backwards, which is what a plain inequality did.
     const rose = bossPhase > previousBossPhase.current
     previousBossPhase.current = bossPhase
-    if (!rose || !state.active) {
+    if (!rose || !active) {
       return
     }
-    setShownBreak(state.currentProgramId)
+    setShownBreak(currentProgramId)
     if (breakTimer.current !== null) {
       clearTimeout(breakTimer.current)
     }
@@ -56,14 +62,14 @@ export function PhaseBanner() {
         clearTimeout(breakTimer.current)
       }
     }
-  }, [bossPhase, state.active, state.currentProgramId])
+  }, [bossPhase, active, currentProgramId])
 
   useEffect(() => {
     if (previousPhase.current === phase) {
       return
     }
     previousPhase.current = phase
-    if (!state.active) {
+    if (!active) {
       return
     }
     setShownPhase(phase)
@@ -76,7 +82,7 @@ export function PhaseBanner() {
         clearTimeout(hideTimer.current)
       }
     }
-  }, [phase, state.active])
+  }, [phase, active])
 
   // Never linger over the outcome banner: an Encounter that ends mid-banner
   // (or with the hide timer already cleared) drops the banner immediately.
@@ -84,7 +90,7 @@ export function PhaseBanner() {
   // It used to sit at a hard `top-[34%]` of the play surface, which is how it
   // came to print across the guidance stack once that stack had two bars in
   // it. It carries no control and stays inert: the hexes under it are live.
-  if (shownBreak !== null && state.active) {
+  if (shownBreak !== null && active) {
     const program = catalog.programs[shownBreak]
     return (
       <Notify id="phase-banner">
@@ -96,13 +102,13 @@ export function PhaseBanner() {
             data-program={shownBreak}
           >
             <div className="text-lg font-black tracking-widest uppercase">{program?.title ?? 'Phase II'}</div>
-            {state.phaseBreakText !== '' && <p className="mt-1 text-[11px] leading-snug font-semibold text-coral-200">{state.phaseBreakText}</p>}
+            {phaseBreakText !== '' && <p className="mt-1 text-[11px] leading-snug font-semibold text-coral-200">{phaseBreakText}</p>}
           </div>
         </div>
       </Notify>
     )
   }
-  if (shownPhase === null || !state.active) {
+  if (shownPhase === null || !active) {
     return null
   }
   return (

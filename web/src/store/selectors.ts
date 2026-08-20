@@ -42,6 +42,10 @@ export const selectEscalation = (store: WorkbenchStore): number => selectState(s
 export const selectBossPhase = (store: WorkbenchStore): number => selectState(store).bossPhase
 export const selectPrimaryHeroId = (store: WorkbenchStore): string => selectState(store).primaryHeroId
 export const selectBossId = (store: WorkbenchStore): string => selectState(store).bossId
+export const selectCurrentProgramId = (store: WorkbenchStore): string | null => selectState(store).currentProgramId
+export const selectPhaseBreakText = (store: WorkbenchStore): string => selectState(store).phaseBreakText
+export const selectRoundLimit = (store: WorkbenchStore): number => selectState(store).roundLimit
+export const selectEnrageText = (store: WorkbenchStore): string => selectState(store).enrageText
 
 // The primary Hero, for the components that read most of one. Re-fires on
 // every action for the reason at the top of this file; it is here so that
