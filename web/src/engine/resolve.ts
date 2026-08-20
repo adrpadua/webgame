@@ -26,7 +26,7 @@ import {
   hexCounterRef,
   type CounterRef,
 } from './counters'
-import { evaluateStandingGrants } from './signature'
+import { evaluateGrantsFor, evaluateStandingGrants } from './signature'
 import { cardChargeCap } from './content/catalog'
 import { RAID_HIT, TANK_HIT } from './keywords'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
@@ -332,6 +332,21 @@ function resolveOne(
           reasonText: 'signature_full_bank',
         })
       }
+      // The Slot fired. A Signature may earn from its own Hero's tempo
+      // (ADR 0037); `effect_landed` is what stops that earn being farmed by
+      // firing an empty Slot at nothing.
+      evaluateGrantsFor(catalog, draft, action.sourceId, 'slot_fired', {
+        resolutionFact: {
+          ...(fact.resolutionFact ?? {}),
+          effect_landed:
+            effects.bossDamage > 0 ||
+            effects.targetDamage > 0 ||
+            effects.armor > 0 ||
+            effects.healing > 0 ||
+            effects.armorNextRound > 0 ||
+            card.places_counter !== '',
+        },
+      })
       generated.push(...slotFiredCounterActions(draft, action.sourceId))
       generated.push(...cardDrawActions(hero, action.sourceId, effects.drawCount))
       break
@@ -539,6 +554,10 @@ function resolveOne(
         // (D-047), so two Fortify commitments are one stack of Counters and
         // the additive stacking D-019 asked for is just addition.
         hero.armor += Math.max(readerSum(draft, combatantRef(heroId), 'round_start', 'armor'), 0)
+        // A Signature that accrues on a clock rather than on an event
+        // (ADR 0037). Evaluated after the Armor grant so a Grant reads the
+        // Round as it has settled, never mid-wipe.
+        evaluateGrantsFor(catalog, draft, heroId, 'round_start')
       }
       // The Armor wipe is the Party's alone; the duration tick is every
       // combatant's. Running upkeep after the grant keeps Fortified's D-019

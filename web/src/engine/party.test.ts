@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCatalog, createEncounterState, resolve, selectBeatTarget, type ContentCatalog } from '@/engine'
+import { buildCatalog, createEncounterState, ENCOUNTER_SOURCE, resolve, selectBeatTarget, type ContentCatalog, type EncounterState } from '@/engine'
 
 // The Party seams (ADR 0035). Every test here fields two Heroes, because the
 // existing suite only ever proves the solo path still works — which it would
@@ -32,6 +32,8 @@ const CARDS = [
     armor_delta: 1,
     tags: ['healer'],
   },
+  // Every effect field zero: the empty fire `effect_landed` exists to refuse.
+  { id: 'posture', title: 'Posture', speed: 'quick', tags: ['healer'] },
   {
     id: 'ward',
     title: 'Ward',
@@ -252,5 +254,115 @@ describe('the Party seams (ADR 0035)', () => {
       const far = resolve(catalog, state, { kind: 'fire_slot', sourceId: 'mender', slotIndex: 0, targetId: 'warden' })
       expect(far.facts[0].reason).toBe("The chosen ally is outside the Top Card's range.")
     })
+  })
+})
+
+// The Signature earn vocabulary (ADR 0037). Before this, a standing clause
+// could only fire on the Hero taking damage, so every Signature the game
+// could print was a Warden's. These tests are the other three earns actually
+// firing — the catalog change alone would pass without them.
+describe('the Signature earn vocabulary (ADR 0037)', () => {
+  const SIG = (standing: unknown[], overrides: Record<string, unknown> = {}) => ({
+    id: 'probe_sig',
+    title: 'Probe Sig',
+    speed: 'quick',
+    fixed: true,
+    boss_damage: 1,
+    max_charge: 2,
+    standing,
+    ...overrides,
+  })
+
+  function arena(standing: unknown[]) {
+    return buildCatalog({
+      cards: [...CARDS, SIG(standing)],
+      heroes: [
+        { id: 'warden', title: 'Warden', max_health: 20 },
+        { id: 'mender', title: 'Mender', max_health: 12, signature_card: 'probe_sig' },
+      ],
+      keywords: KEYWORDS,
+      counters: COUNTERS,
+      chargeModifiers: [],
+      hazards: [],
+      minions: [],
+      programs: [{ id: 'probe_program', title: 'Probe Program', instant_beats: [], incoming_beats: [] }],
+      encounters: [
+        {
+          id: 'probe_party',
+          title: 'Probe Party',
+          party: [
+            { hero: 'warden', start: { q: 0, r: 0 }, deck: [{ card: 'tank_strike', copies: 6 }] },
+            { hero: 'mender', start: { q: 1, r: 0 }, deck: [{ card: 'healer_strike', copies: 6 }] },
+          ],
+          boss_id: 'probe_boss',
+          boss_title: 'Probe Boss',
+          round_limit: 6,
+          board_radius: 3,
+          boss_start: { q: 0, r: -3 },
+          boss_health: 40,
+          slot_count: 2,
+          hand_refill_target: 4,
+          player_deck: [{ card: 'tank_strike', copies: 4 }],
+          boss_programs: ['probe_program'],
+          random_seed: 7,
+        },
+      ],
+    })
+  }
+
+  // The Mender's Signature Slot is the one appended after the two dealt Slots.
+  const signatureSlot = (state: EncounterState) => state.heroes.mender.actionBar[2]
+
+  it('earns on dealing damage — the offensive machine the Bond needs', () => {
+    const catalog = arena([{ when: 'host_deals_damage', gates: ['effect_landed'], grants_charge: 1 }])
+    const state = createEncounterState(catalog, 'probe_party')
+    expect(signatureSlot(state).earnedCharges).toBe(0)
+    const after = resolve(catalog, state, {
+      kind: 'damage', sourceId: 'mender', targetId: 'probe_boss', amount: 3, reasonText: 'probe',
+    })
+    expect(signatureSlot(after.state).earnedCharges).toBe(1)
+  })
+
+  it('refuses that earn when the blow landed nothing', () => {
+    const catalog = arena([{ when: 'host_deals_damage', gates: ['effect_landed'], grants_charge: 1 }])
+    const state = createEncounterState(catalog, 'probe_party')
+    const after = resolve(catalog, state, {
+      kind: 'damage', sourceId: 'mender', targetId: 'probe_boss', amount: 0, reasonText: 'probe',
+    })
+    expect(signatureSlot(after.state).earnedCharges).toBe(0)
+  })
+
+  it('earns on firing a Slot, and refuses a fire that did nothing', () => {
+    const catalog = arena([{ when: 'slot_fired', gates: ['effect_landed'], grants_charge: 1 }])
+    const state = createEncounterState(catalog, 'probe_party')
+    state.phase = 'quick'
+    state.heroes.mender.actionBar[0].topCard = { instanceId: 'strike_probe', cardId: 'healer_strike' }
+    state.heroes.mender.actionBar[0].charges = [{ instanceId: 'fuel_probe', cardId: 'healer_strike' }]
+    const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: 'mender', slotIndex: 0 })
+    expect(signatureSlot(fired.state).earnedCharges).toBe(1)
+
+    // A card whose every effect field is zero earns nothing: the gate is what
+    // stops a tempo earn being farmed by firing into empty air.
+    const idle = createEncounterState(catalog, 'probe_party')
+    idle.phase = 'quick'
+    idle.heroes.mender.actionBar[0].topCard = { instanceId: 'posture_probe', cardId: 'posture' }
+    idle.heroes.mender.actionBar[0].charges = [{ instanceId: 'fuel_probe', cardId: 'healer_strike' }]
+    const empty = resolve(catalog, idle, { kind: 'fire_slot', sourceId: 'mender', slotIndex: 0 })
+    expect(empty.facts[0].succeeded).toBe(true)
+    expect(signatureSlot(empty.state).earnedCharges).toBe(0)
+  })
+
+  it('earns on the Round start — the clock-shaped accrual', () => {
+    const catalog = arena([{ when: 'round_start', grants_charge: 1 }])
+    const state = createEncounterState(catalog, 'probe_party')
+    const after = resolve(catalog, state, { kind: 'round_start', sourceId: ENCOUNTER_SOURCE, round: 2 })
+    expect(signatureSlot(after.state).earnedCharges).toBe(1)
+    // And it still respects the cap: a third Round start over a cap of 2
+    // banks nothing more.
+    let running = after.state
+    for (const round of [3, 4]) {
+      running = resolve(catalog, running, { kind: 'round_start', sourceId: ENCOUNTER_SOURCE, round }).state
+    }
+    expect(signatureSlot(running).earnedCharges).toBe(2)
   })
 })

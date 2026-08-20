@@ -141,7 +141,15 @@ export const signatureGrantSchema = z.object({
   // mitigation fully answered the blow — and `guarded_front` is the Warden
   // sentence as a predicate. Both already exist as engine computations; a
   // Grant only exposes them (D-064).
-  gates: z.array(z.enum(['health_loss_zero', 'guarded_front'])).default([]),
+  // The closed gate list. `health_loss_zero` is the perfect block —
+  // mitigation fully answered the blow — and `guarded_front` is the Warden
+  // sentence as a predicate; both are questions about a blow taken.
+  // `effect_landed` asks whether the event actually did anything, which is
+  // what stops an offensive or tempo earn being farmed by firing into
+  // nothing (ADR 0037). Which gates each `when` may use is a closed pairing
+  // the catalog checks, because a gate asking about a blow is incoherent on
+  // an event that is not one.
+  gates: z.array(z.enum(['health_loss_zero', 'guarded_front', 'effect_landed'])).default([]),
   grants_charge: z.number().int().min(1).default(1),
 })
 

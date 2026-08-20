@@ -25,7 +25,7 @@ import {
 } from './schemas'
 import { ENGINE_KEYWORDS, KEYWORD_REFERENCES, type KeywordKind } from '../keywords'
 import { ENGINE_COUNTERS, READABLE_READER_PAIRS } from '../counters'
-import { EVALUATED_GRANT_WHENS } from '../signature'
+import { EVALUATED_GRANT_WHENS, GATES_BY_WHEN } from '../signature'
 import { hexDistance } from '../hex'
 
 // The Beat kinds that ask a distance question, and therefore must author one.
@@ -347,6 +347,24 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
         throw new Error(
           `${cardAt(card.id)} authors a ${grant.when} standing clause, which nothing evaluates; the evaluated whens are ${EVALUATED_GRANT_WHENS.join(', ')}`,
         )
+      }
+      // Which gates the event can answer (ADR 0037). A gate is a question
+      // about a moment, and three of the four moments are not blows: asking
+      // whether a Round start lost zero health is incoherent rather than
+      // merely false. Refused here rather than allowed to load and quietly
+      // never pass — the same trap the `when` check above closes.
+      const allowedGates = GATES_BY_WHEN[grant.when as keyof typeof GATES_BY_WHEN] ?? []
+      for (const gate of grant.gates) {
+        if (!allowedGates.includes(gate)) {
+          throw new Error(
+            `${cardAt(card.id)} gates a ${grant.when} standing clause on ${gate}, which that event cannot answer; ${grant.when} takes ${allowedGates.length > 0 ? allowedGates.join(' or ') : 'no gates'}`,
+          )
+        }
+      }
+      // An event_keyword narrows a *blow*. On an event that is not one there
+      // is no Keyword to match, so the clause would never fire.
+      if (grant.event_keyword !== '' && grant.when !== 'host_takes_damage' && grant.when !== 'host_deals_damage') {
+        throw new Error(`${cardAt(card.id)} narrows a ${grant.when} standing clause by event_keyword, but that event carries no damage Keywords`)
       }
       if (grant.event_keyword !== '') {
         requireKeyword(catalog, grant.event_keyword, KEYWORD_REFERENCES.damageKeywords, `Card ${card.id}`, 'standing event_keyword')

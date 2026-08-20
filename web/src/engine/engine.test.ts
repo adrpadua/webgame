@@ -8,6 +8,8 @@ import { escalationActionsForRoundEnd } from './escalation'
 import {
   advancePhase,
   buildCatalog,
+  EVALUATED_GRANT_WHENS,
+  signatureGrantSchema,
   combatantRef,
   programAnswerTags,
   hexCounterRef,
@@ -385,10 +387,31 @@ describe('content catalog', () => {
         expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow('authors a full_charge block but is not fixed')
       })
 
-      it('rejects a standing when nothing evaluates', () => {
-        expect(() => buildCatalog({ ...empty, cards: [signature({ standing: [{ ...grant, when: 'round_start' }] })] })).toThrow(
-          'authors a round_start standing clause, which nothing evaluates',
-        )
+      // Every `when` the schema accepts is evaluated since ADR 0037, so the
+      // "nothing evaluates" refusal is now the guard that keeps the schema
+      // enum and the evaluated list in step: adding a fifth `when` without
+      // teaching the rules to read it fails the build rather than shipping a
+      // clause that silently never fires.
+      it('evaluates every when the schema accepts', () => {
+        for (const when of EVALUATED_GRANT_WHENS) {
+          expect(signatureGrantSchema.parse({ when }).when).toBe(when)
+        }
+        const schemaWhens = ['round_start', 'host_takes_damage', 'host_deals_damage', 'slot_fired']
+        expect([...EVALUATED_GRANT_WHENS].sort()).toEqual([...schemaWhens].sort())
+      })
+
+      // A gate is a question about a moment, and three of the four moments
+      // are not blows (ADR 0037).
+      it('rejects a gate the event cannot answer, and a keyword on an event with none', () => {
+        expect(() =>
+          buildCatalog({ ...empty, cards: [signature({ standing: [{ when: 'round_start', gates: ['health_loss_zero'], grants_charge: 1 }] })] }),
+        ).toThrow('gates a round_start standing clause on health_loss_zero, which that event cannot answer; round_start takes no gates')
+        expect(() =>
+          buildCatalog({ ...empty, cards: [signature({ standing: [{ when: 'slot_fired', gates: ['guarded_front'], grants_charge: 1 }] })] }),
+        ).toThrow('slot_fired takes effect_landed')
+        expect(() =>
+          buildCatalog({ ...empty, cards: [signature({ standing: [{ when: 'slot_fired', event_keyword: 'tank_hit', grants_charge: 1 }] })] }),
+        ).toThrow('narrows a slot_fired standing clause by event_keyword, but that event carries no damage Keywords')
       })
 
       it('rejects a targeted fixed card, and a resource_title on a non-fixed one (D-065)', () => {
