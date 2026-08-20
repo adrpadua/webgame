@@ -1,5 +1,5 @@
 import { hexDistance, isLegalMove, parseHexKey, type ContentCatalog, type EncounterState } from '@/engine'
-import { slotTakesCharge, slotWantedKeywords } from './slots'
+import { slotTakesCharge, slotWantedKeywords } from '../actionBar/slots'
 
 // What a card in hand actually is, right now.
 //

@@ -2,7 +2,7 @@
 
 Status: layout contract for every floating surface on the play field. This document decides *where* a transient message may land and *what happens when two want the same pixel*. What a message is made of is decided by [oathcraft-interface-direction.md](oathcraft-interface-direction.md); if the two disagree, that file wins and this one is the bug.
 
-The implementation is `web/src/ui/notifications.ts` (the table and the stack rules) and `web/src/ui/NotificationLayer.tsx` (the geometry). Neither is allowed to disagree with this file, and a new floating surface belongs in the table before it belongs on screen.
+The implementation is `web/src/ui/overlays/notifications.ts` (the table and the stack rules) and `web/src/ui/overlays/NotificationLayer.tsx` (the geometry). Neither is allowed to disagree with this file, and a new floating surface belongs in the table before it belongs on screen.
 
 ## The Problem This Replaces
 

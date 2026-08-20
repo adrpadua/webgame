@@ -1,6 +1,6 @@
 import { selectActive, selectOutcome, selectOutcomeReason, useWorkbench } from '@/store/workbench'
 import { usePlayout } from '@/store/playout'
-import { BossEmblem, HeroEmblem } from './icons'
+import { BossEmblem, HeroEmblem } from '../common/icons'
 import { Notify } from './NotificationLayer'
 
 // How the Encounter ended. Three primitives and the playout's hold: the

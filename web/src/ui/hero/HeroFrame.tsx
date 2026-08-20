@@ -3,11 +3,11 @@ import { combatantRef, getCounters, type CounterInstance, type HeroState } from 
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { signatureControl, type SignatureControl as SignatureControlState } from './heroFrame'
-import { useDamageFlash } from './useDamageFlash'
-import { HeartIcon, HeroEmblem, ShieldIcon } from './icons'
-import { HERO_STAT_DETAILS, slotDetail } from './holdDetails'
-import { useHold } from './HoldPopover'
-import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS, healthBarScale } from './theme'
+import { useDamageFlash } from '../common/useDamageFlash'
+import { HeartIcon, HeroEmblem, ShieldIcon } from '../common/icons'
+import { HERO_STAT_DETAILS, slotDetail } from '../common/holdDetails'
+import { useHold } from '../common/HoldPopover'
+import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS, healthBarScale } from '../common/theme'
 
 // The Hero Frame (D-065, ADR 0033): the primary Hero's persistent readout,
 // floating over the board's bottom edge, built to the unit-frame anatomy an

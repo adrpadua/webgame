@@ -4,7 +4,7 @@ import { usePlayout } from "@/store/playout";
 import { selectState, useWorkbench } from "@/store/workbench";
 import { beatCardStats, findLiveBeat, standingDemand } from "./beatCard";
 import { Notify } from "./NotificationLayer";
-import { FOCUS_RING_CLASS } from "./theme";
+import { FOCUS_RING_CLASS } from "../common/theme";
 
 // Every Boss Beat is a card, and the card is the control that resolves it.
 //

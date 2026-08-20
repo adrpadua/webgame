@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOnboarding } from '@/store/onboarding'
 import { selectState, useWorkbench, type FactEntry } from '@/store/workbench'
 import { SpriteInspector } from './SpriteInspector'
-import { FRAME_HEIGHT_CLASS } from './theme'
+import { FRAME_HEIGHT_CLASS } from '../common/theme'
 
 // Whether the rail renders at all. It is a design tool rather than part of
 // the game: on in the dev server, and on any build reached with ?debug=1 —

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Phase } from '@/engine'
 import { selectActive, selectBossPhase, selectCurrentProgramId, selectPhase, selectPhaseBreakText, useWorkbench } from '@/store/workbench'
 import { Notify } from './NotificationLayer'
-import { phaseMark } from './phaseTrack'
+import { phaseMark } from '../chrome/phaseTrack'
 
 // A short, non-blocking banner that names each phase as it begins: the word
 // and its colour, nothing else. What the phase means lives behind a hold on

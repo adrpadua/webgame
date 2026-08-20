@@ -10,8 +10,8 @@ import {
   type SlotState,
 } from '@/engine'
 import type { WorkbenchCatalog } from '@/store/workbench'
-import type { HoldDetail } from './HoldPopover'
-import { slotCanFire } from './slots'
+import type { HoldDetail } from '../common/HoldPopover'
+import { slotCanFire } from '../actionBar/slots'
 
 // The scripted first turn.
 //

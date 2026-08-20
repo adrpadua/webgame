@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { axialAdd, axialDeltaFor, axialEquals, facingName, VALID_FACINGS } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { Notify } from './NotificationLayer'
-import { FOCUS_RING_CLASS } from './theme'
+import { FOCUS_RING_CLASS } from '../common/theme'
 
 // Dragging the Hero to a legal hex agrees where to go and says nothing about
 // what it costs — but a move is paid for with a discarded hand card (ADR

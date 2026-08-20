@@ -1,7 +1,7 @@
 import { ESCALATION_MAX, type EncounterState, type EscalationThreshold } from '@/engine'
-import { useHold } from './HoldPopover'
-import type { HoldDetail } from './HoldPopover'
-import { FOCUS_RING_CLASS } from './theme'
+import { useHold } from '../common/HoldPopover'
+import type { HoldDetail } from '../common/HoldPopover'
+import { FOCUS_RING_CLASS } from '../common/theme'
 
 // Escalation is the encounter's only clock (ADR 0027), and its whole reason for
 // existing over a plain round limit is that the party should FEEL the collapse

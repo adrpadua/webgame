@@ -3,14 +3,14 @@ import { cardChargeCap, cardWindowSpeed, legality, type SlotState } from '@/engi
 import { selectState, useWorkbench } from '@/store/workbench'
 import { AdvanceControl } from './AdvanceControl'
 import { UndoControl } from './UndoControl'
-import { blocksTarget } from './firstTurnScript'
-import { useFirstTurnStep } from './useFirstTurn'
+import { blocksTarget } from '../onboarding/firstTurnScript'
+import { useFirstTurnStep } from '../onboarding/useFirstTurn'
 import { slotCanFire, slotOutOfWindow, slotTakesCharge, slotWantedKeywords } from './slots'
-import { keywordIcon } from './keywordIcons'
-import { slotDetail } from './holdDetails'
-import { useHold, type HoldDetail } from './HoldPopover'
-import { LockHead, type LockState } from './icons'
-import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS, windowDotClass } from './theme'
+import { keywordIcon } from '../common/keywordIcons'
+import { slotDetail } from '../common/holdDetails'
+import { useHold, type HoldDetail } from '../common/HoldPopover'
+import { LockHead, type LockState } from '../common/icons'
+import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS, windowDotClass } from '../common/theme'
 
 // The persistent Action Bar. Each Slot shows its Top Card, its Charge Stack
 // as pips, and its state as one colour — the rules text is a hold away. Tap

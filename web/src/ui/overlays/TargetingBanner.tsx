@@ -2,7 +2,7 @@ import { useCatalog } from '@/content/CatalogContext'
 import { fireTargeting } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { Notify } from './NotificationLayer'
-import { FOCUS_RING_CLASS } from './theme'
+import { FOCUS_RING_CLASS } from '../common/theme'
 
 // A Top Card waiting for its target. What kind of target it wants is an
 // engine query (ADR 0013), never a guess from the payload shape.

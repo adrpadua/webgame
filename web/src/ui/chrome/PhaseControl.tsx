@@ -1,10 +1,10 @@
 import { useCatalog } from '@/content/CatalogContext'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { EscalationGauge } from './EscalationGauge'
-import { encounterTerms, phaseDetail } from './holdDetails'
-import { useHold } from './HoldPopover'
+import { encounterTerms, phaseDetail } from '../common/holdDetails'
+import { useHold } from '../common/HoldPopover'
 import { OwnerWedge, PHASE_TRACK, phaseMark, roundTrackDetail, type PhaseMark } from './phaseTrack'
-import { FOCUS_RING_CLASS } from './theme'
+import { FOCUS_RING_CLASS } from '../common/theme'
 
 // The Round track, the Encounter Clock beside it, and the Escalation gauge
 // stacked underneath: what the Round is doing, how far into the fight it is,

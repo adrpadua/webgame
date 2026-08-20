@@ -10,7 +10,7 @@ import {
   type ContentCatalog,
   type EncounterState,
 } from '@/engine'
-import { currentFirstTurnStep } from '@/ui/useFirstTurn'
+import { currentFirstTurnStep } from '@/ui/onboarding/useFirstTurn'
 import { useOnboarding } from '@/store/onboarding'
 import { usePlayout } from '@/store/playout'
 import { catalog } from '@/store/catalog'
