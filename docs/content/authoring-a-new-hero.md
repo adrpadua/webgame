@@ -45,11 +45,10 @@ engineering requests, not a `data/` batch.
 
 Two checks catch almost every case:
 
-- **The earn condition.** A Signature can only fire on the Hero **taking
-  damage** today; `host_deals_damage`, `slot_fired`, and `round_start` are
-  refused at load. If your Hero's engine earns any other way, see step 5 —
-  that is a request, and the Hero should be authored without a Signature until
-  it lands.
+- **The earn condition.** A Signature may fire on any of the four events
+  since ADR 0037 — being hit, landing a blow, firing a Slot, or the Round
+  start — but each event carries only the gates it can answer. Step 5 has the
+  pairings.
 - **The effect vocabulary.** Every card effect, Beat kind, target family, and
   Charge Modifier effect is a closed set, listed in the handoff doc's
   Engineering Boundary. A card that needs a new one is a request.
@@ -128,38 +127,37 @@ The Signature is a card with `fixed: true`, named by the **Hero file's**
 - `target_type` must be `none` — the Signature button carries no targeting
   flow.
 
-**Here is the wall, and it is bigger than the gate list.** A standing clause
-can only fire on **one** event today — the Hero taking damage. The other three
-`when` values the schema accepts are refused at load:
+**The earn vocabulary is now open, but each event carries only the gates it
+can answer** (ADR 0037):
+
+| `when` | What earns the Charge | Gates it may carry |
+| --- | --- | --- |
+| `host_takes_damage` | The Hero is hit | `health_loss_zero`, `guarded_front` |
+| `host_deals_damage` | The Hero lands a blow | `effect_landed` |
+| `slot_fired` | The Hero fires a Slot | `effect_landed` |
+| `round_start` | The Round begins | none |
+
+`effect_landed` asks whether the event actually did something — a blow that
+cost health, or a fire that produced damage, Armor, healing, banked Armor, or
+a Counter. Gate a `slot_fired` or `host_deals_damage` earn on it unless you
+have a reason not to: without it the earn is farmable by firing an empty Slot
+at nothing, which makes it a formality rather than a reward for correct play.
+
+A gate paired with an event it cannot answer is refused at load, and so is an
+`event_keyword` on `slot_fired` or `round_start`, because those events carry
+no damage Keywords to narrow by:
 
 ```
-Card probe_sig (data/cards/probe_sig.json) authors a host_deals_damage standing clause,
-which nothing evaluates; the evaluated whens are host_takes_damage
+Card probe_sig gates a round_start standing clause on health_loss_zero,
+which that event cannot answer; round_start takes no gates
 ```
 
-The gates narrow that one event and are Warden-shaped themselves:
-`health_loss_zero` is a perfect block, `guarded_front` is the Warden sentence.
-So the only Signature the game can currently print is *"when I take damage,
-optionally having blocked it perfectly and/or while holding the Guarded Front,
-gain a Charge."*
-
-That is one fantasy, and it belongs to the Warden. A Hero who earns by dealing
-damage, by firing a Slot, or on a clock cannot author their Signature at all
-yet — which is why step 0 asks you to check this before writing a deck.
-
-**Do not borrow a Warden gate to get something working.** A Signature whose
-earn condition does not restate the raid job fails the design contract's first
-test, and it would ship a Hero whose defining power says the wrong thing about
-them. Author the Hero with no Signature instead — leave `signature_card`
-empty — and raise the request.
-
-The request is already written and open:
-[signature-earn-vocabulary.md](design-proposals/signature-earn-vocabulary.md).
-Add your Hero's earn condition to it as a named case rather than filing a
-second request; it is the same seam. The ask is small and well-precedented —
-all four events already resolve in the engine and Counter Readers already read
-all four, so the Signature is subscribed to one where its mirror is subscribed
-to four.
+A Hero whose earn condition needs something outside this vocabulary — a
+counted class resource with its own decay, say — still files a request, and
+should be authored with `signature_card` empty in the meantime. Kessa Varn's
+Momentum is the standing example: ADR 0037 was deliberately scoped narrower
+than her resource, because whatever that resource turns out to be, its
+Signature first had to be able to name the event that earns it.
 
 ## 6. An Encounter that fields the Hero
 

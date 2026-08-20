@@ -201,6 +201,42 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       }
       return targetVerdict ?? legal()
     }
+    case 'revive_ally': {
+      // The rescue's whole cost is adjacency plus a card, so both are checked
+      // here and neither is checked anywhere else (ADR 0036).
+      const rescuer = state.heroes[action.sourceId]
+      if (!rescuer || rescuer.status !== 'living') {
+        return illegal('Only a living Hero can revive an ally.')
+      }
+      const fallen = state.heroes[action.targetId]
+      if (!fallen || fallen.status !== 'downed') {
+        return illegal('That ally is not Downed.')
+      }
+      if (!rescuer.hand.some((card) => card.instanceId === action.cardInstanceId)) {
+        return illegal('Reviving an ally costs a card from hand.')
+      }
+      const rescuerAt = state.board.entities[action.sourceId]?.coords
+      const fallenAt = state.board.entities[action.targetId]?.coords
+      if (!rescuerAt || !fallenAt || hexDistance(rescuerAt, fallenAt) > 1) {
+        return illegal('You must be adjacent to the Downed ally.')
+      }
+      return legal()
+    }
+    case 'diminished_action': {
+      const hero = state.heroes[action.sourceId]
+      if (!hero || hero.status !== 'incapacitated') {
+        return illegal('Only an Incapacitated Hero takes a diminished action.')
+      }
+      // The two ally-facing choices need a living ally to aim at; a Party with
+      // none is a Party that has already lost.
+      if (action.action !== 'reduce_escalation') {
+        const ally = action.targetId === undefined ? undefined : state.heroes[action.targetId]
+        if (!ally || ally.status !== 'living') {
+          return illegal('That action needs a living ally.')
+        }
+      }
+      return legal()
+    }
     case 'move_hero': {
       const hero = state.heroes[action.sourceId]
       const card = handCard(hero, action.cardInstanceId)
