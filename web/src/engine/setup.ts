@@ -33,7 +33,7 @@ export function createEncounterState(catalog: ContentCatalog, encounterId: strin
     board: createBoard(encounter.board_radius),
     heroes: {},
     counters: {},
-    bossId: encounter.boss_id,
+    bossId: encounter.boss,
     primaryHeroId: primarySeat.hero,
     partyHeroIds: encounter.party.map((seat) => seat.hero),
     programIds: [...encounter.boss_programs],
@@ -77,7 +77,11 @@ export function createEncounterState(catalog: ContentCatalog, encounterId: strin
     'phase_two_program_order',
   )
   state.currentProgramId = state.programSequence[0] ?? null
-  addEntity(state.board, encounter.boss_id, 'boss', encounter.boss_start, encounter.boss_health, FACING_SW, 'enemy', encounter.boss_title)
+  // Identity and health read off the Boss definition (ADR 0040); the content
+  // id doubles as the entity id, which is what keeps a committed Scenario's
+  // `embermaw` addressing this piece across the promotion.
+  const boss = catalog.bosses[encounter.boss]
+  addEntity(state.board, boss.id, 'boss', encounter.boss_start, boss.max_health, FACING_SW, 'enemy', boss.title)
   // Each seat becomes a board entity and a HeroState, in authored order. The
   // deck is dealt per Hero from the Encounter's one authored list: with a
   // single authored deck, every seat draws its own shuffled copy rather than

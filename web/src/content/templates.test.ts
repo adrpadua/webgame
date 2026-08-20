@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   bossProgramSchema,
+  bossSchema,
   cardSchema,
   chargeModifierSchema,
   counterSchema,
@@ -28,6 +29,7 @@ const templates = import.meta.glob('../../../docs/content/templates/*.json', {
 // template without a schema here, or a schema here without its template,
 // both fail loudly.
 const SCHEMAS = {
+  boss: bossSchema,
   boss_program: bossProgramSchema,
   card: cardSchema,
   charge_modifier: chargeModifierSchema,
