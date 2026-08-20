@@ -71,7 +71,7 @@ function skipWarning(catalog: ContentCatalog, store: WorkbenchStore, state: Enco
   }
   // ...and is anything still possible? A fireable Slot or any hand card
   // (Charge, or a paid step during the Quick Window) counts.
-  const canFire = hero.actionBar.some((slot) => slotCanFire(catalog, state, slot))
+  const canFire = hero.actionBar.some((_slot, slotIndex) => slotCanFire(catalog, state, slotIndex))
   if (!canFire && hero.hand.length === 0) {
     return null
   }

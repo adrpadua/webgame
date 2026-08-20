@@ -1,4 +1,4 @@
-import { emptyHexes, facingToward, firstEmptyHexes, forwardCone, frontArc, isGuardedFront, neighbors } from './board'
+import { emptyHexes, facingAlong, facingToward, firstEmptyHexes, forwardCone, frontArc, isGuardedFront, neighbors, traversalRoute } from './board'
 import { escalationModifiers } from './escalation'
 import { combatantRef } from './counters'
 import { normalizeFacing } from './facing'
@@ -105,13 +105,31 @@ export function resolveBossBeat(
   track: 'instant' | 'incoming' | '',
 ): EncounterActionInput[] {
   const boss = draft.board.entities[bossId]
-  const bossCoords = boss?.coords ?? { q: 999, r: 999 }
-  const bossFacing = boss?.facing ?? 0
   // Who this Beat is aimed at. Solo this is always the one Hero, so every
   // spatial rule below reads the same coordinates it always did.
   const selection = selectBeatTarget(catalog, draft, beat)
   const targetHeroId = selection.heroId
   const playerCoords = draft.board.entities[targetHeroId]?.coords ?? { q: 999, r: 999 }
+  // The movement clause runs before the Beat's own effect (D-074), so "Move 2,
+  // then Claw" is one Beat and the claw is measured from where the move ended.
+  // It closes on the Hero the selector picked, not on the first seat: a Beat
+  // that hunts the Tank has to walk to the Tank.
+  //
+  // The route is computed here and the piece is moved by the action below, in
+  // that order — which is why the geometry reads `bossCoords` rather than the
+  // Boss's live hex. Resolving the effect from the pre-move hex was the bug
+  // this ordering exists to prevent: the Beat would close the distance and then
+  // swing at where it used to be standing.
+  const route =
+    boss === undefined
+      ? []
+      : traversalRoute(draft.board, bossId, playerCoords, beat.move_tiles, beat.range_tiles, beat.traversal)
+  const bossCoords = route.at(-1) ?? boss?.coords ?? { q: 999, r: 999 }
+  // ...and the same for facing, which the move also changes. Reading the live
+  // facing here would have drawn the cone and the Guarded Front from the way
+  // the Beat was looking before it moved — the same staleness `bossCoords`
+  // exists to avoid, one field over.
+  const bossFacing = facingAlong(route, boss?.coords ?? bossCoords, boss?.facing ?? 0)
   let patternHexes: Axial[] = []
   const impactedHexes: Axial[] = []
   let playerDamage = 0
@@ -119,7 +137,6 @@ export function resolveBossBeat(
   let scorchedDurationRounds = 0
   let spawnHexes: Axial[] = []
   let unguardedBonusApplied = 0
-  let advanceTiles = 0
   // Escalation Thresholds apply at read time (ADR 0027), so they need no
   // separate mutation and take effect from the Round after the value rose.
   const escalated = escalationModifiers(draft)
@@ -130,12 +147,15 @@ export function resolveBossBeat(
       }
       break
     // The answer to standing out of reach: distance stops being a decision the
-    // Hero makes once and becomes one they have to keep re-making. Emitted as a
-    // displacement so ADR 0029's geometry, occupancy, edge handling and Hazard
-    // entry all apply unchanged — occupancy is also what stops the Boss cleanly
-    // when it reaches the Hero, with no special melee case.
+    // Hero makes once and becomes one they have to keep re-making.
+    //
+    // Since D-074 this arm is empty, and that is the whole change: every Beat
+    // carries the movement clause, so this kind is simply the one whose *only*
+    // effect is the move. It used to emit a `displace_piece` — `pull`'s
+    // geometry pointed at the Boss — which walked a straight line and stopped
+    // dead against whatever it met, so a Whelp of its own summoning could pin
+    // it in place.
     case 'advance_toward_player':
-      advanceTiles = beat.move_tiles
       break
     // A claw reaches as far as a claw reaches (D-062). The selector still says
     // *who* — a Tank Hit is aimed at the Tank rather than at whoever is
@@ -217,30 +237,41 @@ export function resolveBossBeat(
     draft.previousImpactAbsorbed = false
   }
   const actions: EncounterActionInput[] = []
+  // The movement clause goes first, so everything after it resolves from where
+  // the Beat ended up.
+  if (route.length > 0) {
+    actions.push({
+      kind: 'traverse_piece',
+      sourceId: bossId,
+      path: route,
+      traversal: beat.traversal,
+      reasonText: beat.title,
+    })
+  }
   // The Boss marking something (D-051). `self` is pressure the party watches
   // accrue and may choose to spend cards suppressing; `hero` is the Boss
   // marking the Party, which is the direction Counters could not previously
   // run.
+  //
+  // Marking the Party is a reach (D-074), measured from where the Beat ends
+  // after its movement clause. It was the last thing the Boss could do to a
+  // Hero from anywhere on the board — the mirror of the hole D-073 closed on
+  // the card side, and it survived that long because no authored Beat used it.
+  // Marking itself measures nothing and is never out of reach.
   if (beat.kind === 'place_counter' && beat.counter !== '') {
-    actions.push({
-      kind: 'place_counter',
-      sourceId: bossId,
-      hostRef: combatantRef(beat.counter_target === 'hero' ? targetHeroId : bossId),
-      counterId: beat.counter,
-      amount: beat.counter_amount,
-      reasonText: beat.title,
-    })
+    const marksHero = beat.counter_target === 'hero'
+    if (!marksHero || hexDistance(bossCoords, playerCoords) <= beat.range_tiles) {
+      actions.push({
+        kind: 'place_counter',
+        sourceId: bossId,
+        hostRef: combatantRef(marksHero ? targetHeroId : bossId),
+        counterId: beat.counter,
+        amount: beat.counter_amount,
+        reasonText: beat.title,
+      })
+    }
   }
-  if (advanceTiles > 0) {
-    actions.push({
-      kind: 'displace_piece',
-      sourceId: targetHeroId,
-      targetId: bossId,
-      distance: advanceTiles,
-      movement: 'advance',
-      reasonText: beat.title,
-    })
-  }
+
   let escalationBonusApplied = 0
   if (playerDamage > 0 && escalated.bossDamageBonus > 0) {
     escalationBonusApplied = escalated.bossDamageBonus
@@ -321,17 +352,15 @@ export function refreshTelegraphs(catalog: ContentCatalog, draft: EncounterState
         }
         break
       case 'spawn_minions': {
-        // The telegraph must not lie: it previews the escalated count.
+        // The telegraph must not lie: it previews the escalated count, and it
+        // picks hexes through the same helper the resolution does. It used to
+        // hand-roll its own occupancy test, which is two copies of one rule —
+        // and when the rule grew a clause (D-075: nothing arrives on impassable
+        // ground) only one copy would have grown with it.
         const count = beat.count + escalationModifiers(draft).extraSpawnCount
-        for (const coords of draft.spawnCandidates) {
-          if (draft.telegraphedSpawnHexes.length >= count) {
-            break
-          }
-          const key = hexKey(coords)
-          if (draft.board.hexes[key] && !Object.values(draft.board.entities).some((entity) => hexKey(entity.coords) === key)) {
-            draft.telegraphedSpawnHexes.push(coords)
-            draft.telegraphs[key] = 'spawn'
-          }
+        for (const coords of firstEmptyHexes(draft.spawnCandidates, emptyHexes(draft.board), count)) {
+          draft.telegraphedSpawnHexes.push(coords)
+          draft.telegraphs[hexKey(coords)] = 'spawn'
         }
         break
       }

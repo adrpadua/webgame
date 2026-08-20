@@ -1,5 +1,6 @@
 import {
   cardWindowSpeed,
+  hexDistance,
   hexKey,
   isLegalMove,
   neighbors,
@@ -87,15 +88,37 @@ function step(input: StepInput): FirstTurnStep {
   }
 }
 
-// Hexes that leave the telegraphed pattern the Boss is about to resolve.
-export function safeMoveHexes(state: EncounterState): HexKey[] {
+// Hexes that leave the telegraphed pattern the Boss is about to resolve, and
+// keep the Hero's prepared Slots in the fight.
+//
+// The second clause arrived with D-073. Every ability now carries a reach, so
+// three of the cone's exits are no longer equivalent: two keep Embermaw inside
+// Unyielding Step's swing and one does not, and a scripted Round that walked
+// the player onto the third would teach the Slow Window lesson by showing the
+// Slot go dark. Stepping off a telegraph without stepping out of the fight is
+// the lesson the reach rule creates, so the script offers only the hexes that
+// do both — and falls back to every safe hex when none of them can, because
+// dodging the beat is still the step being taught.
+export function safeMoveHexes(catalog: WorkbenchCatalog, state: EncounterState): HexKey[] {
   const hero = state.board.entities[state.primaryHeroId]
   if (!hero) {
     return []
   }
-  return neighbors(state.board.hexes, hero.coords)
+  const safe = neighbors(state.board.hexes, hero.coords)
     .filter((destination) => isLegalMove(state.board, state.primaryHeroId, destination) && state.telegraphs[hexKey(destination)] === undefined)
-    .map(hexKey)
+  const prepared = state.heroes[state.primaryHeroId]?.actionBar ?? []
+  const reaches = safe.filter((destination) =>
+    prepared.every((slot) => {
+      const card = slot.topCard ? catalog.cards[slot.topCard.cardId] : null
+      // Only reaching Slots have an opinion: Fortify does not care where its
+      // Hero stands, and a Slot that already fired has nothing left to lose.
+      if (!card || card.range_tiles === 0 || slot.activatedWindow !== null) {
+        return true
+      }
+      return hexDistance(destination, state.board.entities[state.bossId].coords) <= card.range_tiles
+    }),
+  )
+  return (reaches.length > 0 ? reaches : safe).map(hexKey)
 }
 
 function standingInTelegraph(state: EncounterState): boolean {
@@ -203,7 +226,7 @@ export function firstTurnStep(catalog: WorkbenchCatalog, state: EncounterState):
           ),
         })
       }
-      if (quickSlot && slotCanFire(catalog, state, quickSlot)) {
+      if (quickSlot && slotCanFire(catalog, state, 0)) {
         return step({
           id: 'fire-quick',
           cue: `Fire ${slotCardTitle(catalog, quickSlot, 'the Slot')}`,
@@ -214,7 +237,7 @@ export function firstTurnStep(catalog: WorkbenchCatalog, state: EncounterState):
         })
       }
       if (standingInTelegraph(state) && hasHand) {
-        const safeHexKeys = safeMoveHexes(state)
+        const safeHexKeys = safeMoveHexes(catalog, state)
         if (safeHexKeys.length > 0) {
           return step({
             id: 'move-away',
@@ -269,7 +292,7 @@ export function firstTurnStep(catalog: WorkbenchCatalog, state: EncounterState):
           detail: detail('charge-slow', 'Charge the slow Slot', 'Charge can be added in either of your windows — the Slot only fires in the one that matches its Top Card.'),
         })
       }
-      if (slowSlot && slotCanFire(catalog, state, slowSlot)) {
+      if (slowSlot && slotCanFire(catalog, state, 1)) {
         return step({
           id: 'fire-slow',
           cue: `Fire ${slotCardTitle(catalog, slowSlot, 'the Slot')}`,

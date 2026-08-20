@@ -1,15 +1,14 @@
 {
-  "id": "embermaw_first_turn",
-  "title": "Embermaw: First Turn",
-  "rules_text": "The Ashen Trial as a new player meets it. The opening Hand holds five cards \u2014 enough to prepare both Slots, charge each one, and still pay a card to step out of the breath cone \u2014 so the scripted first turn can teach load, charge, fire Quick, fire Slow, and move in a single Round.",
+  "id": "embermaw_traversal_probe",
+  "title": "Embermaw: Traversal Probe",
+  "rules_text": "An evaluation Encounter, not a fight anybody plays. It is the Ashen Trial with one axis changed — how Embermaw crosses the board — so the sweep can measure jump, teleport and impassable ground before any of them is promoted into shipped content. Same board, same Hero, same deck, same clock, same thresholds. Its acceptance bar is the standing three plus one: the `far` policy must not improve, because a Boss that pursues a camper is only pressure if it does not simply deliver them a target.",
   "party": [
     {
       "hero": "guardian",
       "start": {
         "q": 0,
         "r": 0
-      },
-      "fields_signature": false
+      }
     }
   ],
   "boss_id": "embermaw",
@@ -23,15 +22,15 @@
   },
   "boss_health": 48,
   "slot_count": 2,
-  "hand_refill_target": 5,
+  "hand_refill_target": 4,
   "player_deck": [
     {
       "card": "steady_strike",
-      "copies": 8
+      "copies": 4
     },
     {
       "card": "iron_guard",
-      "copies": 6
+      "copies": 8
     },
     {
       "card": "sweeping_blow",
@@ -42,21 +41,30 @@
       "copies": 2
     },
     {
-      "card": "unyielding_step",
+      "card": "drive_back",
       "copies": 2
     },
     {
-      "card": "shield_slam",
+      "card": "quench",
       "copies": 2
     }
   ],
   "boss_programs": [
-    "embermaw_hunt",
-    "embermaw_embers",
-    "embermaw_brood"
+    "embermaw_probe_leap",
+    "embermaw_probe_blink",
+    "embermaw_probe_collapse"
   ],
+  "phase_trigger": {
+    "boss_health_at_or_below": 18,
+    "round_at_or_after": 5
+  },
+  "phase_two_programs": [
+    "embermaw_ashfall",
+    "embermaw_molting"
+  ],
+  "phase_break_text": "Molting Roar: Embermaw sheds its brittle scales and turns. The Whelps and the Scorched ground remain.",
   "loop_boss_programs": true,
-  "random_seed": 24,
+  "random_seed": 1337,
   "minion_spawn_candidates": [
     {
       "q": 0,
@@ -108,7 +116,7 @@
     {
       "value": 3,
       "title": "Fed on Ash",
-      "rules_text": "Whelp bites deal 1 more damage.",
+      "rules_text": "Whelp bites and detonations deal 1 more damage.",
       "minion_damage_bonus": 1
     },
     {

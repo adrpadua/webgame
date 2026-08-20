@@ -120,6 +120,13 @@ counter-pressure against distant play is authored encounter content, not a
 card range rule. The counter-pressure work is filed as product-backlog
 proposal 15 (`.scratch/product-backlog/issues/15-*.md`, `needs-triage`).
 
+**Withdrawn (2026-08-19, D-073)**: the finding above was right and the ruling
+was wrong. Reach is now a property of every card — `range_tiles` measured from
+the firing Hero to whatever the card lands on, the Boss included — and the
+melee vocabulary is authored at `1`. The counter-pressure D-017 shipped under
+the old ruling stands; what changed is that camping is priced in the card too,
+and every `far` policy in the sweep now deals exactly zero Boss damage.
+
 ## 11. Slot Replacement misfires: ruled a presentation problem
 
 Playtesting on touch showed replacing an occupied Slot was too easy to do

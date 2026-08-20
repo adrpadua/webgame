@@ -1,7 +1,7 @@
 {
-  "id": "embermaw_hunt",
-  "title": "Hunt Pattern",
-  "rules_text": "Embermaw closes. Hold its front, then leave the marked breath cone.",
+  "id": "embermaw_probe_leap",
+  "title": "Hunt Pattern (leaping)",
+  "rules_text": "Hunt Pattern with one field changed: Embermaw leaps rather than walks. Everything else is the shipped program.",
   "instant_beats": [
     {
       "id": "turn_to_tank",
@@ -15,13 +15,13 @@
     },
     {
       "id": "close_the_gap",
-      "title": "Close the Gap",
-      "rules_text": "Embermaw walks one hex toward the guardian, stopping once it is within reach. Distance is not an answer for long.",
+      "title": "Leap the Gap",
+      "rules_text": "Embermaw clears up to three hexes toward the guardian, over whatever lies between, and lands within reach.",
       "kind": "advance_toward_player",
       "consequence_tier": "chip",
-      "move_tiles": 1,
+      "move_tiles": 3,
       "range_tiles": 1,
-      "traversal": "walk",
+      "traversal": "jump",
       "answer_tags": [
         "position"
       ]

@@ -1,8 +1,10 @@
 {
   "id": "scorched",
   "title": "Scorched",
-  "rules_text": "Deals 1 damage on entry and blocks voluntary movement while present. Leave yourself somewhere to stand.",
+  "rules_text": "Deals 1 damage on entry and blocks voluntary movement while present. Embermaw walks its own fire freely — it neither burns nor blocks the thing that lit it. Leave yourself somewhere to stand.",
   "duration_rounds": 1,
   "enter_damage": 1,
-  "blocks_voluntary_movement": true
+  "blocks_voluntary_movement": true,
+  "impassable": false,
+  "damages_source_team": false
 }
