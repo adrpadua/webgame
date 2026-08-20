@@ -39,26 +39,13 @@ export type { WorkbenchCatalog }
 // component has one import for "how do I read the Workbench".
 export {
   selectActive,
-  selectBossId,
   selectBossPhase,
   selectCanUndo,
   selectCurrentProgramId,
-  selectEnrageText,
-  selectEscalation,
-  selectHandSize,
-  selectIncomingCardId,
-  selectIsDragging,
-  selectIsMovePending,
-  selectIsSelected,
   selectOutcome,
   selectOutcomeReason,
   selectPhase,
   selectPhaseBreakText,
-  selectPrimaryHero,
-  selectPrimaryHeroId,
-  selectRound,
-  selectRoundLimit,
-  selectSlot,
   selectState,
 } from './selectors'
 export { selectUndoTarget, type FactEntry, type HistoryEntry, type TimelinePosition } from './sessionTimeline'
