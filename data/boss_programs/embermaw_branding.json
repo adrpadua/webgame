@@ -16,7 +16,7 @@
     {
       "id": "searing_brand",
       "title": "Searing Brand",
-      "rules_text": "Embermaw marks the guardian with a Sear. Each Sear that Hero carries makes every blow they take land 1 harder, and a Sear does not fade on its own. Armor answers the blow; it does not answer the mark.",
+      "rules_text": "Embermaw marks the guardian with a Sear, reach 3. Each Sear that Hero carries makes every blow they take land 1 harder, and a Sear does not fade on its own. Armor answers the blow; it does not answer the mark.",
       "kind": "place_counter",
       "counter": "seared",
       "counter_amount": 1,
@@ -25,7 +25,8 @@
       "consequence_tier": "structural",
       "answer_tags": [
         "cleanse"
-      ]
+      ],
+      "range_tiles": 3
     }
   ],
   "incoming_beats": [
