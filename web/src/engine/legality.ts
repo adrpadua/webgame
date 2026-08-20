@@ -173,6 +173,26 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
           }
         }
       }
+      // An `ally` target is a living party member within the card's range.
+      // The firing Hero qualifies — a Healer covering herself is a worse use
+      // of the card, never an illegal one, and refusing it would leave a solo
+      // Party unable to fire its own preservation cards at all.
+      if (card.target_type === 'ally') {
+        const targetId = action.targetId ?? ''
+        const target = state.board.entities[targetId]
+        if (!target || target.team !== 'party') {
+          return illegal('The Top Card needs an ally target.')
+        }
+        if ((state.heroes[targetId]?.health ?? 0) <= 0) {
+          return illegal('That ally is Downed.')
+        }
+        if (targetId !== action.sourceId) {
+          targetVerdict = rangeVerdict(state, action.sourceId, targetId, card.range_tiles, "The chosen ally is outside the Top Card's range.")
+          if (!targetVerdict.legal) {
+            return targetVerdict
+          }
+        }
+      }
       // Every `gate` the Card declares has to pass, and they AND together.
       // Checked here so the Slot simply is not firable, and so the targeting
       // projection the board draws from never offers an illegal piece.

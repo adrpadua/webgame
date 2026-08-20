@@ -203,10 +203,21 @@ function resolveOne(
         fact.detail.burstCenter = { ...burstCenter }
         fact.detail.burstHexes = burstHexes
       }
-      hero.armor += effects.armor
-      hero.health = Math.min(hero.maxHealth, hero.health + effects.healing)
+      // Preservation lands on the chosen ally; everything else the card does
+      // still comes from the firing Hero. An `ally` card with no valid target
+      // cannot reach here — legality refuses it — so the fallback to `hero` is
+      // the untargeted case, which is every card authored before the Party.
+      const recipient = card.target_type === 'ally' ? (draft.heroes[action.targetId ?? ''] ?? hero) : hero
+      recipient.armor += effects.armor
+      recipient.health = Math.min(recipient.maxHealth, recipient.health + effects.healing)
+      if (recipient.id !== hero.id) {
+        fact.detail.preservedAlly = recipient.id
+      }
       slot.activatedWindow = draft.phase
       syncHeroEntity(draft, action.sourceId)
+      if (recipient.id !== hero.id) {
+        syncHeroEntity(draft, recipient.id)
+      }
       if (effects.armorNextRound > 0) {
         const fortified = createFortified(catalog, card.id, draft.round, draft.phase)
         // Fortify's stored Armor is the number of Counters placed, so the
@@ -341,7 +352,7 @@ function resolveOne(
       break
     }
     case 'resolve_boss': {
-      generated.push(...resolveBossBeat(draft, action.sourceId, action.beat, action.track))
+      generated.push(...resolveBossBeat(catalog, draft, action.sourceId, action.beat, action.track))
       succeed(fact)
       break
     }

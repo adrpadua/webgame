@@ -32,6 +32,32 @@ Record the adoption decision in
 [design-decision-log.md](design-decision-log.md) with `D-NEW` in the ID column
 (`cd web && npm run log:ids -- --fix` assigns the number).
 
+### Check the seams before you author anything
+
+**Then read your own design doc back, looking for mechanics the engine does
+not have yet.** If the kit depends on a missing seam, authoring it as a
+degraded proxy built from the fields that do exist is a mistake with a name —
+the Kled lesson — and [kessa-varn-design.md](heroes/kessa-varn-design.md)
+states the rule for its own kit: *do not author `data/` card definitions for
+this list until the seams land*, because proxy content does not express the
+fantasy and poisons play-feel evidence. A Hero blocked this way is a set of
+engineering requests, not a `data/` batch.
+
+Two checks catch almost every case:
+
+- **The earn condition.** A Signature can only fire on the Hero **taking
+  damage** today; `host_deals_damage`, `slot_fired`, and `round_start` are
+  refused at load. If your Hero's engine earns any other way, see step 5 —
+  that is a request, and the Hero should be authored without a Signature until
+  it lands.
+- **The effect vocabulary.** Every card effect, Beat kind, target family, and
+  Charge Modifier effect is a closed set, listed in the handoff doc's
+  Engineering Boundary. A card that needs a new one is a request.
+
+A Hero whose design clears both checks is fully authorable today. One that
+does not is still worth designing — file the requests and author what is
+unblocked, which is usually the deck.
+
 ## 1. The Hero file
 
 ```bash
@@ -102,20 +128,38 @@ The Signature is a card with `fixed: true`, named by the **Hero file's**
 - `target_type` must be `none` — the Signature button carries no targeting
   flow.
 
-**Here is the one wall.** The gate list is a closed set, and today it holds
-exactly two predicates: `health_loss_zero` (the perfect block) and
-`guarded_front` (the Warden sentence). Both are Elian-shaped. A new Hero
-pattern almost by definition wants a new earn condition — Kessa's Momentum
-earn is exactly this — and a new gate is engine code, because a gate is a
-computation over board state, not a field.
+**Here is the wall, and it is bigger than the gate list.** A standing clause
+can only fire on **one** event today — the Hero taking damage. The other three
+`when` values the schema accepts are refused at load:
 
-Raise it as an engineering request the way the game-design agent contract
-specifies: player value, scope, non-goals, and acceptance evidence. The
-request is small and well-precedented — a gate is one predicate in
-`web/src/engine/signature.ts` plus one enum entry — but it is engineering's to
-make. Do not ship the Hero with a borrowed gate that misstates their job; a
-Signature whose earn condition does not restate the raid job fails the design
-contract's first test.
+```
+Card probe_sig (data/cards/probe_sig.json) authors a host_deals_damage standing clause,
+which nothing evaluates; the evaluated whens are host_takes_damage
+```
+
+The gates narrow that one event and are Warden-shaped themselves:
+`health_loss_zero` is a perfect block, `guarded_front` is the Warden sentence.
+So the only Signature the game can currently print is *"when I take damage,
+optionally having blocked it perfectly and/or while holding the Guarded Front,
+gain a Charge."*
+
+That is one fantasy, and it belongs to the Warden. A Hero who earns by dealing
+damage, by firing a Slot, or on a clock cannot author their Signature at all
+yet — which is why step 0 asks you to check this before writing a deck.
+
+**Do not borrow a Warden gate to get something working.** A Signature whose
+earn condition does not restate the raid job fails the design contract's first
+test, and it would ship a Hero whose defining power says the wrong thing about
+them. Author the Hero with no Signature instead — leave `signature_card`
+empty — and raise the request.
+
+The request is already written and open:
+[signature-earn-vocabulary.md](design-proposals/signature-earn-vocabulary.md).
+Add your Hero's earn condition to it as a named case rather than filing a
+second request; it is the same seam. The ask is small and well-precedented —
+all four events already resolve in the engine and Counter Readers already read
+all four, so the Signature is subscribed to one where its mirror is subscribed
+to four.
 
 ## 6. An Encounter that fields the Hero
 
@@ -125,16 +169,22 @@ A Hero becomes playable the moment an Encounter names them:
 npm run scaffold -- encounter kessa_proving
 ```
 
-Point `hero` at the new id and `player_deck` at the new cards. **Reuse the
+Point the Encounter's `party` at the new Hero — one seat per Hero, each with a
+`hero` id, a `start` hex, and its own `deck` (ADR 0035) — and remember that a
+seat's deck is what states that Hero's Role, so two seats sharing one decklist
+are two seats with the same Role. **Reuse the
 Embermaw Boss Programs for the first fight** — `boss_programs` can name
 `embermaw_hunt`, `embermaw_embers`, `embermaw_brood` directly, which gets the
 new Hero on a board against proven pressure without authoring a Boss first.
-Set `fields_signature: false` if the Signature is not ready; the Hero fields
-without it.
+Set `fields_signature: false` on the seat if the Signature is not ready; the
+Hero fields without it.
 
-The engine is still solo, one Hero per Encounter: a Hero whose design needs a
-party (Kessa's `Breach` window) can be authored and fielded solo, with the
-party half held in `Later` the way her design doc does it.
+A Party of up to four is authorable since ADR 0035, and a card may reach an
+ally (`target_type: "ally"`), which is what makes a preservation Hero
+expressible at all. Two things are still missing: **Downed/Revive** — any Hero
+reaching zero still ends the Encounter, so a failed save is a loss rather than
+a recoverable mistake — and the **party UI**, so a second seat is playable
+through tests and the headless runner rather than the Workbench today.
 
 ## 7. Evidence
 
@@ -164,7 +214,8 @@ board piece as an engineering request alongside the sheet.
 
 | Want | Why it is engine code | Precedent to cite |
 | --- | --- | --- |
-| A new Signature gate (earn condition) | Gates are predicates over board state; the enum and its evaluation live in `web/src/engine/signature.ts` | D-064 shipped `health_loss_zero`, `guarded_front` |
+| A Signature that earns on anything but taking damage | Only `host_takes_damage` is evaluated; the other three `when`s are refused at load | Open request: [signature-earn-vocabulary.md](design-proposals/signature-earn-vocabulary.md) |
+| A new Signature gate | Gates are predicates over board state; the enum and its evaluation live in `web/src/engine/signature.ts` | D-064 shipped `health_loss_zero`, `guarded_front` |
 | A new card effect, target family, Beat kind, Status trigger, or Charge Modifier effect | Closed sets the engine switches on | Handoff doc, Engineering Boundary |
 | A class resource that is not the Signature's Charge bank | Only the Signature Slot's earned Charges exist as a resource today | Kessa's Momentum is the named waiting case |
 | A second Hero on the board at once | Multi-Hero party model, Engineering backlog rank 6 | [design-backlog.md](design-backlog.md) |

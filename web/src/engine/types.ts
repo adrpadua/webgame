@@ -138,7 +138,15 @@ export interface EncounterState {
   // never by bare entity id — see `counters.ts` (D-048).
   counters: Record<string, CounterInstance[]>
   bossId: string
+  // The Hero the local player's HUD is built around — the Hero Frame's
+  // subject (ADR 0033) and the source of a solo Scenario's actions. It is the
+  // Party's first seat, kept as its own field because presentation asks "whose
+  // frame is this?" far more often than it asks for the whole roster.
   primaryHeroId: string
+  // The whole Party, in authored seat order. Rules that ask "which Heroes are
+  // in this fight?" — Boss target selection, party-wide pressure, the wipe
+  // check — read this rather than assuming the primary Hero is the only one.
+  partyHeroIds: string[]
   // `programIds` stays the authored pool — what this Boss can do. The order it
   // does them in is `programSequence`, resolved once at setup from the seed
   // (D-037): under a fixed `(index + 1) % length` rotation the next program was

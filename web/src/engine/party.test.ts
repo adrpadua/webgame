@@ -1,0 +1,256 @@
+import { describe, expect, it } from 'vitest'
+import { buildCatalog, createEncounterState, resolve, selectBeatTarget, type ContentCatalog } from '@/engine'
+
+// The Party seams (ADR 0035). Every test here fields two Heroes, because the
+// existing suite only ever proves the solo path still works — which it would
+// even if none of this were wired up.
+//
+// The fixture is deliberately hand-built rather than taken from `data/`: the
+// authored Encounters are solo, and a party test that depended on them would
+// start failing for content reasons the moment the Ashen Trial is retuned.
+
+const KEYWORDS = [
+  { id: 'tank_hit', title: 'Tank Hit', kind: 'damage_type' },
+  { id: 'raid_hit', title: 'Raid Hit', kind: 'damage_type' },
+  { id: 'tank', title: 'Tank', kind: 'role' },
+  { id: 'healer', title: 'Healer', kind: 'role' },
+]
+
+// One card per Role, so each seat's deck states a different Role — which is
+// the whole mechanism `heroRole` reads and the Boss's selector pivots on.
+const CARDS = [
+  { id: 'tank_strike', title: 'Tank Strike', speed: 'quick', boss_damage: 1, tags: ['tank'] },
+  { id: 'healer_strike', title: 'Healer Strike', speed: 'quick', boss_damage: 1, tags: ['healer'] },
+  // The seam the Healer role exists for: preservation aimed at someone else.
+  {
+    id: 'mend',
+    title: 'Mend',
+    speed: 'quick',
+    target_type: 'ally',
+    range_tiles: 2,
+    healing: 3,
+    armor_delta: 1,
+    tags: ['healer'],
+  },
+  {
+    id: 'ward',
+    title: 'Ward',
+    speed: 'quick',
+    target_type: 'ally',
+    range_tiles: 2,
+    places_counter: 'warded',
+    tags: ['healer'],
+  },
+]
+
+const COUNTERS = [
+  {
+    id: 'warded',
+    title: 'Warded',
+    host: 'combatant',
+    max: 3,
+    readers: [{ when: 'round_start', effect: 'armor', per: 1 }],
+  },
+]
+
+function party(overrides: Record<string, unknown> = {}): ContentCatalog {
+  return buildCatalog({
+    cards: CARDS,
+    heroes: [
+      { id: 'warden', title: 'Warden', max_health: 20 },
+      { id: 'mender', title: 'Mender', max_health: 12 },
+    ],
+    keywords: KEYWORDS,
+    counters: COUNTERS,
+    chargeModifiers: [],
+    hazards: [],
+    minions: [],
+    programs: [
+      {
+        id: 'probe_program',
+        title: 'Probe Program',
+        instant_beats: [],
+        incoming_beats: [],
+      },
+    ],
+    encounters: [
+      {
+        id: 'probe_party',
+        title: 'Probe Party',
+        party: [
+          { hero: 'warden', start: { q: 0, r: 0 }, deck: [{ card: 'tank_strike', copies: 6 }] },
+          { hero: 'mender', start: { q: 1, r: 0 }, deck: [{ card: 'healer_strike', copies: 4 }, { card: 'mend', copies: 2 }, { card: 'ward', copies: 2 }] },
+        ],
+        boss_id: 'probe_boss',
+        boss_title: 'Probe Boss',
+        round_limit: 6,
+        board_radius: 3,
+        boss_start: { q: 0, r: -3 },
+        boss_health: 40,
+        slot_count: 2,
+        hand_refill_target: 4,
+        player_deck: [{ card: 'tank_strike', copies: 4 }],
+        boss_programs: ['probe_program'],
+        random_seed: 7,
+        ...overrides,
+      },
+    ],
+  })
+}
+
+const beat = (patch: Record<string, unknown> = {}) => ({
+  id: 'probe_beat',
+  title: 'Probe Beat',
+  kind: 'targeted_hit' as const,
+  range_tiles: 9,
+  damage: 3,
+  consequence_tier: 'chip' as const,
+  answer_tags: [],
+  damage_keywords: [],
+  counter: '',
+  counter_amount: 1,
+  counter_target: 'self' as const,
+  target_selector: '',
+  unguarded_bonus: 0,
+  escalation_if_unanswered: 0,
+  move_tiles: 0,
+  duration_rounds: 1,
+  permanent: false,
+  count: 2,
+  rules_text: '',
+  ...patch,
+})
+
+describe('the Party seams (ADR 0035)', () => {
+  describe('an Encounter fields a Party', () => {
+    it('seats every authored Hero with their own health, deck, and board entity', () => {
+      const state = createEncounterState(party(), 'probe_party')
+      expect(state.partyHeroIds).toEqual(['warden', 'mender'])
+      // The first seat is the primary Hero: the Hero Frame's subject.
+      expect(state.primaryHeroId).toBe('warden')
+      expect(state.heroes.warden.maxHealth).toBe(20)
+      expect(state.heroes.mender.maxHealth).toBe(12)
+      expect(state.board.entities.warden.coords).toEqual({ q: 0, r: 0 })
+      expect(state.board.entities.mender.coords).toEqual({ q: 1, r: 0 })
+      // Each seat draws its own deck. A shared pile would make one Hero's
+      // draw the other's loss, which no rule asks for.
+      const drawn = (heroId: string) =>
+        new Set([...state.heroes[heroId].hand, ...state.heroes[heroId].deck].map((card) => card.cardId))
+      expect(drawn('warden')).toEqual(new Set(['tank_strike']))
+      expect([...drawn('mender')].sort()).toEqual(['healer_strike', 'mend', 'ward'])
+    })
+
+    it('refuses two seats for one Hero, and two Heroes on one hex', () => {
+      expect(() =>
+        party({ party: [{ hero: 'warden', start: { q: 0, r: 0 } }, { hero: 'warden', start: { q: 1, r: 0 } }] }),
+      ).toThrow('seats warden twice; one Hero holds one seat')
+      expect(() =>
+        party({ party: [{ hero: 'warden', start: { q: 0, r: 0 } }, { hero: 'mender', start: { q: 0, r: 0 } }] }),
+      ).toThrow('starts mender on (0, 0), where warden already stands')
+    })
+  })
+
+  describe('the Boss selects a Hero by Role', () => {
+    it('aims a Beat at the Role it names, not at the primary Hero', () => {
+      const catalog = party()
+      const state = createEncounterState(catalog, 'probe_party')
+      expect(selectBeatTarget(catalog, state, beat({ target_selector: 'healer' })).heroId).toBe('mender')
+      expect(selectBeatTarget(catalog, state, beat({ target_selector: 'tank' })).heroId).toBe('warden')
+    })
+
+    it('falls back to the first seat when no living Hero plays the Role, and says so', () => {
+      const catalog = party()
+      const state = createEncounterState(catalog, 'probe_party')
+      // No seat plays this Role, so the blow still lands — on the first seat —
+      // rather than the Boss quietly skipping its turn.
+      const missing = selectBeatTarget(catalog, state, beat({ target_selector: 'tank_hit' }))
+      expect(missing.heroId).toBe('warden')
+      expect(missing.fellBack).toBe(true)
+      // An unselective Beat is not a fallback; it never asked for a Role.
+      expect(selectBeatTarget(catalog, state, beat()).fellBack).toBe(false)
+    })
+
+    it('skips a Hero who is down to zero', () => {
+      const catalog = party()
+      const state = createEncounterState(catalog, 'probe_party')
+      state.heroes.mender.health = 0
+      expect(selectBeatTarget(catalog, state, beat({ target_selector: 'healer' })).heroId).toBe('warden')
+    })
+
+    it('lands the damage on the selected Hero', () => {
+      const catalog = party()
+      const state = createEncounterState(catalog, 'probe_party')
+      const after = resolve(catalog, state, {
+        kind: 'resolve_boss',
+        sourceId: 'probe_boss',
+        beat: beat({ target_selector: 'healer' }),
+        track: 'incoming',
+      })
+      expect(after.state.heroes.mender.health).toBe(9)
+      expect(after.state.heroes.warden.health).toBe(20)
+    })
+  })
+
+  describe('ally targeting routes preservation to the chosen Hero', () => {
+    // Fire Mend from the Mender at the wounded Warden, through the ordinary
+    // load-and-fire path, so this exercises legality and resolution together.
+    function mendTheWarden(targetId: string) {
+      const catalog = party()
+      const state = createEncounterState(catalog, 'probe_party')
+      state.heroes.warden.health = 10
+      state.phase = 'quick'
+      const mend = state.heroes.mender.hand.find((card) => card.cardId === 'mend')
+        ?? { instanceId: 'mend_probe', cardId: 'mend' }
+      state.heroes.mender.actionBar[0].topCard = mend
+      state.heroes.mender.actionBar[0].charges = [{ instanceId: 'fuel_probe', cardId: 'healer_strike' }]
+      return resolve(catalog, state, { kind: 'fire_slot', sourceId: 'mender', slotIndex: 0, targetId })
+    }
+
+    it('heals and armors the ally, not the caster', () => {
+      const after = mendTheWarden('warden')
+      expect(after.facts[0].succeeded).toBe(true)
+      expect(after.state.heroes.warden.health).toBe(13)
+      expect(after.state.heroes.warden.armor).toBe(1)
+      // The Mender spent the card and gained nothing from it.
+      expect(after.state.heroes.mender.health).toBe(12)
+      expect(after.state.heroes.mender.armor).toBe(0)
+      expect(after.facts[0].detail.preservedAlly).toBe('warden')
+      // The board entity is resynced, or the ally's frame would show stale health.
+      expect(after.state.board.entities.warden.health).toBe(13)
+    })
+
+    it('lets a Hero cover themselves', () => {
+      const after = mendTheWarden('mender')
+      expect(after.facts[0].succeeded).toBe(true)
+      expect(after.state.heroes.mender.armor).toBe(1)
+      expect(after.facts[0].detail.preservedAlly).toBeUndefined()
+    })
+
+    // The Bond shape from the healer research note: the ward has to land on
+    // the Hero being protected, or a healer's whole machine marks the wrong
+    // person. The mutation audit caught this rule untested.
+    it('places a ward on the chosen ally, not on the caster', () => {
+      const catalog = party()
+      const state = createEncounterState(catalog, 'probe_party')
+      state.phase = 'quick'
+      state.heroes.mender.actionBar[0].topCard = { instanceId: 'ward_probe', cardId: 'ward' }
+      state.heroes.mender.actionBar[0].charges = [{ instanceId: 'fuel_probe', cardId: 'healer_strike' }]
+      const after = resolve(catalog, state, { kind: 'fire_slot', sourceId: 'mender', slotIndex: 0, targetId: 'warden' })
+      expect(after.facts[0].succeeded).toBe(true)
+      expect(after.state.counters['combatant:warden']?.map((counter) => counter.id)).toEqual(['warded'])
+      expect(after.state.counters['combatant:mender'] ?? []).toEqual([])
+    })
+
+    it('refuses an Enemy, and an ally out of range', () => {
+      expect(mendTheWarden('probe_boss').facts[0].reason).toBe('The Top Card needs an ally target.')
+      const catalog = party()
+      const state = createEncounterState(catalog, 'probe_party')
+      state.phase = 'quick'
+      state.board.entities.warden.coords = { q: -3, r: 3 }
+      state.heroes.mender.actionBar[0].topCard = { instanceId: 'mend_probe', cardId: 'mend' }
+      state.heroes.mender.actionBar[0].charges = [{ instanceId: 'fuel_probe', cardId: 'healer_strike' }]
+      const far = resolve(catalog, state, { kind: 'fire_slot', sourceId: 'mender', slotIndex: 0, targetId: 'warden' })
+      expect(far.facts[0].reason).toBe("The chosen ally is outside the Top Card's range.")
+    })
+  })
+})
