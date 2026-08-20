@@ -1,6 +1,6 @@
 import type { EncounterState, HeroState } from './types'
 
-// The zero-health lifecycle (D-074, ADR 0040). A Hero at `0` health is not out
+// The zero-health lifecycle (D-079, ADR 0040). A Hero at `0` health is not out
 // of the fight and their player is never out of the game: they go `Downed`,
 // and they stay Downed until somebody picks them up.
 //

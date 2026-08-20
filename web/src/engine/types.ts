@@ -33,7 +33,7 @@ export interface SlotState {
   earnedCharges: number
 }
 
-// Where a Hero stands in the zero-health lifecycle (D-074, ADR 0040).
+// Where a Hero stands in the zero-health lifecycle (D-079, ADR 0040).
 //
 // Two states, and the second one is stable: `downed` is a Hero at `0` health,
 // a blocking non-targetable body that answers no demand, whose Slots and

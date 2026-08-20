@@ -175,7 +175,7 @@ interface RunMetrics {
   burntHexes: number
   peakPricedCounter: number
   countersSpent: number
-  // D-074's replacement for the binary reduced-Party red flag ADR 0036 wrote.
+  // D-079's replacement for the binary reduced-Party red flag ADR 0036 wrote.
   // A Party that lost somebody in the final Round and won anyway is a good
   // fight; what D-016 actually asks is whether the absent Hero mattered, which
   // is a dose rather than an end-state.
@@ -712,7 +712,7 @@ for (const knobs of variants) {
   const shortHandedWins = runs.filter((run) => run.outcome === 'victory' && run.heroRoundsLost >= 2)
   if (shortHandedWins.length > 0) {
     redFlags.push(
-      `${label}: ${shortHandedWins.length} victories with 2+ Hero-Rounds lost — the absent Hero may be decorative (D-016, D-074)`,
+      `${label}: ${shortHandedWins.length} victories with 2+ Hero-Rounds lost — the absent Hero may be decorative (D-016, D-079)`,
     )
   }
   // The enrage wall, as ADR 0027 states it: a line that survives everything
