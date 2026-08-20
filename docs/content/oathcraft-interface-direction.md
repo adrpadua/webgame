@@ -49,6 +49,8 @@ Two entries need their scope stated, because both look like contradictions other
 
 **Ember and ember coral are one family in two jobs.** The preamble allows a single warm accent, and this does not spend two: ember is the interface's warning, ember coral is Embermaw's own body. They never appear in the same element, and a second boss brings its own material rather than a third warm.
 
+**Coral may name the Boss's attention, not only its body.** A Hero holding Threat wears a coral mark, because what that mark reports is where the Boss is aimed — the Boss appearing on an ally's frame rather than a second warm material for Heroes. The scope has one hard edge: it is a *mark*, never the frame's accent. The accent is the status channel and answers what the player can do about that Hero, so putting Threat there would have shared a channel with Downed — one warm family at two saturations, three pixels wide, and the two states that most need telling apart.
+
 Two assignments that follow from that split, settled when the last non-material warms were swept off the chrome:
 
 - **A player's `attack` effect is ember coral, not ember.** It is damage the player *deals*, and it lands on the Boss's body — the board already flashes the Boss in coral when a strike resolves, so the card's effect tone matches what its strike does. Damage *taken* by the player is ember. Dealt and taken are the one warm family at two saturations, the same way Boss and Minion are.
