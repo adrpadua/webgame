@@ -1,5 +1,5 @@
 import { useCatalog } from '@/content/CatalogContext'
-import { combatantRef, getCounters, type CounterInstance, type HeroState } from '@/engine'
+import { type HeroState } from '@/engine'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { signatureControl, type SignatureControl as SignatureControlState } from './heroFrame'
@@ -7,6 +7,7 @@ import { useDamageFlash } from '../common/useDamageFlash'
 import { HeartIcon, HeroEmblem, ShieldIcon } from '../common/icons'
 import { HERO_STAT_DETAILS, slotDetail } from '../common/holdDetails'
 import { useHold } from '../common/HoldPopover'
+import { StatusIcons } from '../common/StatusIcons'
 import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS, healthBarScale } from '../common/theme'
 
 // The Hero Frame (D-065, ADR 0033): the primary Hero's persistent readout,
@@ -110,51 +111,6 @@ function ResourceBar({ signature }: { signature: SignatureControlState }) {
         />
       ))}
     </span>
-  )
-}
-
-// One chip per live Counter, on whichever piece is holding it. Shared with
-// the (now Enemy-only) Stat Panel: the mechanism is two-sided (D-032), so
-// one component renders a piece's Counters wherever that piece's readout
-// lives. The popup quotes the authored rules text when the Counter came from
-// `data/counters/`, and falls back to the trigger reason for engine-built
-// ones.
-function CounterChip({ counter, rulesText }: { counter: CounterInstance; rulesText: string }) {
-  const stats = [{ label: 'Held', value: String(counter.count) }]
-  if (counter.remainingRounds > 0) {
-    stats.push({ label: 'Rounds left', value: String(counter.remainingRounds) })
-  }
-  const hold = useHold({
-    id: `counter:${counter.id}`,
-    title: counter.title,
-    badge: 'Counter',
-    tone: 'guard',
-    stats,
-    text: rulesText,
-  })
-  return (
-    <button
-      type="button"
-      {...hold.holdProps}
-      data-testid="counter-chip"
-      data-counter={counter.id}
-      className={`min-h-11 min-w-11 bg-gold-900 px-1.5 text-[10px] font-semibold text-gold-200 ${FOCUS_RING_CLASS}`}
-    >
-      {counter.title}
-      {counter.count > 1 && <span className="ml-1 text-gold-100">{counter.count}</span>}
-    </button>
-  )
-}
-
-export function CounterChips({ entityId }: { entityId: string }) {
-  const state = useWorkbench(selectState)
-  const catalog = useCatalog()
-  return (
-    <>
-      {getCounters(state, combatantRef(entityId)).map((counter) => (
-        <CounterChip key={counter.id} counter={counter} rulesText={catalog.counters[counter.id]?.rules_text ?? counter.triggerReason} />
-      ))}
-    </>
   )
 }
 
@@ -280,8 +236,10 @@ export function HeroFrame() {
       </button>
       {/* Counters sit beside the frame, where an MMO puts its buffs: they are
           the Hero's state, but each is its own authored rule and so its own
-          control, which a single frame-wide hold target cannot contain. */}
-      <CounterChips entityId={heroId} />
+          control, which a single frame-wide hold target cannot contain. As
+          Status Icons rather than named chips, because the row has to hold
+          three of them beside a 208px frame. */}
+      <StatusIcons entityId={heroId} />
       <SignatureButton />
     </div>
   )

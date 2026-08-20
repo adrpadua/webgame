@@ -4,7 +4,7 @@ import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { useDamageFlash } from '../common/useDamageFlash'
 import { BossEmblem } from '../common/icons'
-import { CounterChips } from '../hero/HeroFrame'
+import { StatusIcons } from '../common/StatusIcons'
 import { encounterTerms } from '../common/holdDetails'
 import { useHold, type HoldDetail } from '../common/HoldPopover'
 import { Notify } from './NotificationLayer'
@@ -87,8 +87,9 @@ export function EntityInspect() {
         </span>
         <EnemyGauge entity={entity} testId={isBoss ? 'boss-health' : undefined} detail={bossDetail} />
         {/* A Boss or a Minion carries its afflictions on the same panel the
-            Hero Frame carries the Hero's boons on: one readout per piece. */}
-        <CounterChips entityId={entity.id} />
+            Hero Frame carries the Hero's boons on: one readout per piece, in
+            the same Status Icons. */}
+        <StatusIcons entityId={entity.id} />
         <button
           type="button"
           data-testid="inspect-dismiss"
