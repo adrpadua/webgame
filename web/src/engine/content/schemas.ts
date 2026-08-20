@@ -50,8 +50,17 @@ export const chargeModifierSchema = z.object({
 // than on the marker, so what a Counter *means* is decided by what reads it.
 // That is the whole reason a marker is worth having: three cards may place
 // Ash, and the cards that read Ash decide what Ash is worth.
+// The one authored `when` vocabulary, shared by Counter Readers and
+// Signature Grants (ADR 0041). The event registry in `events.ts` is what
+// gives each value its moment; a value no registry row hears fails the build
+// at module load. D-085 split the takes side: `host_damage_incoming` is the
+// modifier moment, read before mitigation, and `host_takes_damage` survives
+// meaning only the reaction, read after the blow lands.
+export const AUTHORED_WHENS = ['round_start', 'host_damage_incoming', 'host_takes_damage', 'host_deals_damage', 'slot_fired'] as const
+export type AuthoredWhen = (typeof AUTHORED_WHENS)[number]
+
 export const counterReaderSchema = z.object({
-  when: z.enum(['round_start', 'host_takes_damage', 'host_deals_damage', 'slot_fired']),
+  when: z.enum(AUTHORED_WHENS),
   // Narrows a damage Reader to blows carrying one Keyword (D-049): empty
   // answers every blow, `raid_hit` answers only a Minion's bite. This is the
   // Reader reading the *event* rather than the host — the fact stream already
@@ -135,7 +144,7 @@ export const cardReaderSchema = z.object({
 // no boolean combination — the moment this wants `or`, what is being written
 // is an interpreter.
 export const signatureGrantSchema = z.object({
-  when: z.enum(['round_start', 'host_takes_damage', 'host_deals_damage', 'slot_fired']),
+  when: z.enum(AUTHORED_WHENS),
   event_keyword: z.string().default(''),
   // The closed gate list. `health_loss_zero` is the perfect block —
   // mitigation fully answered the blow — and `guarded_front` is the Warden

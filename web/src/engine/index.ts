@@ -44,7 +44,16 @@ export {
 export { buildProgramSequence, currentProgram, selectBeatTarget } from './timeline'
 export { keywordTitle, heroRole, TANK } from './keywords'
 export { combatantRef, counterCount, readCounterEvent, counterCountByKeyword, getCounters, hexCounterRef, slotRef, type CounterRef } from './counters'
-export { readSignatureEvent, slotChargeCount, EVALUATED_GRANT_WHENS } from './signature'
+export { readSignatureEvent, slotChargeCount } from './signature'
+export {
+  EVENT_REGISTRY,
+  evaluatedGrantWhens,
+  hostOrder,
+  readableReaderPairs,
+  type EventRow,
+  type EventSubscription,
+  type SubscriberMatch,
+} from './events'
 export { DIMINISHED_ACTIONS, isLivingHero, livingHeroIds, rescueDeadlineRound, type DiminishedAction } from './downed'
 export { getEntityIdAt, isLegalMove, neighbors, isGuardedFront, guardedFrontHex, facingToward, facingAlong, isTraversable, traversalRoute, type Traversal } from './board'
 export {

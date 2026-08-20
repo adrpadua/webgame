@@ -21,18 +21,9 @@ export const UNDERWRITTEN = 'underwritten'
 
 export const ENGINE_COUNTERS = [FORTIFIED, UNDERWRITTEN]
 
-// The `when`/`effect` pairs the rules actually read. The schema's two enums
-// multiply out to sixteen combinations and `readerSum` is called with four of
-// them, so the other twelve validate cleanly and do nothing — which is exactly
-// the `on_enter_hex` trap D-047 was written to close, re-created one level up.
-// Authoring one is now a load error rather than a Reader that silently never
-// fires. Adding a pair here means teaching the rules to read it.
-export const READABLE_READER_PAIRS = [
-  { when: 'round_start', effect: 'armor' },
-  { when: 'host_takes_damage', effect: 'target_damage' },
-  { when: 'host_deals_damage', effect: 'target_damage' },
-  { when: 'slot_fired', effect: 'boss_damage' },
-] as const
+// The `when`/`effect` pairs the rules read live in the event registry
+// (`events.ts`, ADR 0041): one table for Readers and Grants both, which the
+// catalog validates against and the raise helpers dispatch from.
 
 // Where a Counter lives, as one tagged string (D-048). Counters were keyed by
 // entity id while combatants were the only host; the moment ground and
@@ -216,14 +207,23 @@ export function clearCounters(state: EncounterState, ref: CounterRef): boolean {
 // path from a count to a number, and it replaces D-034's two named payload
 // fields — an Enemy-facing Counter is now one whose Readers happen to fire on
 // an Enemy's events, not a separate kind of thing.
-export function readerSum(
+export interface ReaderMatch {
+  counterId: string
+  contribution: number
+}
+
+// Every Reader on one host that answers one event with one effect, in
+// authored order, with what each contributes — `per` times its Counter's
+// count. The event registry's raises consume this, and the matches ride the
+// raising action's fact detail (ADR 0041).
+export function readerMatches(
   state: EncounterState,
   ref: CounterRef,
   when: CounterInstance['readers'][number]['when'],
   effect: CounterInstance['readers'][number]['effect'],
   eventKeywords: string[] = [],
-): number {
-  let total = 0
+): ReaderMatch[] {
+  const matches: ReaderMatch[] = []
   for (const counter of getCounters(state, ref)) {
     for (const reader of counter.readers) {
       if (reader.when !== when || reader.effect !== effect) {
@@ -236,10 +236,20 @@ export function readerSum(
       if (reader.event_keyword && !eventKeywords.includes(reader.event_keyword)) {
         continue
       }
-      total += reader.per * counter.count
+      matches.push({ counterId: counter.id, contribution: reader.per * counter.count })
     }
   }
-  return total
+  return matches
+}
+
+export function readerSum(
+  state: EncounterState,
+  ref: CounterRef,
+  when: CounterInstance['readers'][number]['when'],
+  effect: CounterInstance['readers'][number]['effect'],
+  eventKeywords: string[] = [],
+): number {
+  return readerMatches(state, ref, when, effect, eventKeywords).reduce((total, match) => total + match.contribution, 0)
 }
 
 // Round upkeep: round-scoped Counters expire when their remaining rounds run

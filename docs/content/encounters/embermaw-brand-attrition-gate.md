@@ -17,7 +17,7 @@ So the order is inverted. This Encounter authors the residual-attrition problem,
 | `host` | `combatant` | It rides the Hero, and leaves with them (D-045). |
 | `max` | `2` | Capped, so the debt is a decision rather than a countdown. |
 | `duration_rounds` | `0` | No clock. It sits until something removes it. |
-| `readers` | `host_takes_damage` → `target_damage`, `per: 1` | Each Sear makes every later blow on that Hero land 1 harder. |
+| `readers` | `host_damage_incoming` → `target_damage`, `per: 1` | Each Sear makes every later blow on that Hero land 1 harder. |
 
 It is **Heat's mirror**. Heat is the Boss banking fire against the Party; Seared is the Boss banking fire *into* one Hero. A designer who has read `heat.json` has already read this one, which is the argument for Counters being a vocabulary rather than a pile of special cases.
 

@@ -15,7 +15,6 @@ import {
   createFromDefinition,
   placeCounter,
   roundUpkeep,
-  readerSum,
   spendCounter,
   counterHostRef,
   UNDERWRITTEN,
@@ -27,7 +26,7 @@ import {
   hexCounterRef,
   type CounterRef,
 } from './counters'
-import { evaluateGrantsFor, evaluateStandingGrants } from './signature'
+import { raiseDamageIncoming, raiseDamageResolved, raiseRoundStart, raiseSlotFired, type SubscriberMatch } from './events'
 import { canBeDowned, goDowned, incapacitateHero, livingHeroIds, reviveHero } from './downed'
 import { cardChargeCap } from './content/catalog'
 import { OVERFLOW, RAID_HIT, TANK_HIT } from './keywords'
@@ -380,22 +379,22 @@ function resolveOne(
           reasonText: 'signature_full_bank',
         })
       }
-      // The Slot fired. A Signature may earn from its own Hero's tempo
-      // (ADR 0037); `effect_landed` is what stops that earn being farmed by
-      // firing an empty Slot at nothing.
-      evaluateGrantsFor(catalog, draft, action.sourceId, 'slot_fired', {
-        resolutionFact: {
-          ...(fact.resolutionFact ?? {}),
-          effect_landed:
-            effects.bossDamage > 0 ||
-            effects.targetDamage > 0 ||
-            effects.armor > 0 ||
-            effects.healing > 0 ||
-            effects.armorNextRound > 0 ||
-            card.places_counter !== '',
-        },
+      // The Slot fired: one raise, heard by the Grant first and the Reader
+      // second (the registry row's order, ADR 0041). `effect_landed` is what
+      // stops a tempo earn being farmed by firing an empty Slot at nothing
+      // (ADR 0037).
+      const slotRaise = raiseSlotFired(catalog, draft, action.sourceId, {
+        ...(fact.resolutionFact ?? {}),
+        effect_landed:
+          effects.bossDamage > 0 ||
+          effects.targetDamage > 0 ||
+          effects.armor > 0 ||
+          effects.healing > 0 ||
+          effects.armorNextRound > 0 ||
+          card.places_counter !== '',
       })
-      generated.push(...slotFiredCounterActions(draft, action.sourceId))
+      recordSubscriberMatches(fact.detail, slotRaise.matches)
+      generated.push(...slotRaise.generated)
       generated.push(...cardDrawActions(hero, action.sourceId, effects.drawCount))
       break
     }
@@ -552,7 +551,10 @@ function resolveOne(
         resolutionFact.downed = true
       }
       evaluateTankHitAbsorption(draft, action, resolutionFact)
-      evaluateStandingGrants(catalog, draft, action, resolutionFact)
+      const grantMatches = raiseDamageResolved(catalog, draft, action, resolutionFact)
+      const incomingMatches = (resolutionFact.subscriber_matches as SubscriberMatch[] | undefined) ?? []
+      delete resolutionFact.subscriber_matches
+      recordSubscriberMatches(fact.detail, [...incomingMatches, ...grantMatches])
       fact.resolutionFact = resolutionFact
       succeed(fact)
       break
@@ -642,18 +644,11 @@ function resolveOne(
     case 'round_start': {
       draft.round = action.round
       advanceBoardRound(draft.board)
-      for (const heroId of Object.keys(draft.heroes)) {
-        const hero = draft.heroes[heroId]
-        hero.armor = 0
-        // Fortified's banked Armor is its count times its Reader's `per`
-        // (D-047), so two Fortify commitments are one stack of Counters and
-        // the additive stacking D-019 asked for is just addition.
-        hero.armor += Math.max(readerSum(draft, combatantRef(heroId), 'round_start', 'armor'), 0)
-        // A Signature that accrues on a clock rather than on an event
-        // (ADR 0037). Evaluated after the Armor grant so a Grant reads the
-        // Round as it has settled, never mid-wipe.
-        evaluateGrantsFor(catalog, draft, heroId, 'round_start')
-      }
+      // One raise for the Round boundary, host by host in seat order: the
+      // Armor wipe, Fortified's banked payout (the Reader — its count times
+      // `per`, so additive stacking is just addition, D-019/D-047), then the
+      // Grant against the settled Round (ADR 0037).
+      recordSubscriberMatches(fact.detail, raiseRoundStart(catalog, draft))
       // The Armor wipe is the Party's alone; the duration tick is every
       // combatant's. Running upkeep after the grant keeps Fortified's D-019
       // arc — pay out this Round's stored Armor, then expire — and gives an
@@ -945,16 +940,6 @@ function clearWindowFlags(draft: EncounterState, window: Phase): void {
   }
 }
 
-// Counters that answer a fired Slot with bonus Boss damage through an authored
-// Reader rather than through graded consumption.
-function slotFiredCounterActions(draft: EncounterState, entityId: string): EncounterActionInput[] {
-  const bonus = readerSum(draft, combatantRef(entityId), 'slot_fired', 'boss_damage')
-  if (bonus <= 0 || draft.bossId === entityId) {
-    return []
-  }
-  return [{ kind: 'damage', sourceId: entityId, targetId: draft.bossId, amount: bonus, reasonText: 'counter_reader' }]
-}
-
 // The fact context every blow a Card deals carries. The Card's own damage
 // Keywords ride it so a Counter can answer what the party throws, not just
 // what the Boss does (D-049) — the party's damage was unkeyworded while only
@@ -1023,6 +1008,19 @@ function applyScaleReaders(
   }
 }
 
+// Matched subscribers ride the raising action's record only when at least
+// one matched; a raise nothing heard records nothing (ADR 0041).
+function recordSubscriberMatches(detail: Record<string, unknown>, matches: SubscriberMatch[]): void {
+  if (matches.length > 0) {
+    detail.subscriber_matches = matches
+  }
+}
+
+function withIncomingMatches(factRecord: Record<string, unknown>, matches: SubscriberMatch[]): Record<string, unknown> {
+  recordSubscriberMatches(factRecord, matches)
+  return factRecord
+}
+
 function applyDamage(
   draft: EncounterState,
   targetId: string,
@@ -1030,14 +1028,13 @@ function applyDamage(
   sourceId = '',
   damageKeywords: string[] = [],
 ): Record<string, unknown> {
-  // Counters ride damage resolution that already existed, through Readers
-  // rather than through two named payload fields (D-047): the source's
-  // Weakened lowers what it deals at `-1` a Counter, the target's Sundered
-  // raises what it takes at `+1`. Both resolve before mitigation, so Armor
-  // still answers the number the Party can read.
-  const dealtDelta = sourceId === '' ? 0 : readerSum(draft, combatantRef(sourceId), 'host_deals_damage', 'target_damage', damageKeywords)
-  const takenDelta = readerSum(draft, combatantRef(targetId), 'host_takes_damage', 'target_damage', damageKeywords)
-  const requested = Math.max(amount + dealtDelta + takenDelta, 0)
+  // Counters ride damage resolution through the `damage_incoming` raise
+  // (ADR 0041), before mitigation, so Armor still answers the number the
+  // Party can read: the target's Sundered and Seared answer
+  // `host_damage_incoming` (D-085), the source's Weakened and Heat answer
+  // `host_deals_damage` as the modifier stance of the same raise.
+  const incoming = raiseDamageIncoming(draft, sourceId, targetId, damageKeywords)
+  const requested = Math.max(amount + incoming.delta, 0)
   // Armor is the only mitigation there has ever been: the old per-Counter
   // `damageReduction` field was never set by anything and left with D-047.
   const hero = draft.heroes[targetId]
@@ -1050,7 +1047,7 @@ function applyDamage(
       const restored = Math.min(requested, hero.maxHealth - hero.health)
       hero.health += restored
       syncHeroEntity(draft, targetId)
-      return { requested, prevented: requested, health_loss: 0, converted_to_healing: restored, target_available: true }
+      return withIncomingMatches({ requested, prevented: requested, health_loss: 0, converted_to_healing: restored, target_available: true }, incoming.matches)
     }
     const armorBlocked = Math.min(hero.armor, requested)
     hero.armor -= armorBlocked
@@ -1058,15 +1055,18 @@ function applyDamage(
     const dealt = Math.min(remaining, hero.health)
     hero.health = Math.max(hero.health - dealt, 0)
     syncHeroEntity(draft, targetId)
-    return { requested, prevented: armorBlocked, health_loss: dealt, target_available: true }
+    return withIncomingMatches({ requested, prevented: armorBlocked, health_loss: dealt, target_available: true }, incoming.matches)
   }
   const target = draft.board.entities[targetId]
   const healthBefore = target?.health ?? 0
   const dealt = damageEntity(draft.board, targetId, requested)
   if (healthBefore <= 0) {
-    return { requested, prevented: 0, health_loss: 0, target_available: false }
+    return withIncomingMatches({ requested, prevented: 0, health_loss: 0, target_available: false }, incoming.matches)
   }
-  const resolutionFact: Record<string, unknown> = { requested, prevented: 0, health_loss: dealt, target_available: true }
+  const resolutionFact: Record<string, unknown> = withIncomingMatches(
+    { requested, prevented: 0, health_loss: dealt, target_available: true },
+    incoming.matches,
+  )
   // Minion Defeat is part of damage resolution: the Minion leaves the board
   // before the damage action completes, and the fact records target_removed.
   if (target?.kind === 'minion' && dealt > 0 && dealt === healthBefore) {
