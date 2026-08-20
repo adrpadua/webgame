@@ -1,12 +1,13 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { useEffect, useRef } from 'react'
 import { cardChargeCap, type EncounterState } from '@/engine'
 import { useOnboarding } from '@/store/onboarding'
 import { selectState, useWorkbench, type WorkbenchCatalog } from '@/store/workbench'
-import { BootIcon, HexIcon, ShieldIcon, SwordIcon } from './icons'
-import { useHold, type HoldDetail } from './HoldPopover'
-import { Notify } from './NotificationLayer'
-import { slotCanFire } from './slots'
-import { FOCUS_RING_CLASS } from './theme'
+import { BootIcon, HexIcon, ShieldIcon, SwordIcon } from '../common/icons'
+import { useHold, type HoldDetail } from '../common/HoldPopover'
+import { Notify } from '../overlays/NotificationLayer'
+import { slotCanFire } from '../actionBar/slots'
+import { FOCUS_RING_CLASS } from '../common/theme'
 
 // Non-blocking coaching for a player past the scripted first turn: one
 // four-word cue at a time, derived from the live Encounter state, with the
@@ -94,7 +95,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | nul
 
 export function CoachMark() {
   const state = useWorkbench(selectState)
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const dismissedTips = useOnboarding((store) => store.dismissedTips)
   const dismissTip = useOnboarding((store) => store.dismissTip)
   const guideOpen = useOnboarding((store) => store.guideOpen)

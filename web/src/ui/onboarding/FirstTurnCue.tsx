@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
 import { useOnboarding } from '@/store/onboarding'
-import { useHold } from './HoldPopover'
-import { Notify } from './NotificationLayer'
+import { useHold } from '../common/HoldPopover'
+import { Notify } from '../overlays/NotificationLayer'
 import { FIRST_TURN_STEP_COUNT } from './firstTurnScript'
 import { useFirstTurnStep } from './useFirstTurn'
-import { FOCUS_RING_CLASS } from './theme'
+import { FOCUS_RING_CLASS } from '../common/theme'
 
 // The scripted turn's only words: one imperative cue, the control it points
 // at, and how far through the Round the player is. Hold the bar for the

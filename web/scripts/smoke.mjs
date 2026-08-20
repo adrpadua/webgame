@@ -564,7 +564,7 @@ try {
     const fails = await contrastFailures(pg)
     assert(fails.length === 0, `text contrast meets WCAG 1.4.3 ${label} (${fails.join(' | ') || 'all pass'})`)
   }
-  // The notification zones (web/src/ui/notifications.ts). Every floating
+  // The notification zones (web/src/ui/overlays/notifications.ts). Every floating
   // surface on the play field carries data-notification and lives in one of
   // three lanes that are flex siblings of a single column, so two of them
   // sharing a pixel is supposed to be unrepresentable. It was not, when each
@@ -628,7 +628,7 @@ try {
   // The card the scripted turn is pointing at is the only live card in Hand.
   const scriptedCard = () => page.locator('[data-testid="hand-card"][data-scripted="true"]')
   // Which face the Hand is wearing: the card as itself, its Keywords, or
-  // movement currency. See web/src/ui/handFace.ts.
+  // movement currency. See web/src/ui/hand/handFace.ts.
   const handFace = () => page.locator('[data-testid="hand"]').getAttribute('data-face')
   const slot0 = page.locator('[data-testid="slot-0"]')
   const slot1 = page.locator('[data-testid="slot-1"]')
@@ -767,7 +767,7 @@ try {
   )
   // Two dock members at once: the step's prompt and whatever stat panel is
   // open behind it. The panel rides above the prompt rather than under it,
-  // which is the ranking in web/src/ui/notifications.ts doing its job.
+  // which is the ranking in web/src/ui/overlays/notifications.ts doing its job.
   const payingLive = await assertNotificationLayout(page, 'while a step waits for its card')
   assert(payingLive.includes('move-payment'), `the step's prompt docks above the Hand it points at (${payingLive.join(', ')})`)
   // The Hand is the prompt: every card is offered, and the offer is a real

@@ -10,8 +10,8 @@ six component boards (`PlateSystem`, `PhaseBand`, `ActionBar`, `HeroFrame`, `Han
 ## Where the values come from
 
 Nothing here is eyeballed. The palette and the plate geometry are lifted from
-`web/src/index.css`, the gauge language from `web/src/ui/theme.ts`, the icon paths from
-`web/src/ui/icons.tsx` and `keywordIcons.tsx`, the markup from the components themselves,
+`web/src/index.css`, the gauge language from `web/src/ui/common/theme.ts`, the icon paths from
+`web/src/ui/common/icons.tsx` and `keywordIcons.tsx`, the markup from the components themselves,
 and every box size in `metrics.json` was measured off the running app at 390x844.
 `board.jpg` is the game's own render, cropped from that same capture with the floating
 layers hidden.

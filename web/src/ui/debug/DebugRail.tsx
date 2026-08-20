@@ -1,8 +1,16 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOnboarding } from '@/store/onboarding'
 import { selectState, useWorkbench, type FactEntry } from '@/store/workbench'
 import { SpriteInspector } from './SpriteInspector'
-import { FRAME_HEIGHT_CLASS } from './theme'
+import { FRAME_HEIGHT_CLASS } from '../common/theme'
+
+// Whether the rail renders at all. It is a design tool rather than part of
+// the game: on in the dev server, and on any build reached with ?debug=1 —
+// so it can be opened on the deployed site when wanted, and a playtester
+// handed the URL cold never sees it. Read once at import, because the answer
+// cannot change without a navigation.
+export const showDebugRail = import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug')
 
 function factSummary(fact: FactEntry): string | null {
   const resolution = fact.resolutionFact
@@ -116,7 +124,7 @@ function CoordinateToggle() {
 // Scenario: a named, versioned action-prefix replayed from a seeded initial
 // state. Loading one lands mid-Encounter with the whole line walkable below.
 function ScenarioPicker() {
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const activeScenarioId = useWorkbench((store) => store.activeScenarioId)
   const loadScenario = useWorkbench((store) => store.loadScenario)
   const exportScenario = useWorkbench((store) => store.exportScenario)

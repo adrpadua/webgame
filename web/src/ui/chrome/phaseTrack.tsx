@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react'
 import type { Phase } from '@/engine'
-import type { HoldDetail } from './HoldPopover'
-import { BoltIcon, DeckIcon, HourglassIcon, ImpactIcon, SwiftIcon } from './icons'
+import type { HoldDetail } from '../common/HoldPopover'
+import { BoltIcon, DeckIcon, HourglassIcon, ImpactIcon, SwiftIcon } from '../common/icons'
 
 // The Round's five windows in one table: a mark, a word, an owner, and the
 // tones for every state the HUD wears it in.

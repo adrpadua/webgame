@@ -1,12 +1,13 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { combatantRef, getCounters, type CounterInstance, type HeroState } from '@/engine'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { signatureControl, type SignatureControl as SignatureControlState } from './heroFrame'
-import { useDamageFlash } from './useDamageFlash'
-import { HeartIcon, HeroEmblem, ShieldIcon } from './icons'
-import { HERO_STAT_DETAILS, slotDetail } from './holdDetails'
-import { useHold } from './HoldPopover'
-import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS, healthBarScale } from './theme'
+import { useDamageFlash } from '../common/useDamageFlash'
+import { HeartIcon, HeroEmblem, ShieldIcon } from '../common/icons'
+import { HERO_STAT_DETAILS, slotDetail } from '../common/holdDetails'
+import { useHold } from '../common/HoldPopover'
+import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLASS, healthBarScale } from '../common/theme'
 
 // The Hero Frame (D-065, ADR 0033): the primary Hero's persistent readout,
 // floating over the board's bottom edge, built to the unit-frame anatomy an
@@ -147,7 +148,7 @@ function CounterChip({ counter, rulesText }: { counter: CounterInstance; rulesTe
 
 export function CounterChips({ entityId }: { entityId: string }) {
   const state = useWorkbench(selectState)
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   return (
     <>
       {getCounters(state, combatantRef(entityId)).map((counter) => (
@@ -172,7 +173,7 @@ export function CounterChips({ entityId }: { entityId: string }) {
 // mechanic, which is why it was refused before the bar existed.
 function SignatureButton() {
   const state = useWorkbench(selectState)
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const fireSlot = useWorkbench((store) => store.fireSlot)
   const control = signatureControl(catalog, state)
   const hold = useHold(
@@ -215,7 +216,7 @@ function SignatureButton() {
 
 export function HeroFrame() {
   const state = useWorkbench(selectState)
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const heroId = state.primaryHeroId
   const hero = state.heroes[heroId]
   const override = usePlayout((store) => store.overrides[heroId])

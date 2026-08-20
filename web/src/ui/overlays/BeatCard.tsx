@@ -1,9 +1,10 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { keywordTitle } from "@/engine";
 import { usePlayout } from "@/store/playout";
 import { selectState, useWorkbench } from "@/store/workbench";
 import { beatCardStats, findLiveBeat, standingDemand } from "./beatCard";
 import { Notify } from "./NotificationLayer";
-import { FOCUS_RING_CLASS } from "./theme";
+import { FOCUS_RING_CLASS } from "../common/theme";
 
 // Every Boss Beat is a card, and the card is the control that resolves it.
 //
@@ -37,7 +38,7 @@ export function BeatCard() {
   const nextBeatId = usePlayout((store) => store.nextBeatId);
   const nextBeatTitle = usePlayout((store) => store.nextBeatTitle);
   const continuePlayout = usePlayout((store) => store.continuePlayout);
-  const catalog = useWorkbench((store) => store.catalog);
+  const catalog = useCatalog()
   const state = useWorkbench(selectState);
   if (!awaiting) {
     return null;
@@ -132,7 +133,7 @@ export function BeatCard() {
 // the difference between a notification and a thing you can play against. On a
 // table this is the card that stays face-up in front of the Boss.
 export function StandingDemand() {
-  const catalog = useWorkbench((store) => store.catalog);
+  const catalog = useCatalog()
   const state = useWorkbench(selectState);
   const demand = standingDemand(catalog, state);
   if (!demand) {

@@ -1,9 +1,9 @@
 import { selectCanUndo, useWorkbench } from '@/store/workbench'
-import { blocksTarget } from './firstTurnScript'
-import { UndoIcon } from './icons'
-import { useHold } from './HoldPopover'
-import { useFirstTurnStep } from './useFirstTurn'
-import { FOCUS_RING_CLASS, GATED_CLASS } from './theme'
+import { blocksTarget } from '../onboarding/firstTurnScript'
+import { UndoIcon } from '../common/icons'
+import { useHold } from '../common/HoldPopover'
+import { useFirstTurnStep } from '../onboarding/useFirstTurn'
+import { FOCUS_RING_CLASS, GATED_CLASS } from '../common/theme'
 
 // The Action Bar's left rail: take back the action you just took.
 //
