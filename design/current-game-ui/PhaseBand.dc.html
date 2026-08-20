@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+:root {
+  --glass-100:#d6f4f9; --glass-200:#a6e6f0; --glass-300:#7fdbe9; --glass-400:#62d2e6;
+  --glass-500:#3fb9cf; --glass-600:#2a94a8; --glass-700:#1e6d7c; --glass-900:#0f3a44; --glass-950:#0a2730;
+  --gold-100:#f7ebc9; --gold-200:#ecd48f; --gold-300:#dcbd60; --gold-400:#c8a344;
+  --gold-500:#ad8b34; --gold-600:#8a6e26; --gold-700:#64501c; --gold-900:#3a2e12; --gold-950:#261e0c;
+  --cloth-100:#d5e3f0; --cloth-300:#7ea3c6; --cloth-400:#4f7ba6; --cloth-500:#2f5680;
+  --cloth-700:#22405f; --cloth-950:#101c2c;
+  --ceramic-100:#f7f9fb; --ceramic-200:#edf0f5; --ceramic-300:#e4e8ee; --ceramic-400:#c9d2e0;
+  --ceramic-500:#a9b7cc; --ceramic-950:#1a2230;
+  --ember-100:#f6c9be; --ember-300:#ec8b73; --ember-400:#e2603f; --ember-500:#d9482f;
+  --ember-600:#b53a24; --ember-950:#2c110c;
+  --coral-100:#f8d5c4; --coral-200:#f3b394; --coral-300:#ec9569; --coral-400:#e0703b;
+  --coral-500:#c4522a; --coral-700:#7e3519; --coral-900:#45200f; --coral-950:#2c150a;
+  --navy-950:#080d16;
+  --steel-400:#91a3bf; --steel-500:#7a8fb2; --steel-600:#415371; --steel-700:#37465f;
+  --steel-800:#24304a; --steel-900:#1b2434; --steel-950:#0f1622;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--navy-950); color:var(--ceramic-200);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue","Noto Sans",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+/* The gauge language, written once (web/src/ui/theme.ts): a dark track, a
+   fill measured from the left, the number overlaid with a shadow so it stays
+   crisp where it straddles the fill edge. */
+.gauge{position:relative;display:block;height:18px;overflow:hidden;border-radius:2px;background:var(--steel-950)}
+.gauge-fill{position:absolute;top:0;bottom:0;left:0}
+.gauge-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:4px;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+.row{display:flex;align-items:center}
+.col{display:flex;flex-direction:column}
+
+
+/* The plate geometry from docs/content/oathcraft-interface-direction.md: a
+   parallelogram raked 8deg from vertical, top-left corner notched out, the
+   leading edge carrying a 3px accent that runs the full cut. Drawn on ::before
+   and ::after so the element keeps its focus ring, shadow and border. */
+.plate{
+  position:relative; isolation:isolate; background:transparent; border:0;
+  --off:5px; --notch:3px; --gutter:8px; --inset:var(--off);
+  --face:var(--steel-900); --edge:var(--steel-700); --acc:var(--steel-700);
+  /* The one padding rule, derived and never re-declared: --inset is how deep
+     the cut reaches this plate's content, --gutter is the breathing room past
+     it — the only figure tuned by eye. */
+  padding-inline:calc(var(--inset) + var(--gutter));
+}
+.plate::before{
+  content:''; position:absolute; inset:0; z-index:-1; background:var(--face);
+  box-shadow:inset 0 0 0 1px var(--edge), inset 0 1px 0 rgb(255 255 255/.06), inset 0 -1px 0 rgb(0 0 0/.5);
+  clip-path:polygon(calc(var(--off) + var(--notch)) 0, 100% 0, calc(100% - var(--off)) 100%, 0 100%, var(--off) var(--notch));
+}
+.plate::after{
+  content:''; position:absolute; inset:0; z-index:-1; background:var(--acc);
+  clip-path:polygon(var(--off) var(--notch), calc(var(--off) + 3px) var(--notch), 3px 100%, 0 100%);
+}
+/* Sizes carry the rake and, where the plate is width-starved, a tighter
+   gutter. Offset = height x tan(8deg) at the class's nominal height. */
+.p-xs{--off:3px;--notch:2px}
+.p-sm{--off:5px;--notch:3px;--gutter:10px}
+.p-md{--off:7px;--notch:4px}
+.p-card{--off:7px;--notch:4px;--gutter:4px}
+.p-lg{--off:9px;--notch:4px}
+.p-slot{--off:9px;--notch:4px;--gutter:3px}
+.p-xl{--off:16px;--notch:6px;--gutter:12px}
+/* Content held to the plate's vertical middle meets each cut at half depth. */
+.p-centered{--inset:calc(var(--off) / 2)}
+/* A plate carrying a text column measures each side at the corner that side
+   is worst at, and adds the notch back on top. */
+.p-raked{
+  padding-inline:calc(var(--off) + 13px) calc(var(--off) + 10px);
+  padding-block:calc(var(--notch) + var(--gutter-block,8px)) var(--gutter-block,8px);
+}
+/* Faces and accents. The accent is the status channel: gold on the live
+   thing, ember on the irreversible one, glass on a player affordance. */
+.f-steel{--face:var(--steel-900);--edge:var(--steel-700)}
+.f-ceramic{--face:var(--ceramic-300);--edge:var(--ceramic-500)}
+.f-gold{--face:var(--gold-500);--edge:var(--gold-400)}
+.f-dim{--face:var(--steel-950);--edge:var(--steel-800)}
+.f-coral{--face:var(--coral-400);--edge:var(--coral-300)}
+.f-glass{--face:var(--glass-400);--edge:var(--glass-300)}
+.a-gold{--acc:var(--gold-400)}
+.a-glass{--acc:var(--glass-400)}
+.a-ember{--acc:var(--ember-500)}
+.a-cloth{--acc:var(--cloth-500)}
+.a-none{--acc:transparent}
+
+
+/* The Round track: what the Round is doing, and nothing that does it. */
+.phase-band{border-bottom:1px solid var(--steel-800);background:rgba(15,22,34,.6);padding:6px 12px}
+.track{display:flex;align-items:center;gap:4px;min-height:44px;flex:1;min-width:0}
+.mark{display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0}
+.mark-rest{flex:1;min-width:0}
+.mark-live{flex-shrink:0}
+.chip{display:flex;align-items:center;gap:6px;padding-top:4px;padding-bottom:4px}
+.chip-word{font-size:10px;line-height:1;font-weight:900;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.wedge{height:6px;width:10px;flex-shrink:0;display:block}
+.i14{height:14px;width:14px;flex-shrink:0}
+.i18{height:18px;width:18px;flex-shrink:0;display:block}
+.round-mark{min-height:44px;min-width:44px;flex-shrink:0;font-size:11px;font-weight:600;color:var(--steel-400);background:none;border:0;display:flex;align-items:center;justify-content:center}
+/* Escalation: the encounter's only clock (ADR 0027). No label — the reading
+   is in the shape, with the wipe band washed in at the far end and a fuse
+   burning through the first while the automatic ticks are still dormant. */
+.esc{display:flex;align-items:center;min-height:44px;width:100%}
+.esc-track{position:relative;display:block;height:8px;width:100%;overflow:hidden;border-radius:2px;background:var(--steel-950);box-shadow:inset 0 0 0 1px var(--steel-800)}
+.esc-wipe{position:absolute;top:0;bottom:0;right:0;width:20%;background:rgba(69,32,15,.7)}
+.esc-fuse{position:absolute;top:0;bottom:0;left:0;background:rgba(69,32,15,.7)}
+.esc-fill{position:absolute;top:0;bottom:0;left:0;background:var(--coral-500)}
+.esc-div{position:absolute;top:0;bottom:0;width:1px;background:var(--steel-950)}
+
+.artboard{width:440px;background:var(--navy-950);padding:24px;overflow:hidden}
+.legend{font-size:11px;line-height:1.5;color:var(--steel-400)}
+.legend b{color:var(--ceramic-300);font-weight:600}
+.head{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ceramic-200)}
+.sub{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel-500);margin-top:2px}
+.rule{height:1px;background:var(--steel-800);margin:14px 0}
+.tile{background:rgba(15,22,34,.55);border:1px solid var(--steel-800);border-radius:4px;padding:12px}
+.tile-label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel-500);margin-bottom:8px}
+</style>
+</helmet>
+<section class="artboard">
+<div class="head">Round track &amp; Encounter clock</div>
+<div class="sub">PhaseControl · phaseTrack · EscalationGauge</div>
+<div class="legend" style="margin-top:12px;max-width:380px">
+Five marks, one per window, each wearing its owner's tone at rest and its wedge — <b>the Boss's windows
+point down at the board, yours point up</b> — so the Round's shape reads before any window opens. The live
+window is not a sixth tint but the row's one lit chip: a raked plate in the owner's material carrying the
+window's word. One word always fits where five never did.
+</div>
+<div class="rule"></div>
+<div style="margin-bottom:14px"><div class="tile-label">Loadout — cards set out, nothing fired</div><div style="width:390px;background:var(--steel-950)"><div class="phase-band"><div class="row" style="gap:8px"><span class="track"><span class="mark mark-live" style="color:var(--ceramic-200)"><span class="plate p-xs f-ceramic chip" style="color:var(--ceramic-950)"><svg viewBox="0 0 20 20" class="i14" fill="currentColor" aria-hidden="true"><rect x="2" y="6" width="8" height="11" rx="1.5" opacity="0.55"/><rect x="9" y="3" width="9" height="11" rx="1.5"/></svg><span class="chip-word">Loadout</span></span><span class="wedge"></span></span><span class="mark mark-rest" style="color:var(--coral-500)"><svg viewBox="0 0 20 20" class="i18" fill="currentColor" aria-hidden="true"><path d="M11.6 2 4 11.4h4.2L7.9 18l7.6-9.4h-4.2L11.6 2Z"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 0h10L5 6 0 0Z"/></svg></span><span class="mark mark-rest" style="color:var(--glass-600)"><svg viewBox="0 0 20 20" class="i18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 5 5 5-5 5M11 5l5 5-5 5"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 6 5 0l5 6H0Z"/></svg></span><span class="mark mark-rest" style="color:var(--coral-500)"><svg viewBox="0 0 20 20" class="i18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5v8.5M5.5 7.5 10 12l4.5-4.5M4 16.5h12"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 0h10L5 6 0 0Z"/></svg></span><span class="mark mark-rest" style="color:var(--gold-600)"><svg viewBox="0 0 20 20" class="i18" fill="currentColor" aria-hidden="true"><path d="M4.5 3h11v1.7h-11zM4.5 15.3h11V17h-11z"/><path d="M6.3 4.7h7.4L10 10l3.7 5.3H6.3L10 10 6.3 4.7Z"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 6 5 0l5 6H0Z"/></svg></span></span><span class="round-mark">R1</span></div><span class="esc"><span class="esc-track"><span class="esc-wipe"></span><span class="esc-fuse" style="width:25%"></span><span class="esc-fill" style="width:0%"></span><span class="esc-div" style="left:20%"></span><span class="esc-div" style="left:40%"></span><span class="esc-div" style="left:60%"></span><span class="esc-div" style="left:80%"></span></span></span></div></div></div><div style="margin-bottom:14px"><div class="tile-label">Boss Instant — it lands as the window opens</div><div style="width:390px;background:var(--steel-950)"><div class="phase-band"><div class="row" style="gap:8px"><span class="track"><span class="mark mark-rest" style="color:var(--steel-500)"><svg viewBox="0 0 20 20" class="i18" fill="currentColor" aria-hidden="true"><rect x="2" y="6" width="8" height="11" rx="1.5" opacity="0.55"/><rect x="9" y="3" width="9" height="11" rx="1.5"/></svg><span class="wedge"></span></span><span class="mark mark-live" style="color:var(--coral-300)"><span class="plate p-xs f-coral chip" style="color:var(--coral-950)"><svg viewBox="0 0 20 20" class="i14" fill="currentColor" aria-hidden="true"><path d="M11.6 2 4 11.4h4.2L7.9 18l7.6-9.4h-4.2L11.6 2Z"/></svg><span class="chip-word">Instant</span></span><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 0h10L5 6 0 0Z"/></svg></span><span class="mark mark-rest" style="color:var(--glass-600)"><svg viewBox="0 0 20 20" class="i18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 5 5 5-5 5M11 5l5 5-5 5"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 6 5 0l5 6H0Z"/></svg></span><span class="mark mark-rest" style="color:var(--coral-500)"><svg viewBox="0 0 20 20" class="i18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5v8.5M5.5 7.5 10 12l4.5-4.5M4 16.5h12"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 0h10L5 6 0 0Z"/></svg></span><span class="mark mark-rest" style="color:var(--gold-600)"><svg viewBox="0 0 20 20" class="i18" fill="currentColor" aria-hidden="true"><path d="M4.5 3h11v1.7h-11zM4.5 15.3h11V17h-11z"/><path d="M6.3 4.7h7.4L10 10l3.7 5.3H6.3L10 10 6.3 4.7Z"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 6 5 0l5 6H0Z"/></svg></span></span><span class="round-mark">R2</span></div><span class="esc"><span class="esc-track"><span class="esc-wipe"></span><span class="esc-fuse" style="width:50%"></span><span class="esc-fill" style="width:0%"></span><span class="esc-div" style="left:20%"></span><span class="esc-div" style="left:40%"></span><span class="esc-div" style="left:60%"></span><span class="esc-div" style="left:80%"></span></span></span></div></div></div><div style="margin-bottom:14px"><div class="tile-label">Quick Window — yours, and fast</div><div style="width:390px;background:var(--steel-950)"><div class="phase-band"><div class="row" style="gap:8px"><span class="track"><span class="mark mark-rest" style="color:var(--steel-500)"><svg viewBox="0 0 20 20" class="i18" fill="currentColor" aria-hidden="true"><rect x="2" y="6" width="8" height="11" rx="1.5" opacity="0.55"/><rect x="9" y="3" width="9" height="11" rx="1.5"/></svg><span class="wedge"></span></span><span class="mark mark-rest" style="color:var(--coral-500)"><svg viewBox="0 0 20 20" class="i18" fill="currentColor" aria-hidden="true"><path d="M11.6 2 4 11.4h4.2L7.9 18l7.6-9.4h-4.2L11.6 2Z"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 0h10L5 6 0 0Z"/></svg></span><span class="mark mark-live" style="color:var(--glass-300)"><span class="plate p-xs f-glass chip" style="color:var(--glass-950)"><svg viewBox="0 0 20 20" class="i14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 5 5 5-5 5M11 5l5 5-5 5"/></svg><span class="chip-word">Quick</span></span><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 6 5 0l5 6H0Z"/></svg></span><span class="mark mark-rest" style="color:var(--coral-500)"><svg viewBox="0 0 20 20" class="i18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5v8.5M5.5 7.5 10 12l4.5-4.5M4 16.5h12"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 0h10L5 6 0 0Z"/></svg></span><span class="mark mark-rest" style="color:var(--gold-600)"><svg viewBox="0 0 20 20" class="i18" fill="currentColor" aria-hidden="true"><path d="M4.5 3h11v1.7h-11zM4.5 15.3h11V17h-11z"/><path d="M6.3 4.7h7.4L10 10l3.7 5.3H6.3L10 10 6.3 4.7Z"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 6 5 0l5 6H0Z"/></svg></span></span><span class="round-mark">R3</span></div><span class="esc"><span class="esc-track"><span class="esc-wipe"></span><span class="esc-fuse" style="width:0%"></span><span class="esc-fill" style="width:20%"></span><span class="esc-div" style="left:20%"></span><span class="esc-div" style="left:40%"></span><span class="esc-div" style="left:60%"></span><span class="esc-div" style="left:80%"></span></span></span></div></div></div><div style="margin-bottom:14px"><div class="tile-label">Boss Incoming — the telegraphed beat landing</div><div style="width:390px;background:var(--steel-950)"><div class="phase-band"><div class="row" style="gap:8px"><span class="track"><span class="mark mark-rest" style="color:var(--steel-500)"><svg viewBox="0 0 20 20" class="i18" fill="currentColor" aria-hidden="true"><rect x="2" y="6" width="8" height="11" rx="1.5" opacity="0.55"/><rect x="9" y="3" width="9" height="11" rx="1.5"/></svg><span class="wedge"></span></span><span class="mark mark-rest" style="color:var(--coral-500)"><svg viewBox="0 0 20 20" class="i18" fill="currentColor" aria-hidden="true"><path d="M11.6 2 4 11.4h4.2L7.9 18l7.6-9.4h-4.2L11.6 2Z"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 0h10L5 6 0 0Z"/></svg></span><span class="mark mark-rest" style="color:var(--glass-600)"><svg viewBox="0 0 20 20" class="i18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 5 5 5-5 5M11 5l5 5-5 5"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 6 5 0l5 6H0Z"/></svg></span><span class="mark mark-live" style="color:var(--coral-300)"><span class="plate p-xs f-coral chip" style="color:var(--coral-950)"><svg viewBox="0 0 20 20" class="i14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5v8.5M5.5 7.5 10 12l4.5-4.5M4 16.5h12"/></svg><span class="chip-word">Incoming</span></span><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 0h10L5 6 0 0Z"/></svg></span><span class="mark mark-rest" style="color:var(--gold-600)"><svg viewBox="0 0 20 20" class="i18" fill="currentColor" aria-hidden="true"><path d="M4.5 3h11v1.7h-11zM4.5 15.3h11V17h-11z"/><path d="M6.3 4.7h7.4L10 10l3.7 5.3H6.3L10 10 6.3 4.7Z"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 6 5 0l5 6H0Z"/></svg></span></span><span class="round-mark">R5</span></div><span class="esc"><span class="esc-track"><span class="esc-wipe"></span><span class="esc-fuse" style="width:0%"></span><span class="esc-fill" style="width:40%"></span><span class="esc-div" style="left:20%"></span><span class="esc-div" style="left:40%"></span><span class="esc-div" style="left:60%"></span><span class="esc-div" style="left:80%"></span></span></span></div></div></div><div style="margin-bottom:14px"><div class="tile-label">Slow Window — yours, on the mechanism you wound up</div><div style="width:390px;background:var(--steel-950)"><div class="phase-band"><div class="row" style="gap:8px"><span class="track"><span class="mark mark-rest" style="color:var(--steel-500)"><svg viewBox="0 0 20 20" class="i18" fill="currentColor" aria-hidden="true"><rect x="2" y="6" width="8" height="11" rx="1.5" opacity="0.55"/><rect x="9" y="3" width="9" height="11" rx="1.5"/></svg><span class="wedge"></span></span><span class="mark mark-rest" style="color:var(--coral-500)"><svg viewBox="0 0 20 20" class="i18" fill="currentColor" aria-hidden="true"><path d="M11.6 2 4 11.4h4.2L7.9 18l7.6-9.4h-4.2L11.6 2Z"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 0h10L5 6 0 0Z"/></svg></span><span class="mark mark-rest" style="color:var(--glass-600)"><svg viewBox="0 0 20 20" class="i18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 5 5 5-5 5M11 5l5 5-5 5"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 6 5 0l5 6H0Z"/></svg></span><span class="mark mark-rest" style="color:var(--coral-500)"><svg viewBox="0 0 20 20" class="i18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5v8.5M5.5 7.5 10 12l4.5-4.5M4 16.5h12"/></svg><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 0h10L5 6 0 0Z"/></svg></span><span class="mark mark-live" style="color:var(--gold-300)"><span class="plate p-xs f-gold chip" style="color:var(--gold-950)"><svg viewBox="0 0 20 20" class="i14" fill="currentColor" aria-hidden="true"><path d="M4.5 3h11v1.7h-11zM4.5 15.3h11V17h-11z"/><path d="M6.3 4.7h7.4L10 10l3.7 5.3H6.3L10 10 6.3 4.7Z"/></svg><span class="chip-word">Slow</span></span><svg viewBox="0 0 10 6" class="wedge" fill="currentColor" aria-hidden="true"><path d="M0 6 5 0l5 6H0Z"/></svg></span></span><span class="round-mark">R7</span></div><span class="esc"><span class="esc-track"><span class="esc-wipe"></span><span class="esc-fuse" style="width:0%"></span><span class="esc-fill" style="width:80%"></span><span class="esc-div" style="left:20%"></span><span class="esc-div" style="left:40%"></span><span class="esc-div" style="left:60%"></span><span class="esc-div" style="left:80%"></span></span></span></div></div></div>
+<div class="rule"></div>
+<div class="legend" style="max-width:380px">
+Under the track, on its own line, is <b>Escalation</b> — the encounter's only clock (ADR 0027). It carries no
+label: the reading is in the shape. The last band, the one that ends the fight, is washed in at the far end
+before the clock ever reaches it, and a fuse burns through the first band while the automatic ticks are
+still dormant, so a clock that cannot move yet does not read as one that has stopped.
+</div>
+</section>
+</x-dc>
+</body>
+</html>

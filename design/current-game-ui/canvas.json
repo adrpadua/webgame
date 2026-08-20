@@ -1,0 +1,94 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Quick Window \u2014 the live HUD"
+    },
+    {
+      "file": "Loadout.dc.html",
+      "x": 450,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Loadout \u2014 empty Slots, card faces"
+    },
+    {
+      "file": "PlateSystem.dc.html",
+      "x": 900,
+      "y": 0,
+      "w": 760,
+      "h": 700,
+      "title": "The raked plate"
+    },
+    {
+      "file": "Dock.dc.html",
+      "x": 1720,
+      "y": 0,
+      "w": 440,
+      "h": 800,
+      "title": "Notification dock"
+    },
+    {
+      "file": "PhaseBand.dc.html",
+      "x": 900,
+      "y": 760,
+      "w": 440,
+      "h": 700,
+      "title": "Round track & clock"
+    },
+    {
+      "file": "ActionBar.dc.html",
+      "x": 1400,
+      "y": 760,
+      "w": 440,
+      "h": 860,
+      "title": "Action Bar states"
+    },
+    {
+      "file": "HeroFrame.dc.html",
+      "x": 0,
+      "y": 910,
+      "w": 440,
+      "h": 780,
+      "title": "Hero Frame & Signature"
+    },
+    {
+      "file": "HandFaces.dc.html",
+      "x": 460,
+      "y": 910,
+      "w": 440,
+      "h": 700,
+      "title": "Hand faces"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "read-me",
+      "x": -430,
+      "y": 0,
+      "w": 380,
+      "text": "The current Game UI of Raid Card Tactics, reproduced from the shipped source rather than sketched: the palette and plate geometry from web/src/index.css, the gauge language from web/src/ui/theme.ts, the markup from the components, and every box size measured off the running app at 390x844. The board art in the two screen boards is the game's own render.\n\nTwo screens on the left, six component boards to the right."
+    },
+    {
+      "id": "surface",
+      "x": -430,
+      "y": 300,
+      "w": 380,
+      "text": "The play surface is 390x844 \u2014 a phone in portrait, edge to edge. It is a fixed column: phase band, board, Action Bar, Hand. The board sizes to the space the HUD leaves and must never resize mid-Encounter, which is why every floating surface is absolutely positioned over it and why the Hand keeps its row height as it empties."
+    },
+    {
+      "id": "signature",
+      "x": 0,
+      "y": 1730,
+      "w": 400,
+      "text": "The Signature button appears only while the Signature can fire. That is safe because the resource bar carries permanence: the earn is taught by a visibly empty meter, and a held bank stays readable in the windows the Signature cannot act in."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

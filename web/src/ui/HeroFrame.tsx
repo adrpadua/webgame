@@ -89,7 +89,7 @@ function ResourceBar({ signature }: { signature: SignatureControlState }) {
   const { charges, cap, face } = signature
   return (
     <span
-      className="flex h-[7px] w-full items-stretch gap-[2px] overflow-hidden rounded-xs bg-steel-950 p-[1px]"
+      className="flex h-[7px] w-full items-stretch gap-0.5 overflow-hidden rounded-xs bg-steel-950 p-[1px]"
       data-testid="signature-resource"
       data-charges={charges}
       aria-hidden="true"
@@ -198,7 +198,14 @@ function SignatureButton() {
         }
         fireSlot(slotIndex)
       }}
-      className={`wb-pop-in wb-plate wb-plate-sm wb-face-gold wb-acc-gold pointer-events-auto ml-auto flex min-h-13 w-[74px] shrink-0 flex-col items-center justify-center gap-0.5 py-1.5 text-gold-950 ${FOCUS_RING_CLASS}`}
+      // 84px, not 74px. `Riposte` measures 45.7px at this size and weight, and
+      // wb-plate-sm's derived padding leaves a 74px plate 44px of content box —
+      // so the one control whose job is naming the power shipped it as
+      // `RIPOS...`. The row has the width to spare: this button sits at the end
+      // of a flex row whose only other fixed member is the 208px frame, on a
+      // 390pt surface. Widen the plate rather than cut the tracking or drop the
+      // verb; the verb is what makes it read as pressable.
+      className={`wb-pop-in wb-plate wb-plate-sm wb-face-gold wb-acc-gold pointer-events-auto ml-auto flex min-h-13 w-[84px] shrink-0 flex-col items-center justify-center gap-0.5 py-1.5 text-gold-950 ${FOCUS_RING_CLASS}`}
     >
       <span className="w-full truncate text-center text-[10px] leading-none font-black tracking-wide uppercase">{card.title}</span>
       <span className="text-[9px] leading-none font-bold tracking-wide text-gold-900 uppercase">Fire</span>
@@ -249,7 +256,7 @@ export function HeroFrame() {
         // pop, pointing the tap at the chrome that answers it.
         key={pulse}
         aria-label={`${title}, health ${shownHero.health} of ${shownHero.maxHealth}, Armor ${shownHero.armor}${resourceLabel}, ${hero.deck.length} in deck, ${hero.discard.length} in discard`}
-        className={`wb-pop-in wb-plate wb-plate-lg wb-face-ceramic wb-acc-cloth pointer-events-auto flex w-[208px] shrink-0 flex-col items-start gap-[2px] py-0.5 text-left text-ceramic-950 ${FOCUS_RING_CLASS}`}
+        className={`wb-pop-in wb-plate wb-plate-lg wb-face-ceramic wb-acc-cloth pointer-events-auto flex w-[208px] shrink-0 flex-col items-start gap-0.5 py-0.5 text-left text-ceramic-950 ${FOCUS_RING_CLASS}`}
       >
         <span className="flex w-full items-center gap-1 text-[11px] leading-none font-semibold">
           <HeroEmblem className="h-3.5 w-3.5 shrink-0 text-cloth-500" />
