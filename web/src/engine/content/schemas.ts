@@ -259,6 +259,21 @@ export const heroSchema = z.object({
   signature_card: z.string().default(''),
 })
 
+// A Boss as first-class authored content, the same promotion Heroes got in
+// ADR 0034 and for the same trigger: three Encounters now field Embermaw with
+// hand-kept copies of its title and health, and the traversal probe (D-076)
+// only stays comparable to the shipped fight while those copies agree — an
+// agreement a test was holding by hand. What a Boss *is* lives here; what the
+// fight decides — start hex, Programs, thresholds, the clock — stays on the
+// Encounter. Its substance still lives in its Programs: this file is identity
+// and the health pool, nothing more, until a Boss needs more.
+export const bossSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  rules_text: z.string().default(''),
+  max_health: z.number().int().min(1),
+})
+
 export const hazardSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -519,13 +534,16 @@ export const encounterSchema = z.object({
   // seat a list. The first seat is the primary Hero: the one the HUD's Hero
   // Frame reads (ADR 0033) and the one a solo Scenario replays.
   party: z.array(partyMemberSchema).min(1).max(4),
-  boss_id: z.string().min(1),
-  boss_title: z.string().min(1),
+  // The Boss this Encounter fields, by id from data/bosses/ (ADR 0040).
+  // Identity and health ride the Boss definition; the Encounter keeps what
+  // the fight decides — where it starts, what it plays, how long it runs.
+  // The id doubles as the board entity id, which is what keeps committed
+  // Scenarios addressing `embermaw` byte-identical across the promotion.
+  boss: z.string().min(1),
   round_limit: z.number().int().min(1),
   enrage_text: z.string().default('The Encounter Clock expired.'),
   board_radius: z.number().int().min(1).max(8),
   boss_start: axialSchema,
-  boss_health: z.number().int().min(1),
   slot_count: z.number().int().min(1).max(8),
   hand_refill_target: z.number().int().min(1).max(12),
   // What a Revived Hero comes back on, as a fraction of their maximum, rounded
@@ -594,6 +612,7 @@ export type ChargeModifier = z.infer<typeof chargeModifierSchema>
 export type Card = z.infer<typeof cardSchema>
 export type SignatureGrant = z.infer<typeof signatureGrantSchema>
 export type Hero = z.infer<typeof heroSchema>
+export type Boss = z.infer<typeof bossSchema>
 export type PartyMember = z.infer<typeof partyMemberSchema>
 export type Hazard = z.infer<typeof hazardSchema>
 export type Minion = z.infer<typeof minionSchema>

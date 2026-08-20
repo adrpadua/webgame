@@ -5,6 +5,7 @@ import {
   encounterSchema,
   evaluationDeckSchema,
   hazardSchema,
+  bossSchema,
   heroSchema,
   keywordSchema,
   minionSchema,
@@ -17,6 +18,7 @@ import {
   type EncounterDefinition,
   type EvaluationDeck,
   type Hazard,
+  type Boss,
   type Hero,
   type Keyword,
   type Minion,
@@ -100,6 +102,7 @@ function cardReachingEffects(card: Card): string[] {
 export interface ContentCatalog {
   cards: Record<string, Card>
   heroes: Record<string, Hero>
+  bosses: Record<string, Boss>
   keywords: Record<string, Keyword>
   chargeModifiers: Record<string, ChargeModifier>
   hazards: Record<string, Hazard>
@@ -131,6 +134,7 @@ function isSourced(entry: unknown): entry is SourcedPayload {
 export interface RawContent {
   cards: unknown[]
   heroes?: unknown[]
+  bosses?: unknown[]
   keywords: unknown[]
   chargeModifiers: unknown[]
   hazards: unknown[]
@@ -256,11 +260,13 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
   const parsedEncounters = parseAll(raw.encounters, encounterSchema, 'encounter')
   const encounterAt = sourceAwareLabel(parsedEncounters, 'Encounter')
   const parsedHeroes = parseAll(raw.heroes ?? [], heroSchema, 'hero')
+  const parsedBosses = parseAll(raw.bosses ?? [], bossSchema, 'boss')
   const heroAt = sourceAwareLabel(parsedHeroes, 'Hero')
 
   const catalog: ContentCatalog = {
     cards: indexById(parsedCards, 'card'),
     heroes: indexById(parsedHeroes, 'hero'),
+    bosses: indexById(parsedBosses, 'boss'),
     keywords: indexById(parseAll(raw.keywords, keywordSchema, 'keyword'), 'keyword'),
     chargeModifiers: indexById(parseAll(raw.chargeModifiers, chargeModifierSchema, 'charge modifier'), 'charge modifier'),
     hazards: indexById(parseAll(raw.hazards, hazardSchema, 'hazard'), 'hazard'),
@@ -667,6 +673,9 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     // Every Hero the Party fields has to exist before the fight can start,
     // and the error names the Encounter file because that is the one being
     // edited when the reference breaks.
+    if (!catalog.bosses[encounter.boss]) {
+      throw new Error(`${encounterAt(encounter.id)} references unknown boss ${encounter.boss}`)
+    }
     const seated = new Set<string>()
     for (const seat of encounter.party) {
       if (!catalog.heroes[seat.hero]) {

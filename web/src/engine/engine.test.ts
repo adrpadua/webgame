@@ -368,6 +368,7 @@ describe('content catalog', () => {
       // rides the Hero definition (ADR 0034).
       const arena = (signatureCard: string, deck: { card: string; copies: number }[]) => ({
         programs: [{ id: 'probe_program', title: 'Probe Program', instant_beats: [], incoming_beats: [] }],
+        bosses: [{ id: 'probe_boss', title: 'Probe Boss', max_health: 10 }],
         cards: [
           signature(),
           { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', range_tiles: 1, boss_damage: 1 },
@@ -380,12 +381,10 @@ describe('content catalog', () => {
             id: 'probe_arena',
             title: 'Probe Arena',
             party: [{ hero: 'probe_hero', start: { q: 0, r: 0 } }],
-            boss_id: 'probe_boss',
-            boss_title: 'Probe Boss',
+            boss: 'probe_boss',
             round_limit: 4,
             board_radius: 2,
             boss_start: { q: 0, r: -2 },
-            boss_health: 10,
             slot_count: 2,
             hand_refill_target: 2,
             player_deck: deck,
@@ -471,6 +470,18 @@ describe('content catalog', () => {
         expect(() => buildCatalog({ ...empty, ...wrongCard })).toThrow(
           'names probe_strike as their signature card, but that card is not fixed',
         )
+      })
+
+      it('rejects an Encounter fielding an unknown Boss', () => {
+        // The same reference rule the Hero seats answer (ADR 0040): the error
+        // names the Encounter, because that is the file being edited when the
+        // reference breaks.
+        const ghostBoss = {
+          ...arena('', [{ card: 'probe_strike', copies: 2 }]),
+          cards: [{ id: 'probe_strike', title: 'Probe Strike', speed: 'quick', range_tiles: 1, boss_damage: 1 }],
+          bosses: [],
+        }
+        expect(() => buildCatalog({ ...empty, ...ghostBoss })).toThrow('references unknown boss probe_boss')
       })
 
       it('rejects an Encounter fielding an unknown Hero, and a Hero naming an unknown signature card', () => {
@@ -797,6 +808,7 @@ describe('content catalog', () => {
       const variant = buildCatalog({
         cards: [...Object.values(catalog.cards), authored],
         heroes: Object.values(catalog.heroes),
+        bosses: Object.values(catalog.bosses),
         keywords: Object.values(catalog.keywords),
         chargeModifiers: Object.values(catalog.chargeModifiers),
         hazards: Object.values(catalog.hazards),
@@ -1223,6 +1235,7 @@ describe('Authored Beat reach', () => {
     return buildCatalog({
       cards: Object.values(source.cards),
       heroes: Object.values(source.heroes),
+      bosses: Object.values(source.bosses),
       keywords: Object.values(source.keywords),
       chargeModifiers: Object.values(source.chargeModifiers),
       hazards: Object.values(source.hazards),
@@ -3323,6 +3336,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
       const raw = {
         cards: Object.values(catalog.cards),
         heroes: Object.values(catalog.heroes),
+        bosses: Object.values(catalog.bosses),
         keywords: Object.values(catalog.keywords),
         chargeModifiers: Object.values(catalog.chargeModifiers),
         hazards: Object.values(catalog.hazards),
@@ -3344,6 +3358,7 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
       const raw = {
         cards: Object.values(catalog.cards),
         heroes: Object.values(catalog.heroes),
+        bosses: Object.values(catalog.bosses),
         keywords: Object.values(catalog.keywords),
         chargeModifiers: Object.values(catalog.chargeModifiers),
         hazards: Object.values(catalog.hazards),
@@ -3813,47 +3828,73 @@ describe('Nothing arrives where nothing can stand (D-075)', () => {
   })
 })
 
-describe('The traversal probe (D-076)', () => {
+describe('The evaluation probes (D-076)', () => {
   // An evaluation Encounter earns its place by exercising what it was built to
   // measure. `--deck` has the same hazard one level down: a candidate list that
   // stops containing the candidate measures the shipped deck twice and reports
   // it as evidence.
-  const probe = catalog.encounters.embermaw_traversal_probe
-  const probeBeats = [...probe.boss_programs, ...probe.phase_two_programs]
-    .flatMap((id) => catalog.programs[id] ?? [])
-    .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
+  const PROBES = ['embermaw_traversal_probe', 'embermaw_terrain_probe'] as const
+  const beatsOf = (encounterId: string) => {
+    const probe = catalog.encounters[encounterId]
+    return [...probe.boss_programs, ...probe.phase_two_programs]
+      .flatMap((id) => catalog.programs[id] ?? [])
+      .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
+  }
 
-  it('exercises every traversal kind, and ground that stops one', () => {
-    expect(probe).toBeDefined()
-    const kinds = new Set(probeBeats.filter((beat) => beat.move_tiles > 0 || beat.traversal !== 'walk').map((beat) => beat.traversal))
+  it('the traversal probe exercises every traversal kind, and ground that stops one', () => {
+    const beats = beatsOf('embermaw_traversal_probe')
+    const kinds = new Set(beats.filter((beat) => beat.move_tiles > 0 || beat.traversal !== 'walk').map((beat) => beat.traversal))
     expect([...kinds].sort()).toEqual(['jump', 'teleport'])
     // Walk is the shipped Boss's answer, so the probe measures the two kinds
     // nothing else does — and the ground that tells a walker from a jumper.
-    const laid = new Set(probeBeats.map((beat) => beat.hazard).filter((id): id is string => id !== undefined))
+    const laid = new Set(beats.map((beat) => beat.hazard).filter((id): id is string => id !== undefined))
     expect([...laid].some((id) => catalog.hazards[id]?.impassable)).toBe(true)
   })
 
-  it('changes nothing but the axis it is measuring', () => {
-    // The comparison is only worth running while the probe differs from the
-    // shipped fight in one place. Board, Hero, deck, clock and thresholds are
-    // held equal on purpose; if one of them drifts, a `far` delta stops being
-    // attributable and the acceptance bar quietly stops meaning anything.
-    const shipped = catalog.encounters.embermaw_prototype
-    for (const field of ['board_radius', 'boss_health', 'round_limit', 'slot_count', 'hand_refill_target', 'boss_id'] as const) {
-      expect(probe[field], `probe drifted from the shipped fight on ${field}`).toEqual(shipped[field])
-    }
-    expect(probe.player_deck).toEqual(shipped.player_deck)
-    expect(probe.escalation_thresholds).toEqual(shipped.escalation_thresholds)
-    expect(probe.minion_spawn_candidates).toEqual(shipped.minion_spawn_candidates)
-    expect(probe.party).toEqual(shipped.party)
+  it('the terrain probe moves exactly as the shipped fight does, so ground is its only axis', () => {
+    // The traversal probe changed movement and terrain together, which left
+    // the terrain half unattributable. This one holds movement at the shipped
+    // Boss's: same clauses, same kinds, same distances — the collapsed floor
+    // is the whole difference.
+    const shippedMoves = beatsOf('embermaw_prototype')
+      .filter((beat) => beat.move_tiles > 0 || beat.traversal !== 'walk')
+      .map((beat) => `${beat.id}:${beat.traversal}:${beat.move_tiles}`)
+      .sort()
+    const probeMoves = beatsOf('embermaw_terrain_probe')
+      .filter((beat) => beat.move_tiles > 0 || beat.traversal !== 'walk')
+      .map((beat) => `${beat.id}:${beat.traversal}:${beat.move_tiles}`)
+      .sort()
+    expect(probeMoves).toEqual(shippedMoves)
+    const laid = new Set(beatsOf('embermaw_terrain_probe').map((beat) => beat.hazard).filter((id): id is string => id !== undefined))
+    expect([...laid].some((id) => catalog.hazards[id]?.impassable)).toBe(true)
   })
 
-  it('stays out of the Workbench, because it is not a fight anybody plays', () => {
-    // Reachable by id from the sweep and by nothing else: the play surface
-    // names its Encounters through two constants, and neither is this.
-    expect(DEFAULT_ENCOUNTER_ID).not.toBe(probe.id)
-    expect(FIRST_TURN_ENCOUNTER_ID).not.toBe(probe.id)
-  })
+  for (const probeId of PROBES) {
+    it(`${probeId} changes nothing but the axis it is measuring`, () => {
+      // The comparison is only worth running while the probe differs from the
+      // shipped fight in one place. Board, Boss, deck, clock and thresholds are
+      // held equal on purpose; if one of them drifts, a delta stops being
+      // attributable and the acceptance bar quietly stops meaning anything.
+      const probe = catalog.encounters[probeId]
+      const shipped = catalog.encounters.embermaw_prototype
+      // `boss` covers what boss_id and boss_health used to: one definition,
+      // shared by reference since ADR 0040, cannot drift between the fights.
+      for (const field of ['board_radius', 'boss', 'round_limit', 'slot_count', 'hand_refill_target'] as const) {
+        expect(probe[field], `${probeId} drifted from the shipped fight on ${field}`).toEqual(shipped[field])
+      }
+      expect(probe.player_deck).toEqual(shipped.player_deck)
+      expect(probe.escalation_thresholds).toEqual(shipped.escalation_thresholds)
+      expect(probe.minion_spawn_candidates).toEqual(shipped.minion_spawn_candidates)
+      expect(probe.party).toEqual(shipped.party)
+    })
+
+    it(`${probeId} stays out of the Workbench, because it is not a fight anybody plays`, () => {
+      // Reachable by id from the sweep and by nothing else: the play surface
+      // names its Encounters through two constants, and neither is this.
+      expect(DEFAULT_ENCOUNTER_ID).not.toBe(probeId)
+      expect(FIRST_TURN_ENCOUNTER_ID).not.toBe(probeId)
+    })
+  }
 })
 
 describe('Raking Claw reach (D-062)', () => {

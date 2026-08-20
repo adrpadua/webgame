@@ -11,8 +11,7 @@
       }
     }
   ],
-  "boss_id": "embermaw",
-  "boss_title": "Embermaw",
+  "boss": "embermaw",
   "round_limit": 8,
   "enrage_text": "Enrage: Embermaw overwhelms the party.",
   "board_radius": 2,
@@ -20,7 +19,6 @@
     "q": 1,
     "r": -1
   },
-  "boss_health": 48,
   "slot_count": 2,
   "hand_refill_target": 4,
   "player_deck": [

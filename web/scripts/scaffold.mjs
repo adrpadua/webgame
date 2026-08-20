@@ -29,6 +29,7 @@ const TEMPLATES = join(REPO, 'docs', 'content', 'templates')
 // never authored by hand.
 const TYPES = {
   hero: 'heroes',
+  boss: 'bosses',
   card: 'cards',
   keyword: 'keywords',
   charge_modifier: 'charge_modifiers',
@@ -48,6 +49,10 @@ const NEXT_STEPS = {
     'Field the Hero from an Encounter by id ("hero": "<id>").',
     'Design contract: docs/rules/character-design-bible.md; walkthrough: docs/content/authoring-a-new-hero.md.',
   ],
+  boss: [
+    'Fill max_health; a Boss\'s substance lives in its Programs, so scaffold those next.',
+    'Field the Boss from an Encounter by id ("boss": "<id>") — the id doubles as the board entity id.',
+  ],
   card: [
     'Write rules_text stating the base effect first, then pick speed, target_type, and effect fields.',
     'Register tags in data/keywords/ and reference the ids here.',
@@ -59,7 +64,7 @@ const NEXT_STEPS = {
   hazard: ['Set duration_rounds and at least one behavior: enter_damage or blocks_voluntary_movement.'],
   minion: ['Set max_health and attack_damage; a fuse (explode_damage + explode_radius) is both-or-neither.'],
   boss_program: ['Author the Instant and Incoming rows; Beat kinds are a closed set — see the handoff doc contract table.'],
-  encounter: ['Point hero, player_deck, and boss_programs at real ids; the build names each missing reference.'],
+  encounter: ['Point boss, the party seats, player_deck, and boss_programs at real ids; the build names each missing reference.'],
   deck: ['Point encounter at the fight to measure against, then run: npm run evaluate -- --deck <id>.'],
 }
 
