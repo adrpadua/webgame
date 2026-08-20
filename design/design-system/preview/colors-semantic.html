@@ -1,0 +1,15 @@
+<!-- @dsCard group="Colors" name="Semantic aliases" subtitle="ground · surface · plate · fg · focus" -->
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../colors_and_type.css" />
+    <style>
+      .ds-card { width: 600px; }
+      
+    </style>
+  </head>
+  <body>
+    <div class="ds-card"><div class="ds-lbl">Semantic aliases</div><table style="border-collapse:collapse;width:100%"><tr><td style="padding:4px 14px 4px 0" class="ds-name">--ground</td><td style="padding:4px 14px 4px 0" class="ds-mono">var(--navy-950)</td><td style="padding:4px 0" class="ds-note">The page under the play surface</td></tr><tr><td style="padding:4px 14px 4px 0" class="ds-name">--surface</td><td style="padding:4px 14px 4px 0" class="ds-mono">var(--steel-950)</td><td style="padding:4px 0" class="ds-note">The play surface itself</td></tr><tr><td style="padding:4px 14px 4px 0" class="ds-name">--plate-face</td><td style="padding:4px 14px 4px 0" class="ds-mono">var(--steel-900)</td><td style="padding:4px 0" class="ds-note">A plate's default body</td></tr><tr><td style="padding:4px 14px 4px 0" class="ds-name">--plate-edge</td><td style="padding:4px 14px 4px 0" class="ds-mono">var(--steel-700)</td><td style="padding:4px 0" class="ds-note">Its 1px edge</td></tr><tr><td style="padding:4px 14px 4px 0" class="ds-name">--fg-primary</td><td style="padding:4px 14px 4px 0" class="ds-mono">var(--ceramic-200)</td><td style="padding:4px 0" class="ds-note">Body text on steel</td></tr><tr><td style="padding:4px 14px 4px 0" class="ds-name">--fg-quiet</td><td style="padding:4px 14px 4px 0" class="ds-mono">var(--steel-500)</td><td style="padding:4px 0" class="ds-note">The quiet-label step — every use is text</td></tr><tr><td style="padding:4px 14px 4px 0" class="ds-name">--fg-inverse</td><td style="padding:4px 14px 4px 0" class="ds-mono">var(--ceramic-950)</td><td style="padding:4px 0" class="ds-note">Text on a lit face</td></tr><tr><td style="padding:4px 14px 4px 0" class="ds-name">--focus-ring</td><td style="padding:4px 14px 4px 0" class="ds-mono">var(--glass-400)</td><td style="padding:4px 0" class="ds-note">Focus is a projected lens, never a status colour</td></tr></table><div class="ds-note">What the chrome reaches for by name. <b>--fg-quiet</b> is worth its own note: it is set to the dimmest step that still clears 4.5:1 on the brightest ground it sits on, which makes it lighter than the zinc it replaced. The step before it was failing at 3.09:1 and nobody could see it — Tailwind's own ramps compute to oklch(), which the contrast probe could not read, so it skipped every element wearing one.</div></div>
+  </body>
+</html>
