@@ -5,6 +5,7 @@ import { normalizeFacing } from './facing'
 import { containsHex, hexDistance, hexKey, type Axial } from './hex'
 import { randiRange, shuffle, type RngState } from './rng'
 import { heroRole } from './keywords'
+import { livingHeroIds } from './downed'
 import type { BossBeat, BossProgram } from './content/schemas'
 import type { ContentCatalog } from './content/catalog'
 import type { EncounterActionInput } from './actions'
@@ -66,9 +67,9 @@ function spillAwayFrom(draft: EncounterState, from: Axial, bossCoords: Axial): A
 //   seeds, and a fight where the Boss's target depends on the RNG is one no
 //   party can plan against. `Threat` (CONTEXT.md, not yet in the engine) is
 //   the real answer and it replaces this rule rather than extending it.
-// - **A Downed Hero is not a target.** CONTEXT.md makes a Downed Hero a
-//   non-targetable body, and today a Hero at zero ends the Encounter anyway;
-//   filtering here means the rule stays correct when that changes.
+// - **A Downed Hero is not a target.** A Downed body is non-targetable and an
+//   Incapacitated Hero is off the board entirely (ADR 0036), so both are
+//   filtered out before a Role is matched.
 // - **A selector that matches nobody falls back, loudly.** A party with no
 //   Healer must still be hittable by a Beat that asks for one, or the Boss
 //   would simply skip its turn against an off-composition party. The fallback
@@ -80,7 +81,7 @@ export function selectBeatTarget(
   draft: EncounterState,
   beat: BossBeat,
 ): { heroId: string; requestedRole: string; fellBack: boolean } {
-  const living = draft.partyHeroIds.filter((heroId) => (draft.heroes[heroId]?.health ?? 0) > 0)
+  const living = livingHeroIds(draft)
   const seats = living.length > 0 ? living : draft.partyHeroIds
   const fallback = seats[0] ?? draft.primaryHeroId
   if (beat.target_selector === '') {

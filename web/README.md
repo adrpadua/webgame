@@ -130,7 +130,7 @@ Encounter instead.
 - `src/content/` — loads and validates `data/*.json` through the engine's
   zod schemas. `CatalogContext.tsx` injects the loaded catalog into the
   component tree: it is a constant, so it is provided rather than held as
-  store state that a dozen components would subscribe to (ADR 0035).
+  store state that a dozen components would subscribe to (ADR 0038).
 - `src/store/` — zustand, composed from two slices. `sessionSlice.ts` owns
   the session timeline (snapshot history with time travel, Resolution Fact
   log, Scenario replay/export) and `interactionSlice.ts` owns the in-flight
@@ -138,7 +138,7 @@ Encounter instead.
   resolving *is* a timeline entry. `sessionTimeline.ts` holds the timeline's
   pure rules, `selectors.ts` the named readings — which return primitives,
   because the engine's `structuredClone` contract leaves the state tree with
-  no structural sharing and nothing else can compare (ADR 0035).
+  no structural sharing and nothing else can compare (ADR 0038).
   `devBridge.ts` and `hmr.ts` carry the automation hook and the
   preserve-across-hot-update dance, kept off the store so importing it has
   no side effects. `onboarding.ts` holds the UI-only onboarding state (guide

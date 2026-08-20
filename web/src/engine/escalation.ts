@@ -3,6 +3,7 @@ import type { EncounterActionInput } from './actions'
 import { ENCOUNTER_SOURCE } from './actions'
 import { combatantRef, counterCount } from './counters'
 import { hexDistance } from './hex'
+import { livingHeroIds } from './downed'
 import type { EncounterState } from './types'
 
 // Escalation is the encounter's only clock (ADR 0027): one fixed 0–5 scale on
@@ -103,7 +104,12 @@ const DEMANDS: {
       if (!boss) {
         return false
       }
-      return !Object.keys(state.heroes).some((heroId) => {
+      // Only a living Hero answers the demand (ADR 0036). A Downed body is
+      // still on the board and still occupies its hex, so without this a
+      // Party could park a corpse beside the Boss and dodge this charge for
+      // the rest of the fight — being far is the failure being priced, and a
+      // body is not standing anywhere.
+      return !livingHeroIds(state).some((heroId) => {
         const piece = state.board.entities[heroId]
         return piece !== undefined && hexDistance(piece.coords, boss.coords) <= rangeTiles
       })
