@@ -39,7 +39,7 @@ Aether-ceramic braces, restorative glyphs, and stabilizing vessels (see the lore
 
 **Mechanical language:** she is the information-advantage Hero. Every strong Maren play names a future event — the Beat an overheal is banked against, the mark that will price the next hit, the ally the Signature covers. A Maren turn that only reacts to the previous Beat is a weak turn by design.
 
-**Visual language:** Meridian signal-cloth trims, ledger hardware, water-stained ceramics. Palette against Elian's oathsteel blues: river-silt reds and bleached parchment.
+**Visual language:** Meridian signal-cloth trims, ledger hardware, water-stained ceramics. Palette against Elian's oathsteel blues: Meridian greens and bleached ceramic white, per the accepted concept art (2026-08-20, banked under `assets/art/characters/maren-tallis/`) — she carries a branching staff whose crown holds a green stabilizing vessel, the Medicant Rig's field form. *Revised from the original river-silt reds when the concept was accepted; the reds survive as accent trim if the art pass wants them.*
 
 **Tone:** procedural warmth. She is not gentle; she is *thorough*, and the thoroughness is the kindness.
 
