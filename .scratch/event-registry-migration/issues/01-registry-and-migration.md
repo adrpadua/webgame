@@ -1,6 +1,6 @@
 # 01 — Registry, raise sites, and the D-085 rename
 
-Status: implemented, verification running (Architecture: this session)
+Status: delivered (Architecture: this session; PR #128)
 Owner: Architecture
 Depends on: nothing; blocks issues 02 and 03
 
@@ -29,3 +29,10 @@ Behavior-preserving except the rename: any other authored-behavior change is a d
 - Matched subscribers ride `subscriber_matches` in the raising action's fact detail when at least one matched (Q9).
 - One mutation-audit entry re-anchored from the deleted `takenDelta` line to the raise's stance-selection line in `events.ts`.
 - **Found, preserved, flagged for issue 02/Design:** the dealing-side Grant (`host_deals_damage` reaction — Maren's earn) evaluates against a *copy* of the resolution fact, so its `signature_event` never reaches the fact stream; the Charge mutation is what survives. Same pattern on `slot_fired`. Pre-existing behavior, reproduced exactly; whether the fact loss is intended is a question for the verification pass.
+
+## Evidence (Architecture return, part 2)
+
+- `npm test`: 548 passed (549 minus the deleted enum-agreement assertion), including the committed Brand-trial duo scenario replaying under the new dispatch path with the renamed Counters.
+- `verify:local` green end to end (browser smoke via `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium` — the container's Chromium predates the repo's Playwright pin).
+- Mutation audit: **103/103 caught, 0 survived, 0 stale.** Three ADR 0037 earn mutants re-anchored onto the registry dispatch (`events.ts`), plus the D-047 incoming-Counters mutant onto the raise's stance selection; all four killed by existing tests.
+- `npm run log:ids`: every decision id free against origin/main.
