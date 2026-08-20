@@ -8,8 +8,6 @@ import { escalationActionsForRoundEnd } from './escalation'
 import {
   advancePhase,
   buildCatalog,
-  EVALUATED_GRANT_WHENS,
-  signatureGrantSchema,
   combatantRef,
   programAnswerTags,
   hexCounterRef,
@@ -415,19 +413,6 @@ describe('content catalog', () => {
         expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow('authors a full_charge block but is not fixed')
       })
 
-      // Every `when` the schema accepts is evaluated since ADR 0037, so the
-      // "nothing evaluates" refusal is now the guard that keeps the schema
-      // enum and the evaluated list in step: adding a fifth `when` without
-      // teaching the rules to read it fails the build rather than shipping a
-      // clause that silently never fires.
-      it('evaluates every when the schema accepts', () => {
-        for (const when of EVALUATED_GRANT_WHENS) {
-          expect(signatureGrantSchema.parse({ when }).when).toBe(when)
-        }
-        const schemaWhens = ['round_start', 'host_takes_damage', 'host_deals_damage', 'slot_fired']
-        expect([...EVALUATED_GRANT_WHENS].sort()).toEqual([...schemaWhens].sort())
-      })
-
       // A gate is a question about a moment, and three of the four moments
       // are not blows (ADR 0037).
       it('rejects a gate the event cannot answer, and a keyword on an event with none', () => {
@@ -695,7 +680,7 @@ describe('content catalog', () => {
       // never starts a Round holding Armor, so a Reader there could not fire.
       const bad = {
         source: 'data/counters/ground.json',
-        payload: { id: 'ground_counter', title: 'Ground', host: 'hex', readers: [{ when: 'host_takes_damage', effect: 'target_damage', per: 1 }] },
+        payload: { id: 'ground_counter', title: 'Ground', host: 'hex', readers: [{ when: 'host_damage_incoming', effect: 'target_damage', per: 1 }] },
       }
       expect(() => buildCatalog({ ...empty, counters: [bad] })).toThrow(
         'is hosted on a hex but declares readers, and every reader event is a combatant\'s',
@@ -730,7 +715,7 @@ describe('content catalog', () => {
     it('rejects an unauthored event_keyword, and a Card keywording damage it never deals', () => {
       const unknown = {
         source: 'data/counters/odd.json',
-        payload: { id: 'odd', title: 'Odd', readers: [{ when: 'host_takes_damage', event_keyword: 'flame', effect: 'target_damage', per: 1 }] },
+        payload: { id: 'odd', title: 'Odd', readers: [{ when: 'host_damage_incoming', event_keyword: 'flame', effect: 'target_damage', per: 1 }] },
       }
       expect(() => buildCatalog({ ...empty, counters: [unknown] })).toThrow('references unknown keyword flame in event_keyword')
 
@@ -2199,7 +2184,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
     expect(catalog.counters.sundered).toMatchObject({
       max: 1,
       duration_rounds: 1,
-      readers: [{ when: 'host_takes_damage', effect: 'target_damage', per: 1 }],
+      readers: [{ when: 'host_damage_incoming', effect: 'target_damage', per: 1 }],
     })
     expect(catalog.counters.weakened).toMatchObject({
       readers: [{ when: 'host_deals_damage', effect: 'target_damage', per: -1 }],
@@ -2224,7 +2209,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
     expect(fired.state.counters[combatantRef(state.bossId)]?.[0]).toMatchObject({
       id: 'sundered',
       count: 1,
-      readers: [{ when: 'host_takes_damage', effect: 'target_damage', per: 1 }],
+      readers: [{ when: 'host_damage_incoming', effect: 'target_damage', per: 1 }],
     })
 
     // The same card and the same Boss, from the far side of the arena. The
@@ -3004,7 +2989,7 @@ describe('Event Keywords — Readers that answer one kind of blow (D-049)', () =
       host: 'combatant',
       max: 1,
       duration_rounds: 0,
-      readers: [{ when: 'host_takes_damage', event_keyword: eventKeyword, effect: 'target_damage', per: -2 }],
+      readers: [{ when: 'host_damage_incoming', event_keyword: eventKeyword, effect: 'target_damage', per: -2 }],
     }
     return variant
   }
@@ -3085,7 +3070,7 @@ describe('Event Keywords — Readers that answer one kind of blow (D-049)', () =
       host: 'combatant',
       max: 1,
       duration_rounds: 0,
-      readers: [{ when: 'host_takes_damage', event_keyword: 'raid_hit', effect: 'target_damage', per: -3 }],
+      readers: [{ when: 'host_damage_incoming', event_keyword: 'raid_hit', effect: 'target_damage', per: -3 }],
     }
     let state = immortalHero(start())
     state = stepPhases(state, 2).state

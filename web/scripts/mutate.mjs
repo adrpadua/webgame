@@ -622,10 +622,10 @@ const MUTATIONS = [
   },
   {
     name: "incoming damage ignores the target's own Counters",
-    guards: 'D-047: the target\'s Counters raise what it takes, before mitigation',
-    file: 'engine/resolve.ts',
-    from: "  const takenDelta = readerSum(draft, combatantRef(targetId), 'host_takes_damage', 'target_damage', damageKeywords)",
-    to: '  const takenDelta = 0',
+    guards: "D-047/D-085: the target's Counters answer host_damage_incoming, before mitigation",
+    file: 'engine/events.ts',
+    from: "    const when: AuthoredWhen = host === targetId ? 'host_damage_incoming' : 'host_deals_damage'",
+    to: "    const when: AuthoredWhen = 'host_deals_damage'",
   },
   {
     name: 'overflow converts the whole heal instead of the surplus',

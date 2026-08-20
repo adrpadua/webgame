@@ -1,6 +1,6 @@
 # 01 — Registry, raise sites, and the D-085 rename
 
-Status: ready-for-agent
+Status: implemented, verification running (Architecture: this session)
 Owner: Architecture
 Depends on: nothing; blocks issues 02 and 03
 
@@ -20,3 +20,12 @@ Behavior-preserving except the rename: any other authored-behavior change is a d
 ## Evidence
 
 `npm test` green; `verify:local` green; the catalog load error names a card authoring a modifier effect on the reaction moment (and vice versa).
+
+## Implementation notes (Architecture return, part 1)
+
+- The registry is `web/src/engine/events.ts`: `EVENT_REGISTRY` (four rows: `damage_incoming`, `damage_resolved`, `slot_fired`, `round_start`), the derived catalog guards, `hostOrder`, and the four raise helpers. A module-load completeness check refuses an authored `when` no row hears — the single successor to both old guard tables and the deleted enum-agreement test.
+- One authored `when` vocabulary: `AUTHORED_WHENS` in `content/schemas.ts`, shared by `counterReaderSchema` and `signatureGrantSchema`.
+- The subscriber-kind order within a raise is the registry row's `hears` order (Grants before Readers on `slot_fired`, Reader payout before Grant on `round_start`), matching prior behavior; host order is seat order per ADR 0041. This refines the ADR's ordering rule one level down without changing it.
+- Matched subscribers ride `subscriber_matches` in the raising action's fact detail when at least one matched (Q9).
+- One mutation-audit entry re-anchored from the deleted `takenDelta` line to the raise's stance-selection line in `events.ts`.
+- **Found, preserved, flagged for issue 02/Design:** the dealing-side Grant (`host_deals_damage` reaction — Maren's earn) evaluates against a *copy* of the resolution fact, so its `signature_event` never reaches the fact stream; the Charge mutation is what survives. Same pattern on `slot_fired`. Pre-existing behavior, reproduced exactly; whether the fact loss is intended is a question for the verification pass.
