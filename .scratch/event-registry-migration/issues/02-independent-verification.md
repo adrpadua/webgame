@@ -1,6 +1,6 @@
 # 02 — Ordering test and sealed-Record replay evidence
 
-Status: delivered (Test Automation: this session)
+Status: delivered (Test Automation: this session; PR #130)
 Owner: Test Automation
 
 ## Scope
