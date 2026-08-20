@@ -1,6 +1,6 @@
 # Embermaw: The Brand - Attrition Gate
 
-Status: authored and passing its gate test. This Encounter exists to prove a problem, not to be fun yet. It is the prerequisite the Restorative Archetype is authored against (D-072).
+Status: authored and passing its gate test. This Encounter exists to prove a problem, not to be fun yet. It is the prerequisite the Restorative Archetype is authored against (D-077).
 
 ## Why This Exists Before The Healer
 
@@ -67,10 +67,10 @@ Tests 6 and 7 are the ones that will start failing when the Restorative's cleans
 
 ## What This Does Not Yet Prove
 
-The gate is structural — it proves no card *can* remove the mark. It does not yet prove that a one-seat Party actually fails to clear inside the 8-Round limit. That is the no-healer-clear measurement, and it wants a played line the way `embermaw_solo_ceiling` is a played line. It is recorded as outstanding evidence on D-072.
+The gate is structural — it proves no card *can* remove the mark. It does not yet prove that a one-seat Party actually fails to clear inside the 8-Round limit. That is the no-healer-clear measurement, and it wants a played line the way `embermaw_solo_ceiling` is a played line. It is recorded as outstanding evidence on D-077.
 
 ## Related
 
-- [../design-decision-log.md](../design-decision-log.md) — D-072
+- [../design-decision-log.md](../design-decision-log.md) — D-077
 - [embermaw-ashen-trial-design.md](embermaw-ashen-trial-design.md) — the Boss's language, unchanged by this Encounter
 - [../research/2026-08-20-healer-support-taxonomies-mmo-hero-shooter.md](../research/2026-08-20-healer-support-taxonomies-mmo-hero-shooter.md) — the taxonomy work that named residual attrition as the Healer's justification

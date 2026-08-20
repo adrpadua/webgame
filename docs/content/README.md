@@ -36,6 +36,8 @@ Current starter docs:
 
 - [decks/elian-voss-starter.md](decks/elian-voss-starter.md)
 - [heroes/elian-voss-design.md](heroes/elian-voss-design.md)
+- [heroes/healer-archetype-statements.md](heroes/healer-archetype-statements.md)
+- [heroes/maren-tallis-design.md](heroes/maren-tallis-design.md)
 - [elian-voss-acceptance-contracts.md](elian-voss-acceptance-contracts.md)
 - [decks/paladin-placeholder-status.md](decks/paladin-placeholder-status.md)
 - [../rules/player-card-authoring.md](../rules/player-card-authoring.md)
