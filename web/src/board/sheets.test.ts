@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bossSheetKey, FACING_ROWS, IDLE_FRAMES, idleStep, IDLE_MS, SHEETS, spriteFrame } from './sheets'
+import { bossSheetKey, FACING_ROWS, IDLE_FRAMES, idleStep, IDLE_MS, SHEETS, spriteFrame, heroSheetKey } from './sheets'
 
 describe('sprite sheets', () => {
   // The board and the Sprite Inspector both index frames through this, which
@@ -77,5 +77,16 @@ describe('boss phase sheets', () => {
     expect(two.footOffset).toBe(one.footOffset)
     const aspect = (sheet: typeof one) => sheet.frameWidth / sheet.frameHeight
     expect(Math.abs(aspect(two) - aspect(one))).toBeLessThan(0.05)
+  })
+})
+
+describe('hero sheets', () => {
+  it("dresses each Hero in their own body, and a seat without art in Elian's", () => {
+    expect(heroSheetKey('maren')).toBe('heroMaren')
+    expect(SHEETS[heroSheetKey('maren')]).toBeDefined()
+    // The fallback is the shared hero sheet, never a missing key: a new seat
+    // renders as somebody on the day it is authored.
+    expect(heroSheetKey('guardian')).toBe('hero')
+    expect(heroSheetKey('someone_unauthored')).toBe('hero')
   })
 })

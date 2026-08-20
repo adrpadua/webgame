@@ -7,11 +7,9 @@ sprite contact sheet on the standard NW/NE/E/SE/SW/W gutter. Her design
 doc's visual language was revised to match — see
 [../../../docs/content/heroes/maren-tallis-design.md](../../../docs/content/heroes/maren-tallis-design.md).
 
-**The image files are not yet in the repo** — they came through a chat
-surface that lands nothing on disk. Drop them here as:
-
-- `concept-full-body.png`
-- `idle-contact-sheet.png`
+Both files are banked here (`concept-full-body.png`, `idle-contact-sheet.png`)
+and the sheet is built and wired: `web/src/assets/maren-tallis-idle.png`,
+mapped by `heroSheetKey('maren')` in `web/src/board/sheets.ts`.
 
 ## The facing gutter is wrong, the known way
 
@@ -28,12 +26,17 @@ sheet actually drew:
 ```bash
 python3 tools/build_sprite_sheet.py assets/art/characters/maren-tallis/idle-contact-sheet.png \
   web/src/assets/maren-tallis-idle.png \
-  --rows NE,NW,E,SE,SW,W --mirror W=E,NW=NE,SW=SE
+  --rows NE,NW,E,SW,SE,W --mirror W=E,NW=NE,SW=SE
 ```
 
-(Row order assumes the gutter's top-to-bottom NW,NE,E,SE,SW,W with the
+(Row order verified against her face on 2026-08-20: the diagonals are swapped pairwise, E and W are honest — the Embermaw pattern exactly.)
 diagonal swap applied; confirm against the faces before building, exactly as
 the sheet doc instructs.)
 
-Then run the Sprite Inspector acceptance checks from the sheet doc before
-wiring the built sheet into `web/src/board/sheets.ts`.
+Built 2026-08-20 with exactly that command. The build needed one tool change:
+her orb's glow bridges two of the six row gaps, so `build_sprite_sheet.py`
+gained the same grid-regular fallback for merged *rows* that columns already
+had. Facings verified against her face pre-build; mirrors are exact by
+construction. Residual: small glow specks at some cell tops from the
+grid-regular row cuts — invisible at board size, worth a look in the Sprite
+Inspector if her cells are ever re-cut.
