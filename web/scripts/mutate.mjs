@@ -677,6 +677,27 @@ const MUTATIONS = [
     to: '  return combatantRef(action.sourceId)',
   },
   {
+    name: 'the picker offers an evaluation probe to players',
+    guards: 'Encounter Picker: what ships is exactly the authored player_facing set — a probe is measured, never played (D-076)',
+    file: 'ui/chrome/encounterChoice.ts',
+    from: '    .filter((encounter) => encounter.player_facing)',
+    to: '    .filter(() => true)',
+  },
+  {
+    name: 'startEncounter launches a fight the picker never offered',
+    guards: 'Encounter Picker: the session refuses a non-player-facing Encounter, so the offer cannot be bypassed',
+    file: 'store/sessionSlice.ts',
+    from: '      if (!encounter || !encounter.player_facing) {',
+    to: '      if (!encounter) {',
+  },
+  {
+    name: 'the teaching script overlays every Round-1 Encounter',
+    guards: 'The first-turn script belongs to the teaching Encounter alone',
+    file: 'ui/onboarding/firstTurnScript.ts',
+    from: '  if (state.encounterId !== FIRST_TURN_ENCOUNTER_ID) {\n    return null\n  }',
+    to: '  if (false) {\n    return null\n  }',
+  },
+  {
     name: 'the control cursor is decorative — gestures still act as seat 0',
     guards: 'Character switching: the consoles operate the pilot the cursor names',
     file: 'store/selectors.ts',

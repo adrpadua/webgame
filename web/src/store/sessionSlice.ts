@@ -31,6 +31,7 @@ export interface SessionSlice {
   // Replays the Encounter this session opened, with the same seed or a new
   // one. Which Encounter that is stays fixed for the session.
   restart: (seed?: number) => void
+  startEncounter: (encounterId: string) => void
   loadScenario: (scenarioId: string) => void
   timeTravelTo: (index: number) => void
   // Takes back the player's own last action, within the window they took it
@@ -99,6 +100,30 @@ export const createSessionSlice: StateCreator<WorkbenchStore, [], [], SessionSli
       set({
         seed: nextSeed,
         entries: [initialEntry(encounterId, nextSeed)],
+        index: 0,
+        activeScenarioId: null,
+        sessionStartedAt: new Date().toISOString(),
+        inspectedEntityId: null,
+        ...CLEARED_INTERACTION,
+      })
+    },
+
+    // The Encounter Picker's one verb: a fresh session in a different
+    // Encounter, on that Encounter's authored seed — the same seed a first
+    // boot would deal, so "pick it again" replays the same opening. Only a
+    // player-facing Encounter is startable: an evaluation probe is authored
+    // to be measured, never played (D-076), and refusing it here means the
+    // picker cannot drift into offering one.
+    startEncounter: (encounterId) => {
+      const encounter = catalog.encounters[encounterId]
+      if (!encounter || !encounter.player_facing) {
+        set({ lastRejection: `Unknown encounter: ${encounterId}` })
+        return
+      }
+      set({
+        encounterId,
+        seed: encounter.random_seed,
+        entries: [initialEntry(encounterId, encounter.random_seed)],
         index: 0,
         activeScenarioId: null,
         sessionStartedAt: new Date().toISOString(),

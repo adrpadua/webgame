@@ -12,6 +12,7 @@ import {
 } from '@/engine'
 import type { WorkbenchCatalog } from '@/store/workbench'
 import type { HoldDetail } from '../common/HoldPopover'
+import { FIRST_TURN_ENCOUNTER_ID } from '@/content'
 import { slotCanFire } from '../actionBar/slots'
 
 // The scripted first turn.
@@ -137,6 +138,13 @@ function slotCardTitle(catalog: WorkbenchCatalog, slot: SlotState | undefined, f
 
 // The step the scripted Round is waiting on, or null once it is over.
 export function firstTurnStep(catalog: WorkbenchCatalog, state: EncounterState): FirstTurnStep | null {
+  // The script belongs to the teaching Encounter alone. It used to gate on
+  // Round 1 only, so any other Encounter entered at its opening Round — a
+  // loaded Scenario, or the Encounter Picker — wore the teaching banner over
+  // a fight it was not written for.
+  if (state.encounterId !== FIRST_TURN_ENCOUNTER_ID) {
+    return null
+  }
   if (!state.active || state.round !== 1) {
     return null
   }

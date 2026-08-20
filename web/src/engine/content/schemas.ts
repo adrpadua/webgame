@@ -553,6 +553,11 @@ export const partyMemberSchema = z.object({
 
 export const encounterSchema = z.object({
   id: z.string().min(1),
+  // Whether the Encounter Picker offers this Encounter to players. Default
+  // false, so an evaluation Encounter — a probe authored to be measured, not
+  // played (D-076's measure-first-promote-later) — never ships by omission:
+  // shipping is the explicit act, exactly like promoting a measured deck.
+  player_facing: z.boolean().default(false),
   title: z.string().min(1),
   rules_text: z.string().default(''),
   // The Party this Encounter fields, in order. CONTEXT.md defines a Party as

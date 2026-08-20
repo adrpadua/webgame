@@ -1,6 +1,7 @@
 {
   "id": "new_encounter",
   "title": "New Encounter",
+  "player_facing": true,
   "rules_text": "What the party must do before the Encounter Clock expires.",
   "party": [
     {
