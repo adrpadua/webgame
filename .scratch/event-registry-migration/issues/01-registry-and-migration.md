@@ -1,0 +1,22 @@
+# 01 — Registry, raise sites, and the D-085 rename
+
+Status: ready-for-agent
+Owner: Architecture
+Depends on: nothing; blocks issues 02 and 03
+
+## Scope
+
+1. One event table under `web/src/engine/` keyed by event id: payload keys, summable effects, askable gates. `READABLE_READER_PAIRS` (`counters.ts`), `EVALUATED_GRANT_WHENS` and `GATES_BY_WHEN` (`signature.ts`) collapse into it.
+2. Convert the eight dispatch call sites (`readerSum` ×4, `evaluateGrantsFor` ×4) into raises against the table. The damage step raises `host_damage_incoming` (pre-mitigation, from `applyDamage`) and `host_takes_damage` (post-resolution, from the `damage` action resolution).
+3. Merge the two `when` enums in `content/schemas.ts` into one; merge the two catalog validation branches in `content/catalog.ts` into one check against the table.
+4. D-085 rename: `data/counters/sundered.json` and `data/counters/seared.json` author `host_damage_incoming`; `data/cards/elian_riposte.json` unchanged. Template `docs/content/templates/counter.json` follows.
+5. Subscriber ordering per ADR 0041: raise order, then party seat order (`partyHeroIds`) for Hero hosts and board-entity creation order otherwise, then authored index within a host.
+6. Fact detail on the raising action records matched subscribers and contributions when ≥1 matches; nothing on zero matches.
+
+## Bounds
+
+Behavior-preserving except the rename: any other authored-behavior change is a defect. Delete the enum-agreement assertion in `engine.test.ts` rather than updating it. Engine-named Counters (`FORTIFIED`, `UNDERWRITTEN`) stay engine code.
+
+## Evidence
+
+`npm test` green; `verify:local` green; the catalog load error names a card authoring a modifier effect on the reaction moment (and vice versa).
