@@ -1,5 +1,7 @@
 # Shape the web frontend around slices, injected content, and primitive selectors
 
+Renumbered from 0035 on 2026-08-20. Two branches were open at once and both took that number; the Party ADR reached `main` first (PR #118), so this one moved. The decision itself is unchanged.
+
 The React app under `web/src` is organised by four rules: the Workbench store is composed from named slices rather than written as one object; the content catalog is injected through context rather than held as store state; selectors return primitives, because the engine's clone contract means nothing else can compare; and the Phaser board talks to the store imperatively, never through render. This ADR records those four and the reasoning that forces each one, because three of them look like ordinary style preferences and are not.
 
 ## The store is one store, in slices
