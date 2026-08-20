@@ -26,8 +26,8 @@ import {
   type CounterDefinition,
 } from './schemas'
 import { ENGINE_KEYWORDS, KEYWORD_REFERENCES, type KeywordKind } from '../keywords'
-import { ENGINE_COUNTERS, READABLE_READER_PAIRS } from '../counters'
-import { EVALUATED_GRANT_WHENS, GATES_BY_WHEN } from '../signature'
+import { ENGINE_COUNTERS } from '../counters'
+import { evaluatedGrantWhens, grantSubscription, readableReaderPairs, readerSubscription, whenCarriesKeywords } from '../events'
 import { hexDistance } from '../hex'
 
 // The Beat kinds that always ask a distance question, and therefore must always
@@ -344,7 +344,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       // selected piece. D-034's `applies_to` cross-check is gone with the
       // field, and nothing is lost — "written for an Enemy" stopped being a
       // property of the Counter the moment its payload became Readers. A
-      // Counter whose Reader fires on `host_takes_damage` does the same thing
+      // Counter whose Reader fires on `host_damage_incoming` does the same thing
       // to whoever holds it, and a card that Sunders its own Hero is a bad
       // card rather than an incoherent one.
       // A Counter's host and a card's target have to agree (D-048): only a hex
@@ -430,12 +430,14 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       throw new Error(`${cardAt(card.id)} authors a resource_title but is not fixed; only a Signature names a resource`)
     }
     for (const grant of card.standing) {
-      // The mirror of READABLE_READER_PAIRS' discipline: a Grant `when` the
-      // rules do not evaluate is a load error, never a clause that silently
-      // does nothing.
-      if (!(EVALUATED_GRANT_WHENS as readonly string[]).includes(grant.when)) {
+      // A Grant `when` no registry row hears is a load error, never a clause
+      // that silently does nothing (ADR 0041). `host_damage_incoming` is the
+      // modifier moment: a Grant cannot change the number, so no grant row
+      // hears it and this refusal is what says so.
+      const grantRow = grantSubscription(grant.when)
+      if (grantRow === undefined) {
         throw new Error(
-          `${cardAt(card.id)} authors a ${grant.when} standing clause, which nothing evaluates; the evaluated whens are ${EVALUATED_GRANT_WHENS.join(', ')}`,
+          `${cardAt(card.id)} authors a ${grant.when} standing clause, which nothing evaluates; the evaluated whens are ${evaluatedGrantWhens().join(', ')}`,
         )
       }
       // Which gates the event can answer (ADR 0037). A gate is a question
@@ -443,7 +445,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       // whether a Round start lost zero health is incoherent rather than
       // merely false. Refused here rather than allowed to load and quietly
       // never pass — the same trap the `when` check above closes.
-      const allowedGates = GATES_BY_WHEN[grant.when as keyof typeof GATES_BY_WHEN] ?? []
+      const allowedGates = grantRow.gates
       for (const gate of grant.gates) {
         if (!allowedGates.includes(gate)) {
           throw new Error(
@@ -453,7 +455,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       }
       // An event_keyword narrows a *blow*. On an event that is not one there
       // is no Keyword to match, so the clause would never fire.
-      if (grant.event_keyword !== '' && grant.when !== 'host_takes_damage' && grant.when !== 'host_deals_damage') {
+      if (grant.event_keyword !== '' && !whenCarriesKeywords('grant', grant.when)) {
         throw new Error(`${cardAt(card.id)} narrows a ${grant.when} standing clause by event_keyword, but that event carries no damage Keywords`)
       }
       if (grant.event_keyword !== '') {
@@ -484,9 +486,9 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       requireKeyword(catalog, keywordId, KEYWORD_REFERENCES.counterKeyword, `Counter ${counter.id}`, 'keywords')
     }
     for (const reader of counter.readers) {
-      if (!READABLE_READER_PAIRS.some((pair) => pair.when === reader.when && pair.effect === reader.effect)) {
+      if (readerSubscription(reader.when, reader.effect) === undefined) {
         throw new Error(
-          `Counter ${counter.id} authors a ${reader.when}/${reader.effect} reader, which nothing reads; the readable pairs are ${READABLE_READER_PAIRS.map((pair) => `${pair.when}/${pair.effect}`).join(', ')}`,
+          `Counter ${counter.id} authors a ${reader.when}/${reader.effect} reader, which nothing reads; the readable pairs are ${readableReaderPairs().join(', ')}`,
         )
       }
       if (reader.per === 0) {
@@ -496,7 +498,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
         // Only a damage event carries Keywords. A Round starting and a Slot
         // firing are not made of anything, so narrowing them by Keyword would
         // author a Reader that can never fire.
-        if (reader.when !== 'host_takes_damage' && reader.when !== 'host_deals_damage') {
+        if (!whenCarriesKeywords('reader', reader.when)) {
           throw new Error(`Counter ${counter.id} narrows a ${reader.when} reader by event_keyword, but only damage events carry Keywords`)
         }
         requireKeyword(catalog, reader.event_keyword, KEYWORD_REFERENCES.damageKeywords, `Counter ${counter.id}`, 'event_keyword')

@@ -6,6 +6,6 @@
   "max": 1,
   "duration_rounds": 1,
   "readers": [
-    { "when": "host_takes_damage", "effect": "target_damage", "per": 1 }
+    { "when": "host_damage_incoming", "effect": "target_damage", "per": 1 }
   ]
 }

@@ -212,7 +212,7 @@ board piece as an engineering request alongside the sheet.
 
 | Want | Why it is engine code | Precedent to cite |
 | --- | --- | --- |
-| A Signature that earns on anything but taking damage | Only `host_takes_damage` is evaluated; the other three `when`s are refused at load | Open request: [signature-earn-vocabulary.md](design-proposals/signature-earn-vocabulary.md) |
+| A Signature that earns on an event outside the four | The earn vocabulary is the event registry's grant rows (ADR 0037, ADR 0041); a new event is a registry row plus its raise site, never a schema edit alone | Shipped precedent: D-071 opened all four `when`s; the request that drove it is [signature-earn-vocabulary.md](design-proposals/signature-earn-vocabulary.md) |
 | A new Signature gate | Gates are predicates over board state; the enum and its evaluation live in `web/src/engine/signature.ts` | D-064 shipped `health_loss_zero`, `guarded_front` |
 | A new card effect, target family, Beat kind, Status trigger, or Charge Modifier effect | Closed sets the engine switches on | Handoff doc, Engineering Boundary |
 | A class resource that is not the Signature's Charge bank | Only the Signature Slot's earned Charges exist as a resource today | Kessa's Momentum is the named waiting case |
