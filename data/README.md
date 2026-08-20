@@ -4,6 +4,7 @@ This directory holds the authored gameplay content as schema-validated JSON (ADR
 
 - `cards/`: player card definitions
 - `heroes/`: Hero definitions — identity, health pool, and the printed Signature; Encounters field one by id (ADR 0034)
+- `bosses/`: Boss definitions — identity and health pool; Encounters field one by id, and its substance lives in its Programs (ADR 0040)
 - `keywords/`: the one tag namespace — Card tags, a Beat's Role selector, what a blow is made of, and the answers a Program demands, each declaring its `kind`
 - `charge_modifiers/`: explicit Top Card rules that read the Charge Stack
 - `hazards/`: temporary board effects attached to hexes

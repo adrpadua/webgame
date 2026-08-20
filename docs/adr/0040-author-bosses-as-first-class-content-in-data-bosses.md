@@ -1,0 +1,9 @@
+# Author Bosses as first-class content in data/bosses/
+
+A Boss is one authored JSON definition under `data/bosses/` — identity, `rules_text`, and `max_health` — and an Encounter fields a Boss by id through its `boss` field. This replaces the inline trio the Encounter carried (`boss_id`, `boss_title`, `boss_health`), which is the same promotion ADR 0034 gave Heroes, applied when the trigger that ADR named actually fired: "nothing yet needs one Boss in two arenas; if that day comes, this ADR is the pattern to repeat."
+
+That day came with the evaluation Encounter (D-076). Three Encounters now field Embermaw — the Ashen Trial, the teaching slice, and the traversal probe — each holding its own copy of the title and the health pool, and the probe is only a valid measurement while its copies agree with the shipped fight's. A test was holding that agreement by hand, asserting `probe.boss_health === shipped.boss_health`; with one definition shared by reference, the agreement is structural and the test asserts the reference instead.
+
+What stays on the Encounter is everything the fight decides rather than the character: `boss_start`, the Programs, the Escalation Thresholds, the clock. The Boss file is deliberately thin — a Boss's substance already lives in its Programs, and per-Boss rules that looked like Boss fields turned out to belong elsewhere when examined: how its ground treats it is authored on the Hazard (D-074), and how it crosses the board is authored per Beat. A field is added here when a Boss needs one, not before.
+
+Scenario compatibility pinned one choice, the same one the Hero promotion made for Elian: the Boss's content id doubles as its board entity id, so committed Scenarios that address `embermaw` by `sourceId` replay byte-identically across the promotion. An id is stable by contract — it never changes because a display name would read better.

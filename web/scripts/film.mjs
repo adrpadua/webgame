@@ -57,9 +57,9 @@
 //
 // The Boss defeat is the one moment no committed Scenario holds: the solo
 // ceiling exists to prove a lone Guardian cannot win, so nothing on disk
-// kills Embermaw. To film it, drop `boss_health` in
-// data/encounters/embermaw_prototype.json to something a first Slot can
-// clear, rebuild, film `--fact "to embermaw"`, and put the file back.
+// kills Embermaw. To film it, drop `max_health` in
+// data/bosses/embermaw.json to something a first Slot can clear, rebuild,
+// film `--fact "to embermaw"`, and put the file back.
 import { spawn } from 'node:child_process'
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { chromium } from 'playwright'

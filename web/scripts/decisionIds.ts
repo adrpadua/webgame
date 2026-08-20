@@ -32,9 +32,49 @@ const UPSTREAM = 'origin/main'
 const args = process.argv.slice(2).filter((arg) => arg !== '--')
 const FIX = args.includes('--fix')
 
+// Where the placeholder legitimately lives: the machinery that defines it and
+// the docs that teach writing it. Everywhere else a `D-NEW` is a citation that
+// never received its number — which shipped once, in D-075's commit, as eleven
+// code comments nothing was scanning for. The log itself is deliberately not in
+// this list even though the authoring instruction at its top says `D-NEW`:
+// `decisionLog.test.ts` already refuses a placeholder *row*, and this scan is
+// what refuses the instruction line ever being the only mention left behind —
+// so the log is exempted by the row parser having its own guard, not here.
+const PLACEHOLDER_HOMES = [
+  LOG_PATH,
+  'docs/content/authoring-a-new-hero.md',
+  'web/scripts/decisionIds.ts',
+  'web/src/content/decisionIds.ts',
+  'web/src/content/decisionLog.test.ts',
+]
+
 const git = (...argv: string[]): string => execFileSync('git', argv, { encoding: 'utf8' }).trim()
 const repoRoot = git('rev-parse', '--show-toplevel')
 const logFile = join(repoRoot, LOG_PATH)
+
+// Tracked and untracked text, minus the homes. `git grep` exits 1 for a clean
+// tree, which is the one failure this must not confuse with a real git error.
+function strayPlaceholderFiles(): string[] {
+  try {
+    const out = execFileSync(
+      'git',
+      ['grep', '-l', '--untracked', '-F', DECISION_PLACEHOLDER, '--', '.', ...PLACEHOLDER_HOMES.map((home) => `:!${home}`)],
+      { cwd: repoRoot, encoding: 'utf8' },
+    )
+    return out.trim().split('\n').filter(Boolean)
+  } catch (error) {
+    if ((error as { status?: number }).status === 1) {
+      return []
+    }
+    throw error
+  }
+}
+
+function refuseStrays(strays: string[]): void {
+  console.error(`\nlog:ids: \`${DECISION_PLACEHOLDER}\` cited outside the log in: ${strays.join(', ')}`)
+  console.error('log:ids: a placeholder in a source comment is a citation that never got its number — replace each with the assigned id.')
+  process.exit(1)
+}
 
 // Best-effort refresh, and deliberately not fatal. D-056 took validation out of
 // CI because a gate that fails for reasons the author cannot act on is one
@@ -96,6 +136,10 @@ const ids = (log: string): string[] => parseDecisionRows(log).map((row) => row.i
 const plan = planDecisionIds({ log: working, baseIds: ids(baseLog), upstreamIds: ids(upstreamLog) })
 
 if (plan.reassignments.length === 0) {
+  const strays = strayPlaceholderFiles()
+  if (strays.length > 0) {
+    refuseStrays(strays)
+  }
   console.log(`log:ids: every decision id is free against ${UPSTREAM}${upstreamNote}`)
   process.exit(0)
 }
@@ -128,8 +172,15 @@ writeFileSync(logFile, plan.log)
 // citation could mean either, and guessing would silently repoint a correct
 // one. Reported instead, so the author resolves it.
 //
-// `placeholder` has nothing to carry: `D-NEW` is not citable.
+// `placeholder` carries only when this run assigned exactly one. A branch that
+// wrote `D-NEW` in a source comment meant the row it was authoring, so with one
+// new row the rewrite is unambiguous — and with two, guessing would repoint
+// half the citations at the wrong decision, so both are left for the author.
+// It never rewrites inside PLACEHOLDER_HOMES, where `D-NEW` is the literal the
+// machinery is made of rather than a citation.
 const carry = plan.reassignments.filter((entry) => entry.reason === 'taken_upstream')
+const placeholders = plan.reassignments.filter((entry) => entry.reason === 'placeholder')
+const placeholderCarry = placeholders.length === 1 ? [{ from: DECISION_PLACEHOLDER, to: placeholders[0].to }] : []
 const ambiguous = plan.reassignments.filter((entry) => entry.reason === 'duplicate_locally')
 
 // Working tree against the merge base, not `HEAD` against it, plus untracked
@@ -137,9 +188,15 @@ const ambiguous = plan.reassignments.filter((entry) => entry.reason === 'duplica
 // one uncommitted edit, and diffing commits would have skipped exactly that —
 // the check would report the carry-over done while the citation still pointed
 // at the old number.
+// Both run from the repo root, not from web/ where npm puts the script:
+// `ls-files --others` restricts itself to the current directory, so run from
+// web/ it could not see an untracked citation anywhere else in the repo — and
+// the paths it did return were web-relative, which `join(repoRoot, ...)` then
+// pointed at files that do not exist.
+const gitAtRoot = (...argv: string[]): string => execFileSync('git', argv, { encoding: 'utf8', cwd: repoRoot }).trim()
 const changed = new Set([
-  ...git('diff', '--name-only', baseRef).split('\n'),
-  ...git('ls-files', '--others', '--exclude-standard').split('\n'),
+  ...gitAtRoot('diff', '--name-only', baseRef).split('\n'),
+  ...gitAtRoot('ls-files', '--others', '--exclude-standard').split('\n'),
 ])
 changed.delete('')
 changed.delete(LOG_PATH)
@@ -163,11 +220,21 @@ for (const name of changed) {
   for (const entry of carry) {
     updated = updated.split(entry.from).join(entry.to)
   }
+  if (!PLACEHOLDER_HOMES.includes(name)) {
+    for (const entry of placeholderCarry) {
+      updated = updated.split(entry.from).join(entry.to)
+    }
+  }
   if (updated !== text) {
     writeFileSync(path, updated)
     moved.push(name)
   }
 }
+
+// What the fix could not resolve on its own — two placeholders assigned at
+// once, or a stray in a file the branch never touched — still fails, so a
+// citation without its number cannot ride a green check into the history.
+const remaining = strayPlaceholderFiles()
 
 console.log(`\nlog:ids: assigned ${plan.reassignments.length} id(s) in ${LOG_PATH}${upstreamNote}`)
 if (moved.length > 0) {
@@ -177,4 +244,7 @@ for (const entry of ambiguous) {
   console.log(
     `log:ids: left citations of ${entry.from} alone — it is still held by an earlier row, so a mention of it could mean either. Check any reference you meant for ${entry.to}.`,
   )
+}
+if (remaining.length > 0) {
+  refuseStrays(remaining)
 }
