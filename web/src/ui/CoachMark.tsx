@@ -1,3 +1,4 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { useEffect, useRef } from 'react'
 import { cardChargeCap, type EncounterState } from '@/engine'
 import { useOnboarding } from '@/store/onboarding'
@@ -94,7 +95,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | nul
 
 export function CoachMark() {
   const state = useWorkbench(selectState)
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const dismissedTips = useOnboarding((store) => store.dismissedTips)
   const dismissTip = useOnboarding((store) => store.dismissTip)
   const guideOpen = useOnboarding((store) => store.guideOpen)

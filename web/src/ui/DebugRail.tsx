@@ -1,3 +1,4 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOnboarding } from '@/store/onboarding'
 import { selectState, useWorkbench, type FactEntry } from '@/store/workbench'
@@ -116,7 +117,7 @@ function CoordinateToggle() {
 // Scenario: a named, versioned action-prefix replayed from a seeded initial
 // state. Loading one lands mid-Encounter with the whole line walkable below.
 function ScenarioPicker() {
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const activeScenarioId = useWorkbench((store) => store.activeScenarioId)
   const loadScenario = useWorkbench((store) => store.loadScenario)
   const exportScenario = useWorkbench((store) => store.exportScenario)

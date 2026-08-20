@@ -13,6 +13,7 @@ import {
 import { currentFirstTurnStep } from '@/ui/useFirstTurn'
 import { useOnboarding } from '@/store/onboarding'
 import { usePlayout } from '@/store/playout'
+import { catalog } from '@/store/catalog'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { BoardScene, type BoardSnapshot } from './BoardScene'
 import { marksGuardedFront } from './guardedFront'
@@ -152,7 +153,7 @@ export function PhaserBoard() {
         // along, a Continue prompt between beats — auto-paced during the
         // scripted first turn, which gates its own controls. Anything else
         // is immediate player feedback and goes straight to the board.
-        const effects = deriveBoardEffects(store.catalog, previous.state, entry.state, entry.facts)
+        const effects = deriveBoardEffects(catalog, previous.state, entry.state, entry.facts)
         const script = derivePlayoutScript(previous.state, entry.state, entry.facts, effects)
         if (script) {
           usePlayout.getState().begin(script, useOnboarding.getState().firstTurnActive)
@@ -174,7 +175,7 @@ export function PhaserBoard() {
       }
       scene.updateSnapshot(
         buildSnapshot(
-          store.catalog,
+          catalog,
           selectState(store),
           store.targetingSlotIndex,
           store.hoveredHexKey,

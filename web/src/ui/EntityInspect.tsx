@@ -1,3 +1,4 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { currentProgram, type BoardEntity } from '@/engine'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench } from '@/store/workbench'
@@ -47,7 +48,7 @@ function EnemyGauge({ entity, testId, detail }: { entity: BoardEntity; testId?: 
 
 export function EntityInspect() {
   const state = useWorkbench(selectState)
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const inspectedEntityId = useWorkbench((store) => store.inspectedEntityId)
   const dismissInspect = useWorkbench((store) => store.dismissInspect)
   const entity = inspectedEntityId !== null ? state.board.entities[inspectedEntityId] : undefined

@@ -1,3 +1,4 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { cardChargeCap, cardWindowSpeed, legality, type SlotState } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { AdvanceControl } from './AdvanceControl'
@@ -117,7 +118,7 @@ export function ActionBar() {
 
 function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
   const state = useWorkbench(selectState)
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const fireSlot = useWorkbench((store) => store.fireSlot)
   const cardDroppedOnSlot = useWorkbench((store) => store.cardDroppedOnSlot)
   const selectedCardId = useWorkbench((store) => store.selectedCardId)

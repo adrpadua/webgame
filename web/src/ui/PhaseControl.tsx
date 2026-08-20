@@ -1,3 +1,4 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { EscalationGauge } from './EscalationGauge'
 import { encounterTerms, phaseDetail } from './holdDetails'
@@ -83,7 +84,7 @@ function PhaseWindowMark({ mark, active }: { mark: PhaseMark; active: boolean })
 
 export function PhaseControl() {
   const state = useWorkbench(selectState)
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   // Hover belongs to whichever mark the mouse is actually over; the track
   // itself answers a touch hold — and it answers with the whole Round.
   //

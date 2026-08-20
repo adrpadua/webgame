@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { EncounterState } from '@/engine'
+import { catalog } from '@/store/catalog'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench, type WorkbenchStore } from '@/store/workbench'
 import { blocksTarget } from './firstTurnScript'
@@ -70,7 +71,7 @@ function skipWarning(store: WorkbenchStore, state: EncounterState): SkipWarning 
   }
   // ...and is anything still possible? A fireable Slot or any hand card
   // (Charge, or a paid step during the Quick Window) counts.
-  const canFire = hero.actionBar.some((slot) => slotCanFire(store.catalog, state, slot))
+  const canFire = hero.actionBar.some((slot) => slotCanFire(catalog, state, slot))
   if (!canFire && hero.hand.length === 0) {
     return null
   }

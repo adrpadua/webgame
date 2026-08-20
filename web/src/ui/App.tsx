@@ -1,3 +1,4 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { useEffect } from 'react'
 import { PhaserBoard } from '@/board/PhaserBoard'
 import { fireTargeting } from '@/engine'
@@ -54,7 +55,7 @@ function RejectionToast() {
 function TargetingBanner() {
   const targetingSlotIndex = useWorkbench((store) => store.targetingSlotIndex)
   const cancelTargeting = useWorkbench((store) => store.cancelTargeting)
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const state = useWorkbench(selectState)
   if (targetingSlotIndex === null) {
     return null

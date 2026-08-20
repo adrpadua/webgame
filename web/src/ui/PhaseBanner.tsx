@@ -1,3 +1,4 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { useEffect, useRef, useState } from 'react'
 import type { Phase } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
@@ -19,7 +20,7 @@ const PHASE_TONE: Record<Phase, string> = {
 
 export function PhaseBanner() {
   const state = useWorkbench(selectState)
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const phase = state.phase
   const [shownPhase, setShownPhase] = useState<Phase | null>(null)
   const previousPhase = useRef<Phase | null>(phase)

@@ -1,3 +1,4 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { cardChargeCap, cardWindowSpeed, type Card } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { blocksTarget } from './firstTurnScript'
@@ -122,7 +123,7 @@ function CompactCard({
   offerDelayMs: number
   width: string
 }) {
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const setDraggingCard = useWorkbench((store) => store.setDraggingCard)
   const selectCard = useWorkbench((store) => store.selectCard)
   const payForMove = useWorkbench((store) => store.payForMove)
@@ -210,7 +211,7 @@ function CompactCard({
 
 export function Hand() {
   const state = useWorkbench(selectState)
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const hoveredHexKey = useWorkbench((store) => store.hoveredHexKey)
   const draggingCardId = useWorkbench((store) => store.draggingCardId)
   const selectedCardId = useWorkbench((store) => store.selectedCardId)
