@@ -5,6 +5,7 @@
   "max_health": 2,
   "attack_damage": 1,
   "range_tiles": 1,
+  "standoff_tiles": 1,
   "move_tiles": 1,
   "traversal": "walk",
   "explode_damage": 3,

@@ -31,7 +31,8 @@ export interface MinionDetonation {
 // the live board, so the same function serves the visible intent projection and
 // the end-step resolution:
 // - nearest Hero by hex distance, stable id tie-break;
-// - in reach, it bites; out of reach, it travels its authored `move_tiles`.
+// - in reach, it bites; out of reach, it travels its authored `move_tiles`
+//   toward its authored `standoff_tiles`.
 //
 // Both halves are content since D-072, and neither used to be. The reach was a
 // literal `1` here, and the creep was this module's own movement rule — the
@@ -67,7 +68,19 @@ export function minionIntent(catalog: ContentCatalog, state: EncounterState, min
   if (hexDistance(minion.coords, targetCoords) <= reach) {
     return { minionId, targetHeroId, damage, route: [] }
   }
-  const route = traversalRoute(state.board, minionId, targetCoords, content?.move_tiles ?? 0, reach, content?.traversal ?? 'walk')
+  // Out of reach, so it travels — and where it stops is the Standoff, not the
+  // reach it just failed (D-079). The two agree for a Whelp and stop agreeing
+  // the moment a Minion has allowance to spare: one that bites at 1 and stands
+  // off at 1 spends every hex it has, where one standing off at its own reach
+  // would halt the moment it could bite and hold that distance.
+  const route = traversalRoute(
+    state.board,
+    minionId,
+    targetCoords,
+    content?.move_tiles ?? 0,
+    content?.standoff_tiles ?? 0,
+    content?.traversal ?? 'walk',
+  )
   return { minionId, targetHeroId, damage: 0, route }
 }
 

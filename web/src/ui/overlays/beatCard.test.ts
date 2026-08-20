@@ -35,6 +35,11 @@ describe('Boss Beat cards (D-055)', () => {
         unguarded_bonus: (text) => /unguarded/.test(text),
         range_tiles: (text) => /Reach/.test(text),
         move_tiles: (text) => /Moves/.test(text),
+        // The Standoff is a separate authored number since D-079, and it is the
+        // one the movement line closes to. While it was `range_tiles` the gate
+        // was satisfied by the `Reach` stat — which printed the right number
+        // under a label naming the wrong thing.
+        standoff_tiles: (text) => /closing to|Appears within/.test(text),
         // `traversal` decides both where a Movement Clause ends up and what it
         // pays in Hazard entry, so the gate has to see it. It defaults to
         // `walk`, which is why the carried-value test below reads it as a
@@ -75,6 +80,20 @@ describe('Boss Beat cards (D-055)', () => {
       expect(line(advance)).toContain('Walks up to 1, closing to 1')
       expect(line({ ...advance, traversal: 'jump', move_tiles: 3 })).toContain('Leaps up to 3, closing to 1')
       expect(line({ ...advance, traversal: 'teleport', move_tiles: 0 })).toContain('Appears within 1')
+    })
+
+    it('prints the Standoff and the Reach as two numbers under two labels (D-079)', () => {
+      // What one field could not say. A Beat that closes to 1 and strikes at 3
+      // has two distances on it, and a reader holding the card has to be able
+      // to tell which is which — the shove-out-of-the-cone play depends on it.
+      const advance = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'advance_toward_player')!
+      const stats = beatCardStats({ ...advance, kind: 'targeted_hit', damage: 2, range_tiles: 3, standoff_tiles: 1 })
+      expect(stats.find((stat) => stat.label === 'Reach')?.value).toBe('3 hexes')
+      expect(stats.find((stat) => stat.label === 'Moves')?.value).toContain('closing to 1')
+
+      // And the Beat whose only effect is the move prints no Reach at all,
+      // where before the split it printed one it did not have.
+      expect(beatCardStats(advance).some((stat) => stat.label === 'Reach')).toBe(false)
     })
 
     it('says permanent rather than a round count for ground that never comes back', () => {
