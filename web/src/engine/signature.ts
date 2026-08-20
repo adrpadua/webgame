@@ -1,8 +1,7 @@
 import { isGuardedFront } from './board'
 import type { ContentCatalog } from './content/catalog'
-import type { SignatureGrant } from './content/schemas'
+import type { AuthoredWhen, SignatureGrant } from './content/schemas'
 import { cardChargeCap } from './content/catalog'
-import type { EncounterActionInput } from './actions'
 import type { EncounterState, SlotState } from './types'
 
 // The Signature Slot (D-064, ADR 0032): a Hero's fixed power, authored as a
@@ -11,25 +10,9 @@ import type { EncounterState, SlotState } from './types'
 // Reader — and the small shared questions about a fixed Slot's Charge, which
 // is a token count rather than tucked cards.
 
-// The Grant `when`s the rules actually read, mirroring READABLE_READER_PAIRS'
-// discipline in `counters.ts`: the schema's enum stays aligned with the
-// Reader vocabulary, and authoring a `when` nothing evaluates is a load error
-// rather than a Grant that silently never fires. Teaching the rules a new
-// event means adding it here and reading it where that event resolves.
-export const EVALUATED_GRANT_WHENS = ['host_takes_damage', 'host_deals_damage', 'slot_fired', 'round_start'] as const
-
-// Which gates each event can actually answer. A gate is a question about a
-// moment, and three of these four moments are not blows: asking whether a
-// Round start lost zero health is not a hard question, it is an incoherent
-// one. Rather than let such a Grant load and silently never fire — the exact
-// trap `EVALUATED_GRANT_WHENS` exists to close, one level down — the catalog
-// refuses the pairing at load.
-export const GATES_BY_WHEN: Record<(typeof EVALUATED_GRANT_WHENS)[number], string[]> = {
-  host_takes_damage: ['health_loss_zero', 'guarded_front'],
-  host_deals_damage: ['effect_landed'],
-  slot_fired: ['effect_landed'],
-  round_start: [],
-}
+// The Grant `when`s the rules read, and which gates each can answer, live in
+// the event registry (`events.ts`, ADR 0041) — one table for Grants and
+// Readers both, validated by the catalog and dispatched by the raises.
 
 // How many Charges a Slot holds right now. A fixed Slot's Charges are earned
 // tokens; a deck Slot's are its tucked cards. Every rule that asks "how
@@ -94,20 +77,26 @@ function gatesPass(
 // its reason are recorded identically whichever event produced them — a
 // Grant that did not fire always says why, the honesty the old Riposte Ready
 // evaluation kept (D-064).
+export interface GrantOutcome {
+  cardId: string
+  outcome: 'charge_granted' | 'wasted' | 'not_granted'
+}
+
 export function evaluateGrantsFor(
   catalog: ContentCatalog,
   draft: EncounterState,
   heroId: string,
-  when: (typeof EVALUATED_GRANT_WHENS)[number],
+  when: AuthoredWhen,
   options: {
     counterpartId?: string
     eventKeywords?: string[]
     resolutionFact?: Record<string, unknown>
   } = {},
-): void {
+): GrantOutcome[] {
+  const outcomes: GrantOutcome[] = []
   const hero = draft.heroes[heroId]
   if (!hero) {
-    return
+    return outcomes
   }
   const eventKeywords = options.eventKeywords ?? []
   const record = options.resolutionFact
@@ -127,6 +116,7 @@ export function evaluateGrantsFor(
       }
       const verdict = gatesPass(draft, grant, heroId, options.counterpartId ?? '', record)
       if (!verdict.pass) {
+        outcomes.push({ cardId: card.id, outcome: 'not_granted' })
         if (record !== undefined) {
           record.signature_event = signatureEvent(card.id, 'not_granted', verdict.failed, slot.earnedCharges)
         }
@@ -138,39 +128,18 @@ export function evaluateGrantsFor(
         // design — overcap is the price of holding a full bank (D-064
         // decision 8), and it has to be visible to the player and the cohort
         // alike, never silently absorbed.
+        outcomes.push({ cardId: card.id, outcome: 'wasted' })
         if (record !== undefined) {
           record.signature_event = signatureEvent(card.id, 'wasted', 'at_max', slot.earnedCharges)
         }
         continue
       }
       slot.earnedCharges = Math.min(cap, slot.earnedCharges + grant.grants_charge)
+      outcomes.push({ cardId: card.id, outcome: 'charge_granted' })
       if (record !== undefined) {
         record.signature_event = signatureEvent(card.id, 'charge_granted', 'standing_clause', slot.earnedCharges)
       }
     }
   }
-}
-
-// The two halves of a resolved blow. The Hero who took it reads
-// `host_takes_damage`; the Hero who landed it reads `host_deals_damage`,
-// which is the earn an offensive machine is built on and which nothing
-// evaluated before ADR 0037.
-export function evaluateStandingGrants(
-  catalog: ContentCatalog,
-  draft: EncounterState,
-  action: Extract<EncounterActionInput, { kind: 'damage' }>,
-  resolutionFact: Record<string, unknown>,
-): void {
-  const eventKeywords = (resolutionFact.damage_keywords as string[] | undefined) ?? []
-  evaluateGrantsFor(catalog, draft, action.targetId, 'host_takes_damage', {
-    counterpartId: action.sourceId,
-    eventKeywords,
-    resolutionFact,
-  })
-  evaluateGrantsFor(catalog, draft, action.sourceId, 'host_deals_damage', {
-    counterpartId: action.targetId,
-    eventKeywords,
-    // A blow that landed is one that actually cost the target health.
-    resolutionFact: { ...resolutionFact, effect_landed: (resolutionFact.health_loss as number) > 0 },
-  })
+  return outcomes
 }

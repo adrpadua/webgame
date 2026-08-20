@@ -1,6 +1,6 @@
 # Project Coordination
 
-Status: active cross-task coordination record. Updated 2026-08-15T05:00:00-07:00.
+Status: active cross-task coordination record. Updated 2026-08-20T21:20:00Z.
 
 This file is an index and handoff ledger. It does not redefine gameplay rules, UI behavior, or implementation contracts; the linked documents below remain authoritative.
 
@@ -33,6 +33,7 @@ This file is an index and handoff ledger. It does not redefine gameplay rules, U
 | Deterministic handoff control plane and closure gate | [`.scratch/deterministic-handoff-control-plane-and-closure-gate/spec.md`](../../.scratch/deterministic-handoff-control-plane-and-closure-gate/spec.md) and its numbered delivery issues; approved outcome remains in [the product proposal](../../.scratch/product-backlog/issues/12-deterministic-handoff-control-plane-and-closure-gate.md) | Coordinator for routing/closure; Architecture packet/validator seam; Test Automation independent validator evidence |
 | Focused Encounter rules-Probe layer | [`.scratch/focused-encounter-rules-probes/spec.md`](../../.scratch/focused-encounter-rules-probes/spec.md) and its numbered delivery issues; approved outcome remains in [the product proposal](../../.scratch/product-backlog/issues/05-focused-encounter-rules-probes.md) | Coordinator for delivery; Test Automation proof authoring, Architecture scene-free seam review, Engineering Enablement routing |
 | Contextual mobile tutorial prompts — Embermaw | [`.scratch/contextual-mobile-tutorial-prompts-embermaw/spec.md`](../../.scratch/contextual-mobile-tutorial-prompts-embermaw/spec.md) and its numbered delivery issues; approved outcome remains in [the product proposal](../../.scratch/product-backlog/issues/08-contextual-mobile-tutorial-prompts-embermaw.md) | Coordinator for delivery; Design teaching contracts, Architecture authoritative projections, UI/UX presentation, and Test Automation validation |
+| Engineering Enablement — Event-registry dispatch migration | [`.scratch/event-registry-migration/spec.md`](../../.scratch/event-registry-migration/spec.md) and its numbered delivery issues; the decision remains in [ADR 0041](../adr/0041-dispatch-every-triggered-effect-from-one-event-registry.md) and D-085/D-086 in [the design decision log](../content/design-decision-log.md) | Coordinator for routing and closure; Architecture registry/raise seam; Test Automation ordering and replay evidence; Design bounded user for authoring docs |
 
 ## Confirmed Cross-Task Decisions
 
@@ -63,6 +64,7 @@ This file is an index and handoff ledger. It does not redefine gameplay rules, U
 | Ledger lifecycle/archive | Closed: contract, manual archive, and independent safety verification passed | The live ledger is `191` lines / `74,417` bytes. [closed handoffs 01](coordination-history/2026-08-15-closed-handoffs-01.md) is append-only history; routine sweeps start here. |
 | Elian default-deck promotion | Closed: canonical intent, content migration, independent QA evidence, and coordinator recheck agree on the approved `8/6/2/2/2` default | No active ownership. Proposal-03 controlled fixture remains separate historical/repro evidence; the temporary Playtester retest may now be routed under the existing process issue. |
 | Coordination process | Closed: risk-tiered validation delivery and six-handoff pilot support the approved policy | The mandatory packet gate is active. Future eligible handoffs use the recorded tier/evidence/rerun fields; no policy escalation is open. |
+| Engineering Enablement — event registry | Active. Bounded user: content authors (Design) writing Counter Readers and Signature Grants against one `when` vocabulary. Contract: the event table in `web/src/engine/` (Architecture). Canonical: ADR 0041 + D-085. Validation: `cd web && npm test` plus the Elian+Maren ordering test and a sealed-Record replay with matching fingerprint; tier per risk-tiered policy with Test Automation as independent verifier. Non-goals: no resumable resolution, no `on_enter_hex` (D-086 stays Proposed), no new events, no balance change. | Architecture starts issue 01; Test Automation and Design follow per the spec's delivery sequence. |
 | Product Management | Combat Postures delivered to active planning; risk-tiered validation proposal approved and acknowledged | Await delivery findings only if a proposed process change would alter the approved outcome or non-goals. |
 
 ## Risk-Tier Ledger Fields
