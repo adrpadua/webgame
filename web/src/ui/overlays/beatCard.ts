@@ -42,9 +42,9 @@ export function findLiveBeat(
 // go, and how close it is trying to get. A teleport has no allowance to name,
 // so it prints where it is going instead of how far.
 function movementClauseLine(beat: BossBeat): string {
-  const closing = beat.range_tiles > 0 ? `, closing to ${beat.range_tiles}` : ''
+  const closing = beat.standoff_tiles > 0 ? `, closing to ${beat.standoff_tiles}` : ''
   if (beat.traversal === 'teleport') {
-    return `Appears within ${beat.range_tiles}`
+    return `Appears within ${beat.standoff_tiles}`
   }
   if (beat.move_tiles < 1) {
     return ''
@@ -74,9 +74,12 @@ export function beatCardStats(beat: BossBeat): BeatCardStat[] {
   // and printed nowhere; a teleport spends no allowance, so `move_tiles > 0`
   // did not even notice it was moving.
   //
-  // This is also the first surface where Reach and Standoff are two different
-  // numbers, which is the cheap test of whether one field can keep serving
-  // both.
+  // This is also the surface where Reach and Standoff are two different numbers,
+  // and printing them was the cheap test of whether one field could keep serving
+  // both. It could not, visibly: `advance_toward_player` printed a `Reach` line
+  // for a Beat that reaches nothing, right above a movement line closing to the
+  // same number. They are separate fields since D-079, and this function prints
+  // each under the label that names it.
   const clause = movementClauseLine(beat)
   if (clause !== '') {
     stats.push({ label: 'Moves', value: clause })

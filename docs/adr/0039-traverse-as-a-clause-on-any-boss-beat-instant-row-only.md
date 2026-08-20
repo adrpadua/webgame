@@ -1,12 +1,12 @@
 # Traverse as a clause on any Boss Beat, on the Instant Row only
 
-A Boss Beat may carry a **Movement Clause**: `move_tiles`, `traversal`, and the `range_tiles` it is closing to. The clause resolves before the Beat's own effect, so one Beat can be "move two hexes, then claw", and the claw is measured from where the movement ended. Movement is a **Traversal** — a route decided before the piece sets off — carried on its own `traverse_piece` action as the hexes entered in order, and it is legal on the `Instant Row` alone.
+A Boss Beat may carry a **Movement Clause**: `move_tiles`, `traversal`, and the `standoff_tiles` it is closing to (originally the Beat's `range_tiles`; amended by D-079, below). The clause resolves before the Beat's own effect, so one Beat can be "move two hexes, then claw", and the claw is measured from where the movement ended. Movement is a **Traversal** — a route decided before the piece sets off — carried on its own `traverse_piece` action as the hexes entered in order, and it is legal on the `Instant Row` alone.
 
 ## Why a clause rather than a Beat kind
 
 This repo's convention is one Beat kind per mechanic, and `advance_toward_player` already existed. The convention is right when a mechanic is a thing a Boss does; it is wrong when the mechanic is a thing a Boss does *before* something else. Expressed as two Beats, "close and strike" is a Program-ordering fact: the row happens to list the advance before the claw, nothing enforces it, and the pair reads as two threats where the player faces one. Expressed as a clause it is one Beat, one telegraph, one line on the printed card — the shape a Gloomhaven monster card has, and the shape that composes when the next Boss wants to leap and breathe.
 
-The cost is that `move_tiles` is now readable on every Beat kind rather than one, so every kind can be authored wrong in a new way. That is paid for in the catalog: a Beat carrying a clause must author the distance it closes to, a `teleport` must not author an allowance it never spends, and a Beat that does not move must not author how it would.
+The cost is that `move_tiles` is now readable on every Beat kind rather than one, so every kind can be authored wrong in a new way. That is paid for in the catalog: a Beat carrying a clause must author the distance it closes to, a `teleport` must not author an allowance it never spends, and a Beat that does not move must not author how it would, or say how close it is trying to get.
 
 ## Why a Traversal is not a displacement
 
@@ -31,3 +31,15 @@ It moved it decisively. Against a Boss that leaps three hexes, **12 of 16 `far` 
 The mechanism is unaffected; what withdraws is a claim about what it is **for**. A Movement Clause is **Boss identity** — whether a Boss can be kited into a corner, funnelled by terrain, or not kept away at all — and it is **never counter-pressure against distance**. The reason is sharper after D-073 than before it: a camper's melee reach lands only when the Boss arrives, so any Boss movement toward the party is a gift of range.
 
 That yields an authored bound rather than a prohibition. Shipped Embermaw closes one hex against a camper who opens three, never reaches them, and its `far` policies still deal `0.00`. The probe closes three against the same three and delivers itself. **A Boss's closing distance per Round must stay under the distance a camper can open**, and `embermaw_traversal_probe` is the fixture that checks it — re-run the sweep against it when a Boss wants to move further.
+
+## Amended by D-079: the Standoff is its own field
+
+This ADR originally had the clause close to the Beat's `range_tiles`, which made one number answer two questions: how far the effect touches, and how close the mover wants to stand. The tell was in this repo's own content. `advance_toward_player` — the Beat kind whose *only* effect is the move — had to author a reach for a Beat that reaches nothing, and the catalog demanded it, and the printed Beat Card obediently showed a `Reach` line above a movement line closing to the same number.
+
+The behavioural cost was larger than the vocabulary one. With one field, a moving Beat always stopped at exactly the distance it struck from, so there was exactly one authorable moving Boss: the one that walks into its own reach and no further. A Beat that closes to 1 and claws at 2 (a brawler that wants to be in your face) and one that stops at 3 and breathes at 2 (a Boss that keeps its distance) were both unauthorable, and neither is exotic.
+
+`standoff_tiles` is therefore a separate authored field on a Beat and on a Minion, under the same both-or-neither rule the reach follows: a piece that travels declares it, a piece that does not must not. It is deliberately unconstrained against `range_tiles` on a Beat — every ordering between them is a Boss somebody might build — and constrained on a Minion, whose one behaviour is *creep until you can bite*, which makes a Standoff outside the bite a piece that provably never attacks.
+
+The split changes no shipped behaviour, and that is checked rather than assumed: every moving Beat in `data/` closes to `1` and reaches nothing, so both evaluation sweeps — the Ashen Trial and `embermaw_traversal_probe` — come back byte-identical to the tree before it.
+
+Nothing above this line is withdrawn by the amendment. In particular the bound still stands: a Boss's closing distance per Round must stay under the distance a camper can open, and a Standoff is what that distance is now called.

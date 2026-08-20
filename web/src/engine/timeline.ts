@@ -120,10 +120,14 @@ export function resolveBossBeat(
   // Boss's live hex. Resolving the effect from the pre-move hex was the bug
   // this ordering exists to prevent: the Beat would close the distance and then
   // swing at where it used to be standing.
+  //
+  // Where it stops is its own authored number since D-079. Reading the reach
+  // here made every moving Beat close to exactly the distance it struck from,
+  // which is one Boss — the one that walks into its own reach and no further.
   const route =
     boss === undefined
       ? []
-      : traversalRoute(draft.board, bossId, playerCoords, beat.move_tiles, beat.range_tiles, beat.traversal)
+      : traversalRoute(draft.board, bossId, playerCoords, beat.move_tiles, beat.standoff_tiles, beat.traversal)
   const bossCoords = route.at(-1) ?? boss?.coords ?? { q: 999, r: 999 }
   // ...and the same for facing, which the move also changes. Reading the live
   // facing here would have drawn the cone and the Guarded Front from the way

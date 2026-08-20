@@ -16,11 +16,11 @@
     {
       "id": "ember_step",
       "title": "Ember Step",
-      "rules_text": "Embermaw goes out like a flame and relights within reach of the guardian. There is no distance to keep.",
+      "rules_text": "Embermaw goes out like a flame and relights beside the guardian. There is no distance to keep.",
       "kind": "advance_toward_player",
       "consequence_tier": "chip",
       "move_tiles": 0,
-      "range_tiles": 1,
+      "standoff_tiles": 1,
       "traversal": "teleport",
       "answer_tags": [
         "position"

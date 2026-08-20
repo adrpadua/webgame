@@ -13,10 +13,10 @@
     {
       "id": "new_program_close",
       "title": "Close the Distance",
-      "rules_text": "The Boss walks up to 2 hexes toward the closest Hero, stopping once it is within reach.",
+      "rules_text": "The Boss walks up to 2 hexes toward the closest Hero, stopping once it is adjacent.",
       "kind": "advance_toward_player",
       "move_tiles": 2,
-      "range_tiles": 1,
+      "standoff_tiles": 1,
       "traversal": "walk",
       "consequence_tier": "chip",
       "answer_tags": []

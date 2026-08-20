@@ -1400,6 +1400,26 @@ describe('Authored Beat reach', () => {
     expect(() => rebuild(grounded)).toThrow(/authors traversal jump but no move_tiles/)
   })
 
+  it('refuses a Minion that would creep into position and never bite (D-079)', () => {
+    // The one place the two numbers are constrained against each other. A Beat
+    // may stand off outside its own reach — that is a Boss keeping its distance
+    // — but a Minion has exactly one behaviour, creep until you can bite, so a
+    // standoff outside the bite is provably a Minion that never attacks.
+    const coy = structuredClone(catalog)
+    coy.minions.whelp.standoff_tiles = 2
+    expect(() => rebuild(coy)).toThrow(/stops at 2 but bites at 1, so it would creep into position and never attack/)
+
+    // And the both-or-neither halves, against the allowance rather than the
+    // bite: a Minion that never travels has nowhere it is trying to stand.
+    const aimless = structuredClone(catalog)
+    aimless.minions.whelp.standoff_tiles = 0
+    expect(() => rebuild(aimless)).toThrow(/travels but authors no standoff_tiles/)
+
+    const rooted = structuredClone(catalog)
+    rooted.minions.whelp.move_tiles = 0
+    expect(() => rebuild(rooted)).toThrow(/authors standoff_tiles 1 but never travels/)
+  })
+
   it('refuses a Beat that marks a Hero without saying how far it reaches', () => {
     const marking = structuredClone(catalog)
     const stoke = marking.programs.embermaw_embers.instant_beats.find((entry) => entry.kind === 'place_counter')!
@@ -1429,12 +1449,29 @@ describe('Authored Beat reach', () => {
     expect(() => rebuild(blinking)).toThrow(/carries a movement clause on the Incoming Row/)
   })
 
-  it('refuses a movement clause that does not say how close to get', () => {
+  it('refuses a movement clause that does not say how close to get, and a standoff on a Beat that stands still', () => {
+    // Both halves of D-079's both-or-neither rule. The reach cannot answer this
+    // question any more, so a Beat that moves has to answer it itself.
     const moving = structuredClone(catalog)
     const claw = moving.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'targeted_hit')!
     claw.move_tiles = 2
-    claw.range_tiles = 0
-    expect(() => rebuild(moving)).toThrow(/needs to know how close to get/)
+    expect(() => rebuild(moving)).toThrow(/authors no standoff_tiles to say how close to get/)
+
+    const still = structuredClone(catalog)
+    const rooted = still.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'targeted_hit')!
+    rooted.standoff_tiles = 2
+    expect(() => rebuild(still)).toThrow(/authors standoff_tiles 2 but carries no movement clause/)
+  })
+
+  it('refuses a reach on the Beat whose only effect is the move', () => {
+    // The tell that Reach and Standoff were one field (D-079): before the split
+    // this Beat had to author a `range_tiles` to say how close to get, and an
+    // `advance_toward_player` reaches nothing whatsoever. Now the reach refusal
+    // that already covered every other non-reaching kind covers this one too.
+    const advancing = structuredClone(catalog)
+    const advance = advancing.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'advance_toward_player')!
+    advance.range_tiles = 1
+    expect(() => rebuild(advancing)).toThrow(/is a advance_toward_player and must not author range_tiles/)
   })
 
   it('refuses a traversal nothing moves, an advance with no allowance, and a teleport that spends one', () => {
@@ -3482,24 +3519,56 @@ describe('Boss traversal (D-074)', () => {
   it('walks its authored allowance and no further', () => {
     const state = apart()
     const before = hexDistance(boss(state).coords, state.board.entities[state.primaryHeroId].coords)
-    const moved = fire(state, movingBeat({ move_tiles: 2, range_tiles: 1 })).state
+    const moved = fire(state, movingBeat({ move_tiles: 2, standoff_tiles: 1 })).state
     expect(hexDistance(boss(moved).coords, moved.board.entities[moved.primaryHeroId].coords)).toBe(before - 2)
   })
 
-  it('stops as soon as its target is in reach, spending nothing it does not need', () => {
+  it('stops at its authored standoff, spending nothing it does not need', () => {
     // Gloomhaven's rule, and the one that makes an advance readable: it comes
     // exactly close enough to do the thing it is about to do. Without it a Boss
     // authored to close 3 would walk into and past the Hero it is hunting.
     const state = apart()
-    const generous = fire(state, movingBeat({ move_tiles: 8, range_tiles: 2 })).state
+    const generous = fire(state, movingBeat({ move_tiles: 8, standoff_tiles: 2 })).state
     expect(hexDistance(boss(generous).coords, generous.board.entities[generous.primaryHeroId].coords)).toBe(2)
   })
 
+  // Both pieces on opposite rims, so a Beat has room to stop short of its reach
+  // as well as inside it. `apart()` only moves the Hero, and Embermaw starts a
+  // hex off the middle, which leaves three between them at most.
+  function rimToRim(): EncounterState {
+    const state = immortalHero(start())
+    const hexes = Object.keys(state.board.hexes).map(parseHexKey)
+    const [heroCoords, bossCoords] = hexes
+      .flatMap((left) => hexes.map((right) => [left, right] as const))
+      .sort(([leftA, rightA], [leftB, rightB]) => hexDistance(leftB, rightB) - hexDistance(leftA, rightA))[0]
+    state.board.entities[state.primaryHeroId].coords = heroCoords
+    boss(state).coords = bossCoords
+    return state
+  }
+
+  it('stops where it wants to stand rather than where it can hit (D-079)', () => {
+    // The split's whole point, in both directions, against a Beat that reaches
+    // *and* moves. The reach is held fixed at 2 and only the standoff changes,
+    // so nothing but the new field can be producing the difference.
+    const striking = { ...advance, kind: 'targeted_hit' as const, damage: 1, range_tiles: 2, move_tiles: 8 }
+    expect(hexDistance(boss(rimToRim()).coords, rimToRim().board.entities[rimToRim().primaryHeroId].coords)).toBe(4)
+
+    // A brawler: it can hit from 2 and walks inside its own reach anyway.
+    const brawler = fire(rimToRim(), { ...striking, standoff_tiles: 1 }).state
+    expect(hexDistance(boss(brawler).coords, brawler.board.entities[brawler.primaryHeroId].coords)).toBe(1)
+
+    // And a Boss that keeps its distance: the same reach of 2, stopping at 3.
+    // Before the split neither of these was authorable — the reach it struck
+    // with *was* the distance it closed to, so every mover stopped at exactly 2.
+    const wary = fire(rimToRim(), { ...striking, standoff_tiles: 3 }).state
+    expect(hexDistance(boss(wary).coords, wary.board.entities[wary.primaryHeroId].coords)).toBe(3)
+  })
+
   it('does not move at all when it is already close enough', () => {
-    // The Hero starts adjacent, and a reach of 1 is already satisfied.
+    // The Hero starts adjacent, and a standoff of 1 is already satisfied.
     const state = immortalHero(start())
     const bossBefore = { ...boss(state).coords }
-    const fired = fire(state, movingBeat({ move_tiles: 3, range_tiles: 1 }))
+    const fired = fire(state, movingBeat({ move_tiles: 3, standoff_tiles: 1 }))
     expect(fired.facts.some((fact) => fact.kind === 'traverse_piece')).toBe(false)
     expect(boss(fired.state).coords).toEqual(bossBefore)
   })
@@ -3526,7 +3595,7 @@ describe('Boss traversal (D-074)', () => {
         title: 'Blocker',
       }
     })
-    const moved = fire(state, movingBeat({ move_tiles: 1, range_tiles: 1 })).state
+    const moved = fire(state, movingBeat({ move_tiles: 1, standoff_tiles: 1 })).state
     expect(boss(moved).coords).toEqual(closer[0])
   })
 
@@ -3541,7 +3610,7 @@ describe('Boss traversal (D-074)', () => {
           { id: 'wall', title: 'Wall', remainingRounds: 9, enterDamage: 0, blocksVoluntaryMovement: false, impassable },
         ]
       }
-      return fire(state, movingBeat({ move_tiles: 1, range_tiles: 1 })).state
+      return fire(state, movingBeat({ move_tiles: 1, standoff_tiles: 1 })).state
     }
     // Walled in on every side, a walker has nowhere to go.
     expect(boss(blockedRun(true)).coords).toEqual(bossCoords)
@@ -3561,8 +3630,8 @@ describe('Boss traversal (D-074)', () => {
       return state
     }
     // A walker is penned in by the ring; a jumper clears it.
-    expect(boss(fire(walled(), movingBeat({ move_tiles: 2, range_tiles: 1 })).state).coords).toEqual(bossCoords)
-    const leapt = fire(walled(), movingBeat({ move_tiles: 2, range_tiles: 1, traversal: 'jump' as const })).state
+    expect(boss(fire(walled(), movingBeat({ move_tiles: 2, standoff_tiles: 1 })).state).coords).toEqual(bossCoords)
+    const leapt = fire(walled(), movingBeat({ move_tiles: 2, standoff_tiles: 1, traversal: 'jump' as const })).state
     expect(hexDistance(boss(leapt).coords, bossCoords)).toBe(2)
     // It cleared the ring rather than landing in it: the landing still has to
     // be ground it could stand on.
@@ -3572,7 +3641,7 @@ describe('Boss traversal (D-074)', () => {
   it('teleports into reach from anywhere, spending no allowance to do it', () => {
     const state = apart()
     const heroCoords = state.board.entities[state.primaryHeroId].coords
-    const appeared = fire(state, movingBeat({ move_tiles: 0, range_tiles: 1, traversal: 'teleport' as const })).state
+    const appeared = fire(state, movingBeat({ move_tiles: 0, standoff_tiles: 1, traversal: 'teleport' as const })).state
     expect(hexDistance(boss(appeared).coords, heroCoords)).toBe(1)
   })
 
@@ -3586,7 +3655,7 @@ describe('Boss traversal (D-074)', () => {
           { id: 'coals', title: 'Coals', remainingRounds: 9, enterDamage: 1, blocksVoluntaryMovement: false, damagesSourceTeam: true, sourceTeam: 'enemy' },
         ]
       }
-      return fire(state, movingBeat({ move_tiles: 3, range_tiles: 1, traversal })).state
+      return fire(state, movingBeat({ move_tiles: 3, standoff_tiles: 1, traversal })).state
     }
     const bossMaxHealth = boss(start()).maxHealth
     // A walker pays a hex at a time all the way in: the distance it had to
@@ -3692,12 +3761,14 @@ describe('One movement rule for every piece (D-072)', () => {
     expect(boss(shoved.state).coords).toEqual(bossCoords)
   })
 
-  it('stops a Minion at its own reach rather than walking it onto the Hero', () => {
+  it('stops a Minion where it wants to stand rather than walking it onto the Hero', () => {
     // The shared rule has to be shared with the Minion's *own* numbers. A
-    // Whelp reaching 2 should halt two hexes out and bite from there; running
-    // it in to melee would be the Boss's reach deciding a Minion's business.
+    // Whelp standing off at 2 should halt two hexes out and bite from there;
+    // running it in to melee would be the Boss's numbers deciding a Minion's
+    // business.
     const reachy = structuredClone(catalog)
     reachy.minions.whelp.range_tiles = 2
+    reachy.minions.whelp.standoff_tiles = 2
     reachy.minions.whelp.move_tiles = 3
 
     const state = stepPhases(immortalHero(startBroodSecond()), 9).state
@@ -3715,7 +3786,15 @@ describe('One movement rule for every piece (D-072)', () => {
 
     const route = minionIntent(reachy, state, whelp.id)!.route
     expect(route.length).toBeGreaterThan(0)
-    expect(hexDistance(route.at(-1)!, heroCoords)).toBe(reachy.minions.whelp.range_tiles)
+    expect(hexDistance(route.at(-1)!, heroCoords)).toBe(reachy.minions.whelp.standoff_tiles)
+
+    // And the Minion half of D-079: the same bite reach, one hex closer a
+    // standoff, and the creep spends the allowance it was holding back. Before
+    // the split these were one number and this Minion could not be authored.
+    const eager = structuredClone(reachy)
+    eager.minions.whelp.standoff_tiles = 1
+    const closer = minionIntent(eager, state, whelp.id)!.route
+    expect(hexDistance(closer.at(-1)!, heroCoords)).toBe(hexDistance(route.at(-1)!, heroCoords) - 1)
   })
 
   it('aims a moving cone from the facing the move left it in', () => {
@@ -3741,7 +3820,7 @@ describe('One movement rule for every piece (D-072)', () => {
     // Resolved on the Instant Row, because that is the only Row a Movement
     // Clause may be authored on (D-075) — the shape is a cone Beat that closes
     // before it breathes, not a telegraphed one.
-    const lunging = { ...cone, move_tiles: 8, range_tiles: cone.range_tiles }
+    const lunging = { ...cone, move_tiles: 8, standoff_tiles: cone.range_tiles }
     const swept = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: lunging, track: 'instant' })
     expect(swept.facts.some((fact) => fact.kind === 'damage')).toBe(true)
   })

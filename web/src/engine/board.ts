@@ -289,11 +289,15 @@ export function facingAlong(route: Axial[], from: Axial, currentFacing: number):
 // better to stand.
 //
 // One rule governs all three kinds: **go no further than you have to**. The
-// mover stops the moment `target` is within `stopWithin`, which is the Beat's
-// own `range_tiles`. That is what makes an advance readable rather than
-// arbitrary — it comes exactly close enough to do the thing it is about to do —
-// and it is the rule that stops a Boss from walking past the Hero it is
-// hunting.
+// mover stops the moment `target` is within its authored `standoff`. That is
+// what makes an advance readable rather than arbitrary — it comes exactly close
+// enough to do the thing it is about to do — and it is the rule that stops a
+// Boss from walking past the Hero it is hunting.
+//
+// The standoff is not the mover's reach, though it was read off `range_tiles`
+// until D-079. Keeping them apart is what lets a piece close inside its own
+// reach or stop outside it, and it is why nothing here consults a reach at all:
+// where a mover stops is decided entirely by where it wants to stand.
 //
 // Ties break on hex key rather than on iteration order, so a route is a
 // function of the board and never of how the hex map happened to be built.
@@ -302,7 +306,7 @@ export function traversalRoute(
   moverId: string,
   target: Axial,
   moveTiles: number,
-  stopWithin: number,
+  standoff: number,
   traversal: Traversal,
 ): Axial[] {
   const mover = board.entities[moverId]
@@ -311,11 +315,11 @@ export function traversalRoute(
   }
   // Already in reach: the whole clause is skipped rather than spent. A Boss
   // standing next to its quarry has no reason to shuffle.
-  if (hexDistance(mover.coords, target) <= stopWithin) {
+  if (hexDistance(mover.coords, target) <= standoff) {
     return []
   }
   if (traversal === 'teleport') {
-    const landing = bestLanding(board, moverId, target, stopWithin, Object.keys(board.hexes).map(parseKey))
+    const landing = bestLanding(board, moverId, target, standoff, Object.keys(board.hexes).map(parseKey))
     return landing === null ? [] : [landing]
   }
   if (traversal === 'jump') {
@@ -325,10 +329,10 @@ export function traversalRoute(
     const candidates = Object.keys(board.hexes)
       .map(parseKey)
       .filter((coords) => hexDistance(mover.coords, coords) <= moveTiles)
-    const landing = bestLanding(board, moverId, target, stopWithin, candidates)
+    const landing = bestLanding(board, moverId, target, standoff, candidates)
     return landing === null ? [] : [landing]
   }
-  return walkRoute(board, moverId, target, moveTiles, stopWithin)
+  return walkRoute(board, moverId, target, moveTiles, standoff)
 }
 
 function parseKey(key: string): Axial {
@@ -341,11 +345,11 @@ function sortKey(coords: Axial): string {
 }
 
 // The hex a jump or a teleport picks: the one that best answers the Beat, with
-// "best" read off the same `stopWithin` a walker stops at. Closing to reach is
-// the whole point, so a landing that achieves it beats one that does not, and
+// "best" read off the same `standoff` a walker stops at. Reaching the standoff
+// is the whole point, so a landing that achieves it beats one that does not, and
 // among those the nearest to where it started wins — a Boss that can appear
 // anywhere still appears where it needs to be, not wherever is furthest.
-function bestLanding(board: BoardState, moverId: string, target: Axial, stopWithin: number, candidates: Axial[]): Axial | null {
+function bestLanding(board: BoardState, moverId: string, target: Axial, standoff: number, candidates: Axial[]): Axial | null {
   const mover = board.entities[moverId]
   if (!mover) {
     return null
@@ -364,7 +368,7 @@ function bestLanding(board: BoardState, moverId: string, target: Axial, stopWith
     if (toTarget >= startDistance) {
       continue
     }
-    const score: [number, number, string] = [Math.max(toTarget - stopWithin, 0), hexDistance(mover.coords, coords), sortKey(coords)]
+    const score: [number, number, string] = [Math.max(toTarget - standoff, 0), hexDistance(mover.coords, coords), sortKey(coords)]
     if (bestScore === null || compareScore(score, bestScore) < 0) {
       best = coords
       bestScore = score
@@ -373,8 +377,9 @@ function bestLanding(board: BoardState, moverId: string, target: Axial, stopWith
   return best
 }
 
-// How far short of reach it lands, then how far it had to go, then the hex key
-// — the last only so two equally good landings resolve the same way every run.
+// How far short of the standoff it lands, then how far it had to go, then the
+// hex key — the last only so two equally good landings resolve the same way
+// every run.
 function compareScore(left: [number, number, string], right: [number, number, string]): number {
   if (left[0] !== right[0]) {
     return left[0] - right[0]
@@ -388,9 +393,9 @@ function compareScore(left: [number, number, string], right: [number, number, st
 // A walker's route: breadth-first over traversable ground, so an obstacle
 // lengthens the path rather than stopping the piece dead against it — the
 // difference between a Boss that can be blocked and a Boss that can be
-// funnelled. Stops at the first hex from which the target is in reach, and
-// otherwise spends the whole allowance closing as far as it can.
-function walkRoute(board: BoardState, moverId: string, target: Axial, moveTiles: number, stopWithin: number): Axial[] {
+// funnelled. Stops at the first hex from which the target is within the
+// standoff, and otherwise spends the whole allowance closing as far as it can.
+function walkRoute(board: BoardState, moverId: string, target: Axial, moveTiles: number, standoff: number): Axial[] {
   const mover = board.entities[moverId]
   if (!mover || moveTiles < 1) {
     return []
@@ -419,7 +424,7 @@ function walkRoute(board: BoardState, moverId: string, target: Axial, moveTiles:
           bestDistance = toTarget
           best = candidate
         }
-        if (toTarget <= stopWithin) {
+        if (toTarget <= standoff) {
           return routeTo(cameFrom, start, candidate)
         }
       }

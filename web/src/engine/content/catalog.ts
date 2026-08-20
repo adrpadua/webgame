@@ -45,11 +45,15 @@ const RANGED_BEAT_KINDS = new Set<BossBeat['kind']>(['forward_cone', 'demand_pro
 // error can say which clause asked for one — the same shape `cardReachingEffects`
 // takes on the card side (D-073).
 //
-// The list is longer than `RANGED_BEAT_KINDS` because two of the three reasons
-// are fields rather than kinds. A `place_counter` reaches only when it is aimed
-// at a Hero, and *any* kind reaches once it carries a movement clause, because
-// `range_tiles` is what tells the movement how close is close enough. A kind
-// list could not express either.
+// The list is longer than `RANGED_BEAT_KINDS` because one of the two reasons is
+// a field rather than a kind: a `place_counter` reaches only when it is aimed at
+// a Hero, which a kind list could not express.
+//
+// A movement clause used to be a third reason, on the grounds that the mover has
+// to know how close is close enough. It is not a reach — it is a Standoff, and
+// since D-079 it has its own field. The tell was `advance_toward_player`, whose
+// only effect is the move: it reaches nothing whatsoever and this function
+// demanded a reach off it anyway.
 function beatReachReasons(beat: BossBeat): string[] {
   const reasons: string[] = []
   if (RANGED_BEAT_KINDS.has(beat.kind)) {
@@ -57,9 +61,6 @@ function beatReachReasons(beat: BossBeat): string[] {
   }
   if (beat.kind === 'place_counter' && beat.counter_target === 'hero') {
     reasons.push('marking a Hero')
-  }
-  if (beatMoves(beat)) {
-    reasons.push(`a ${beat.traversal} clause, which needs to know how close to get`)
   }
   return reasons
 }
@@ -69,6 +70,12 @@ function beatReachReasons(beat: BossBeat): string[] {
 // distance of zero does not rule out.
 function beatMoves(beat: BossBeat): boolean {
   return beat.move_tiles > 0 || beat.traversal === 'teleport' || beat.kind === 'advance_toward_player'
+}
+
+// The same question for a Minion, which has no kind to fall back on: its creep
+// runs on the allowance alone, or on a teleport that spends none.
+function minionMoves(minion: Minion): boolean {
+  return minion.move_tiles > 0 || minion.traversal === 'teleport'
 }
 
 // What a Card touches that is not the Hero firing it, named rather than
@@ -551,6 +558,26 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     if (minion.traversal === 'jump' && minion.move_tiles < 1) {
       throw new Error(`Minion ${minion.id} authors traversal jump but no move_tiles to spend on it`)
     }
+    // The Standoff, both-or-neither against the allowance rather than against
+    // the bite (D-079): a Minion that never travels has nowhere it is trying to
+    // stand.
+    if (minionMoves(minion) && minion.standoff_tiles < 1) {
+      throw new Error(`Minion ${minion.id} travels but authors no standoff_tiles to say how close to get`)
+    }
+    if (!minionMoves(minion) && minion.standoff_tiles > 0) {
+      throw new Error(`Minion ${minion.id} authors standoff_tiles ${minion.standoff_tiles} but never travels`)
+    }
+    // The one ordering a Minion may not author, and the one place the two
+    // numbers are constrained against each other anywhere in the rules. A Beat's
+    // clause and its effect are separate things and every ordering between them
+    // is a Boss somebody might build; a Minion has exactly one behaviour — creep
+    // until you can bite, then bite — so a Standoff outside the bite reach is a
+    // Minion the creep can be shown will never bite.
+    if (minionMoves(minion) && minion.standoff_tiles > minion.range_tiles) {
+      throw new Error(
+        `Minion ${minion.id} stops at ${minion.standoff_tiles} but bites at ${minion.range_tiles}, so it would creep into position and never attack`,
+      )
+    }
   }
   for (const modifier of Object.values(catalog.chargeModifiers)) {
     if (modifier.keyword_id !== '') {
@@ -641,6 +668,17 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       // default, so only an authored `jump` or `teleport` can trip this.
       if (!beatMoves(beat) && beat.traversal !== 'walk') {
         throw new Error(`Boss Beat ${beat.id} authors traversal ${beat.traversal} but carries no movement clause`)
+      }
+      // The Standoff, under the same both-or-neither rule the reach follows and
+      // for the same reason (D-079). Before the split this question was answered
+      // by `range_tiles`, so a Beat that only moved had to author a reach it
+      // never reached with, and the two refusals below could not exist: a Beat
+      // that moved always looked like a Beat that reached.
+      if (beatMoves(beat) && beat.standoff_tiles < 1) {
+        throw new Error(`Boss Beat ${beat.id} carries a ${beat.traversal} clause but authors no standoff_tiles to say how close to get`)
+      }
+      if (!beatMoves(beat) && beat.standoff_tiles > 0) {
+        throw new Error(`Boss Beat ${beat.id} authors standoff_tiles ${beat.standoff_tiles} but carries no movement clause`)
       }
     }
   }
