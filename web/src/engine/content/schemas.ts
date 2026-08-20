@@ -439,6 +439,12 @@ export const encounterSchema = z.object({
   boss_health: z.number().int().min(1),
   slot_count: z.number().int().min(1).max(8),
   hand_refill_target: z.number().int().min(1).max(12),
+  // What a Revived Hero comes back on, as a fraction of their maximum, rounded
+  // up (ADR 0036). Authored rather than compiled in because it decides how
+  // forgiving the whole fight is — the mistake `range_tiles` was before D-043,
+  // where the number that set the difficulty lived where no designer could
+  // reach it. `0.25` is CONTEXT.md's baseline.
+  revive_health_fraction: z.number().min(0.05).max(1).default(0.25),
   player_deck: z.array(deckEntrySchema).min(1),
   boss_programs: z.array(z.string()).min(1),
   loop_boss_programs: z.boolean().default(true),

@@ -1,6 +1,7 @@
 import type { Axial } from './hex'
 import type { BossBeat } from './content/schemas'
 import type { Phase } from './types'
+import type { DiminishedAction } from './downed'
 
 export const ENCOUNTER_SOURCE = 'encounter'
 
@@ -31,6 +32,15 @@ export type EncounterActionInput =
   | { kind: 'detonate_minion'; sourceId: string }
   | { kind: 'damage'; sourceId: string; targetId: string; amount: number; reasonText: string; factContext?: Record<string, unknown> }
   | { kind: 'discard_for_stamina'; sourceId: string; cardInstanceId: string }
+  // The rescue (ADR 0036): a living Hero adjacent to a Downed ally discards
+  // one hand card to bring them back at the Encounter's authored fraction.
+  | { kind: 'revive_ally'; sourceId: string; targetId: string; cardInstanceId: string }
+  // What an Incapacitated Hero does instead of a turn. Three ally-facing
+  // choices, none of them touching the Boss's health.
+  | { kind: 'diminished_action'; sourceId: string; action: DiminishedAction; targetId?: string }
+  // The rescue window closed. Emitted by the Round boundary, never by a
+  // player: the body leaves the board and the Hero's cards leave with it.
+  | { kind: 'incapacitate_hero'; sourceId: string }
   // A Boss Beat placing a Counter (D-051). It rides an action like every other
   // mutation a Beat causes, so the fact log records who marked what.
   | { kind: 'place_counter'; sourceId: string; hostRef: string; counterId: string; amount: number; reasonText: string }

@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { buildCatalog, createEncounterState, ENCOUNTER_SOURCE, resolve, selectBeatTarget, type ContentCatalog, type EncounterState } from '@/engine'
+import {
+  buildCatalog,
+  advancePhase,
+  createEncounterState,
+  escalationActionsForRoundEnd,
+  DIMINISHED_ACTIONS,
+  ENCOUNTER_SOURCE,
+  isLivingHero,
+  livingHeroIds,
+  rescueDeadlineRound,
+  resolve,
+  selectBeatTarget,
+  type ContentCatalog,
+  type EncounterState,
+} from '@/engine'
 
 // The Party seams (ADR 0035). Every test here fields two Heroes, because the
 // existing suite only ever proves the solo path still works — which it would
@@ -364,5 +378,249 @@ describe('the Signature earn vocabulary (ADR 0037)', () => {
       running = resolve(catalog, running, { kind: 'round_start', sourceId: ENCOUNTER_SOURCE, round }).state
     }
     expect(signatureSlot(running).earnedCharges).toBe(2)
+  })
+})
+
+// The zero-health lifecycle (ADR 0036). Downed while a rescue is possible,
+// Incapacitated when it is not, and never removed from play.
+describe('the zero-health lifecycle (ADR 0036)', () => {
+  function wounded() {
+    const catalog = party()
+    const state = createEncounterState(catalog, 'probe_party')
+    return { catalog, state }
+  }
+
+  // Put the Mender on the floor without ending the fight.
+  function downTheMender(catalog: ContentCatalog, state: EncounterState) {
+    state.heroes.mender.health = 2
+    return resolve(catalog, state, {
+      kind: 'damage', sourceId: 'probe_boss', targetId: 'mender', amount: 5, reasonText: 'probe',
+    }).state
+  }
+
+  it('sends a Hero at zero Downed instead of ending the Encounter', () => {
+    const { catalog, state } = wounded()
+    const after = downTheMender(catalog, state)
+    expect(after.heroes.mender.status).toBe('downed')
+    expect(after.heroes.mender.downedRound).toBe(after.round)
+    expect(after.active).toBe(true)
+    expect(after.outcome).toBe('ongoing')
+    // The body stays on the board, keeping its hex and its Counters.
+    expect(after.board.entities.mender).toBeDefined()
+  })
+
+  it('still ends the Encounter when the whole Party is out', () => {
+    const { catalog, state } = wounded()
+    const downed = downTheMender(catalog, state)
+    downed.heroes.warden.health = 1
+    const wiped = resolve(catalog, downed, {
+      kind: 'damage', sourceId: 'probe_boss', targetId: 'warden', amount: 5, reasonText: 'probe',
+    }).state
+    expect(wiped.active).toBe(false)
+    expect(wiped.outcome).toBe('defeat')
+    expect(wiped.outcomeReason).toBe('The Party has fallen.')
+  })
+
+  it('answers no demand while Downed', () => {
+    const { catalog, state } = wounded()
+    const after = downTheMender(catalog, state)
+    expect(livingHeroIds(after)).toEqual(['warden'])
+    expect(isLivingHero(after.heroes.mender)).toBe(false)
+    // The Boss cannot aim at a body even when it asks for that Role.
+    expect(selectBeatTarget(catalog, after, beat({ target_selector: 'healer' })).heroId).toBe('warden')
+  })
+
+  it('revives on an adjacent ally spending a card, at the authored fraction', () => {
+    const { catalog, state } = wounded()
+    const after = downTheMender(catalog, state)
+    // The Warden starts adjacent to the Mender.
+    const card = after.heroes.warden.hand[0]
+    const revived = resolve(catalog, after, {
+      kind: 'revive_ally', sourceId: 'warden', targetId: 'mender', cardInstanceId: card.instanceId,
+    })
+    expect(revived.facts[0].succeeded).toBe(true)
+    expect(revived.state.heroes.mender.status).toBe('living')
+    // 25% of 12, rounded up.
+    expect(revived.state.heroes.mender.health).toBe(3)
+    expect(revived.state.heroes.warden.hand.some((c) => c.instanceId === card.instanceId)).toBe(false)
+  })
+
+  it('refuses a rescue from out of reach, and of a Hero who is not Downed', () => {
+    const { catalog, state } = wounded()
+    const after = downTheMender(catalog, state)
+    after.board.entities.warden.coords = { q: -3, r: 3 }
+    const card = after.heroes.warden.hand[0]
+    const far = resolve(catalog, after, {
+      kind: 'revive_ally', sourceId: 'warden', targetId: 'mender', cardInstanceId: card.instanceId,
+    })
+    expect(far.facts[0].reason).toBe('You must be adjacent to the Downed ally.')
+
+    const healthy = resolve(catalog, state, {
+      kind: 'revive_ally', sourceId: 'warden', targetId: 'mender', cardInstanceId: state.heroes.warden.hand[0].instanceId,
+    })
+    expect(healthy.facts[0].reason).toBe('That ally is not Downed.')
+  })
+
+  it('incapacitates when the window actually expires, charging Escalation', () => {
+    const { catalog, state } = wounded()
+    let running = downTheMender(catalog, state)
+    const deadline = rescueDeadlineRound(running.heroes.mender)
+    const escalationBefore = running.escalation
+    let charged = false
+
+    // Walk real Round boundaries rather than submitting the transition by
+    // hand: the rule under test is *when* the window closes.
+    let guard = 0
+    while (running.active && running.heroes.mender.status === 'downed' && guard < 40) {
+      const stepped = advancePhase(catalog, running)
+      running = stepped.state
+      if (stepped.facts.some((f) => f.kind === 'gain_escalation' && (f.detail as { reason?: string }).reason === 'unanswered_rescue')) {
+        charged = true
+      }
+      guard += 1
+    }
+
+    expect(running.heroes.mender.status).toBe('incapacitated')
+    // Rescuable through the deadline Round; gone once the next one opens.
+    expect(running.round).toBeGreaterThan(deadline)
+    expect(charged).toBe(true)
+    expect(running.escalation).toBeGreaterThan(escalationBefore)
+    // Off the board, cards gone, deck silent, Counters dropped with the body.
+    expect(running.board.entities.mender).toBeUndefined()
+    expect(running.heroes.mender.hand).toEqual([])
+    expect(running.heroes.mender.deck).toEqual([])
+    expect(running.counters['combatant:mender']).toBeUndefined()
+  })
+
+  it('lets an Incapacitated Hero act, and never on the Boss', () => {
+    const { catalog, state } = wounded()
+    const downed = downTheMender(catalog, state)
+    const out = resolve(catalog, downed, { kind: 'incapacitate_hero', sourceId: 'mender' }).state
+    out.heroes.warden.armor = 0
+
+    const steadied = resolve(catalog, out, {
+      kind: 'diminished_action', sourceId: 'mender', action: 'steady_an_ally', targetId: 'warden',
+    })
+    expect(steadied.facts[0].succeeded).toBe(true)
+    expect(steadied.state.heroes.warden.armor).toBe(1)
+    // The Boss's health is untouched by every diminished action.
+    expect(steadied.state.board.entities.probe_boss.health).toBe(out.board.entities.probe_boss.health)
+
+    const withEscalation = { ...out, escalation: 2 }
+    const steeled = resolve(catalog, withEscalation, {
+      kind: 'diminished_action', sourceId: 'mender', action: 'steel_the_party',
+    })
+    expect(steeled.state.escalation).toBe(1)
+    expect(DIMINISHED_ACTIONS).toHaveLength(3)
+  })
+
+  it('refuses a diminished action from a Hero who is still standing', () => {
+    const { catalog, state } = wounded()
+    const refused = resolve(catalog, state, {
+      kind: 'diminished_action', sourceId: 'warden', action: 'steel_the_party',
+    })
+    expect(refused.facts[0].reason).toBe('Only an Incapacitated Hero takes a diminished action.')
+  })
+
+  // The exploit ADR 0036 names by hand: a Downed body still occupies its hex,
+  // so without the living-only filter a Party could park a corpse beside the
+  // Boss and dodge the D-041 charge for the rest of the fight.
+  it('does not let a parked corpse answer the proximity demand', () => {
+    const catalog = buildCatalog({
+      cards: CARDS,
+      heroes: [
+        { id: 'warden', title: 'Warden', max_health: 20 },
+        { id: 'mender', title: 'Mender', max_health: 12 },
+      ],
+      keywords: KEYWORDS,
+      counters: COUNTERS,
+      chargeModifiers: [],
+      hazards: [],
+      minions: [],
+      programs: [
+        {
+          id: 'probe_program',
+          title: 'Probe Program',
+          instant_beats: [],
+          incoming_beats: [
+            {
+              id: 'within_reach',
+              title: 'Within Reach',
+              kind: 'demand_proximity',
+              range_tiles: 1,
+              escalation_if_unanswered: 1,
+              consequence_tier: 'severe',
+              rules_text: 'Stand close, or the clock moves.',
+            },
+          ],
+        },
+      ],
+      encounters: [
+        {
+          id: 'probe_party',
+          title: 'Probe Party',
+          party: [
+            { hero: 'warden', start: { q: 0, r: 0 }, deck: [{ card: 'tank_strike', copies: 6 }] },
+            { hero: 'mender', start: { q: 1, r: 0 }, deck: [{ card: 'healer_strike', copies: 6 }] },
+          ],
+          boss_id: 'probe_boss',
+          boss_title: 'Probe Boss',
+          round_limit: 6,
+          board_radius: 3,
+          boss_start: { q: 0, r: -3 },
+          boss_health: 40,
+          slot_count: 2,
+          hand_refill_target: 4,
+          player_deck: [{ card: 'tank_strike', copies: 4 }],
+          boss_programs: ['probe_program'],
+          random_seed: 7,
+        },
+      ],
+    })
+    const state = createEncounterState(catalog, 'probe_party')
+    // The Mender goes down standing right beside the Boss; the Warden stays
+    // well out of reach.
+    state.heroes.mender.health = 2
+    const downed = resolve(catalog, state, {
+      kind: 'damage', sourceId: 'probe_boss', targetId: 'mender', amount: 5, reasonText: 'probe',
+    }).state
+    expect(downed.heroes.mender.status).toBe('downed')
+    downed.board.entities.mender.coords = { q: 0, r: -2 }
+    downed.board.entities.warden.coords = { q: 0, r: 3 }
+
+    const charges = escalationActionsForRoundEnd(catalog, downed)
+    expect(charges.some((a) => a.kind === 'gain_escalation' && a.reason === 'unanswered_proximity')).toBe(true)
+
+    // And a living Hero standing there does answer it.
+    downed.board.entities.warden.coords = { q: 0, r: -2 }
+    downed.board.entities.mender.coords = { q: 0, r: 3 }
+    const answered = escalationActionsForRoundEnd(catalog, downed)
+    expect(answered.some((a) => a.kind === 'gain_escalation' && a.reason === 'unanswered_proximity')).toBe(false)
+  })
+
+  it('revives at the fraction the Encounter authors, not a compiled-in one', () => {
+    const catalog = party({ revive_health_fraction: 0.5 })
+    const state = createEncounterState(catalog, 'probe_party')
+    const downed = downTheMender(catalog, state)
+    const card = downed.heroes.warden.hand[0]
+    const revived = resolve(catalog, downed, {
+      kind: 'revive_ally', sourceId: 'warden', targetId: 'mender', cardInstanceId: card.instanceId,
+    })
+    // Half of 12, not the 0.25 default.
+    expect(revived.state.heroes.mender.health).toBe(6)
+  })
+
+  it('keeps a solo Hero at zero an immediate defeat', () => {
+    const catalog = party({ party: [{ hero: 'warden', start: { q: 0, r: 0 }, deck: [{ card: 'tank_strike', copies: 6 }] }] })
+    const state = createEncounterState(catalog, 'probe_party')
+    state.heroes.warden.health = 1
+    const after = resolve(catalog, state, {
+      kind: 'damage', sourceId: 'probe_boss', targetId: 'warden', amount: 5, reasonText: 'probe',
+    }).state
+    // Nobody could ever perform the rescue, so the window would be a loss the
+    // screen had not admitted yet.
+    expect(after.heroes.warden.status).toBe('living')
+    expect(after.active).toBe(false)
+    expect(after.outcomeReason).toBe('A Hero has fallen.')
   })
 })

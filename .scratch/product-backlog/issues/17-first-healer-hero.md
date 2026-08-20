@@ -62,11 +62,11 @@ Game Design (kit and encounter content), Architecture (party model, ally targeti
 1. **Sequencing: build the party seams.** The Healer justifies promoting the multi-Hero model rather than waiting. **Done** — the engine and content seams shipped as D-069 / ADR 0035.
 2. **Minimum party: two Heroes.** The schema allows one to four; two is what the first authored party content targets.
 3. **Draft shape: party-first.** With the seams in, the Healer is drafted against a real party rather than as a solo proxy — which is what the Kled lesson and the first Healer Principle both demanded.
-4. **Signature at launch: still open.** The Bond is a `host_deals_damage` earn and only `host_takes_damage` is evaluated (Engineering rank 15). Draft her Signature-less unless that request lands first; the walkthrough's step 5 covers the interim.
+4. **Signature at launch: unblocked.** The Bond's `host_deals_damage` earn is evaluated since D-071 / ADR 0037, gated on `effect_landed`. She can be drafted with her Signature.
 
 ## Remaining Before A Healer Is Playable
 
-- **The zero-health lifecycle** — designed 2026-08-19 (D-070, ADR 0036) and not yet implemented; the engine still ends the Encounter when any Hero hits zero. The design is now specifically shaped for this Hero: a failed save costs a `Downed` ally and then an `Incapacitated` one, never an eliminated player, which is what lets her triage decisions be hard without being cruel. Until it lands, a failure to save is an instant loss and every triage decision is distorted.
+- ~~**The zero-health lifecycle**~~ **Shipped 2026-08-20** (D-070, ADR 0036). A failed save now costs a `Downed` ally and then an `Incapacitated` one, never an eliminated player — so her triage decisions are hard without being cruel, and a failure to save is a recoverable mistake rather than an instant loss.
 - **Party UI** — a second Hero Frame, hero switching, and ally target selection. Held deliberately for the design-system pass.
 - **Party-aware evaluation** — the sweep's policies are solo-tank shaped, so the no-healer-clear test has no automatic half yet.
 - **Frontend mockups** — the user is designing these before implementation.
