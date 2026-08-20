@@ -331,11 +331,15 @@ An authored set of board hexes that harms only combatants occupying its resolved
 _Avoid_: All boss damage, target selector
 
 **Downed**:
-The state of a Hero at `0` health. A Downed Hero remains on its hex as a blocking, non-targetable body; it does not immediately end the Encounter and must be revived by the end of the following Round or is permanently defeated. A permanently defeated Hero is removed from play, but the Encounter continues while at least one Hero remains living. If every non-permanently-defeated Hero is Downed at once, the Encounter ends in defeat.
-_Avoid_: Dead, eliminated
+The state of a Hero at `0` health while a rescue is still possible. A Downed Hero remains on its hex as a blocking, non-targetable body and keeps the Counters it holds, because the body is still on the board. Being Downed does not end the Encounter and does not satisfy anything the Party is asked for: a Downed Hero is not selectable by a Boss Beat's Role selector, and does not answer the proximity demand — a body cannot answer a demand. The state lasts until the end of the following Round; a Hero not `Revived` by then becomes `Incapacitated`. Downed requires another living Hero to exist. A Hero reduced to `0` health with no living ally is defeat immediately, because there is nobody who could ever perform the rescue and the alternative is a loss the screen has not admitted yet.
+_Avoid_: Dead, eliminated, permanently defeated
+
+**Incapacitated**:
+The state of a Hero whose rescue window expired. The body leaves the board and its Counters leave with it; the Hero's hand is discarded and its deck is never consulted again, so the seeded draw order of the Heroes still playing is undisturbed. The Party takes one Escalation for the failed rescue. An Incapacitated Hero is **not removed from play**: each Round its player chooses one of three ally-facing actions, so the person at the table keeps deciding something even though their Hero can no longer fight. This is what keeps a preservation Role from becoming a blame-sink — the price of a failed save is a diminished Hero, never an eliminated player. An Incapacitated Hero cannot be healed, revived, targeted, or restored; the state is terminal for that Encounter.
+_Avoid_: Dead, removed, permanently defeated, out
 
 **Revive**:
-A universal action available to a living Hero adjacent to a Downed ally. Discard one hand card to return that ally to `25%` of maximum health, rounded up. Healer cards may improve or replace this baseline action.
+A universal action available to a living Hero adjacent to a `Downed` ally. Discard one hand card to return that ally to an authored fraction of maximum health, rounded up. The fraction is authored content rather than an engine constant, because it decides how forgiving the whole game is. Healer cards may improve or replace this baseline action. An `Incapacitated` Hero can never be Revived.
 _Avoid_: Resurrection, free pickup
 
 **Raid Hit**:
@@ -371,7 +375,7 @@ A Party member controlled by predictable visible priority rules in solo play. An
 _Avoid_: Bot player, companion mode
 
 **Party**:
-The two-to-four Player Heroes cooperating in an Encounter. A Party is controlled by multiple people when possible. In solo play, simple AI Heroes fill the remaining Roles so the same party-shaped encounter mechanics remain in play. Authored as an Encounter's ordered `party` — one seat per Hero, each naming a Hero from `data/heroes/`, a start hex, its own decklist, and whether that Hero's Signature is fielded (D-067, ADR 0035). A seat's deck is what states that Hero's Role, so two seats sharing one decklist are two seats playing the same Role. One seat is legal: a solo fight is a Party of one rather than a different kind of Encounter. A Boss Beat's `target_selector` picks which seat its blow lands on, and a card may reach a seated ally through `target_type: "ally"`. `Downed` and `Revive` below are defined but not yet implemented — any Hero reaching `0` still ends the Encounter.
+The two-to-four Player Heroes cooperating in an Encounter. A Party is controlled by multiple people when possible. In solo play, simple AI Heroes fill the remaining Roles so the same party-shaped encounter mechanics remain in play. Authored as an Encounter's ordered `party` — one seat per Hero, each naming a Hero from `data/heroes/`, a start hex, its own decklist, and whether that Hero's Signature is fielded (D-067, ADR 0035). A seat's deck is what states that Hero's Role, so two seats sharing one decklist are two seats playing the same Role. One seat is legal: a solo fight is a Party of one rather than a different kind of Encounter. A Boss Beat's `target_selector` picks which seat its blow lands on, and a card may reach a seated ally through `target_type: "ally"`. The Encounter is lost when every seated Hero is `Downed` or `Incapacitated` at once. `Downed`, `Revive`, and `Incapacitated` are designed (D-068, ADR 0036) but not yet implemented — any Hero reaching `0` still ends the Encounter today.
 _Avoid_: Squad, team comp
 
 **Committed Movement**:

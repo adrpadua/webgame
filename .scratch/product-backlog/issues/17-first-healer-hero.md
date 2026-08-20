@@ -43,7 +43,7 @@ A second playable role exists, so that a party of two answers a Boss problem nei
 
 - The full three-role party. Two Heroes (Tank + Healer) is the smallest configuration that proves the Role Contract.
 - The Catcher-style controller sibling. One healer first; the Second Hero Of A Role rule needs a first.
-- Breach, rear-arc targeting, Downed/Revive lifecycle, and Encounter Responsibilities — each is separately gated.
+- Breach, rear-arc targeting, and Encounter Responsibilities — each is separately gated. The zero-health lifecycle is designed (D-068, ADR 0036) and awaits implementation.
 - Raid-run rewards and deck evolution.
 
 ## Acceptance Evidence
@@ -66,7 +66,7 @@ Game Design (kit and encounter content), Architecture (party model, ally targeti
 
 ## Remaining Before A Healer Is Playable
 
-- **Downed / Revive** — CONTEXT.md defines both fully; the engine still ends the Encounter when any Hero hits zero. Until this lands, a Healer's failure to save an ally is an instant loss rather than a recoverable mistake, which distorts every triage decision she is built around.
+- **The zero-health lifecycle** — designed 2026-08-19 (D-068, ADR 0036) and not yet implemented; the engine still ends the Encounter when any Hero hits zero. The design is now specifically shaped for this Hero: a failed save costs a `Downed` ally and then an `Incapacitated` one, never an eliminated player, which is what lets her triage decisions be hard without being cruel. Until it lands, a failure to save is an instant loss and every triage decision is distorted.
 - **Party UI** — a second Hero Frame, hero switching, and ally target selection. Held deliberately for the design-system pass.
 - **Party-aware evaluation** — the sweep's policies are solo-tank shaped, so the no-healer-clear test has no automatic half yet.
 - **Frontend mockups** — the user is designing these before implementation.
