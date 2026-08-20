@@ -1,0 +1,15 @@
+<!-- @dsCard group="Plates" name="Padding rule" subtitle="One derived rule · guarded in the browser" -->
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../colors_and_type.css" />
+    <style>
+      .ds-card { width: 560px; }
+      
+    </style>
+  </head>
+  <body>
+    <div class="ds-card"><div class="ds-lbl">The one padding rule</div><div class="ds-mono" style="background:var(--steel-950);border:1px solid var(--steel-800);border-radius:6px;padding:12px 14px;font-size:11px;line-height:1.7;color:var(--glass-200)">padding-inline: calc(var(--wb-inset) + var(--wb-gutter));</div><div class="ds-note"><b>--wb-inset</b> is how deep the cut reaches <i>this plate's content</i>. The leading edge is furthest in at the top and reaches zero at the bottom; the trailing edge does the reverse. So content spanning the plate meets the full offset, and content held to the middle band meets half of it (<b>wb-plate-centered</b>). <b>--wb-gutter</b> is the breathing room past the cut, and it is the only figure in the system tuned by eye.</div><div class="ds-note">Nothing else sets padding-inline. A plate that wants width back lowers its gutter or declares where its content sits — it never ducks under its own cut. One exception, <b>wb-gutter-raked</b>, is for a plate carrying a text column: a raked box read as a column is a wedge, so it measures each side at the corner that side is worst at and adds the notch back on top.</div><div class="ds-note"><b>A browser check holds every visible plate to padding ≥ --wb-inset</b>, so a new size cannot ship with content sitting in its own cut. This rule replaced seven hand-set values, a per-caller utility, and two inline styles no class could beat.</div></div>
+  </body>
+</html>

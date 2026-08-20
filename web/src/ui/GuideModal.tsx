@@ -37,7 +37,7 @@ function PrepareDiagram() {
     <div className="relative flex h-32 flex-col items-center justify-between bg-navy-950 px-3 py-3">
       {/* The Slot: charge pips fill as the card arrives. */}
       <div className="wb-plate wb-plate-md wb-face-steel wb-acc-gold flex w-28 flex-col gap-1 py-1.5">
-        <span className="text-[8px] font-bold text-ceramic-300">Slot</span>
+        <span className="text-[9px] font-bold text-ceramic-300">Slot</span>
         <div className="flex gap-1">
           {['1.2s', '2.4s', '3.6s'].map((delay) => (
             <span key={delay} className="wb-pip-fill h-2 w-2 rounded-full bg-steel-700" style={{ animationDelay: delay }} />
@@ -46,7 +46,7 @@ function PrepareDiagram() {
       </div>
       {/* The hand card that rises into the Slot, on a loop. */}
       <div className="wb-card-rise wb-plate wb-plate-md wb-face-steel wb-acc-glass absolute bottom-3 left-1/2 w-24 -translate-x-1/2 to-steel-900 py-1.5 shadow-lg">
-        <span className="text-[8px] font-bold text-ceramic-200">Hand card</span>
+        <span className="text-[9px] font-bold text-ceramic-200">Hand card</span>
       </div>
       <span className="text-[9px] text-steel-500">drag or tap · card goes to the Slot</span>
     </div>
@@ -161,7 +161,7 @@ export function GuideModal() {
           Skip
         </button>
       </div>
-      <h2 id="guide-title" className="mt-1 text-base font-bold text-ceramic-100">
+      <h2 id="guide-title" className="mt-1 text-lg font-bold text-ceramic-100">
         {step.title}
       </h2>
       <div className="mt-3" key={guideStep}>

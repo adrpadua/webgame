@@ -47,10 +47,14 @@ const STATE_LABEL: Record<SlotStateName, string> = {
   fired: 'Fired',
 }
 
-// Loaded carries no subtitle: a card sitting in the Slot already says it, and
-// a word that only restates what the eye sees is noise the other states have
-// to be read past. The label is kept for the aria-label, where the card's
-// presence is not a visible fact.
+// Which states print a state WORD under the pins. Loaded does not: a card
+// sitting in the Slot already says it, and a word that only restates what the
+// eye sees is noise the other states have to be read past. The label is kept
+// for the aria-label, where the card's presence is not a visible fact.
+//
+// This governs the word, not the row. Since the want marks moved down, a
+// Loaded Slot with an appetite renders that row for its marks alone — the
+// argument above is untouched, because nothing is being said twice.
 const SUBTITLE_STATES: ReadonlySet<SlotStateName> = new Set<SlotStateName>(['charged', 'full', 'fired'])
 
 // Only Full wears gold in the label: it is the state that can fire.
@@ -277,7 +281,7 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
             {/* Keyed on the state so entering Full remounts the head and the
                 seat plays once, on that transition only. */}
             <LockHead key={stateName} state={LOCK_STATE[stateName]} className={`h-4 w-4 shrink-0 ${stateName === 'full' ? 'wb-seat' : ''}`} />
-            <div className={`flex items-center ${stateName === 'full' || stateName === 'fired' ? 'gap-0' : 'gap-[3px]'}`} data-testid="charge-tumblers">
+            <div className={`flex items-center ${stateName === 'full' || stateName === 'fired' ? 'gap-0' : 'gap-1'}`} data-testid="charge-tumblers">
               {Array.from({ length: chargeCap }, (_, index) => (
                 <span
                   key={index}
@@ -287,30 +291,45 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
                 />
               ))}
             </div>
-            {/* What this Top Card is hunting for, on the row that holds the
-                pins it would fill: the same Keyword marks the Hand draws, so
-                the answer to "which card do I tuck here" is a match between
-                two glyphs rather than a rules sentence either end. Gold while
-                the Slot can still take a Charge — the same predicate that
-                lights those Keywords in hand — and steel when it cannot, so
-                a card's appetite stays learnable through the window it spends
-                unable to act on it. */}
             <span className={`ml-auto h-2 w-2 shrink-0 rounded-full ${windowDotClass(cardWindowSpeed(card))}`} aria-hidden="true" />
-            {wanted.length > 0 && (
-              <div className="flex shrink-0 items-center gap-1" data-testid="slot-wants">
-                {wanted.map((keywordId) => {
-                  const Icon = keywordIcon(state.primaryHeroId, keywordId)
-                  return <Icon key={keywordId} className={`h-4 w-4 ${takesCharge ? 'text-gold-400' : 'text-steel-600'}`} />
-                })}
-              </div>
-            )}
           </div>
-          {SUBTITLE_STATES.has(stateName) && (
-            // An out-of-window Slot's subtitle drops to steel whatever its
-            // state: Full's gold word on a dim plate would still whisper
-            // "can fire", and it cannot until its window comes round.
-            <div className={`mt-1 text-[10px] font-semibold tracking-wide uppercase ${outOfWindow ? 'text-steel-500' : STATE_TONE[stateName]}`}>
-              {STATE_LABEL[stateName]}
+          {/* The state word and the want marks share the row under the pins.
+              Both are legible there, and neither fits above: a three-Charge Top
+              Card carrying one want mark needed 106px of tumbler row inside a
+              97px Slot, which put the glyph in the plate's own cut — the defect
+              the padding rule exists to prevent and cannot see, because it
+              measures padding rather than content.
+
+              What this Top Card is hunting for: the same Keyword marks the Hand
+              draws, so the answer to "which card do I tuck here" is a match
+              between two glyphs rather than a rules sentence either end. Gold
+              while the Slot can still take a Charge — the same predicate that
+              lights those Keywords in hand — and steel when it cannot, so a
+              card's appetite stays learnable through the window it spends
+              unable to act on it.
+
+              Loaded still prints no word: a card sitting in the Slot already
+              says it. That rule was always about the word, not the row, so a
+              Loaded Slot with an appetite may borrow the row for its marks and
+              one with none renders nothing, exactly as before. */}
+          {(SUBTITLE_STATES.has(stateName) || wanted.length > 0) && (
+            <div className="mt-1 flex items-center gap-1.5">
+              {SUBTITLE_STATES.has(stateName) && (
+                // An out-of-window Slot's subtitle drops to steel whatever its
+                // state: Full's gold word on a dim plate would still whisper
+                // "can fire", and it cannot until its window comes round.
+                <span className={`text-[10px] font-semibold tracking-wide uppercase ${outOfWindow ? 'text-steel-500' : STATE_TONE[stateName]}`}>
+                  {STATE_LABEL[stateName]}
+                </span>
+              )}
+              {wanted.length > 0 && (
+                <div className="ml-auto flex shrink-0 items-center gap-1" data-testid="slot-wants">
+                  {wanted.map((keywordId) => {
+                    const Icon = keywordIcon(state.primaryHeroId, keywordId)
+                    return <Icon key={keywordId} className={`h-4 w-4 ${takesCharge ? 'text-gold-400' : 'text-steel-600'}`} />
+                  })}
+                </div>
+              )}
             </div>
           )}
         </>

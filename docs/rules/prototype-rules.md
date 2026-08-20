@@ -222,7 +222,7 @@ Current prototype damage rules:
 - `Tank Hits` and `Raid Hits` are separate authored values on boss actions
 - In the one-player vertical slice, both hit types resolve against Elian Voss; their labels remain visible so the model can later target a 2-4 player party
 - Reducing Embermaw to `0` health is victory
-- Reducing Elian Voss to `0` health or reaching the enrage timer is defeat. Solo this is immediate, and stays so under D-068: `Downed` requires a living ally, and Elian has none.
+- Reducing Elian Voss to `0` health or reaching the enrage timer is defeat. Solo this is immediate, and stays so under D-070: `Downed` requires a living ally, and Elian has none.
 
 ## Encounter Resolution
 
@@ -232,7 +232,7 @@ The encounter is active until one terminal outcome occurs:
 - `Defeat`: Elian Voss reaches `0` health
 - `Enrage Defeat`: the round counter advances past the encounter clock
 
-With a Party, defeat is the whole Party being out at once rather than any one Hero falling (D-068, ADR 0036): a Hero at `0` becomes `Downed` — a blocking, non-targetable body who answers no demand and satisfies no Role selector — and is `Revived` by an adjacent ally discarding a card, or becomes `Incapacitated` at the end of the following Round. An Incapacitated Hero leaves the board, loses their Counters, hand, and deck, costs the Party one Escalation (`unanswered_rescue`), and thereafter chooses one of three ally-facing actions each Round. They are never removed from play. This is designed and not yet implemented; the solo slice above is unaffected either way, because `Downed` needs a living ally.
+With a Party, defeat is the whole Party being out at once rather than any one Hero falling (D-070, ADR 0036): a Hero at `0` becomes `Downed` — a blocking, non-targetable body who answers no demand and satisfies no Role selector — and is `Revived` by an adjacent ally discarding a card, or becomes `Incapacitated` at the end of the following Round. An Incapacitated Hero leaves the board, loses their Counters, hand, and deck, costs the Party one Escalation (`unanswered_rescue`), and thereafter chooses one of three ally-facing actions each Round. They are never removed from play. This is designed and not yet implemented; the solo slice above is unaffected either way, because `Downed` needs a living ally.
 
 The result is shown in the top bar and board feedback. Encounter history remains available to debug tooling, while gameplay controls lock after resolution and `Restart Encounter` creates a fresh shuffled deck, board, boss timeline, and encounter clock.
 

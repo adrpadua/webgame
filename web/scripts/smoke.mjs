@@ -486,6 +486,46 @@ try {
   // text rather than scrollWidth: an overflowing word in a visible-overflow
   // block leaves scrollWidth at the padding box, so the spill does not show
   // up in the element's own metrics. A Range reports where glyphs land.
+  // The other half of the plate's padding rule, and the half the padding check
+  // cannot see. Padding clearing the cut is worth nothing if the CONTENT
+  // overruns the box: the overflow lands in exactly the same place, inside the
+  // plate's own rake. A three-Charge Slot row shipped at 106px inside 97px,
+  // putting a Keyword glyph in the cut while passing the padding check.
+  //
+  // Scoped to single-line flex rows, where an overflowing flex item does move
+  // scrollWidth past clientWidth. A wrapping element is *supposed* to overflow
+  // its line box — the Hand's `break-words` titles are the deliberate case, and
+  // `cardSpill` measures those with a Range for the reason stated above.
+  const plateOverruns = (pg) =>
+    pg.evaluate(() => {
+      const problems = []
+      const seen = new Set()
+      for (const plate of document.querySelectorAll('.wb-plate')) {
+        const plateBox = plate.getBoundingClientRect()
+        if (plateBox.width === 0 || plateBox.height === 0) {
+          continue
+        }
+        for (const el of [plate, ...plate.querySelectorAll('*')]) {
+          const style = getComputedStyle(el)
+          if (style.display !== 'flex' || style.flexWrap !== 'nowrap') {
+            continue
+          }
+          const overrun = el.scrollWidth - el.clientWidth
+          if (overrun <= 1 || el.clientWidth === 0) {
+            continue
+          }
+          const size = [...plate.classList].find((name) => name.startsWith('wb-plate-')) ?? 'wb-plate'
+          const key = `${size}:${plate.dataset.testid ?? ''}:${el.dataset.testid ?? String(el.className).split(' ')[0]}`
+          if (seen.has(key)) {
+            continue
+          }
+          seen.add(key)
+          problems.push(`${key} overruns by ${overrun}px (${el.scrollWidth} in ${el.clientWidth})`)
+        }
+      }
+      return problems
+    })
+
   const cardSpill = (pg) =>
     pg.evaluate(() => {
       const out = []
@@ -1125,6 +1165,13 @@ try {
     return problems
   })
   assert(rakedPlates.length === 0, `every raked plate clears its own cut (${rakedPlates.join(' | ') || 'all clear'})`)
+
+  // Run the content-overrun check here on the opening surface, and again
+  // below once a Slot carries a Top Card — an empty Slot has no tumbler row to
+  // overrun, which is exactly how the first version of this check passed
+  // against a build that was broken.
+  const openingOverruns = await plateOverruns(phone)
+  assert(openingOverruns.length === 0, `no plate row overruns its own box at Loadout (${openingOverruns.join(' | ') || 'all fit'})`)
   // The Action Bar's twelve-unit ladder: 2 | 4 | 4 | 2. The rails carry the
   // fight's two most-pressed moves and the Slots carry the cards, and the
   // ratio is the contract — a rail that grew into a Slot would take the
@@ -1417,6 +1464,19 @@ try {
   assert(await sigAdvanceTo('quick'), 'the Quick Window opens')
   await sig.waitForSelector('[data-testid="signature-control"]', { timeout: 4000 })
   assert((await sigButton().getAttribute('data-signature-face')) === 'ready', 'the Signature button appears the moment the power can fire')
+  // The button's whole job is naming the power it fires, so a truncated title
+  // is a broken contract rather than a cosmetic nit — it shipped as `RIPOS...`,
+  // 45.7px of text in the 44px content box a 74px plate leaves. Checked by
+  // name rather than by a blanket no-truncation rule: elsewhere truncation is
+  // the intended behaviour for a long authored card title.
+  const sigTitle = await sig.evaluate(() => {
+    const label = document.querySelector('[data-testid="signature-control"] span')
+    return label === null ? null : { text: label.textContent, scroll: label.scrollWidth, client: label.clientWidth }
+  })
+  assert(
+    sigTitle !== null && sigTitle.scroll <= sigTitle.client,
+    `the Signature button prints its whole title (${sigTitle?.text}: ${sigTitle?.scroll}px in ${sigTitle?.client}px)`,
+  )
   const bossBeforeSignature = await sig.evaluate(() => window.__workbench.bossHealth())
   await sigButton().click()
   await sig.waitForTimeout(700)
@@ -1429,6 +1489,50 @@ try {
   )
   await shot(sig, 'signature-fired')
   await sig.close()
+
+  // The Slot row's worst case, measured on purpose rather than hoped for.
+  // The scripted turn above prepares Steady Strike — two Charges, no want mark
+  // — which fits at exactly 97/97, and that is why this defect shipped
+  // unnoticed. The state that overran was a three-Charge Top Card carrying a
+  // want mark: 106px of row inside a 97px Slot, putting a Keyword glyph in the
+  // plate's own cut. So load the widest card the deck can offer and measure
+  // that, on a 390pt surface with no script gating the Hand.
+  const widest = await browser.newPage({ viewport: { width: 390, height: 900 } })
+  await widest.addInitScript(() => {
+    localStorage.setItem('workbench.firstTurnDone', 'true')
+    localStorage.setItem('workbench.guideSeen', 'true')
+  })
+  await widest.goto(BASE_URL)
+  await widest.waitForSelector('[data-testid="action-bar"]')
+  // Iron Guard is the catalogue's widest Slot row: Charge Value 3, plus a want
+  // mark its Charge Modifier reads. The assertion below pins that this is the
+  // state actually under measurement, so the check cannot quietly go vacuous
+  // the way its first version did.
+  const ironGuard = widest.locator('[data-testid="hand-card"][data-card-id="iron_guard"]').first()
+  if ((await ironGuard.count()) > 0) {
+    await ironGuard.click()
+    await widest.locator('[data-testid="slot-0"]').click()
+    await widest.waitForTimeout(400)
+  }
+  const slotRow = await widest.evaluate(() => {
+    const slot = document.querySelector('[data-testid="slot-0"]')
+    const tumblers = slot?.querySelector('[data-testid="charge-tumblers"]')
+    return {
+      card: slot?.dataset.topCard ?? '',
+      pins: tumblers?.children.length ?? 0,
+      wants: slot?.querySelector('[data-testid="slot-wants"]') !== null,
+    }
+  })
+  assert(
+    slotRow.card === 'iron_guard' && slotRow.pins === 3 && slotRow.wants,
+    `the worst-case Slot is actually loaded (${slotRow.card}, ${slotRow.pins} pins, wants=${slotRow.wants})`,
+  )
+  const widestOverruns = await plateOverruns(widest)
+  assert(
+    widestOverruns.length === 0,
+    `no plate row overruns its own box on the widest Slot (${widestOverruns.join(' | ') || 'all fit'})`,
+  )
+  await widest.close()
 
   await browser.close()
 
