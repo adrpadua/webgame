@@ -1,12 +1,12 @@
 import type { EncounterState, HeroState } from './types'
 
-// The zero-health lifecycle (D-074, ADR 0039). A Hero at `0` health is not out
+// The zero-health lifecycle (D-074, ADR 0040). A Hero at `0` health is not out
 // of the fight and their player is never out of the game: they go `Downed`,
 // and they stay Downed until somebody picks them up.
 //
 // There is exactly one state, and it is stable. ADR 0036 had two — a two-Round
 // rescue window and an `Incapacitated` state past it — and the window is what
-// ADR 0039 removes: no timer, no expiry, no terminal successor, so a body on
+// ADR 0040 removes: no timer, no expiry, no terminal successor, so a body on
 // the floor is a standing demand rather than a countdown. What that ADR kept
 // is the half worth keeping, that the *player* goes on acting even when the
 // *Hero* cannot.
@@ -100,7 +100,7 @@ export function heroRoundsLost(state: EncounterState): number {
 // a Downed Hero who could still push the kill is a Hero the Party has little
 // reason to rescue, which would invert the rescue demand into an option.
 //
-// The card cost is ADR 0039's, and it is what lets the set survive the loss of
+// The card cost is ADR 0040's, and it is what lets the set survive the loss of
 // the window. Hands refill to `refillTarget` every Round, and a Downed hand
 // does not refill at all, so the hand a Hero fell with is the whole budget for
 // their time on the floor. Free, these would be strongest on the state that

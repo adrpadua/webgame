@@ -17,14 +17,27 @@ export type EncounterActionInput =
   // re-loaded Slot is a different prepared card and drops what rode the old one.
   | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string; targetHex?: Axial; targetSlotIndex?: number }
   | { kind: 'move_hero'; sourceId: string; destination: Axial; cardInstanceId: string }
-  // `advance` shares `pull`'s geometry — move the target toward the source — but
-  // names a Boss closing distance under its own power rather than a Hero card
-  // hauling it (ADR 0029 owns the geometry; this only owns who is acting).
-  | { kind: 'displace_piece'; sourceId: string; targetId: string; distance: number; movement: 'push' | 'pull' | 'advance'; reasonText: string }
+  | { kind: 'displace_piece'; sourceId: string; targetId: string; distance: number; movement: 'push' | 'pull'; reasonText: string }
+  // A piece crossing the board under its own power (D-074): a Beat's movement
+  // clause, carried as the hexes entered in order rather than as a distance and
+  // a direction.
+  //
+  // It is not a `displace_piece` with a smarter path, and the split is the
+  // point. A displacement is a force applied to something — re-aimed every hex,
+  // stopping dead against whatever it runs into, which is exactly right for a
+  // shove. A traversal is a route decided in advance by the thing doing the
+  // moving, so it can go around what a shove would stop at. Carrying the route
+  // rather than recomputing it also keeps the Hazard entry honest: a walker
+  // pays for every hex it crosses, a jumper only for the one it lands on, and
+  // that difference is in the path itself.
+  //
+  // `displace_piece`'s `advance` verb retired with it — it was `pull`'s
+  // geometry wearing a Boss's name, which is what made a Boss stop against its
+  // own Whelp instead of stepping round it.
+  | { kind: 'traverse_piece'; sourceId: string; path: Axial[]; traversal: 'walk' | 'jump' | 'teleport'; reasonText: string }
   | { kind: 'resolve_boss'; sourceId: string; beat: BossBeat; track: 'instant' | 'incoming' }
   | { kind: 'apply_hazard'; sourceId: string; coords: Axial; hazardId: string | null; fallbackDurationRounds: number; permanent?: boolean }
   | { kind: 'spawn_minion'; sourceId: string; minionId: string; coords: Axial; minionContentId?: string }
-  | { kind: 'move_minion'; sourceId: string; destination: Axial }
   // A Minion's fuse running out (D-063). It carries only the Minion, because
   // where the blast lands and how far it reaches are read from the live board
   // and the authored Minion at resolution — a footprint carried on the action
@@ -32,7 +45,7 @@ export type EncounterActionInput =
   | { kind: 'detonate_minion'; sourceId: string }
   | { kind: 'damage'; sourceId: string; targetId: string; amount: number; reasonText: string; factContext?: Record<string, unknown> }
   | { kind: 'discard_for_stamina'; sourceId: string; cardInstanceId: string }
-  // The rescue (ADR 0039): a living Hero adjacent to a Downed ally discards
+  // The rescue (ADR 0040): a living Hero adjacent to a Downed ally discards
   // one hand card to bring them back at the Encounter's authored `revive_to`.
   // Universal rather than Healer-only — the bible bans a hard lock where a
   // premium would do, and adjacency plus a card plus the Round is that premium.

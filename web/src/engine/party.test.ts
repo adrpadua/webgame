@@ -4,6 +4,8 @@ import {
   advancePhase,
   createEncounterState,
   escalationActionsForRoundEnd,
+  getEntityIdAt,
+  neighbors,
   DIMINISHED_ACTIONS,
   ENCOUNTER_SOURCE,
   isLivingHero,
@@ -33,8 +35,8 @@ const KEYWORDS = [
 // One card per Role, so each seat's deck states a different Role — which is
 // the whole mechanism `heroRole` reads and the Boss's selector pivots on.
 const CARDS = [
-  { id: 'tank_strike', title: 'Tank Strike', speed: 'quick', boss_damage: 1, tags: ['tank'] },
-  { id: 'healer_strike', title: 'Healer Strike', speed: 'quick', boss_damage: 1, tags: ['healer'] },
+  { id: 'tank_strike', title: 'Tank Strike', speed: 'quick', range_tiles: 1, boss_damage: 1, tags: ['tank'] },
+  { id: 'healer_strike', title: 'Healer Strike', speed: 'quick', range_tiles: 1, boss_damage: 1, tags: ['healer'] },
   // The seam the Healer role exists for: preservation aimed at someone else.
   {
     id: 'mend',
@@ -130,6 +132,7 @@ const beat = (patch: Record<string, unknown> = {}) => ({
   unguarded_bonus: 0,
   escalation_if_unanswered: 0,
   move_tiles: 0,
+  traversal: 'walk' as const,
   duration_rounds: 1,
   permanent: false,
   count: 2,
@@ -281,6 +284,7 @@ describe('the Signature earn vocabulary (ADR 0037)', () => {
     title: 'Probe Sig',
     speed: 'quick',
     fixed: true,
+    range_tiles: 1,
     boss_damage: 1,
     max_charge: 2,
     standing,
@@ -350,6 +354,14 @@ describe('the Signature earn vocabulary (ADR 0037)', () => {
     const catalog = arena([{ when: 'slot_fired', gates: ['effect_landed'], grants_charge: 1 }])
     const state = createEncounterState(catalog, 'probe_party')
     state.phase = 'quick'
+    // Within reach of the Boss, because `healer_strike` deals Boss damage and
+    // every ability carries a reach (D-073). This test is about the earn, not
+    // about the distance — fired from the mender's seat it would be refused
+    // before the standing clause ever ran.
+    const bossCoords = state.board.entities[state.bossId].coords
+    state.board.entities.mender.coords = neighbors(state.board.hexes, bossCoords).find(
+      (coords) => getEntityIdAt(state.board, coords) === '',
+    )!
     state.heroes.mender.actionBar[0].topCard = { instanceId: 'strike_probe', cardId: 'healer_strike' }
     state.heroes.mender.actionBar[0].charges = [{ instanceId: 'fuel_probe', cardId: 'healer_strike' }]
     const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: 'mender', slotIndex: 0 })
@@ -381,9 +393,9 @@ describe('the Signature earn vocabulary (ADR 0037)', () => {
   })
 })
 
-// The zero-health lifecycle (ADR 0039). One stable state: Downed until
+// The zero-health lifecycle (ADR 0040). One stable state: Downed until
 // Revived or until the Encounter ends, and never removed from play.
-describe('the zero-health lifecycle (ADR 0039)', () => {
+describe('the zero-health lifecycle (ADR 0040)', () => {
   function wounded() {
     const catalog = party()
     const state = createEncounterState(catalog, 'probe_party')
@@ -462,7 +474,7 @@ describe('the zero-health lifecycle (ADR 0039)', () => {
     expect(revived.facts[0].succeeded).toBe(true)
     expect(revived.state.heroes.mender.status).toBe('living')
     // The `revive_to` default: one blow from going back down, which is the
-    // cost of having fallen (ADR 0039).
+    // cost of having fallen (ADR 0040).
     expect(revived.state.heroes.mender.health).toBe(1)
     expect(revived.state.heroes.warden.hand.some((c) => c.instanceId === card.instanceId)).toBe(false)
   })
@@ -483,7 +495,7 @@ describe('the zero-health lifecycle (ADR 0039)', () => {
     expect(healthy.facts[0].reason).toBe('That ally is not Downed.')
   })
 
-  // The window is gone (ADR 0039). Nothing expires, nothing is billed for a
+  // The window is gone (ADR 0040). Nothing expires, nothing is billed for a
   // rescue nobody performed, and a body left alone stays exactly where it is.
   it('leaves a Downed Hero Downed, however long nobody comes', () => {
     const { catalog, state } = wounded()
@@ -511,7 +523,7 @@ describe('the zero-health lifecycle (ADR 0039)', () => {
     expect(running.escalation).toBeGreaterThanOrEqual(escalationBefore)
   })
 
-  // The two leaks ADR 0039 closes, both of which come from the same line:
+  // The two leaks ADR 0040 closes, both of which come from the same line:
   // hands refill to `refillTarget` every Round, so anything a Downed Hero pays
   // for with a card is free unless the refill stops.
   it('does not refill a Downed hand, so the diminished actions run out', () => {
@@ -714,7 +726,7 @@ describe('the zero-health lifecycle (ADR 0039)', () => {
     const after = resolve(catalog, state, {
       kind: 'damage', sourceId: 'probe_boss', targetId: 'warden', amount: 5, reasonText: 'probe',
     }).state
-    // No special case does this (ADR 0039): the Hero goes Downed like anyone
+    // No special case does this (ADR 0040): the Hero goes Downed like anyone
     // else, and a Party of one wholly on the floor *is* the wipe condition, so
     // both authored solo Encounters behave exactly as they always have.
     expect(after.heroes.warden.status).toBe('downed')

@@ -1,4 +1,4 @@
-import { isOccupied, neighbors } from './board'
+import { traversalRoute } from './board'
 import { hexDistance, hexesWithinRadius, type Axial } from './hex'
 import type { ContentCatalog } from './content/catalog'
 import type { EncounterState } from './types'
@@ -7,7 +7,11 @@ export interface MinionIntent {
   minionId: string
   targetHeroId: string
   damage: number
-  destination: Axial | null
+  // The hexes the creep enters, in order — empty when it bites instead, or
+  // when it has nowhere to go. A route rather than a destination since D-072,
+  // because a Minion authoring more than one `move_tiles` crosses ground on the
+  // way and has to pay for it.
+  route: Axial[]
 }
 
 // A Minion's fuse, resolved (D-063): where the blast lands, how much every
@@ -22,15 +26,21 @@ export interface MinionDetonation {
 
 // The Minion end-step intent (D-006, embermaw-ashen-trial-design.md): each
 // living Minion with an authored attack creeps toward its nearest Hero and
-// bites once it arrives — adjacent Minions bite, distant ones advance one
-// hex. The creep IS the deadline: "Kill Adds" means killing a Whelp before
-// it reaches you. Everything is deterministic and derived from the live
-// board, so the same function serves the visible intent projection and the
-// end-step resolution:
+// bites once it arrives. The creep IS the deadline: "Kill Adds" means killing
+// a Whelp before it reaches you. Everything is deterministic and derived from
+// the live board, so the same function serves the visible intent projection and
+// the end-step resolution:
 // - nearest Hero by hex distance, stable id tie-break;
-// - the advance is the first neighbor in stable board order that strictly
-//   shortens the distance and is unoccupied, or nothing when blocked;
-// - Minions ignore Hazard movement blocking (Scorched is Embermaw's element).
+// - in reach, it bites; out of reach, it travels its authored `move_tiles`.
+//
+// Both halves are content since D-072, and neither used to be. The reach was a
+// literal `1` here, and the creep was this module's own movement rule — the
+// first neighbour in board order that shortened the distance, stopping dead
+// against anything in the way — which is the rule D-074 had just replaced for
+// the Boss. A Whelp now walks the same way Embermaw does, so ground that funnels
+// one funnels the other, and the note that used to sit here ("Minions ignore
+// Hazard movement blocking, Scorched is Embermaw's element") is now a field on
+// Scorched saying so.
 export function minionIntent(catalog: ContentCatalog, state: EncounterState, minionId: string): MinionIntent | null {
   const minion = state.board.entities[minionId]
   if (!minion || minion.kind !== 'minion') {
@@ -53,15 +63,12 @@ export function minionIntent(catalog: ContentCatalog, state: EncounterState, min
   }
   const targetHeroId = heroIds[0]
   const targetCoords = state.board.entities[targetHeroId].coords
-  const currentDistance = hexDistance(minion.coords, targetCoords)
-  if (currentDistance <= 1) {
-    return { minionId, targetHeroId, damage, destination: null }
+  const reach = content?.range_tiles ?? 0
+  if (hexDistance(minion.coords, targetCoords) <= reach) {
+    return { minionId, targetHeroId, damage, route: [] }
   }
-  const destination =
-    neighbors(state.board.hexes, minion.coords).find(
-      (coords) => hexDistance(coords, targetCoords) < currentDistance && !isOccupied(state.board, coords),
-    ) ?? null
-  return { minionId, targetHeroId, damage: 0, destination }
+  const route = traversalRoute(state.board, minionId, targetCoords, content?.move_tiles ?? 0, reach, content?.traversal ?? 'walk')
+  return { minionId, targetHeroId, damage: 0, route }
 }
 
 // Every living Minion's current intent, in spawn order — the projection a

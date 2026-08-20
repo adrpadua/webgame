@@ -33,7 +33,7 @@ export interface SlotState {
   earnedCharges: number
 }
 
-// Where a Hero stands in the zero-health lifecycle (D-074, ADR 0039).
+// Where a Hero stands in the zero-health lifecycle (D-074, ADR 0040).
 //
 // Two states, and the second one is stable: `downed` is a Hero at `0` health,
 // a blocking non-targetable body that answers no demand, whose Slots and
@@ -89,7 +89,18 @@ export interface HazardInstance {
   // (D-042), so a Boss can advance across its own Ash Trail and a Whelp does
   // not burn in its master's fire. Recorded per Hazard rather than assumed of
   // Enemies in general, because a Hero-placed damage zone has to keep working.
+  //
+  // Since D-074 that immunity is a default an authored Hazard can decline:
+  // `damagesSourceTeam` is what turns it off, and `sourceTeam` is who it is
+  // turned off for.
   sourceTeam?: Team
+  // Ground a pathing Enemy has to route around, rather than ground a Hero may
+  // choose not to walk into (D-074). Held apart from `blocksVoluntaryMovement`
+  // because they answer different questions about the same hex.
+  impassable?: boolean
+  // Whether this ground burns the side that laid it (D-074). Absent or false
+  // keeps D-042's rule; true is a Boss that can be lured onto its own fire.
+  damagesSourceTeam?: boolean
 }
 
 export interface BoardState {

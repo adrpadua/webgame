@@ -160,8 +160,19 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
               ...(escalationBonus > 0 ? { escalation_bonus: escalationBonus } : {}),
             },
           })
-        } else if (intent.destination) {
-          submit({ kind: 'move_minion', sourceId: minionId, destination: intent.destination })
+        } else if (intent.route.length > 0) {
+          // The same action the Boss's movement clause emits (D-072). A Minion
+          // crossing the board is the same event as a Boss crossing it, and the
+          // separate `move_minion` action retired because it quietly differed:
+          // it applied no Hazard entry at all, so a Whelp crossing ground the
+          // party had laid walked through it for free.
+          submit({
+            kind: 'traverse_piece',
+            sourceId: minionId,
+            path: intent.route,
+            traversal: catalog.minions[draft.board.entities[minionId].contentId ?? '']?.traversal ?? 'walk',
+            reasonText: `${draft.board.entities[minionId].title} advances`,
+          })
         }
       }
       if (!draft.active) {
@@ -181,7 +192,7 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
         return { state: draft, facts }
       }
       submit({ kind: 'round_start', sourceId: ENCOUNTER_SOURCE, round: nextRound })
-      // Nothing expires at the Round boundary any more (ADR 0039). Downed is
+      // Nothing expires at the Round boundary any more (ADR 0040). Downed is
       // stable, so there is no window to close and no `unanswered_rescue` to
       // bill: the pressure a body creates is already priced by the demands in
       // `escalation.ts`, which a Hero on the floor cannot answer.

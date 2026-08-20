@@ -3,5 +3,8 @@
   "title": "New Minion",
   "rules_text": "What this Minion does and how the party is meant to answer it.",
   "max_health": 2,
-  "attack_damage": 1
+  "attack_damage": 1,
+  "range_tiles": 1,
+  "move_tiles": 1,
+  "traversal": "walk"
 }

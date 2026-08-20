@@ -1,0 +1,73 @@
+{
+  "id": "embermaw_probe_collapse",
+  "title": "Brood Pattern (collapsing)",
+  "rules_text": "Brood Pattern with the claw taking the floor rather than scorching it. Ground nothing can cross, and nothing can be called onto.",
+  "instant_beats": [
+    {
+      "id": "turn_to_tank",
+      "title": "Turn to the Tank",
+      "rules_text": "Embermaw faces the guardian.",
+      "kind": "turn_toward_player",
+      "consequence_tier": "chip",
+      "answer_tags": [
+        "position"
+      ]
+    },
+    {
+      "id": "raking_claw",
+      "title": "Raking Claw",
+      "rules_text": "Target: Tank, within 1 hex. Deal 4 damage.",
+      "kind": "targeted_hit",
+      "consequence_tier": "chip",
+      "target_selector": "tank",
+      "range_tiles": 1,
+      "damage": 4,
+      "answer_tags": [
+        "mitigate",
+        "move"
+      ],
+      "damage_keywords": [
+        "tank_hit"
+      ]
+    },
+    {
+      "id": "probe_collapse",
+      "title": "Give Way",
+      "rules_text": "The ground the claw struck falls through. It never comes back, nothing crosses it, and no Whelp arrives on it.",
+      "kind": "hazard_last_impact",
+      "consequence_tier": "structural",
+      "hazard": "collapsed",
+      "permanent": true,
+      "answer_tags": [
+        "position"
+      ]
+    }
+  ],
+  "incoming_beats": [
+    {
+      "id": "within_reach",
+      "title": "Within Reach",
+      "rules_text": "If no hero stands adjacent to Embermaw at the end of this Round, Escalation rises by 1.",
+      "kind": "demand_proximity",
+      "consequence_tier": "severe",
+      "range_tiles": 1,
+      "escalation_if_unanswered": 1,
+      "answer_tags": [
+        "position"
+      ]
+    },
+    {
+      "id": "brood_call",
+      "title": "Brood Call",
+      "rules_text": "Whelps emerge at the marked edge hexes. Each one detonates on the next Round's Incoming Row, burning every Hero within 1 hex and raising Escalation by 1.",
+      "kind": "spawn_minions",
+      "consequence_tier": "severe",
+      "minion": "whelp",
+      "count": 2,
+      "escalation_if_unanswered": 1,
+      "answer_tags": [
+        "kill_adds"
+      ]
+    }
+  ]
+}

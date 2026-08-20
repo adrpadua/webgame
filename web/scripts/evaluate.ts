@@ -7,8 +7,9 @@
 // never as a success.
 //
 // Usage (from web/):
-//   npm run evaluate                        # all 42 policy variants, 30 seeds
+//   npm run evaluate                        # all 48 policy variants, 30 seeds
 //   npm run evaluate -- --seeds 100
+//   npm run evaluate -- --encounter embermaw_traversal_probe
 //   npm run evaluate -- --policy turtle,stay,false --seeds 200
 //   npm run evaluate -- --json out.json
 import { writeFileSync } from 'node:fs'
@@ -37,12 +38,26 @@ import {
 } from '../src/engine'
 
 const catalog = loadCatalog()
-const ENCOUNTER_ID = DEFAULT_ENCOUNTER_ID
 
 const args = process.argv.slice(2).filter((arg) => arg !== '--')
 const flagValue = (name: string): string | undefined => {
   const index = args.indexOf(name)
   return index >= 0 ? args[index + 1] : undefined
+}
+// `--encounter <id>` runs the sweep against a different fight, the same way
+// `--deck` runs it against a different list (D-076).
+//
+// It exists for the same reason, one level up. A candidate *card* could only be
+// measured by promoting it to the default deck first, which is the promotion
+// the rubric says the measurement is supposed to gate — so `--deck` broke the
+// circle. A candidate *Boss mechanic* had the same circle and no way out: the
+// only fight the sweep could measure was the shipped one, so authoring a
+// traversing Boss meant re-baselining Embermaw's walls against content nothing
+// had measured yet. An evaluation Encounter is measured first and promoted
+// after, and until it is promoted it changes no shipped number.
+const ENCOUNTER_ID = flagValue('--encounter') ?? DEFAULT_ENCOUNTER_ID
+if (!catalog.encounters[ENCOUNTER_ID]) {
+  throw new Error(`Unknown encounter ${ENCOUNTER_ID}; authored encounters are ${Object.keys(catalog.encounters).join(', ')}`)
 }
 const SEEDS = Number(flagValue('--seeds') ?? 30)
 const JSON_OUT = flagValue('--json')
@@ -102,6 +117,18 @@ interface PolicyKnobs {
   // is anything to cool. Neither is how the card would be played, and the gap
   // between them is the whole value of the card.
   slotPlan: 'dual_steady' | 'sword_shield' | 'turtle' | 'culler' | 'shover' | 'quencher' | 'banker' | 'reactive_quench'
+  // Where the Tank stands. `far` parks at distance 3+, out of the Cinder
+  // Breath cone; `dodge` steps off telegraphed hexes; `stay` holds the Guarded
+  // Front.
+  //
+  // `far` changed meaning under D-073 and its rows should be read with that in
+  // mind: every card now carries a reach, so a policy parked at distance 3
+  // cannot land a single point of Boss damage — its `bossDmg` column is `0.00`
+  // by construction and its `rejected` column counts the shots it keeps trying
+  // to take. That is the measurement, not a broken policy: `far` is kept
+  // precisely so the sweep keeps showing what camping now costs. Before D-073
+  // the same rows read 16.6 (`dual_steady/far`), 14.1 (`reactive_quench/far`)
+  // and 11.0 (`sword_shield/far`).
   position: 'far' | 'dodge' | 'stay'
   spike: boolean
 }

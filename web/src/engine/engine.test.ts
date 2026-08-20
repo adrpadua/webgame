@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { loadCatalog } from '@/content'
+import { loadCatalog, DEFAULT_ENCOUNTER_ID, FIRST_TURN_ENCOUNTER_ID } from '@/content'
 import { cardSchema } from './content/schemas'
 // Not part of the engine's public surface: the Round-end step is called by
 // `advancePhase`, and a guard on what it prices is sharper when it can ask
@@ -19,14 +19,21 @@ import {
   createEncounterState,
   fireTargeting,
   hexDistance,
+  parseHexKey,
   heroRole,
   hexKey,
   isGuardedFront,
   guardedFrontHex,
   neighbors,
+  isLegalMove,
   legality,
+  legalActions,
+  facingToward,
+  getEntityIdAt,
   minionDetonations,
+  minionIntent,
   minionIntents,
+  normalizeFacing,
   replayRecord,
   ESCALATION_MAX,
   escalationModifiers,
@@ -314,7 +321,27 @@ describe('content catalog', () => {
         payload: { id: 'short_shove', title: 'Short Shove', speed: 'quick', target_type: 'piece', push_tiles: 1 },
       }
       expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow(
-        'Card short_shove (data/cards/short_shove.json) declares push_tiles but has range_tiles below 1',
+        'Card short_shove (data/cards/short_shove.json) reaches past its Hero (push_tiles, target_type piece) but authors no range_tiles',
+      )
+    })
+
+    // The other half of the same rule, and the one D-073 added: a card that
+    // reaches the Boss has to say how far, and a card that reaches nobody must
+    // not carry a number nothing reads.
+    it('rejects Boss damage with no authored range, and a reach on a card that touches nobody', () => {
+      const rangeless = {
+        source: 'data/cards/long_swing.json',
+        payload: { id: 'long_swing', title: 'Long Swing', speed: 'quick', boss_damage: 2 },
+      }
+      expect(() => buildCatalog({ ...empty, cards: [rangeless] })).toThrow(
+        'Card long_swing (data/cards/long_swing.json) reaches past its Hero (boss_damage) but authors no range_tiles',
+      )
+      const idle = {
+        source: 'data/cards/distant_calm.json',
+        payload: { id: 'distant_calm', title: 'Distant Calm', speed: 'quick', armor_delta: 2, range_tiles: 3 },
+      }
+      expect(() => buildCatalog({ ...empty, cards: [idle] })).toThrow(
+        'Card distant_calm (data/cards/distant_calm.json) authors range_tiles 3 but reaches nothing past its own Hero',
       )
     })
 
@@ -330,6 +357,7 @@ describe('content catalog', () => {
           title: 'Probe Signature',
           speed: 'quick',
           fixed: true,
+          range_tiles: 1,
           boss_damage: 1,
           standing: [grant],
           ...overrides,
@@ -342,7 +370,7 @@ describe('content catalog', () => {
         programs: [{ id: 'probe_program', title: 'Probe Program', instant_beats: [], incoming_beats: [] }],
         cards: [
           signature(),
-          { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1 },
+          { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', range_tiles: 1, boss_damage: 1 },
         ],
         heroes: [
           { id: 'probe_hero', title: 'Probe Hero', max_health: 10, signature_card: signatureCard },
@@ -382,7 +410,7 @@ describe('content catalog', () => {
       it('rejects a full_charge block on a card that is not fixed', () => {
         const bad = {
           source: 'data/cards/probe_strike.json',
-          payload: { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1, full_charge: { places_counter: 'sundered' } },
+          payload: { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', range_tiles: 1, boss_damage: 1, full_charge: { places_counter: 'sundered' } },
         }
         expect(() => buildCatalog({ ...empty, cards: [bad] })).toThrow('authors a full_charge block but is not fixed')
       })
@@ -420,7 +448,7 @@ describe('content catalog', () => {
         )
         const named = {
           source: 'data/cards/probe_strike.json',
-          payload: { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1, resource_title: 'Fury' },
+          payload: { id: 'probe_strike', title: 'Probe Strike', speed: 'quick', range_tiles: 1, boss_damage: 1, resource_title: 'Fury' },
         }
         expect(() => buildCatalog({ ...empty, cards: [named] })).toThrow('authors a resource_title but is not fixed')
       })
@@ -448,7 +476,7 @@ describe('content catalog', () => {
       it('rejects an Encounter fielding an unknown Hero, and a Hero naming an unknown signature card', () => {
         const missingHero = {
           ...arena('', [{ card: 'probe_strike', copies: 2 }]),
-          cards: [{ id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1 }],
+          cards: [{ id: 'probe_strike', title: 'Probe Strike', speed: 'quick', range_tiles: 1, boss_damage: 1 }],
           heroes: [],
         }
         expect(() => buildCatalog({ ...empty, ...missingHero })).toThrow(
@@ -487,7 +515,7 @@ describe('content catalog', () => {
       it('fields a Hero who has no Signature authored yet', () => {
         const noSignature = {
           ...arena('', [{ card: 'probe_strike', copies: 4 }]),
-          cards: [{ id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1 }],
+          cards: [{ id: 'probe_strike', title: 'Probe Strike', speed: 'quick', range_tiles: 1, boss_damage: 1 }],
         }
         const catalogWithout = buildCatalog({ ...empty, ...noSignature })
         expect(catalogWithout.heroes.probe_hero.signature_card).toBe('')
@@ -1324,6 +1352,92 @@ describe('Authored Beat reach', () => {
     turn.range_tiles = 2
     expect(() => rebuild(ranged)).toThrow(/must not author range_tiles/)
   })
+
+  // Two of the three reasons a Beat needs a reach are fields rather than kinds
+  // (D-074), which is why the kind list alone stopped being able to state the
+  // rule.
+  it('refuses a Minion that bites without saying how far, and a reach on one that never bites', () => {
+    // Both halves again, on the last piece whose reach lived in engine code
+    // (D-072). Nothing tested the Minion rules at all until now, which is how
+    // the bite's hardcoded `1` survived two passes over the same defect.
+    const mute = structuredClone(catalog)
+    mute.minions.whelp.range_tiles = 0
+    expect(() => rebuild(mute)).toThrow(/bites for 1 but authors no range_tiles/)
+
+    const harmless = structuredClone(catalog)
+    harmless.minions.whelp.attack_damage = 0
+    expect(() => rebuild(harmless)).toThrow(/but has no attack to reach with/)
+
+    const idle = structuredClone(catalog)
+    idle.minions.whelp.attack_damage = 0
+    idle.minions.whelp.range_tiles = 0
+    expect(() => rebuild(idle)).toThrow(/but has no attack to close for/)
+
+    const blink = structuredClone(catalog)
+    blink.minions.whelp.traversal = 'teleport'
+    expect(() => rebuild(blink)).toThrow(/teleports but authors move_tiles/)
+
+    const grounded = structuredClone(catalog)
+    grounded.minions.whelp.traversal = 'jump'
+    grounded.minions.whelp.move_tiles = 0
+    expect(() => rebuild(grounded)).toThrow(/authors traversal jump but no move_tiles/)
+  })
+
+  it('refuses a Beat that marks a Hero without saying how far it reaches', () => {
+    const marking = structuredClone(catalog)
+    const stoke = marking.programs.embermaw_embers.instant_beats.find((entry) => entry.kind === 'place_counter')!
+    stoke.counter_target = 'hero'
+    expect(() => rebuild(marking)).toThrow(/marking a Hero but authors no range_tiles/)
+    // Aimed back at itself it measures nothing, and must not answer.
+    stoke.counter_target = 'self'
+    stoke.range_tiles = 1
+    expect(() => rebuild(marking)).toThrow(/must not author range_tiles/)
+  })
+
+  it('refuses a movement clause on a telegraphed Incoming Beat', () => {
+    // The telegraph is painted a phase before the Beat resolves and the Hero
+    // moves in between, so a moving Incoming Beat paints a cone the player
+    // invalidates by playing correctly — the defect ADR 0031 removed the
+    // Forecast Row over. The error names the honest alternative.
+    const telegraphed = structuredClone(catalog)
+    const cone = telegraphed.programs.embermaw_hunt.incoming_beats.find((entry) => entry.kind === 'forward_cone')!
+    cone.move_tiles = 2
+    expect(() => rebuild(telegraphed)).toThrow(/carries a movement clause on the Incoming Row/)
+
+    // A teleport spends no allowance, so it has to be caught by the clause
+    // rather than by the number.
+    const blinking = structuredClone(catalog)
+    const blink = blinking.programs.embermaw_hunt.incoming_beats.find((entry) => entry.kind === 'forward_cone')!
+    blink.traversal = 'teleport'
+    expect(() => rebuild(blinking)).toThrow(/carries a movement clause on the Incoming Row/)
+  })
+
+  it('refuses a movement clause that does not say how close to get', () => {
+    const moving = structuredClone(catalog)
+    const claw = moving.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'targeted_hit')!
+    claw.move_tiles = 2
+    claw.range_tiles = 0
+    expect(() => rebuild(moving)).toThrow(/needs to know how close to get/)
+  })
+
+  it('refuses a traversal nothing moves, an advance with no allowance, and a teleport that spends one', () => {
+    const idle = structuredClone(catalog)
+    const turn = idle.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'turn_toward_player')!
+    turn.traversal = 'jump'
+    expect(() => rebuild(idle)).toThrow(/authors traversal jump but carries no movement clause/)
+
+    const still = structuredClone(catalog)
+    const advance = still.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'advance_toward_player')!
+    advance.move_tiles = 0
+    expect(() => rebuild(still)).toThrow(/authors no move_tiles/)
+
+    // A teleport has no route to spend an allowance on — an authored one is a
+    // number it never consults, and the author meant a jump.
+    const blink = structuredClone(catalog)
+    const hop = blink.programs.embermaw_hunt.instant_beats.find((entry) => entry.kind === 'advance_toward_player')!
+    hop.traversal = 'teleport'
+    expect(() => rebuild(blink)).toThrow(/teleports but authors move_tiles/)
+  })
 })
 
 // D-042. Recorded as a latent interaction during PR #77's review and ruled on
@@ -1375,6 +1489,23 @@ describe('Own-side Hazard immunity (D-042)', () => {
     const before = boss(state).health
     const moved = drag(state, state.bossId, hex)
     expect(moved.state.board.entities[state.bossId].health).toBeLessThan(before)
+  })
+
+  it('lets the ground decline the immunity, so a Boss can be lured onto its own (D-074)', () => {
+    // The immunity is the right default and was the wrong kind of rule: whether
+    // Embermaw walks its own fire is a decision about Embermaw, not a fact
+    // about fire. Authored, "trick it onto the hex it just burned" becomes a
+    // fight somebody can build — and Embermaw's own Scorched keeps declining
+    // to burn it, which is the line above.
+    const state = immortalHero(start())
+    const hex = { q: 0, r: 0 }
+    state.board.hazards[hexKey(hex)] = [{ ...scorch('enemy'), damagesSourceTeam: true }]
+    const before = boss(state).health
+    const moved = drag(state, state.bossId, hex)
+    expect(moved.state.board.entities[state.bossId].health).toBeLessThan(before)
+    // The shipped ground is authored the other way, and the catalog says so
+    // rather than the engine.
+    expect(catalog.hazards.scorched.damages_source_team).toBe(false)
   })
 
   it('records the side that laid every Hazard the Encounter creates', () => {
@@ -1716,7 +1847,7 @@ describe('Minion end-step intent (D-006)', () => {
     // The projection derives from the live state: both intend to advance.
     const advanceIntents = minionIntents(catalog, state)
     expect(advanceIntents).toHaveLength(2)
-    expect(advanceIntents.every((intent) => intent.damage === 0 && intent.destination !== null)).toBe(true)
+    expect(advanceIntents.every((intent) => intent.damage === 0 && intent.route.length > 0)).toBe(true)
 
     // The spawn Round's wrap: no bites yet — the creep is the deadline.
     const healthBefore = hero(state).health
@@ -1759,7 +1890,9 @@ describe('Minion end-step intent (D-006)', () => {
       reasonText: 'test clear',
     }).state
     const wrap = advancePhase(catalog, state)
-    const moves = wrap.facts.filter((fact) => fact.kind === 'move_minion')
+    // A Minion crosses the board on the same action the Boss does since D-072;
+    // `move_minion` retired with the separate movement rule it carried.
+    const moves = wrap.facts.filter((fact) => fact.kind === 'traverse_piece')
     expect(moves).toHaveLength(1)
     expect(moves[0].sourceId).toBe(whelps[1].id)
   })
@@ -1860,7 +1993,14 @@ describe('Minion detonation (D-063)', () => {
     for (const whelp of Object.values(state.board.entities).filter((entity) => entity.kind === 'minion')) {
       expect(hexDistance(whelp.coords, state.board.entities[state.primaryHeroId].coords)).toBe(1)
     }
-    state.board.entities[state.primaryHeroId].coords = { q: 0, r: -2 }
+    // Derived rather than written down: which hex is clear of every fuse
+    // depends on where the brood arrived, and the spawn candidates are content.
+    const whelps = Object.values(state.board.entities).filter((entity) => entity.kind === 'minion')
+    const clear = Object.keys(state.board.hexes)
+      .map(parseHexKey)
+      .find((coords) => getEntityIdAt(state.board, coords) === '' && whelps.every((whelp) => hexDistance(whelp.coords, coords) > catalog.minions.whelp.explode_radius))
+    expect(clear).toBeDefined()
+    state.board.entities[state.primaryHeroId].coords = clear!
     expect(minionDetonations(catalog, state).every((blast) => blast.heroIds.length === 0)).toBe(true)
     const health = hero(state).health
     const result = advancePhase(catalog, state)
@@ -1986,8 +2126,8 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
     return variant
   }
 
-  function firedAt(variant: ReturnType<typeof withStatusCard>, cardId: string, targetId?: string) {
-    let state = start()
+  function firedAt(variant: ReturnType<typeof withStatusCard>, cardId: string, targetId?: string, from?: EncounterState) {
+    let state = from ?? start()
     state = stepPhases(state, 2).state
     expect(state.phase).toBe('quick')
     hero(state).hand = [card('t1', cardId), card('t2', 'steady_strike')]
@@ -2019,10 +2159,11 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
     expect(catalog.counters.fortified.max).toBeGreaterThan(1)
   })
 
-  it('lands a Counter on the Boss with no range requirement', () => {
-    // The Boss is selectable for a Counter but never range-gated, which keeps
-    // the positionless `boss_damage` ruling intact.
-    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
+  it('lands a Counter on the Boss, and refuses it from outside the card\'s reach', () => {
+    // The Boss answers the same reach every other Enemy does (D-073). It was
+    // the one target exempt from range, to stay consistent with positionless
+    // `boss_damage`; that ruling is gone, and so is the exemption.
+    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 1 })
     const state = start()
     const fired = firedAt(variant, 'sunder_test', state.bossId)
     expect(fired.facts[0].succeeded).toBe(true)
@@ -2031,10 +2172,24 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
       count: 1,
       readers: [{ when: 'host_takes_damage', effect: 'target_damage', per: 1 }],
     })
+
+    // The same card and the same Boss, from the far side of the arena. The
+    // hex is picked as the furthest one on the board rather than written down,
+    // because Embermaw closes a hex of its own during the Instant Row (D-041)
+    // and a hand-picked hex would only be out of reach until it did.
+    const stepped = structuredClone(state)
+    const bossCoords = stepped.board.entities[stepped.bossId].coords
+    const furthest = Object.keys(stepped.board.hexes)
+      .map(parseHexKey)
+      .sort((left, right) => hexDistance(right, bossCoords) - hexDistance(left, bossCoords))[0]
+    stepped.board.entities[stepped.primaryHeroId].coords = furthest
+    const refused = firedAt(variant, 'sunder_test', stepped.bossId, stepped)
+    expect(refused.facts[0]).toMatchObject({ succeeded: false, reason: "The chosen Enemy is outside the Top Card's range." })
+    expect(refused.state.counters[combatantRef(stepped.bossId)]).toBeUndefined()
   })
 
   it('raises damage the Sundered Boss takes', () => {
-    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 1 })
     const state = start()
     const sundered = firedAt(variant, 'sunder_test', state.bossId).state
     const before = sundered.board.entities[sundered.bossId].health
@@ -2050,7 +2205,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
   })
 
   it('lowers damage a Weakened Enemy deals', () => {
-    const variant = withStatusCard('weaken_test', { places_counter: 'weakened', target_type: 'piece', range_tiles: 0 })
+    const variant = withStatusCard('weaken_test', { places_counter: 'weakened', target_type: 'piece', range_tiles: 1 })
     const state = start()
     const weakened = firedAt(variant, 'weaken_test', state.bossId).state
     const healthBefore = hero(weakened).health
@@ -2067,7 +2222,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
   })
 
   it('refuses a second copy of a max-1 Counter', () => {
-    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 1 })
     let state = stepPhases(start(), 2).state
     expect(state.phase).toBe('quick')
     // Two Slots, same quick-speed card, one window: the Slot activation limit
@@ -2092,7 +2247,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
   })
 
   it('refuses a piece-targeting Counter with no Enemy target', () => {
-    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 1 })
     const fired = firedAt(variant, 'sunder_test', undefined)
     expect(fired.facts[0].succeeded).toBe(false)
     expect(fired.facts[0].reason).toContain('Enemy target')
@@ -2102,7 +2257,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
     // The mechanism was two-sided from D-032, but the Round's tick ran over
     // the Heroes alone: an authored `duration_rounds` meant nothing on an
     // Enemy, so a single Sunder marked the Boss for the rest of the fight.
-    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 1 })
     const opening = start()
     let state = immortalHero(firedAt(variant, 'sunder_test', opening.bossId).state)
     expect(state.counters[combatantRef(state.bossId)]).toHaveLength(1)
@@ -2171,7 +2326,7 @@ describe('Authored Counters (D-032 to D-034, D-047)', () => {
   it('drops a Counter held by a piece that has left the board', () => {
     // Belt and braces on the Round's upkeep: whatever removed the piece, the
     // Round start must not carry its afflictions forward.
-    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 0 })
+    const variant = withStatusCard('sunder_test', { places_counter: 'sundered', target_type: 'piece', range_tiles: 1 })
     const opening = start()
     let state = immortalHero(firedAt(variant, 'sunder_test', opening.bossId).state)
     state.counters[combatantRef('ghost_whelp')] = [...state.counters[combatantRef(state.bossId)]]
@@ -2413,10 +2568,39 @@ describe('The Boss marks too (D-051)', () => {
     // `counter_target` is the whole direction of the mark, and getting it
     // backwards would put the Boss's own debuff on the Boss.
     const state = immortalHero(start())
-    const beat = { ...catalog.programs.embermaw_embers.instant_beats.find((b) => b.kind === 'place_counter')!, counter_target: 'hero' as const }
+    const beat = {
+      ...catalog.programs.embermaw_embers.instant_beats.find((b) => b.kind === 'place_counter')!,
+      counter_target: 'hero' as const,
+      range_tiles: 1,
+    }
     const marked = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat, track: 'instant' })
     expect(marked.state.counters[combatantRef(state.primaryHeroId)]?.[0]).toMatchObject({ id: 'heat', count: beat.counter_amount })
     expect(marked.state.counters[combatantRef(state.bossId)] ?? []).toHaveLength(0)
+  })
+
+  it('reaches for the Hero it marks, and comes up short from the far side (D-074)', () => {
+    // The Boss side of D-073. Marking the Party was the last thing a Beat could
+    // do to a Hero from anywhere on the board, and it stayed that way only
+    // because no authored Beat marked a Hero.
+    const beat = {
+      ...catalog.programs.embermaw_embers.instant_beats.find((b) => b.kind === 'place_counter')!,
+      counter_target: 'hero' as const,
+      range_tiles: 1,
+    }
+    const state = immortalHero(start())
+    const bossCoords = boss(state).coords
+    const furthest = Object.keys(state.board.hexes)
+      .map(parseHexKey)
+      .sort((left, right) => hexDistance(right, bossCoords) - hexDistance(left, bossCoords))[0]
+    expect(hexDistance(furthest, bossCoords)).toBeGreaterThan(beat.range_tiles)
+    state.board.entities[state.primaryHeroId].coords = furthest
+
+    const missed = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat, track: 'instant' })
+    expect(missed.state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
+    // Marking itself measures nothing: the same Beat aimed inward still lands
+    // from the same hex.
+    const inward = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: { ...beat, counter_target: 'self' as const, range_tiles: 0 }, track: 'instant' })
+    expect(inward.state.counters[combatantRef(state.bossId)]?.[0]).toMatchObject({ id: 'heat' })
   })
 
   // The price. Heat used to pay out only in Boss damage, and the sweep said
@@ -2461,6 +2645,7 @@ describe('The Boss marks too (D-051)', () => {
     const marking = structuredClone(catalog)
     const beat = marking.programs.embermaw_embers.instant_beats.find((entry) => entry.kind === 'place_counter')!
     beat.counter_target = 'hero'
+    beat.range_tiles = 1
     let state = immortalHero(start())
     const reasons = (): string[] =>
       escalationActionsForRoundEnd(marking, state)
@@ -2931,16 +3116,19 @@ describe('Consequence Tier ladder (D-021, ADR 0031)', () => {
     // severe by definition because a Threshold crossing is one of D-025's
     // run-ending outcomes. Every severe Beat here is severe for that reason —
     // Embermaw still has no single hit that downs a Hero from full health.
+    //
+    // Stated as the rule in both directions rather than as a roll-call. The
+    // roll-call listed one entry per *appearance*, so it counted how many
+    // programs happened to field a Beat — and an evaluation Encounter, which
+    // fields variants of the shipped programs on purpose (D-076), doubled every
+    // number without breaking a single rule. The distinct ids are still named,
+    // because which Beats these are is worth reading; how many times each is
+    // authored is not this test's business.
     const severe = everyBeat.filter(({ beat }) => beat.consequence_tier === 'severe')
-    expect(severe.map(({ beat }) => beat.id).sort()).toEqual([
-      'brood_call',
-      'brood_call',
-      'stoke_the_forge',
-      'within_reach',
-      'within_reach',
-      'within_reach',
-    ])
+    const priced = everyBeat.filter(({ beat }) => beat.escalation_if_unanswered > 0)
+    expect([...new Set(severe.map(({ beat }) => beat.id))].sort()).toEqual(['brood_call', 'stoke_the_forge', 'within_reach'])
     expect(severe.every(({ beat }) => beat.escalation_if_unanswered > 0)).toBe(true)
+    expect(priced.every(({ beat }) => beat.consequence_tier === 'severe')).toBe(true)
     const worst = Math.max(...everyBeat.map(({ beat }) => beat.damage + beat.unguarded_bonus))
     expect(worst).toBeLessThan(catalog.heroes[catalog.encounters.embermaw_prototype.party[0].hero].max_health)
   })
@@ -3245,6 +3433,429 @@ describe('Escalation as the single clock (D-023, ADR 0027)', () => {
   })
 })
 
+describe('Boss traversal (D-074)', () => {
+  // Movement is a clause any Beat may carry, and how it crosses the board is
+  // authored. Embermaw only ever walks one hex, so the vocabulary is proven
+  // against catalog variants — the pattern the Counter and acceleration tests
+  // established for content the live encounter does not exercise yet.
+  const advance = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'advance_toward_player')!
+
+  function movingBeat(patch: Partial<typeof advance> = {}) {
+    return { ...advance, ...patch }
+  }
+
+  // Put the Hero on the hex furthest from the Boss, so a traversal has room to
+  // be measured rather than being over before it starts.
+  function apart(): EncounterState {
+    const state = immortalHero(start())
+    const bossCoords = boss(state).coords
+    const furthest = Object.keys(state.board.hexes)
+      .map(parseHexKey)
+      .sort((left, right) => hexDistance(right, bossCoords) - hexDistance(left, bossCoords))[0]
+    state.board.entities[state.primaryHeroId].coords = furthest
+    return state
+  }
+
+  function fire(state: EncounterState, beat: typeof advance) {
+    return resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat, track: 'instant' })
+  }
+
+  it('walks its authored allowance and no further', () => {
+    const state = apart()
+    const before = hexDistance(boss(state).coords, state.board.entities[state.primaryHeroId].coords)
+    const moved = fire(state, movingBeat({ move_tiles: 2, range_tiles: 1 })).state
+    expect(hexDistance(boss(moved).coords, moved.board.entities[moved.primaryHeroId].coords)).toBe(before - 2)
+  })
+
+  it('stops as soon as its target is in reach, spending nothing it does not need', () => {
+    // Gloomhaven's rule, and the one that makes an advance readable: it comes
+    // exactly close enough to do the thing it is about to do. Without it a Boss
+    // authored to close 3 would walk into and past the Hero it is hunting.
+    const state = apart()
+    const generous = fire(state, movingBeat({ move_tiles: 8, range_tiles: 2 })).state
+    expect(hexDistance(boss(generous).coords, generous.board.entities[generous.primaryHeroId].coords)).toBe(2)
+  })
+
+  it('does not move at all when it is already close enough', () => {
+    // The Hero starts adjacent, and a reach of 1 is already satisfied.
+    const state = immortalHero(start())
+    const bossBefore = { ...boss(state).coords }
+    const fired = fire(state, movingBeat({ move_tiles: 3, range_tiles: 1 }))
+    expect(fired.facts.some((fact) => fact.kind === 'traverse_piece')).toBe(false)
+    expect(boss(fired.state).coords).toEqual(bossBefore)
+  })
+
+  it('walks around a piece in the way instead of stopping against it', () => {
+    // The behaviour the retired `displace_piece` advance could not manage: it
+    // re-aimed each step and stopped dead on the first occupied hex, so a Whelp
+    // of Embermaw's own summoning could pin it in place.
+    const state = apart()
+    const bossCoords = boss(state).coords
+    const heroCoords = state.board.entities[state.primaryHeroId].coords
+    // Block every hex that gets the Boss closer, bar one.
+    const closer = neighbors(state.board.hexes, bossCoords).filter((coords) => hexDistance(coords, heroCoords) < hexDistance(bossCoords, heroCoords))
+    expect(closer.length).toBeGreaterThan(1)
+    closer.slice(1).forEach((coords, index) => {
+      state.board.entities[`blocker_${index}`] = {
+        id: `blocker_${index}`,
+        kind: 'minion',
+        coords,
+        health: 2,
+        maxHealth: 2,
+        facing: 0,
+        team: 'enemy',
+        title: 'Blocker',
+      }
+    })
+    const moved = fire(state, movingBeat({ move_tiles: 1, range_tiles: 1 })).state
+    expect(boss(moved).coords).toEqual(closer[0])
+  })
+
+  it('is stopped by ground that authors impassable, and walks ground that does not', () => {
+    // The authored half of terrain (D-074). The same Beat, the same board, and
+    // the only difference is what the Hazard says about being crossed.
+    const bossCoords = boss(start()).coords
+    const blockedRun = (impassable: boolean) => {
+      const state = apart()
+      for (const coords of neighbors(state.board.hexes, bossCoords)) {
+        state.board.hazards[hexKey(coords)] = [
+          { id: 'wall', title: 'Wall', remainingRounds: 9, enterDamage: 0, blocksVoluntaryMovement: false, impassable },
+        ]
+      }
+      return fire(state, movingBeat({ move_tiles: 1, range_tiles: 1 })).state
+    }
+    // Walled in on every side, a walker has nowhere to go.
+    expect(boss(blockedRun(true)).coords).toEqual(bossCoords)
+    // The identical ground authored as crossable, and it moves.
+    expect(boss(blockedRun(false)).coords).not.toEqual(bossCoords)
+  })
+
+  it('leaps the ground a walker has to go round, and lands somewhere it could stand', () => {
+    const bossCoords = boss(start()).coords
+    const walled = () => {
+      const state = apart()
+      for (const coords of neighbors(state.board.hexes, bossCoords)) {
+        state.board.hazards[hexKey(coords)] = [
+          { id: 'wall', title: 'Wall', remainingRounds: 9, enterDamage: 0, blocksVoluntaryMovement: false, impassable: true },
+        ]
+      }
+      return state
+    }
+    // A walker is penned in by the ring; a jumper clears it.
+    expect(boss(fire(walled(), movingBeat({ move_tiles: 2, range_tiles: 1 })).state).coords).toEqual(bossCoords)
+    const leapt = fire(walled(), movingBeat({ move_tiles: 2, range_tiles: 1, traversal: 'jump' as const })).state
+    expect(hexDistance(boss(leapt).coords, bossCoords)).toBe(2)
+    // It cleared the ring rather than landing in it: the landing still has to
+    // be ground it could stand on.
+    expect(neighbors(leapt.board.hexes, bossCoords).some((coords) => hexDistance(coords, boss(leapt).coords) === 0)).toBe(false)
+  })
+
+  it('teleports into reach from anywhere, spending no allowance to do it', () => {
+    const state = apart()
+    const heroCoords = state.board.entities[state.primaryHeroId].coords
+    const appeared = fire(state, movingBeat({ move_tiles: 0, range_tiles: 1, traversal: 'teleport' as const })).state
+    expect(hexDistance(boss(appeared).coords, heroCoords)).toBe(1)
+  })
+
+  it('pays Hazard entry for every hex a walk crosses, and only for the landing on a jump', () => {
+    // Where the two kinds actually come apart, stated as the bill rather than
+    // as the route: a walker crosses the ground, a jumper clears it.
+    const burn = (traversal: 'walk' | 'jump') => {
+      const state = apart()
+      for (const key of Object.keys(state.board.hexes)) {
+        state.board.hazards[key] = [
+          { id: 'coals', title: 'Coals', remainingRounds: 9, enterDamage: 1, blocksVoluntaryMovement: false, damagesSourceTeam: true, sourceTeam: 'enemy' },
+        ]
+      }
+      return fire(state, movingBeat({ move_tiles: 3, range_tiles: 1, traversal })).state
+    }
+    const bossMaxHealth = boss(start()).maxHealth
+    // A walker pays a hex at a time all the way in: the distance it had to
+    // close, which is where it started minus the reach it stops at.
+    const crossed = hexDistance(boss(apart()).coords, apart().board.entities[apart().primaryHeroId].coords) - 1
+    expect(crossed).toBeGreaterThan(1)
+    expect(bossMaxHealth - boss(burn('walk')).health).toBe(crossed)
+    // A jumper pays once, for the hex it comes down on.
+    expect(bossMaxHealth - boss(burn('jump')).health).toBe(1)
+  })
+
+  it('lets one Beat move and then hit, measured from where the move ended', () => {
+    // The Gloomhaven monster-card shape: "Move 2, Attack 3" as one Beat with
+    // one telegraph, rather than two Beats a Program has to keep in order.
+    // Resolving the claw from the pre-move hex is the bug the ordering exists
+    // to prevent — it would close the distance and swing at where it had been.
+    const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
+    const state = apart()
+    const heroBefore = hero(state).health
+    // Out of reach standing still: the claw alone lands nothing.
+    expect(fire(state, claw).facts.some((fact) => fact.kind === 'damage')).toBe(false)
+    // The same claw carrying a movement clause closes and connects.
+    const lunge = { ...claw, move_tiles: 8, traversal: 'walk' as const }
+    const landed = fire(state, lunge)
+    expect(landed.facts.map((fact) => fact.kind)).toContain('traverse_piece')
+    expect(hero(landed.state).health).toBeLessThan(heroBefore)
+  })
+})
+
+describe('One movement rule for every piece (D-072)', () => {
+  // The three places the reach-and-traversal rule was still leaking after
+  // D-073 and D-074 closed it for Cards and Boss Beats.
+
+  it('reads a Minion\'s bite reach off its content, not off a literal', () => {
+    // It was `currentDistance <= 1` in the creep. A Whelp that bites at 2 was
+    // unauthorable, which made every future Minion the same Minion.
+    expect(catalog.minions.whelp.range_tiles).toBeGreaterThan(0)
+    const reachy = structuredClone(catalog)
+    reachy.minions.whelp.range_tiles = 2
+
+    // Two hexes out: out of reach on the shipped Whelp, in reach on the variant.
+    const state = stepPhases(immortalHero(startBroodSecond()), 9).state
+    const whelp = Object.values(state.board.entities).find((entity) => entity.kind === 'minion')!
+    const heroCoords = state.board.entities[state.primaryHeroId].coords
+    const twoOut = Object.keys(state.board.hexes)
+      .map(parseHexKey)
+      .find((coords) => hexDistance(coords, heroCoords) === 2 && !getEntityIdAt(state.board, coords))!
+    state.board.entities[whelp.id].coords = twoOut
+
+    expect(minionIntent(catalog, state, whelp.id)?.damage).toBe(0)
+    expect(minionIntent(reachy, state, whelp.id)?.damage).toBeGreaterThan(0)
+  })
+
+  it('walks a Minion the way it walks the Boss, around what is in the way', () => {
+    // The creep was this module's own rule — first neighbour in board order,
+    // stopping dead against anything occupied — which is exactly what D-074
+    // replaced for the Boss.
+    const state = stepPhases(immortalHero(startBroodSecond()), 9).state
+    const whelp = Object.values(state.board.entities).find((entity) => entity.kind === 'minion')!
+    const heroCoords = state.board.entities[state.primaryHeroId].coords
+    const threeOut = Object.keys(state.board.hexes)
+      .map(parseHexKey)
+      .find((coords) => hexDistance(coords, heroCoords) === 2 && !getEntityIdAt(state.board, coords))!
+    state.board.entities[whelp.id].coords = threeOut
+
+    const route = minionIntent(catalog, state, whelp.id)!.route
+    expect(route).toHaveLength(1)
+    // Wall off the whole ring with ground authored impassable, and the creep
+    // has nowhere to go — the authored terrain a Minion used to ignore
+    // outright ("Scorched is Embermaw's element", in engine code).
+    for (const coords of neighbors(state.board.hexes, threeOut)) {
+      state.board.hazards[hexKey(coords)] = [
+        { id: 'wall', title: 'Wall', remainingRounds: 9, enterDamage: 0, blocksVoluntaryMovement: false, impassable: true },
+      ]
+    }
+    expect(minionIntent(catalog, state, whelp.id)!.route).toEqual([])
+  })
+
+  it('refuses a shove onto ground a walker would route around', () => {
+    // A displacement is deliberately dumber than a traversal, but "impassable"
+    // must not mean "impassable unless pushed" — that would make Drive Back the
+    // one way onto ground the arena has taken away.
+    const state = immortalHero(start())
+    const heroCoords = state.board.entities[state.primaryHeroId].coords
+    const bossCoords = boss(state).coords
+    // Ring the Boss with ground authored impassable, so the shove is blocked
+    // whichever edge it re-aims along.
+    expect(hexDistance(bossCoords, heroCoords)).toBeGreaterThan(0)
+    for (const coords of neighbors(state.board.hexes, bossCoords)) {
+      state.board.hazards[hexKey(coords)] = [
+        { id: 'wall', title: 'Wall', remainingRounds: 9, enterDamage: 0, blocksVoluntaryMovement: false, impassable: true },
+      ]
+    }
+    const shoved = resolve(catalog, state, {
+      kind: 'displace_piece',
+      sourceId: state.primaryHeroId,
+      targetId: state.bossId,
+      distance: 1,
+      movement: 'push',
+      reasonText: 'test',
+    })
+    expect(shoved.facts[0].resolutionFact).toMatchObject({ actual_distance: 0, stop_reason: 'blocked' })
+    expect(boss(shoved.state).coords).toEqual(bossCoords)
+  })
+
+  it('stops a Minion at its own reach rather than walking it onto the Hero', () => {
+    // The shared rule has to be shared with the Minion's *own* numbers. A
+    // Whelp reaching 2 should halt two hexes out and bite from there; running
+    // it in to melee would be the Boss's reach deciding a Minion's business.
+    const reachy = structuredClone(catalog)
+    reachy.minions.whelp.range_tiles = 2
+    reachy.minions.whelp.move_tiles = 3
+
+    const state = stepPhases(immortalHero(startBroodSecond()), 9).state
+    const whelp = Object.values(state.board.entities).find((entity) => entity.kind === 'minion')!
+    // Both pieces on opposite rims, so there is room for the walk to overshoot
+    // its reach if it is going to.
+    const hexes = Object.keys(state.board.hexes).map(parseHexKey)
+    const [heroCoords, far] = hexes
+      .flatMap((left) => hexes.map((right) => [left, right] as const))
+      .filter(([left, right]) => getEntityIdAt(state.board, left) === '' && getEntityIdAt(state.board, right) === '')
+      .sort(([leftA, rightA], [leftB, rightB]) => hexDistance(leftB, rightB) - hexDistance(leftA, rightA))[0]
+    expect(hexDistance(far, heroCoords)).toBeGreaterThan(3)
+    state.board.entities[state.primaryHeroId].coords = heroCoords
+    state.board.entities[whelp.id].coords = far
+
+    const route = minionIntent(reachy, state, whelp.id)!.route
+    expect(route.length).toBeGreaterThan(0)
+    expect(hexDistance(route.at(-1)!, heroCoords)).toBe(reachy.minions.whelp.range_tiles)
+  })
+
+  it('aims a moving cone from the facing the move left it in', () => {
+    // The half of the facing rule the Beat side reads. A cone is drawn from
+    // `bossFacing`, so a Beat that moves and then breathes has to read the
+    // facing the move produced — reading the pre-move one points the cone
+    // wherever it happened to be looking.
+    const cone = catalog.programs.embermaw_hunt.incoming_beats.find((beat) => beat.kind === 'forward_cone')!
+    const state = immortalHero(start())
+    const bossCoords = boss(state).coords
+    const away = Object.keys(state.board.hexes)
+      .map(parseHexKey)
+      .filter((coords) => !getEntityIdAt(state.board, coords))
+      .sort((left, right) => hexDistance(right, bossCoords) - hexDistance(left, bossCoords))[0]
+    state.board.entities[state.primaryHeroId].coords = away
+    // Facing the opposite way, so a stale read cannot reach the Hero.
+    boss(state).facing = normalizeFacing(facingToward(bossCoords, away, 0) + 3)
+
+    const still = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: cone, track: 'instant' })
+    expect(still.facts.some((fact) => fact.kind === 'damage')).toBe(false)
+
+    // The same cone carrying a movement clause turns as it closes, and lands.
+    // Resolved on the Instant Row, because that is the only Row a Movement
+    // Clause may be authored on (D-075) — the shape is a cone Beat that closes
+    // before it breathes, not a telegraphed one.
+    const lunging = { ...cone, move_tiles: 8, range_tiles: cone.range_tiles }
+    const swept = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: lunging, track: 'instant' })
+    expect(swept.facts.some((fact) => fact.kind === 'damage')).toBe(true)
+  })
+
+  it('leaves a traversing piece facing the way it went', () => {
+    // Without this a Beat that moves and then hits draws its cone and its
+    // Guarded Front from the way it was looking before it moved.
+    const advance = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'advance_toward_player')!
+    const state = immortalHero(start())
+    const bossCoords = boss(state).coords
+    const furthest = Object.keys(state.board.hexes)
+      .map(parseHexKey)
+      .sort((left, right) => hexDistance(right, bossCoords) - hexDistance(left, bossCoords))[0]
+    state.board.entities[state.primaryHeroId].coords = furthest
+    // Point the Boss the wrong way first, so a stale facing is visible.
+    boss(state).facing = normalizeFacing(facingToward(bossCoords, furthest, 0) + 3)
+    const facingBefore = boss(state).facing
+
+    const moved = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: { ...advance, move_tiles: 1 }, track: 'instant' })
+    expect(boss(moved.state).facing).not.toBe(facingBefore)
+    // It faces the leg it travelled, which on a walk toward the Hero is toward
+    // the Hero.
+    expect(boss(moved.state).facing).toBe(facingToward(bossCoords, furthest, facingBefore))
+  })
+})
+
+describe('Nothing arrives where nothing can stand (D-075)', () => {
+  it('keeps every authored spawn candidate off ground the Encounter itself burns', () => {
+    // The content half. Embermaw authored two of its five candidates on hexes
+    // its own Escalation Thresholds scorch, so past Ashen Verge the brood was
+    // arriving on ground the rules say nothing can stand on — and because
+    // candidates are taken in authored order, those two were the *first* two.
+    // Stated over the whole catalog rather than over Embermaw, so the next
+    // Encounter cannot reintroduce it.
+    for (const encounter of Object.values(catalog.encounters)) {
+      const burnt = new Set(
+        encounter.escalation_thresholds.flatMap((threshold) => threshold.scorch_hexes.map((coords) => hexKey(coords))),
+      )
+      const overlap = encounter.minion_spawn_candidates.filter((coords) => burnt.has(hexKey(coords)))
+      expect(overlap.map(hexKey), `${encounter.id} spawns onto ground it burns`).toEqual([])
+    }
+  })
+
+  it('stops a Hero paid step on impassable ground, not only an Enemy route', () => {
+    // The axis is physics versus choice, not Hero versus Enemy (D-075). Under
+    // the old framing, ground authored impassable stopped a Whelp and Embermaw
+    // and let the Tank stroll through it, which is the rule reading as a bug
+    // the first time anybody authors a wall.
+    const state = start()
+    const heroCoords = state.board.entities[state.primaryHeroId].coords
+    const step = neighbors(state.board.hexes, heroCoords).find((coords) => isLegalMove(state.board, state.primaryHeroId, coords))!
+    expect(isLegalMove(state.board, state.primaryHeroId, step)).toBe(true)
+
+    state.board.hazards[hexKey(step)] = [
+      { id: 'wall', title: 'Wall', remainingRounds: 9, enterDamage: 0, blocksVoluntaryMovement: false, impassable: true },
+    ]
+    expect(isLegalMove(state.board, state.primaryHeroId, step)).toBe(false)
+    // And the same hex answers the other question separately: ground a Hero
+    // merely declines to enter is still ground a shove can put them on.
+    state.board.hazards[hexKey(step)] = [
+      { id: 'coals', title: 'Coals', remainingRounds: 9, enterDamage: 1, blocksVoluntaryMovement: true, impassable: false },
+    ]
+    expect(isLegalMove(state.board, state.primaryHeroId, step)).toBe(false)
+    expect(isLegalMove(state.board, state.primaryHeroId, step, 1, false)).toBe(true)
+  })
+
+  it('skips impassable ground when a Beat calls its brood, and telegraphs the hexes it will really use', () => {
+    // The engine half, which is what makes the content half unauthorable
+    // rather than merely fixed. Arriving is not moving, so the movement rules
+    // never saw this one.
+    const state = startBroodSecond()
+    const call = catalog.programs.embermaw_brood.incoming_beats.find((beat) => beat.kind === 'spawn_minions')!
+    const firstChoice = state.spawnCandidates[0]
+    state.board.hazards[hexKey(firstChoice)] = [
+      { id: 'burnt', title: 'Burnt', remainingRounds: 9, enterDamage: 0, blocksVoluntaryMovement: false, impassable: true },
+    ]
+    const called = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: call, track: 'incoming' })
+    const arrived = called.facts.filter((fact) => fact.kind === 'spawn_minion' && fact.succeeded)
+    expect(arrived.length).toBeGreaterThan(0)
+    for (const fact of arrived) {
+      expect(hexKey(fact.detail.coords as { q: number; r: number })).not.toBe(hexKey(firstChoice))
+    }
+    // And the telegraph agrees, because both now pick through one helper — it
+    // used to hand-roll its own occupancy test, which is two copies of a rule
+    // only one of which would have grown this clause.
+    const telegraphed = stepPhases(state, 2).state
+    expect(Object.entries(telegraphed.telegraphs).filter(([, kind]) => kind === 'spawn').map(([key]) => key)).not.toContain(hexKey(firstChoice))
+  })
+})
+
+describe('The traversal probe (D-076)', () => {
+  // An evaluation Encounter earns its place by exercising what it was built to
+  // measure. `--deck` has the same hazard one level down: a candidate list that
+  // stops containing the candidate measures the shipped deck twice and reports
+  // it as evidence.
+  const probe = catalog.encounters.embermaw_traversal_probe
+  const probeBeats = [...probe.boss_programs, ...probe.phase_two_programs]
+    .flatMap((id) => catalog.programs[id] ?? [])
+    .flatMap((program) => [...program.instant_beats, ...program.incoming_beats])
+
+  it('exercises every traversal kind, and ground that stops one', () => {
+    expect(probe).toBeDefined()
+    const kinds = new Set(probeBeats.filter((beat) => beat.move_tiles > 0 || beat.traversal !== 'walk').map((beat) => beat.traversal))
+    expect([...kinds].sort()).toEqual(['jump', 'teleport'])
+    // Walk is the shipped Boss's answer, so the probe measures the two kinds
+    // nothing else does — and the ground that tells a walker from a jumper.
+    const laid = new Set(probeBeats.map((beat) => beat.hazard).filter((id): id is string => id !== undefined))
+    expect([...laid].some((id) => catalog.hazards[id]?.impassable)).toBe(true)
+  })
+
+  it('changes nothing but the axis it is measuring', () => {
+    // The comparison is only worth running while the probe differs from the
+    // shipped fight in one place. Board, Hero, deck, clock and thresholds are
+    // held equal on purpose; if one of them drifts, a `far` delta stops being
+    // attributable and the acceptance bar quietly stops meaning anything.
+    const shipped = catalog.encounters.embermaw_prototype
+    for (const field of ['board_radius', 'boss_health', 'round_limit', 'slot_count', 'hand_refill_target', 'boss_id'] as const) {
+      expect(probe[field], `probe drifted from the shipped fight on ${field}`).toEqual(shipped[field])
+    }
+    expect(probe.player_deck).toEqual(shipped.player_deck)
+    expect(probe.escalation_thresholds).toEqual(shipped.escalation_thresholds)
+    expect(probe.minion_spawn_candidates).toEqual(shipped.minion_spawn_candidates)
+    expect(probe.party).toEqual(shipped.party)
+  })
+
+  it('stays out of the Workbench, because it is not a fight anybody plays', () => {
+    // Reachable by id from the sweep and by nothing else: the play surface
+    // names its Encounters through two constants, and neither is this.
+    expect(DEFAULT_ENCOUNTER_ID).not.toBe(probe.id)
+    expect(FIRST_TURN_ENCOUNTER_ID).not.toBe(probe.id)
+  })
+})
+
 describe('Raking Claw reach (D-062)', () => {
   const claw = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'targeted_hit')!
 
@@ -3334,6 +3945,102 @@ describe('Raking Claw reach (D-062)', () => {
 
     const scorch = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: trail, track: 'instant' })
     expect(scorch.facts.filter((fact) => fact.kind === 'apply_hazard').map((fact) => fact.detail.coords)).toEqual([struck])
+  })
+})
+
+describe('Authored card reach (D-073)', () => {
+  // The card side of the rule the Beats already answered (D-043): reach is a
+  // property every ability carries, and `boss_damage` no longer resolves from
+  // wherever the Hero happens to stand.
+  //
+  // Steady Strike is the card that made the gap visible. Its rules text is a
+  // melee swing and its data said nothing about distance, so a Guardian parked
+  // three hexes clear of Embermaw hit exactly as hard as one holding the
+  // Guarded Front — the range-camping line D-017 had to answer with authored
+  // Boss pressure because the card itself would not.
+  const strike = catalog.cards.steady_strike
+
+  // Fire a charged Steady Strike from `coords`, with the Boss left where the
+  // Encounter placed it. Phases are stepped first and the Hero is moved
+  // afterwards, so the Instant Row's advance cannot close the distance the
+  // test is measuring.
+  function strikeFrom(coords: { q: number; r: number }) {
+    let state = stepPhases(start(), 2).state
+    expect(state.phase).toBe('quick')
+    state.board.entities[state.primaryHeroId].coords = { ...coords }
+    hero(state).hand = [card('s1', 'steady_strike'), card('s2', 'steady_strike')]
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 's1' }).state
+    state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 's2' }).state
+    return resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+  }
+
+  it('authors a reach on every card that touches anything past its own Hero', () => {
+    // Stated as a property of the deck rather than as a list of card ids, so a
+    // new attack cannot be added without one. The catalog refuses this at load
+    // too; this is the same rule read back off the shipped content.
+    for (const authored of Object.values(catalog.cards)) {
+      const reaches =
+        authored.boss_damage > 0 ||
+        authored.damage > 0 ||
+        authored.push_tiles > 0 ||
+        authored.pull_tiles > 0 ||
+        authored.target_type === 'hex' ||
+        authored.target_type === 'piece'
+      expect(authored.range_tiles >= 1, `${authored.id} reaches: ${reaches}, range_tiles: ${authored.range_tiles}`).toBe(reaches)
+    }
+  })
+
+  it('lands Boss damage from inside the authored reach and from nowhere further out', () => {
+    // Read against `range_tiles` rather than a literal `1`, the contract D-043
+    // wrote for the cone and D-062 for the claw: lengthening Steady Strike's
+    // reach in `data/` has to move the hit with it.
+    const bossCoords = boss(start()).coords
+    let inReachHexes = 0
+    let outOfReachHexes = 0
+    for (const key of Object.keys(start().board.hexes)) {
+      const [q, r] = key.split(',').map(Number)
+      const distance = hexDistance({ q, r }, bossCoords)
+      if (distance === 0) {
+        continue
+      }
+      const fired = strikeFrom({ q, r })
+      const inReach = distance <= strike.range_tiles
+      expect(fired.facts[0].succeeded, `hex ${key} at distance ${distance}`).toBe(inReach)
+      if (inReach) {
+        inReachHexes += 1
+        expect(fired.facts.some((fact) => fact.kind === 'damage' && fact.succeeded)).toBe(true)
+      } else {
+        outOfReachHexes += 1
+        expect(fired.facts[0].reason).toBe("The Boss is outside the Top Card's range.")
+        // A refused fire spends nothing: the Slot keeps its Charge Stack and
+        // may still fire this window from a hex that reaches.
+        expect(fired.state.heroes[fired.state.primaryHeroId].actionBar[0].charges).toHaveLength(1)
+        expect(boss(fired.state).health).toBe(boss(start()).health)
+      }
+    }
+    // Both halves were actually exercised — an arena where every hex is in
+    // reach, or none is, would pass the loop above having proven nothing.
+    expect(inReachHexes).toBeGreaterThan(0)
+    expect(outOfReachHexes).toBeGreaterThan(0)
+  })
+
+  it('offers no fire action from out of reach, so the bar never lights a Slot the rules refuse', () => {
+    // `legalActions` and `fireTargeting` ask the same predicate the resolver
+    // does (ADR 0013), so the Action Bar cannot advertise the shot that
+    // `strikeFrom` above is refused.
+    let state = stepPhases(start(), 2).state
+    const bossCoords = boss(state).coords
+    const furthest = Object.keys(state.board.hexes)
+      .map(parseHexKey)
+      .sort((left, right) => hexDistance(right, bossCoords) - hexDistance(left, bossCoords))[0]
+    expect(hexDistance(furthest, bossCoords)).toBeGreaterThan(strike.range_tiles)
+    state.board.entities[state.primaryHeroId].coords = furthest
+    hero(state).hand = [card('s1', 'steady_strike'), card('s2', 'steady_strike')]
+    state = resolve(catalog, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 's1' }).state
+    state = resolve(catalog, state, { kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex: 0, cardInstanceId: 's2' }).state
+
+    const fires = legalActions(catalog, state, state.primaryHeroId).filter((action) => action.kind === 'fire_slot' && action.slotIndex === 0)
+    expect(fires).toEqual([])
   })
 })
 
@@ -4045,6 +4752,7 @@ describe('card draw effects', () => {
       healing: 0,
       boss_damage: 0,
       damage: 0,
+      range_tiles: 0,
       draw_count: 2,
       burst_radius: 0,
       push_tiles: 0,
@@ -4117,7 +4825,7 @@ describe('card draw effects', () => {
   })
 
   it('emits draws after the Card damage and on-fire Counter consequences', () => {
-    const variant = withDrawCard({ boss_damage: 1, draw_count: 1 })
+    const variant = withDrawCard({ boss_damage: 1, range_tiles: 1, draw_count: 1 })
     const state = readyDraw(variant)
     state.counters[combatantRef(state.primaryHeroId)] = [
       {
@@ -4145,7 +4853,7 @@ describe('card draw effects', () => {
   })
 
   it('finishes the authored draws after lethal Boss damage resolves first', () => {
-    const variant = withDrawCard({ boss_damage: 1, draw_count: 1 })
+    const variant = withDrawCard({ boss_damage: 1, range_tiles: 1, draw_count: 1 })
     const state = readyDraw(variant)
     state.board.entities[state.bossId].health = 1
     const handBefore = hero(state).hand.length

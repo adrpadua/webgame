@@ -1,4 +1,4 @@
-import { addEntity, addHazard, advanceBoardRound, damageEntity, facingToward, getHazards, isGuardedFront, isOccupied, isOnBoard, moveEntity } from './board'
+import { addEntity, addHazard, advanceBoardRound, damageEntity, facingAlong, facingToward, getHazards, isGuardedFront, isOccupied, isOnBoard, isTraversable, moveEntity } from './board'
 import { axialAdd, axialSubtract, hexDistance, hexesWithinRadius, type Axial } from './hex'
 import { axialDeltaFor, directionForAxialDelta, FACING_NW } from './facing'
 import type { ContentCatalog } from './content/catalog'
@@ -94,7 +94,7 @@ export function checkResolution(draft: EncounterState): void {
     draft.outcomeReason = 'The Boss is defeated.'
     return
   }
-  // Defeat is the whole Party Downed at once (ADR 0039), not any one Hero
+  // Defeat is the whole Party Downed at once (ADR 0040), not any one Hero
   // falling. A Hero at zero is `Downed` and the fight goes on around them.
   // Solo needs no clause of its own: a Party of one that falls has every seat
   // Downed, so this same check ends it immediately and both authored solo
@@ -366,6 +366,10 @@ function resolveOne(
       resolveDisplacement(draft, action, fact, generated)
       break
     }
+    case 'traverse_piece': {
+      resolveTraversal(draft, action, fact, generated)
+      break
+    }
     case 'resolve_boss': {
       generated.push(...resolveBossBeat(catalog, draft, action.sourceId, action.beat, action.track))
       succeed(fact)
@@ -380,6 +384,8 @@ function resolveOne(
             remainingRounds: definition.duration_rounds,
             enterDamage: definition.enter_damage,
             blocksVoluntaryMovement: definition.blocks_voluntary_movement,
+            impassable: definition.impassable,
+            damagesSourceTeam: definition.damages_source_team,
           }
         : {
             id: 'scorched',
@@ -387,6 +393,8 @@ function resolveOne(
             remainingRounds: Math.max(action.fallbackDurationRounds, 1),
             enterDamage: 1,
             blocksVoluntaryMovement: true,
+            impassable: false,
+            damagesSourceTeam: false,
           }
       if (action.permanent === true) {
         hazard.permanent = true
@@ -423,18 +431,6 @@ function resolveOne(
       if (minion) {
         draft.board.entities[action.minionId].contentId = minion.id
       }
-      succeed(fact)
-      break
-    }
-    case 'move_minion': {
-      const entity = draft.board.entities[action.sourceId]
-      if (!entity) {
-        fail(fact, 'The Minion no longer exists.')
-        break
-      }
-      const fromCoords = entity.coords
-      moveEntity(draft.board, action.sourceId, action.destination)
-      entity.facing = directionForAxialDelta(axialSubtract(action.destination, fromCoords))
       succeed(fact)
       break
     }
@@ -499,7 +495,7 @@ function resolveOne(
         break
       }
       fact.detail.dealt = resolutionFact.health_loss
-      // Zero health is a state change, not the end of the fight (ADR 0039).
+      // Zero health is a state change, not the end of the fight (ADR 0040).
       // No `canBeDowned` guard: every Hero at zero goes Downed, including the
       // last one standing, and `checkResolution` below ends the Encounter
       // because every seat is then Downed. That is why solo needs no rule of
@@ -531,7 +527,7 @@ function resolveOne(
     }
     case 'diminished_action': {
       // Each of these costs a card out of the hand the Hero fell with, which
-      // never refills (ADR 0039) — that finite budget is the whole price, and
+      // never refills (ADR 0040) — that finite budget is the whole price, and
       // none of the three touches the Boss's health.
       const actor = draft.heroes[action.sourceId]
       actor.discard.push(takeFromHand(actor, action.cardInstanceId))
@@ -758,7 +754,7 @@ function resolveDisplacement(
   const from = { ...target.coords }
   const entered: Axial[] = []
   const requestedDistance = Math.max(Math.floor(action.distance), 0)
-  let stopReason: 'complete' | 'edge' | 'occupied' = 'complete'
+  let stopReason: 'complete' | 'edge' | 'occupied' | 'blocked' = 'complete'
   for (let step = 0; step < requestedDistance; step += 1) {
     const direction =
       action.movement === 'push'
@@ -771,6 +767,15 @@ function resolveDisplacement(
     }
     if (isOccupied(draft.board, destination, action.targetId)) {
       stopReason = 'occupied'
+      break
+    }
+    // Ground a walker routes around stops a shove too (D-072). A displacement
+    // is deliberately dumber than a traversal — it re-aims each hex and has no
+    // route to reconsider — but "impassable" cannot mean "impassable unless
+    // pushed", or Drive Back would be the one way onto ground the arena has
+    // taken away.
+    if (!isTraversable(draft.board, action.targetId, destination)) {
+      stopReason = 'blocked'
       break
     }
     moveEntity(draft.board, action.targetId, destination)
@@ -790,14 +795,65 @@ function resolveDisplacement(
   }
 }
 
+// A Beat's movement clause landing (D-074). The route was decided when the Beat
+// resolved, so this only has to walk it — but it re-checks each hex rather than
+// trusting the plan, because anything generated between the two could have put
+// a piece in the way.
+//
+// Hazard entry fires per hex entered, which is where a walker and a jumper come
+// apart: a walker's path is every hex it crossed and it pays for all of them, a
+// jumper's is the one it landed on.
+function resolveTraversal(
+  draft: EncounterState,
+  action: Extract<EncounterActionInput, { kind: 'traverse_piece' }>,
+  fact: ResolvedActionFact,
+  generated: EncounterActionInput[],
+): void {
+  const mover = draft.board.entities[action.sourceId]
+  if (!mover) {
+    fail(fact, 'The traversing piece is unavailable.')
+    return
+  }
+  const from = { ...mover.coords }
+  const entered: Axial[] = []
+  let stopReason: 'complete' | 'blocked' = 'complete'
+  for (const coords of action.path) {
+    if (!moveEntity(draft.board, action.sourceId, coords)) {
+      stopReason = 'blocked'
+      break
+    }
+    entered.push({ ...coords })
+  }
+  // A piece ends a traversal facing the way it went, the same rule a Hero's
+  // paid step follows. Computed from what it actually entered rather than from
+  // what it planned, so a route cut short faces where it stopped.
+  mover.facing = facingAlong(entered, from, mover.facing)
+  fact.resolutionFact = {
+    from,
+    to: { ...mover.coords },
+    facing: mover.facing,
+    traversal: action.traversal,
+    requested_distance: action.path.length,
+    actual_distance: entered.length,
+    stop_reason: stopReason,
+  }
+  succeed(fact)
+  for (const coords of entered) {
+    generated.push(...hazardEntryActions(draft, action.sourceId, coords))
+  }
+}
+
 function hazardEntryActions(draft: EncounterState, targetId: string, coords: Axial): EncounterActionInput[] {
   const enteringTeam = draft.board.entities[targetId]?.team
   return getHazards(draft.board, coords)
     .filter((hazard) => hazard.enterDamage > 0)
-    // Immune to your own side's ground (D-042). Without this a Boss advancing
-    // across its own permanent Ash Trail chips itself, crediting a Hero with
-    // Boss damage they never dealt — against a D-016 margin already down to 2.
-    .filter((hazard) => hazard.sourceTeam === undefined || hazard.sourceTeam !== enteringTeam)
+    // Immune to your own side's ground (D-042), unless the ground says
+    // otherwise (D-074). The rule is still the default and still the right one
+    // — without it a Boss advancing across its own permanent Ash Trail chips
+    // itself, crediting a Hero with Boss damage they never dealt, against a
+    // D-016 margin once down to 2 — but it is now the Hazard's decision rather
+    // than the engine's, so a Boss can be authored to be lured onto its own.
+    .filter((hazard) => hazard.damagesSourceTeam === true || hazard.sourceTeam === undefined || hazard.sourceTeam !== enteringTeam)
     .map((hazard) => ({
       kind: 'damage' as const,
       sourceId: 'hazard',
@@ -1000,8 +1056,14 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
     case 'move_hero':
       return { title: `Move to (${action.destination.q}, ${action.destination.r})`, detail }
     case 'displace_piece': {
-      const verb = action.movement === 'push' ? 'Push' : action.movement === 'advance' ? 'Advance' : 'Pull'
+      const verb = action.movement === 'push' ? 'Push' : 'Pull'
       return { title: `${verb} ${action.targetId} ${action.distance}`, detail }
+    }
+    case 'traverse_piece': {
+      const landing = action.path.at(-1)
+      const where = landing === undefined ? 'nowhere' : `(${landing.q}, ${landing.r})`
+      const verb = action.traversal === 'walk' ? 'advances' : action.traversal === 'jump' ? 'leaps' : 'appears'
+      return { title: `${action.sourceId} ${verb} to ${where}`, detail }
     }
     case 'resolve_boss':
       return { title: `Boss Beat: ${action.beat.title}`, detail: { beatId: action.beat.id, beatTitle: action.beat.title, track: action.track } }
@@ -1009,8 +1071,6 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: `Hazard at (${action.coords.q}, ${action.coords.r})`, detail }
     case 'spawn_minion':
       return { title: `Spawn ${action.minionId}`, detail }
-    case 'move_minion':
-      return { title: `${action.sourceId} advances to (${action.destination.q}, ${action.destination.r})`, detail }
     case 'detonate_minion':
       return { title: `${action.sourceId} detonates`, detail }
     case 'damage':

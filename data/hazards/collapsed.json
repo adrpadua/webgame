@@ -1,0 +1,10 @@
+{
+  "id": "collapsed",
+  "title": "Collapsed",
+  "rules_text": "The floor is gone. Nothing crosses it, nothing arrives on it, and nobody steps onto it. What it costs is standing room, not Health.",
+  "duration_rounds": 1,
+  "enter_damage": 0,
+  "blocks_voluntary_movement": true,
+  "impassable": true,
+  "damages_source_team": false
+}

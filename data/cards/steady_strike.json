@@ -5,6 +5,7 @@
   "speed": "quick",
   "max_charge": 3,
   "target_type": "none",
+  "range_tiles": 1,
   "boss_damage": 2,
   "tags": ["tank", "attack"],
   "charge_modifiers": ["each_charge_boss_damage"]

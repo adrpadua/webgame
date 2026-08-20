@@ -1,7 +1,7 @@
 # Design Proposal: Downed is One State, and Rescue is a Card
 
 Date: 2026-08-20
-Status: **Settled by grilling 2026-08-20 (rounds 6–10, all five closed by designer acceptance). Adopted as D-074 (ADR 0039).** Supersedes D-070 / ADR 0036, **which shipped on main while this was being grilled** — so this is a migration of live code, not a greenfield build. See *[What contact with the shipped code changed](#what-contact-with-the-shipped-code-changed)*.
+Status: **Settled by grilling 2026-08-20 (rounds 6–10, all five closed by designer acceptance). Adopted as D-074 (ADR 0040).** Supersedes D-070 / ADR 0036, **which shipped on main while this was being grilled** — so this is a migration of live code, not a greenfield build. See *[What contact with the shipped code changed](#what-contact-with-the-shipped-code-changed)*.
 Context: [ADR 0036](../../adr/0036-give-zero-health-two-states-downed-then-incapacitated.md), [ADR 0035](../../adr/0035-field-a-party-of-heroes-and-let-cards-reach-allies.md), [ADR 0032](../../adr/0032-give-each-hero-a-fixed-signature-slot-with-earned-charges.md), [Character Design Bible](../../rules/character-design-bible.md), [healer/support research note](../research/2026-08-17-healer-support-design-lessons.md), [co-op boss repeatability note](../research/2026-08-17-coop-boss-design-repeatability.md).
 
 ## What changed, and why there is a second proposal at all
