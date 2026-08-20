@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
 import { createEncounterState, type CardInstance, type EncounterState, type Phase, type SlotState } from '@/engine'
-import { slotOutOfWindow, slotTakesCharge, slotWantedKeywords } from './slots'
+import {
+  readSlot,
+  slotIncoming,
+  slotLabel,
+  slotOutOfWindow,
+  slotStateName,
+  slotTakesCharge,
+  slotTone,
+  slotWantedKeywords,
+  type SlotIncoming,
+  type SlotStateName,
+} from './slots'
 
 // The Slot's two offers, held apart on purpose: what its Top Card is hunting
 // for is a fact about the card and holds all window long, while whether it
@@ -94,5 +105,153 @@ describe('slot out of window', () => {
   it('is never off for an empty Slot, or once the Encounter ends', () => {
     expect(slotOutOfWindow(catalog, opening('slow'), slotState({}))).toBe(false)
     expect(slotOutOfWindow(catalog, { ...opening('slow'), active: false }, quickSlot)).toBe(false)
+  })
+})
+
+describe('slot state name', () => {
+  const cap = 3
+
+  it('names the stack: empty, loaded, charged, full', () => {
+    expect(slotStateName(slotState({}), 0)).toBe('empty')
+    expect(slotStateName(slotState({ topCard: instance('iron_guard', 'top') }), cap)).toBe('loaded')
+    expect(slotStateName(slotState({ topCard: instance('iron_guard', 'top'), charges: [instance('fortify', 'a')] }), cap)).toBe('charged')
+    const full = slotState({
+      topCard: instance('iron_guard', 'top'),
+      charges: [instance('fortify', 'a'), instance('fortify', 'b'), instance('fortify', 'c')],
+    })
+    expect(slotStateName(full, cap)).toBe('full')
+  })
+
+  // Fired outranks the stack: a spent Slot still holds its Charges until the
+  // window ends, and reading it as Full would say it can fire again.
+  it('names a spent Slot fired however charged it is', () => {
+    const spent = slotState({
+      topCard: instance('iron_guard', 'top'),
+      charges: [instance('fortify', 'a'), instance('fortify', 'b'), instance('fortify', 'c')],
+      activatedWindow: 'quick',
+    })
+    expect(slotStateName(spent, cap)).toBe('fired')
+  })
+})
+
+describe('what an in-hand card would do to a Slot', () => {
+  it('answers nothing when the player is holding nothing', () => {
+    expect(slotIncoming(catalog, opening('quick'), slotState({}), 0, null)).toBeNull()
+  })
+
+  it('prepares into an empty Slot, and charges an occupied one in a player window', () => {
+    const state = opening('quick')
+    const card = state.heroes[state.primaryHeroId].hand[0].instanceId
+    expect(slotIncoming(catalog, state, slotState({}), 0, card)?.action).toBe('Prepare')
+    expect(slotIncoming(catalog, state, slotState({ topCard: instance('iron_guard', 'top') }), 0, card)?.action).toBe('Charge')
+  })
+
+  // The Loadout distinction the confirmation modal exists for: a card placed
+  // this Loadout into a Slot that began it empty is tentative, so landing
+  // another swaps it back to hand. Replace destroys a kept bundle.
+  it('swaps a tentative card in Loadout and replaces a kept one', () => {
+    const state = opening('loadout')
+    const card = state.heroes[state.primaryHeroId].hand[0].instanceId
+    const tentative = slotState({ topCard: instance('iron_guard', 'top'), placedThisLoadout: true })
+    const kept = slotState({ topCard: instance('iron_guard', 'top'), placedThisLoadout: false })
+    expect(slotIncoming(catalog, state, tentative, 0, card)?.action).toBe('Swap')
+    expect(slotIncoming(catalog, state, kept, 0, card)?.action).toBe('Replace')
+  })
+
+  // Legality is the engine's answer, not the plate's (ADR 0013). Charging
+  // during a Boss row is refused, so the badge is struck through rather than
+  // promising a move the rules would reject.
+  it('takes its legality from the engine', () => {
+    const bossRow = opening('instant')
+    const card = bossRow.heroes[bossRow.primaryHeroId].hand[0].instanceId
+    expect(slotIncoming(catalog, bossRow, slotState({ topCard: instance('iron_guard', 'top') }), 0, card)?.legal).toBe(false)
+  })
+})
+
+describe('the tone a plate wears', () => {
+  function tone(over: Partial<Parameters<typeof slotTone>[0]>) {
+    return slotTone({ incoming: null, canFire: false, outOfWindow: false, stateName: 'loaded', hasCard: true, ...over })
+  }
+  const offer: SlotIncoming = { action: 'Charge', legal: true }
+
+  it('reads the plain states', () => {
+    expect(tone({ stateName: 'empty', hasCard: false })).toBe('empty')
+    expect(tone({})).toBe('loaded')
+    expect(tone({ canFire: true })).toBe('live')
+    expect(tone({ stateName: 'full' })).toBe('live')
+    expect(tone({ stateName: 'fired' })).toBe('off')
+    expect(tone({ outOfWindow: true })).toBe('off')
+  })
+
+  it('marks a Replace apart from every other offer', () => {
+    expect(tone({ incoming: offer })).toBe('offer')
+    expect(tone({ incoming: { action: 'Replace', legal: true } })).toBe('offer-replace')
+  })
+
+  // The precedence, which is the whole reason this is a function. An offer
+  // outranks everything: charging is the move an off Slot still owns.
+  it('lets a legal offer outrank an out-of-window Slot', () => {
+    expect(tone({ incoming: offer, outOfWindow: true, stateName: 'charged' })).toBe('offer')
+  })
+
+  it('ignores an offer the rules would refuse', () => {
+    expect(tone({ incoming: { action: 'Charge', legal: false }, canFire: true })).toBe('live')
+  })
+
+  // Out-of-window is consulted before Full on purpose: Full's gold says "can
+  // fire", and that is the one claim a Slot awaiting its window must not make.
+  it('dims a Full Slot that is waiting for the other window', () => {
+    expect(tone({ outOfWindow: true, stateName: 'full' })).toBe('off')
+  })
+})
+
+describe('what a screen reader is told', () => {
+  const state = opening('quick')
+
+  it('names an empty Slot by position', () => {
+    const reading = readSlot(catalog, state, slotState({}), 1, null)
+    expect(slotLabel(catalog, reading, 1)).toBe('Slot 2: empty')
+  })
+
+  it('names the card and its state', () => {
+    const reading = readSlot(catalog, state, slotState({ topCard: instance('steady_strike', 'top') }), 0, null)
+    expect(slotLabel(catalog, reading, 0)).toBe('Slot 1: Steady Strike, Loaded')
+  })
+
+  // The want marks are the only thing on the plate with no word beside them,
+  // so the label is the one place they are spoken.
+  it('speaks the want marks while the Slot can still act on one', () => {
+    const reading = readSlot(catalog, state, slotState({ topCard: instance('iron_guard', 'top') }), 0, null)
+    expect(slotLabel(catalog, reading, 0)).toContain('takes Guard cards')
+  })
+
+  it('says which window a Slot waiting on the other one fires in', () => {
+    // fortify fires slow, so it is out of window during Quick.
+    const reading = readSlot(catalog, state, slotState({ topCard: instance('fortify', 'top') }), 0, null)
+    expect(slotLabel(catalog, reading, 0)).toContain('fires in the Slow Window')
+  })
+})
+
+describe('reading a whole Slot', () => {
+  it('collects every answer the plate renders from one call', () => {
+    const state = opening('quick')
+    const charged = slotState({ topCard: instance('steady_strike', 'top'), charges: [instance('iron_guard', 'a')] })
+    const reading = readSlot(catalog, state, charged, 0, null)
+    expect(reading.card?.id).toBe('steady_strike')
+    expect(reading.chargeCount).toBe(1)
+    expect(reading.stateName).toBe('charged')
+    expect(reading.outOfWindow).toBe(false)
+    expect(reading.incoming).toBeNull()
+    expect(reading.tone).toBe('live')
+  })
+
+  it('agrees with the predicates it composes', () => {
+    const state = opening('slow')
+    const quickSlot = slotState({ topCard: instance('steady_strike', 'top') })
+    const reading = readSlot(catalog, state, quickSlot, 0, null)
+    expect(reading.outOfWindow).toBe(slotOutOfWindow(catalog, state, quickSlot))
+    expect(reading.takesCharge).toBe(slotTakesCharge(catalog, state, quickSlot))
+    expect(reading.wanted).toEqual(slotWantedKeywords(catalog, quickSlot))
+    expect(reading.stateName).toBe<SlotStateName>('loaded')
   })
 })
