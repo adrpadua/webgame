@@ -22,6 +22,7 @@ This map orders user-approved or pending product proposals. Each proposal has on
 14. [14-mobile-demo-readiness-ui-review-and-polish-loop.md](issues/14-mobile-demo-readiness-ui-review-and-polish-loop.md) - `needs-triage` - Run repeatable newcomer-perspective UI review and polish passes after proposal 12 to make the mobile demo presentable.
 15. [15-counter-pressure-against-boss-range-camping.md](issues/15-counter-pressure-against-boss-range-camping.md) - `needs-triage` - Make maximum-distance play against Embermaw a real trade-off through authored encounter content, keeping `boss_damage` range-free.
 16. [16-fewer-words-hold-popups-and-a-scripted-first-turn.md](issues/16-fewer-words-hold-popups-and-a-scripted-first-turn.md) - `resolved` - Cut on-surface prose in favour of tap-and-hold Detail Popups, add a scripted first Round, and give the board visible feedback for resolved actions.
+17. [17-first-healer-hero.md](issues/17-first-healer-hero.md) - `ready-for-agent` - Add the first Healer Hero, the second role in the Role Contract; blocked on ally targeting, heal routing, and the multi-Hero party model.
 
 ## Workflow
 

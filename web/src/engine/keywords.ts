@@ -54,13 +54,19 @@ export const KEYWORD_REFERENCES = {
 // The Role is therefore the Role Keyword the whole deck agrees on: a card
 // missing it, or two Roles across the list, is a deck that names no single
 // Hero, and this says so rather than guessing at the majority.
-export function heroRole(catalog: ContentCatalog, encounterId: string): string {
+export function heroRole(catalog: ContentCatalog, encounterId: string, heroId?: string): string {
   const encounter = catalog.encounters[encounterId]
   if (!encounter) {
     return ''
   }
+  // Which seat's deck states the Role. Naming no Hero asks about the primary
+  // seat, which is what every caller wanted while a Party was one Hero.
+  const seat = heroId === undefined ? encounter.party[0] : encounter.party.find((member) => member.hero === heroId)
+  if (!seat) {
+    return ''
+  }
   let shared: string[] | null = null
-  for (const entry of encounter.player_deck) {
+  for (const entry of seat.deck.length > 0 ? seat.deck : encounter.player_deck) {
     const roles = (catalog.cards[entry.card]?.tags ?? []).filter((tag) => catalog.keywords[tag]?.kind === 'role')
     shared = shared === null ? roles : shared.filter((role) => roles.includes(role))
   }

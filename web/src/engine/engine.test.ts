@@ -192,11 +192,11 @@ describe('content catalog', () => {
     // The Signature rides the Hero, not the deck (D-064) — and the Hero is
     // authored content of their own (ADR 0034), so the printed card lives on
     // the Hero definition and the teaching slice opts out of fielding it.
-    expect(catalog.encounters.embermaw_prototype.hero).toBe('guardian')
+    expect(catalog.encounters.embermaw_prototype.party.map((seat) => seat.hero)).toEqual(['guardian'])
     expect(catalog.heroes.guardian.signature_card).toBe('elian_riposte')
     expect(catalog.heroes.guardian.max_health).toBe(34)
-    expect(catalog.encounters.embermaw_prototype.fields_signature).toBe(true)
-    expect(catalog.encounters.embermaw_first_turn.fields_signature).toBe(false)
+    expect(catalog.encounters.embermaw_prototype.party[0].fields_signature).toBe(true)
+    expect(catalog.encounters.embermaw_first_turn.party[0].fields_signature).toBe(false)
     expect(catalog.cards.elian_riposte.fixed).toBe(true)
     expect(catalog.decks.aegis_controlled_test_deck.encounter).toBe('embermaw_prototype')
     expect(catalog.cards.steady_strike.draw_count).toBe(0)
@@ -349,12 +349,11 @@ describe('content catalog', () => {
           {
             id: 'probe_arena',
             title: 'Probe Arena',
-            hero: 'probe_hero',
+            party: [{ hero: 'probe_hero', start: { q: 0, r: 0 } }],
             boss_id: 'probe_boss',
             boss_title: 'Probe Boss',
             round_limit: 4,
             board_radius: 2,
-            player_start: { q: 0, r: 0 },
             boss_start: { q: 0, r: -2 },
             boss_health: 10,
             slot_count: 2,
@@ -452,6 +451,26 @@ describe('content catalog', () => {
         expect(state.heroes.probe_hero.actionBar).toHaveLength(3)
         expect(state.heroes.probe_hero.actionBar[2]).toMatchObject({ fixed: true, earnedCharges: 0 })
         expect(state.heroes.probe_hero.actionBar[2].topCard?.cardId).toBe('probe_signature')
+      })
+
+      // A Hero with no Signature at all is a supported authoring state, not a
+      // half-built one. The handoff tells designers to author a Hero this way
+      // whenever their earn condition is not "takes damage" — the only event a
+      // standing clause can currently fire on — rather than borrowing a Warden
+      // gate that misstates the Hero's job. That instruction is load-bearing
+      // for every non-Warden Hero, so it is pinned here: an empty
+      // `signature_card` loads, and the bar is exactly the Encounter's Slots
+      // with no fixed Slot appended.
+      it('fields a Hero who has no Signature authored yet', () => {
+        const noSignature = {
+          ...arena('', [{ card: 'probe_strike', copies: 4 }]),
+          cards: [{ id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1 }],
+        }
+        const catalogWithout = buildCatalog({ ...empty, ...noSignature })
+        expect(catalogWithout.heroes.probe_hero.signature_card).toBe('')
+        const state = createEncounterState(catalogWithout, 'probe_arena')
+        expect(state.heroes.probe_hero.actionBar).toHaveLength(2)
+        expect(state.heroes.probe_hero.actionBar.some((slot) => slot.fixed)).toBe(false)
       })
     })
 
@@ -2870,7 +2889,7 @@ describe('Consequence Tier ladder (D-021, ADR 0031)', () => {
     // down a Hero" depends on accumulated attrition — measured at 9.7 average
     // health entering Phase II against a 34 maximum, which would make nearly
     // every Beat severe by the late Rounds and the tier meaningless.
-    const heroHealth = catalog.heroes[catalog.encounters.embermaw_prototype.hero].max_health
+    const heroHealth = catalog.heroes[catalog.encounters.embermaw_prototype.party[0].hero].max_health
     for (const { beat } of everyBeat) {
       if (beat.consequence_tier !== 'severe') {
         continue
@@ -2900,7 +2919,7 @@ describe('Consequence Tier ladder (D-021, ADR 0031)', () => {
     ])
     expect(severe.every(({ beat }) => beat.escalation_if_unanswered > 0)).toBe(true)
     const worst = Math.max(...everyBeat.map(({ beat }) => beat.damage + beat.unguarded_bonus))
-    expect(worst).toBeLessThan(catalog.heroes[catalog.encounters.embermaw_prototype.hero].max_health)
+    expect(worst).toBeLessThan(catalog.heroes[catalog.encounters.embermaw_prototype.party[0].hero].max_health)
   })
 
 })

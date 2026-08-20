@@ -358,7 +358,7 @@ const MUTATIONS = [
     name: 'a Boss Beat marks the wrong side',
     guards: 'D-051: `counter_target` decides whether the Boss marks itself or the Party',
     file: 'engine/timeline.ts',
-    from: "combatantRef(beat.counter_target === 'hero' ? draft.primaryHeroId : bossId)",
+    from: "combatantRef(beat.counter_target === 'hero' ? targetHeroId : bossId)",
     to: 'combatantRef(bossId)',
   },
   {
@@ -367,6 +367,34 @@ const MUTATIONS = [
     file: 'engine/resolve.ts',
     from: "const spentEarly = spendCardReaders(draft, card, action, 'cost')",
     to: "const spentEarly = spendCardReaders(draft, card, action, 'resolution')",
+  },
+  {
+    name: 'the Boss ignores the Role a Beat selects',
+    guards: 'ADR 0035: target_selector picks the Hero a Beat lands on, not the primary seat',
+    file: 'engine/timeline.ts',
+    from: '  const matched = seats.find((heroId) => heroRole(catalog, draft.encounterId, heroId) === beat.target_selector)',
+    to: '  const matched = undefined',
+  },
+  {
+    name: 'ally preservation lands on the caster',
+    guards: 'ADR 0035: an ally-targeted card heals and armors the chosen Hero, not the one who fired it',
+    file: 'engine/resolve.ts',
+    from: "      const recipient = card.target_type === 'ally' ? (draft.heroes[action.targetId ?? ''] ?? hero) : hero",
+    to: '      const recipient = hero',
+  },
+  {
+    name: 'a ward lands on the caster instead of the ally',
+    guards: 'ADR 0035: an ally-targeted card places its Counter on the chosen ally',
+    file: 'engine/counters.ts',
+    from: "  const chosen = targetType === 'piece' || targetType === 'ally'",
+    to: "  const chosen = targetType === 'piece'",
+  },
+  {
+    name: 'a Hero with no Signature gets one anyway',
+    guards: 'ADR 0034: an empty signature_card is a supported authoring state — the handoff tells every non-Warden Hero to sit here until the earn vocabulary widens',
+    file: 'engine/setup.ts',
+    from: "  if (signatureCard !== '') {",
+    to: '  if (true) {',
   },
   {
     name: 'the Signature takes hand charges',

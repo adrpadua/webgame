@@ -40,7 +40,7 @@ export {
   FACING_SW,
   FACING_SE,
 } from './facing'
-export { buildProgramSequence, currentProgram } from './timeline'
+export { buildProgramSequence, currentProgram, selectBeatTarget } from './timeline'
 export { keywordTitle, heroRole, TANK } from './keywords'
 export { combatantRef, counterCount, readCounterEvent, counterCountByKeyword, getCounters, hexCounterRef, slotRef, type CounterRef } from './counters'
 export { readSignatureEvent, slotChargeCount, EVALUATED_GRANT_WHENS } from './signature'

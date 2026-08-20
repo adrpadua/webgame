@@ -183,7 +183,10 @@ function sourceAwareLabel<T extends { id: string }>(entries: ParsedEntry<T>[], l
 // the frozen ContentValidator.gd did for .tres resources (ADR 0020).
 // Which `target_type` values can supply each Counter host.
 const HOST_TARGETS: Record<CounterDefinition['host'], string[]> = {
-  combatant: ['none', 'piece'],
+  // An `ally` target is a combatant like any other, which is what lets a
+  // Healer card place a Counter on the party member it preserves — the ward
+  // shape the healer research note calls the Bond.
+  combatant: ['none', 'piece', 'ally'],
   hex: ['hex'],
   slot: ['board_slot'],
 }
@@ -513,11 +516,43 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     }
   }
   for (const encounter of Object.values(catalog.encounters)) {
-    // The Hero an Encounter fields has to exist before the fight can start,
+    // Every Hero the Party fields has to exist before the fight can start,
     // and the error names the Encounter file because that is the one being
     // edited when the reference breaks.
-    if (!catalog.heroes[encounter.hero]) {
-      throw new Error(`${encounterAt(encounter.id)} references unknown hero ${encounter.hero}`)
+    const seated = new Set<string>()
+    for (const seat of encounter.party) {
+      if (!catalog.heroes[seat.hero]) {
+        throw new Error(`${encounterAt(encounter.id)} references unknown hero ${seat.hero}`)
+      }
+      // One Hero cannot hold two seats: the Party is keyed by Hero id
+      // everywhere downstream — board entities, Counter hosts, Slot refs —
+      // so a duplicate would be two seats quietly sharing one health pool.
+      if (seated.has(seat.hero)) {
+        throw new Error(`${encounterAt(encounter.id)} seats ${seat.hero} twice; one Hero holds one seat`)
+      }
+      seated.add(seat.hero)
+      for (const entry of seat.deck) {
+        if (!catalog.cards[entry.card]) {
+          throw new Error(`${encounterAt(encounter.id)} seat ${seat.hero} references unknown card ${entry.card}`)
+        }
+        if (catalog.cards[entry.card].fixed) {
+          throw new Error(`${encounterAt(encounter.id)} seat ${seat.hero} lists ${entry.card}, which is fixed; a Signature is never in the deck`)
+        }
+      }
+    }
+    // Two Heroes cannot open on the same hex. Occupancy is a board rule the
+    // rest of the game enforces move by move; setup is the one place it could
+    // be authored past.
+    const starts = new Map<string, string>()
+    for (const seat of encounter.party) {
+      const key = `${seat.start.q},${seat.start.r}`
+      const held = starts.get(key)
+      if (held !== undefined) {
+        throw new Error(
+          `${encounterAt(encounter.id)} starts ${seat.hero} on (${seat.start.q}, ${seat.start.r}), where ${held} already stands`,
+        )
+      }
+      starts.set(key, seat.hero)
     }
     for (const entry of encounter.player_deck) {
       if (!catalog.cards[entry.card]) {
@@ -675,18 +710,21 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
   }
 
   reachable.set(`encounter:${encounterId}`, encounter)
-  // The Hero definition is reachable content (ADR 0034): their health pool
-  // changes the Encounter's rules, so retuning a Hero starts a new evidence
-  // cohort for every Encounter that fields them.
-  const hero = requireDefinition('hero', encounter.hero, catalog.heroes)
-  encounter.player_deck.forEach((entry) => addCard(entry.card))
-  // The Signature is reachable content like any deck card (D-064): it changes
-  // the Encounter's rules, so retuning it starts a new evidence cohort. Only
-  // when fielded — the teaching slice's fight is the same fight whether or
-  // not the printed card exists.
-  if (encounter.fields_signature && hero.signature_card !== '') {
-    addCard(hero.signature_card)
+  // Every seated Hero definition is reachable content (ADR 0034): their
+  // health pool changes the Encounter's rules, so retuning a Hero starts a
+  // new evidence cohort for every Encounter that fields them.
+  for (const seat of encounter.party) {
+    const hero = requireDefinition('hero', seat.hero, catalog.heroes)
+    seat.deck.forEach((entry) => addCard(entry.card))
+    // The Signature is reachable content like any deck card (D-064): it
+    // changes the Encounter's rules, so retuning it starts a new evidence
+    // cohort. Only when fielded — the teaching slice's fight is the same
+    // fight whether or not the printed card exists.
+    if (seat.fields_signature && hero.signature_card !== '') {
+      addCard(hero.signature_card)
+    }
   }
+  encounter.player_deck.forEach((entry) => addCard(entry.card))
   for (const programId of [...encounter.boss_programs, ...encounter.phase_two_programs]) {
     addProgram(programId)
   }
