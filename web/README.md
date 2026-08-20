@@ -128,25 +128,49 @@ Encounter instead.
   seeded RNG with audit trail, boss beat resolution, phase orchestration.
   A lint rule keeps `react`/`phaser`/store imports out.
 - `src/content/` — loads and validates `data/*.json` through the engine's
-  zod schemas.
-- `src/store/` — zustand wrapper that owns the session timeline (snapshot
-  history with time travel, Resolution Fact log, Scenario replay/export);
-  preserves the running Encounter across HMR. `onboarding.ts` holds the
-  UI-only onboarding state (guide visibility, scripted-first-turn
-  completion, dismissed coach tips), deliberately off the session timeline.
+  zod schemas. `CatalogContext.tsx` injects the loaded catalog into the
+  component tree: it is a constant, so it is provided rather than held as
+  store state that a dozen components would subscribe to (ADR 0035).
+- `src/store/` — zustand, composed from two slices. `sessionSlice.ts` owns
+  the session timeline (snapshot history with time travel, Resolution Fact
+  log, Scenario replay/export) and `interactionSlice.ts` owns the in-flight
+  gesture; `workbench.ts` composes them into one store, because a gesture
+  resolving *is* a timeline entry. `sessionTimeline.ts` holds the timeline's
+  pure rules, `selectors.ts` the named readings — which return primitives,
+  because the engine's `structuredClone` contract leaves the state tree with
+  no structural sharing and nothing else can compare (ADR 0035).
+  `devBridge.ts` and `hmr.ts` carry the automation hook and the
+  preserve-across-hot-update dance, kept off the store so importing it has
+  no side effects. `onboarding.ts` holds the UI-only onboarding state (guide
+  visibility, scripted-first-turn completion, dismissed coach tips),
+  deliberately off the session timeline.
 - `src/board/` — the Phaser hex board. It renders engine snapshots and
   reports hex-level intents; it owns no game state. `effects.ts` translates
   a resolved batch of Resolution Facts into the board feedback the scene
   plays, so animation can never claim something the rules did not resolve.
-- `src/ui/` — React: hand, Action Bar, phase control, HUD, debug rail
-  (Scenario picker, time travel, fact log, seed control), plus the
-  onboarding layer: a reusable `Modal` surface, the `HoldPopover`
-  tap-and-hold detail surface (with the explanatory copy collected in
-  `holdDetails.ts`), the state-derived `firstTurnScript.ts` and its
-  `FirstTurnCue` bar, the illustrated How to Play guide (auto-opens on
-  first visit, reopens from the `?` button), state-driven `CoachMark`
-  prompts, and the transient `PhaseBanner`. All motion freezes under
-  `prefers-reduced-motion`.
+- `src/ui/` — React, grouped by feature, each group holding its components
+  together with the pure module that decides what they show and that
+  module's tests. `App.tsx` at the root is composition only.
+  - `actionBar/` — the Action Bar's Slots and its two rails (advance, undo),
+    the Slot Replacement confirmation, and `slots.ts`.
+  - `chrome/` — the persistent band above the board: Round track and the
+    Escalation gauge.
+  - `hand/` — the Compact Card row and `handFace.ts`, which decides which
+    face a card wears for the current gesture.
+  - `hero/` — the Hero Frame and its Signature control (D-065).
+  - `overlays/` — everything that floats over the board, and
+    `notifications.ts`, the table that ranks them into the three zones.
+  - `onboarding/` — the How to Play guide (auto-opens on first visit,
+    reopens from the `?` button), state-driven `CoachMark` prompts, and the
+    state-derived `firstTurnScript.ts` with its `FirstTurnCue` bar.
+  - `common/` — the reusable `Modal` surface, the `HoldPopover`
+    tap-and-hold detail surface (explanatory copy collected in
+    `holdDetails.ts`), the icon sets, and `theme.ts`.
+  - `debug/` — the design rail (Scenario picker, time travel, fact log,
+    seed control) and the sprite inspector, rendered in the dev server or
+    under `?debug=1`.
+
+  All motion freezes under `prefers-reduced-motion`.
 - `scripts/generateScenarios.ts` — policy search over the engine that
   authors the committed victory/defeat Scenarios in `data/scenarios/`
   (run with `npx vite-node scripts/generateScenarios.ts`).

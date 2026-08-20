@@ -1,9 +1,9 @@
 import { selectState, useWorkbench } from '@/store/workbench'
 import { useOnboarding } from '@/store/onboarding'
-import { BossEmblem, HeroEmblem, HexIcon, ShieldIcon, SwordIcon } from './icons'
-import { Modal } from './Modal'
-import { OwnerWedge, PHASE_TRACK } from './phaseTrack'
-import { FOCUS_RING_CLASS } from './theme'
+import { BossEmblem, HeroEmblem, HexIcon, ShieldIcon, SwordIcon } from '../common/icons'
+import { Modal } from '../common/Modal'
+import { OwnerWedge, PHASE_TRACK } from '../chrome/phaseTrack'
+import { FOCUS_RING_CLASS } from '../common/theme'
 
 // The How to Play guide: a four-step illustrated walkthrough shown on the
 // first visit and reopenable from the top bar. Each step pairs one concept

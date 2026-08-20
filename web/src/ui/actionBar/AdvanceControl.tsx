@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import type { EncounterState } from '@/engine'
+import { useCatalog } from '@/content/CatalogContext'
+import type { ContentCatalog, EncounterState } from '@/engine'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench, type WorkbenchStore } from '@/store/workbench'
-import { blocksTarget } from './firstTurnScript'
-import { AdvanceIcon, PlayIcon, RestartIcon } from './icons'
-import { Modal } from './Modal'
+import { blocksTarget } from '../onboarding/firstTurnScript'
+import { AdvanceIcon, PlayIcon, RestartIcon } from '../common/icons'
+import { Modal } from '../common/Modal'
 import { slotCanFire } from './slots'
-import { useFirstTurnStep } from './useFirstTurn'
-import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS } from './theme'
+import { useFirstTurnStep } from '../onboarding/useFirstTurn'
+import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS } from '../common/theme'
 
 // The Action Bar's right rail: the one control that moves the fight forward.
 //
@@ -32,7 +33,7 @@ interface SkipWarning {
 
 const PLAYER_ACTION_KINDS = new Set(['load_slot', 'charge_slot', 'fire_slot', 'move_hero', 'discard_for_stamina'])
 
-function skipWarning(store: WorkbenchStore, state: EncounterState): SkipWarning | null {
+function skipWarning(catalog: ContentCatalog, store: WorkbenchStore, state: EncounterState): SkipWarning | null {
   const hero = state.heroes[state.primaryHeroId]
   if (!hero) {
     return null
@@ -70,7 +71,7 @@ function skipWarning(store: WorkbenchStore, state: EncounterState): SkipWarning 
   }
   // ...and is anything still possible? A fireable Slot or any hand card
   // (Charge, or a paid step during the Quick Window) counts.
-  const canFire = hero.actionBar.some((slot) => slotCanFire(store.catalog, state, slot))
+  const canFire = hero.actionBar.some((slot) => slotCanFire(catalog, state, slot))
   if (!canFire && hero.hand.length === 0) {
     return null
   }
@@ -84,6 +85,7 @@ function skipWarning(store: WorkbenchStore, state: EncounterState): SkipWarning 
 }
 
 export function AdvanceControl() {
+  const catalog = useCatalog()
   const state = useWorkbench(selectState)
   const advance = useWorkbench((store) => store.advance)
   const restart = useWorkbench((store) => store.restart)
@@ -124,7 +126,7 @@ export function AdvanceControl() {
       return
     }
     if (step === null && state.active) {
-      const warning = skipWarning(useWorkbench.getState(), state)
+      const warning = skipWarning(catalog, useWorkbench.getState(), state)
       if (warning) {
         setPendingSkip(warning)
         return

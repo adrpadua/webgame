@@ -1,14 +1,15 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { cardChargeCap, cardWindowSpeed, type Card } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
-import { blocksTarget } from './firstTurnScript'
-import { useFirstTurnStep } from './useFirstTurn'
-import { handCanAct } from './slots'
+import { blocksTarget } from '../onboarding/firstTurnScript'
+import { useFirstTurnStep } from '../onboarding/useFirstTurn'
+import { handCanAct } from '../actionBar/slots'
 import { handFace, movePrepped, payingKeywords, shownKeywords, type HandFace } from './handFace'
-import { CARD_EFFECT_TONE, cardEffect } from './icons'
-import { keywordIcon, StaminaIcon } from './keywordIcons'
-import { cardDetail } from './holdDetails'
-import { useHold } from './HoldPopover'
-import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS, windowToneClass } from './theme'
+import { CARD_EFFECT_TONE, cardEffect } from '../common/icons'
+import { keywordIcon, StaminaIcon } from '../common/keywordIcons'
+import { cardDetail } from '../common/holdDetails'
+import { useHold } from '../common/HoldPopover'
+import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS, windowToneClass } from '../common/theme'
 
 // The Hand: equal Compact Cards anchored to the bottom interaction zone. What
 // each one shows is the face the current gesture calls for — see handFace.ts
@@ -122,7 +123,7 @@ function CompactCard({
   offerDelayMs: number
   width: string
 }) {
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const setDraggingCard = useWorkbench((store) => store.setDraggingCard)
   const selectCard = useWorkbench((store) => store.selectCard)
   const payForMove = useWorkbench((store) => store.payForMove)
@@ -210,7 +211,7 @@ function CompactCard({
 
 export function Hand() {
   const state = useWorkbench(selectState)
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
   const hoveredHexKey = useWorkbench((store) => store.hoveredHexKey)
   const draggingCardId = useWorkbench((store) => store.draggingCardId)
   const selectedCardId = useWorkbench((store) => store.selectedCardId)

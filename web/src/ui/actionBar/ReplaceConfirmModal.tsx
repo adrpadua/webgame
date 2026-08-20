@@ -1,6 +1,7 @@
+import { useCatalog } from '@/content/CatalogContext'
 import { selectState, useWorkbench } from '@/store/workbench'
-import { Modal } from './Modal'
-import { FOCUS_RING_CLASS } from './theme'
+import { Modal } from '../common/Modal'
+import { FOCUS_RING_CLASS } from '../common/theme'
 
 // Slot Replacement is the one gesture that destroys player state (the old
 // Top Card and its whole Charge Stack are discarded), so it always confirms
@@ -10,7 +11,7 @@ export function ReplaceConfirmModal() {
   const confirmReplacement = useWorkbench((store) => store.confirmReplacement)
   const cancelReplacement = useWorkbench((store) => store.cancelReplacement)
   const state = useWorkbench(selectState)
-  const catalog = useWorkbench((store) => store.catalog)
+  const catalog = useCatalog()
 
   if (pendingReplacement === null) {
     return null

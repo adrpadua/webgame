@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { facingName } from '@/engine'
 import { FACING_ROWS, IDLE_FRAMES, IDLE_MS, SHEETS, spriteFrame, type SheetSpec } from '@/board/sheets'
-import { FOCUS_RING_CLASS } from './theme'
+import { FOCUS_RING_CLASS } from '../common/theme'
 
 // The Sprite Inspector: every frame of every idle sheet, laid out the way the
 // engine indexes them.
