@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { loadCatalog } from '@/content'
-import { advancePhase, createEncounterState, type EncounterState } from '@/engine'
+import { advancePhase, createEncounterState, type BossBeat, type EncounterState } from '@/engine'
 import { beatCardStats, findLiveBeat, standingDemand } from './beatCard'
 
 const catalog = loadCatalog()
@@ -34,7 +34,13 @@ describe('Boss Beat cards (D-055)', () => {
         damage: (text) => /Damage/.test(text),
         unguarded_bonus: (text) => /unguarded/.test(text),
         range_tiles: (text) => /Reach/.test(text),
-        move_tiles: (text) => /Advances/.test(text),
+        move_tiles: (text) => /Moves/.test(text),
+        // `traversal` decides both where a Movement Clause ends up and what it
+        // pays in Hazard entry, so the gate has to see it. It defaults to
+        // `walk`, which is why the carried-value test below reads it as a
+        // string: only an authored `jump` or `teleport` is a claim the card
+        // owes the reader.
+        traversal: (text) => /Walks|Leaps|Appears/.test(text),
         minion: (text) => /Spawns/.test(text),
         hazard: (text) => /Leaves/.test(text),
         escalation_if_unanswered: (text) => /Escalation \+/.test(text),
@@ -47,13 +53,28 @@ describe('Boss Beat cards (D-055)', () => {
             .join(' | ')
           for (const [field, appears] of Object.entries(printed)) {
             const value = (beat as unknown as Record<string, unknown>)[field]
-            const carried = typeof value === 'number' ? value > 0 : typeof value === 'string' ? value !== '' : value !== undefined
+            const carried =
+              typeof value === 'number' ? value > 0 : typeof value === 'string' ? value !== '' && value !== 'walk' : value !== undefined
             if (carried) {
               expect(appears(text), `${beat.id} authors ${field} but its card does not print it — ${text}`).toBe(true)
             }
           }
         }
       }
+    })
+
+    it('prints a teleport, which spends no allowance to give itself away', () => {
+      // The case the old line could not state at all: a teleport authors
+      // `move_tiles: 0`, so a card keyed on the allowance said nothing about
+      // moving while the Beat crossed the whole board.
+      const advance = catalog.programs.embermaw_hunt.instant_beats.find((beat) => beat.kind === 'advance_toward_player')!
+      const line = (beat: BossBeat) =>
+        beatCardStats(beat)
+          .map((stat) => `${stat.label} ${stat.value}`)
+          .join(' | ')
+      expect(line(advance)).toContain('Walks up to 1, closing to 1')
+      expect(line({ ...advance, traversal: 'jump', move_tiles: 3 })).toContain('Leaps up to 3, closing to 1')
+      expect(line({ ...advance, traversal: 'teleport', move_tiles: 0 })).toContain('Appears within 1')
     })
 
     it('says permanent rather than a round count for ground that never comes back', () => {

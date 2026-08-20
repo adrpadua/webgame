@@ -1,15 +1,37 @@
-import { cardChargeCap, cardWindowSpeed, legality, slotChargeCount, type Card, type EncounterState, type SlotState } from '@/engine'
+import { cardChargeCap, cardWindowSpeed, fireTargeting, legality, slotChargeCount, type Card, type EncounterState, type SlotState } from '@/engine'
 import type { WorkbenchCatalog } from '@/store/workbench'
 
 // One definition of "this Slot can fire right now": loaded, holding at least
-// one Charge, not yet activated, and its Top Card's window matches the
-// current phase of an active Encounter. The Action Bar's glow and the coach
-// prompts both read this so they can never disagree.
-export function slotCanFire(catalog: WorkbenchCatalog, state: EncounterState, slot: SlotState): boolean {
-  if (!state.active || slot.topCard === null || slotChargeCount(slot) === 0 || slot.activatedWindow !== null) {
+// one Charge, not yet activated, its Top Card's window matches the current
+// phase of an active Encounter — and the rules would actually accept the shot.
+// The Action Bar's glow and the coach prompts both read this so they can never
+// disagree.
+//
+// That last clause is the engine's, not this module's: the Slot is offered
+// only if some fire from it is legal (ADR 0013). Before every ability carried
+// a reach (D-073) the window match was the whole answer, because a charged
+// Steady Strike could always fire — there was no board position that refused
+// it. Now there is, and a plate that stayed lit from out of reach would be
+// asserting a move the rules deny.
+export function slotCanFire(catalog: WorkbenchCatalog, state: EncounterState, slotIndex: number): boolean {
+  const slot = state.heroes[state.primaryHeroId]?.actionBar[slotIndex]
+  if (!state.active || !slot || slot.topCard === null || slotChargeCount(slot) === 0 || slot.activatedWindow !== null) {
     return false
   }
-  return cardWindowSpeed(catalog.cards[slot.topCard.cardId]) === state.phase
+  if (cardWindowSpeed(catalog.cards[slot.topCard.cardId]) !== state.phase) {
+    return false
+  }
+  // A card that selects something can fire if anything legal is selectable;
+  // one that selects nothing is asked directly. Both questions are the
+  // engine's, so the bar and the resolver cannot drift apart.
+  const targeting = fireTargeting(catalog, state, state.primaryHeroId, slotIndex)
+  if (targeting.mode === 'piece') {
+    return targeting.legalTargetIds.length > 0
+  }
+  if (targeting.mode === 'hex') {
+    return targeting.legalHexes.length > 0
+  }
+  return legality(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex }).legal
 }
 
 // The Keywords this Slot's Top Card is hunting for: every Keyword its Charge
@@ -205,6 +227,10 @@ export interface SlotReading {
   tone: SlotTone
 }
 
+// `slot` must be the Slot `state` holds at `slotIndex`. Every other answer
+// here is a function of the value passed in, but `canFire` asks the engine
+// whether a fire from that *index* would be legal (D-073) — so a Slot read
+// out of position answers for whatever is really seated there.
 export function readSlot(
   catalog: WorkbenchCatalog,
   state: EncounterState,
@@ -215,7 +241,7 @@ export function readSlot(
   const card = slot.topCard ? catalog.cards[slot.topCard.cardId] : null
   const chargeCap = card ? cardChargeCap(card) : 0
   const stateName = slotStateName(slot, chargeCap)
-  const canFire = slotCanFire(catalog, state, slot)
+  const canFire = slotCanFire(catalog, state, slotIndex)
   const outOfWindow = slotOutOfWindow(catalog, state, slot)
   const incoming = slotIncoming(catalog, state, slot, slotIndex, incomingCardId)
   return {

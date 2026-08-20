@@ -27,7 +27,15 @@ function cardStats(card: Card): { label: string; value: string }[] {
     stats.push({ label: 'Boss damage', value: String(card.boss_damage) })
   }
   if (card.damage > 0) {
-    stats.push({ label: 'Piece damage', value: `${card.damage} · range ${card.range_tiles}` })
+    stats.push({ label: 'Piece damage', value: String(card.damage) })
+  }
+  // One reach line for the whole card, printed the way a Beat Card prints its
+  // own (D-043). It used to ride the piece-damage line, which is where it was
+  // invisible on exactly the cards that most needed it: Steady Strike reaches
+  // as far as Sweeping Blow does and said nothing about it, so a player had no
+  // way to learn from the card why the shot was refused.
+  if (card.range_tiles > 0) {
+    stats.push({ label: 'Reach', value: `${card.range_tiles} hex${card.range_tiles === 1 ? '' : 'es'}` })
   }
   if (card.armor_delta > 0) {
     stats.push({ label: 'Armor', value: `+${card.armor_delta}` })

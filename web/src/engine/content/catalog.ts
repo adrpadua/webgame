@@ -28,11 +28,9 @@ import { ENGINE_COUNTERS, READABLE_READER_PAIRS } from '../counters'
 import { EVALUATED_GRANT_WHENS, GATES_BY_WHEN } from '../signature'
 import { hexDistance } from '../hex'
 
-// The Beat kinds that ask a distance question, and therefore must author one.
-// Kept here rather than beside the resolver because it is a rule about content
-// being complete, not about how a Beat resolves — and because the validation
-// below has to be able to state both halves: these kinds need a reach, and
-// every other kind must not have one.
+// The Beat kinds that always ask a distance question, and therefore must always
+// author one. Kept here rather than beside the resolver because it is a rule
+// about content being complete, not about how a Beat resolves.
 //
 // Typed against the Beat-kind enum rather than left as loose strings. This file
 // is the one that renamed every Beat kind once already, and a stale entry here
@@ -40,6 +38,64 @@ import { hexDistance } from '../hex'
 // would go quiet on the rule it exists to enforce. The annotation turns that
 // into a compile error at the moment of the rename.
 const RANGED_BEAT_KINDS = new Set<BossBeat['kind']>(['forward_cone', 'demand_proximity', 'targeted_hit'])
+
+// Why *this* Beat needs a reach, named rather than counted so the authoring
+// error can say which clause asked for one — the same shape `cardReachingEffects`
+// takes on the card side (D-073).
+//
+// The list is longer than `RANGED_BEAT_KINDS` because two of the three reasons
+// are fields rather than kinds. A `place_counter` reaches only when it is aimed
+// at a Hero, and *any* kind reaches once it carries a movement clause, because
+// `range_tiles` is what tells the movement how close is close enough. A kind
+// list could not express either.
+function beatReachReasons(beat: BossBeat): string[] {
+  const reasons: string[] = []
+  if (RANGED_BEAT_KINDS.has(beat.kind)) {
+    reasons.push(`a ${beat.kind}`)
+  }
+  if (beat.kind === 'place_counter' && beat.counter_target === 'hero') {
+    reasons.push('marking a Hero')
+  }
+  if (beatMoves(beat)) {
+    reasons.push(`a ${beat.traversal} clause, which needs to know how close to get`)
+  }
+  return reasons
+}
+
+// A Beat carries a movement clause when it has an allowance to spend, or when
+// it teleports — which spends nothing and is therefore the one movement a
+// distance of zero does not rule out.
+function beatMoves(beat: BossBeat): boolean {
+  return beat.move_tiles > 0 || beat.traversal === 'teleport' || beat.kind === 'advance_toward_player'
+}
+
+// What a Card touches that is not the Hero firing it, named rather than
+// counted so the authoring error can say which field asked for a reach. Every
+// one of these is measured from the Hero's hex at fire time, so every one of
+// them needs `range_tiles` to say how far that measurement may stretch.
+//
+// `boss_damage` is in this list and used not to be. It resolved without a
+// range check under the positionless ruling behind D-017, which meant reach
+// was a property some abilities had and others silently did without.
+function cardReachingEffects(card: Card): string[] {
+  const reaching: string[] = []
+  if (card.boss_damage > 0) {
+    reaching.push('boss_damage')
+  }
+  if (card.damage > 0) {
+    reaching.push('damage')
+  }
+  if (card.push_tiles > 0) {
+    reaching.push('push_tiles')
+  }
+  if (card.pull_tiles > 0) {
+    reaching.push('pull_tiles')
+  }
+  if (card.target_type === 'hex' || card.target_type === 'piece' || card.target_type === 'ally') {
+    reaching.push(`target_type ${card.target_type}`)
+  }
+  return reaching
+}
 
 export interface ContentCatalog {
   cards: Record<string, Card>
@@ -230,8 +286,23 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     if (displacementField !== '' && card.target_type !== 'piece') {
       throw new Error(`${cardAt(card.id)} declares ${displacementField} but does not target a piece`)
     }
-    if (displacementField !== '' && card.range_tiles < 1) {
-      throw new Error(`${cardAt(card.id)} declares ${displacementField} but has range_tiles below 1`)
+    // Both halves of the reach rule, the same pair the ranged Beat kinds
+    // answer below (D-043, extended to cards by D-073): a card that touches
+    // anything past its own Hero authors how far it touches, and a card that
+    // touches nobody must not author a reach nothing reads.
+    //
+    // `board_slot` is deliberately outside the reaching set: an ally's prepared
+    // Slot is not a place on the board, and support was chosen adjacency-free
+    // (D-009). An `ally` *is* in it, because ADR 0035 chose the other answer
+    // for the Hero themselves — a card reaches an ally at an authored distance,
+    // and `legality` enforces it — so the two halves of D-009's ruling came
+    // apart: the Slot stays adjacency-free, the body does not.
+    const reaching = cardReachingEffects(card)
+    if (reaching.length > 0 && card.range_tiles < 1) {
+      throw new Error(`${cardAt(card.id)} reaches past its Hero (${reaching.join(', ')}) but authors no range_tiles`)
+    }
+    if (reaching.length === 0 && card.range_tiles > 0) {
+      throw new Error(`${cardAt(card.id)} authors range_tiles ${card.range_tiles} but reaches nothing past its own Hero`)
     }
     for (const modifierId of card.charge_modifiers) {
       if (!catalog.chargeModifiers[modifierId]) {
@@ -440,6 +511,30 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     if (minion.explode_radius > 0 && minion.explode_damage < 1) {
       throw new Error(`Minion ${minion.id} declares explode_radius ${minion.explode_radius} but no explode_damage`)
     }
+    // A Minion states its reach for the same reason a Card and a Beat do
+    // (D-073, D-074, extended here by D-072): a bite whose distance lives in
+    // engine code is a bite an author cannot tune. Both halves again — a
+    // Minion that bites says how far, and one that never bites must not carry
+    // a number nothing reads.
+    if (minion.attack_damage > 0 && minion.range_tiles < 1) {
+      throw new Error(`Minion ${minion.id} bites for ${minion.attack_damage} but authors no range_tiles`)
+    }
+    if (minion.attack_damage === 0 && minion.range_tiles > 0) {
+      throw new Error(`Minion ${minion.id} authors range_tiles ${minion.range_tiles} but has no attack to reach with`)
+    }
+    // The creep only runs for a Minion that has something to close for, so an
+    // allowance on one that never bites is movement nothing asks for.
+    if (minion.attack_damage === 0 && minion.move_tiles > 0) {
+      throw new Error(`Minion ${minion.id} authors move_tiles ${minion.move_tiles} but has no attack to close for`)
+    }
+    // The same two traversal rules Beats answer: a teleport spends no
+    // allowance, and a jump is an allowance spent differently.
+    if (minion.traversal === 'teleport' && minion.move_tiles > 0) {
+      throw new Error(`Minion ${minion.id} teleports but authors move_tiles ${minion.move_tiles}; a teleport spends no allowance — author a jump instead`)
+    }
+    if (minion.traversal === 'jump' && minion.move_tiles < 1) {
+      throw new Error(`Minion ${minion.id} authors traversal jump but no move_tiles to spend on it`)
+    }
   }
   for (const modifier of Object.values(catalog.chargeModifiers)) {
     if (modifier.keyword_id !== '') {
@@ -447,6 +542,25 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     }
   }
   for (const program of Object.values(catalog.programs)) {
+    // A Movement Clause belongs to the Instant Row alone (D-075). The Incoming
+    // Row is telegraphed a phase before it resolves, and where a moving Beat
+    // ends up is not knowable then — the Hero moves in between — so the painted
+    // cone becomes a promise the player breaks by playing correctly. ADR 0031
+    // removed the Forecast Row over exactly that: disclosure nobody can rely on
+    // teaches nothing. The Instant Row resolves immediately and promises
+    // nothing, which is why movement lives there.
+    //
+    // The honest form of a moving telegraphed Beat is to move the piece at
+    // *telegraph* time, so the cone is drawn from where the Boss will actually
+    // stand. That is a real design and it should arrive with the Boss that
+    // needs it, rather than being left available and quietly wrong.
+    for (const beat of program.incoming_beats) {
+      if (beatMoves(beat)) {
+        throw new Error(
+          `Boss Beat ${beat.id} carries a movement clause on the Incoming Row of ${program.id}; the telegraph is painted before it resolves, so where it ends up cannot be shown — author it on the Instant Row, or move the piece at telegraph time`,
+        )
+      }
+    }
     for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
       if (beat.hazard && !catalog.hazards[beat.hazard]) {
         throw new Error(`Boss Beat ${beat.id} references unknown hazard ${beat.hazard}`)
@@ -487,14 +601,30 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       if (beat.counter !== '' && catalog.counters[beat.counter]?.host !== 'combatant') {
         throw new Error(`Boss Beat ${beat.id} places ${beat.counter}, which is hosted on a ${catalog.counters[beat.counter]?.host}; a Beat marks combatants`)
       }
-      if (RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles < 1) {
-        throw new Error(`Boss Beat ${beat.id} is a ${beat.kind} but authors no range_tiles`)
+      const reachReasons = beatReachReasons(beat)
+      if (reachReasons.length > 0 && beat.range_tiles < 1) {
+        throw new Error(`Boss Beat ${beat.id} is ${reachReasons.join(' and ')} but authors no range_tiles`)
       }
-      // The other half of the same rule: a Beat kind with no distance question
-      // to ask must not answer one, because a reach nothing reads is a number
-      // an author can set and watch do nothing.
-      if (!RANGED_BEAT_KINDS.has(beat.kind) && beat.range_tiles > 0) {
+      // The other half of the same rule: a Beat with no distance question to
+      // ask must not answer one, because a reach nothing reads is a number an
+      // author can set and watch do nothing.
+      if (reachReasons.length === 0 && beat.range_tiles > 0) {
         throw new Error(`Boss Beat ${beat.id} is a ${beat.kind} and must not author range_tiles`)
+      }
+      // A movement kind with nothing to spend goes nowhere, and an allowance on
+      // a teleport is a number it never consults — a teleport has no route to
+      // spend it on, which is the whole difference between it and a jump
+      // (D-074).
+      if (beat.kind === 'advance_toward_player' && beat.traversal !== 'teleport' && beat.move_tiles < 1) {
+        throw new Error(`Boss Beat ${beat.id} is an advance_toward_player but authors no move_tiles`)
+      }
+      if (beat.traversal === 'teleport' && beat.move_tiles > 0) {
+        throw new Error(`Boss Beat ${beat.id} teleports but authors move_tiles ${beat.move_tiles}; a teleport spends no allowance — author a jump instead`)
+      }
+      // A Beat that does not move must not say how. `walk` is the schema
+      // default, so only an authored `jump` or `teleport` can trip this.
+      if (!beatMoves(beat) && beat.traversal !== 'walk') {
+        throw new Error(`Boss Beat ${beat.id} authors traversal ${beat.traversal} but carries no movement clause`)
       }
     }
   }
