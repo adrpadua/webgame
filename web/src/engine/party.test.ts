@@ -8,7 +8,7 @@ import {
   ENCOUNTER_SOURCE,
   isLivingHero,
   livingHeroIds,
-  rescueDeadlineRound,
+  heroRoundsLost,
   resolve,
   selectBeatTarget,
   type ContentCatalog,
@@ -381,9 +381,9 @@ describe('the Signature earn vocabulary (ADR 0037)', () => {
   })
 })
 
-// The zero-health lifecycle (ADR 0036). Downed while a rescue is possible,
-// Incapacitated when it is not, and never removed from play.
-describe('the zero-health lifecycle (ADR 0036)', () => {
+// The zero-health lifecycle (ADR 0039). One stable state: Downed until
+// Revived or until the Encounter ends, and never removed from play.
+describe('the zero-health lifecycle (ADR 0039)', () => {
   function wounded() {
     const catalog = party()
     const state = createEncounterState(catalog, 'probe_party')
@@ -427,10 +427,31 @@ describe('the zero-health lifecycle (ADR 0036)', () => {
     expect(livingHeroIds(after)).toEqual(['warden'])
     expect(isLivingHero(after.heroes.mender)).toBe(false)
     // The Boss cannot aim at a body even when it asks for that Role.
-    expect(selectBeatTarget(catalog, after, beat({ target_selector: 'healer' })).heroId).toBe('warden')
+    const selection = selectBeatTarget(catalog, after, beat({ target_selector: 'healer' }))
+    expect(selection.heroId).toBe('warden')
+    // And it says so. This flag is what the evaluate sweep counts, and ADR
+    // 0039 leaves the fallback unpriced *on the strength of* it being counted:
+    // a Beat authored against the Healer now lands on seat 0 at full damage
+    // the moment the Healer falls, and seat order decides who wears it. A
+    // metric reading zero because nothing sets it would be worse than none.
+    expect(selection.fellBack).toBe(true)
+    expect(selectBeatTarget(catalog, state, beat({ target_selector: 'healer' })).fellBack).toBe(false)
   })
 
-  it('revives on an adjacent ally spending a card, at the authored fraction', () => {
+  it('records the fallback on the damage fact the sweep reads', () => {
+    const { catalog, state } = wounded()
+    const after = downTheMender(catalog, state)
+    const resolved = resolve(catalog, after, {
+      kind: 'resolve_boss',
+      sourceId: 'probe_boss',
+      beat: beat({ target_selector: 'healer' }),
+      track: 'incoming',
+    })
+    const damage = resolved.facts.find((f) => f.kind === 'damage')
+    expect((damage?.resolutionFact as Record<string, unknown>).target_selector_fell_back).toBe(true)
+  })
+
+  it('revives on an adjacent ally spending a card, at the authored health', () => {
     const { catalog, state } = wounded()
     const after = downTheMender(catalog, state)
     // The Warden starts adjacent to the Mender.
@@ -440,8 +461,9 @@ describe('the zero-health lifecycle (ADR 0036)', () => {
     })
     expect(revived.facts[0].succeeded).toBe(true)
     expect(revived.state.heroes.mender.status).toBe('living')
-    // 25% of 12, rounded up.
-    expect(revived.state.heroes.mender.health).toBe(3)
+    // The `revive_to` default: one blow from going back down, which is the
+    // cost of having fallen (ADR 0039).
+    expect(revived.state.heroes.mender.health).toBe(1)
     expect(revived.state.heroes.warden.hand.some((c) => c.instanceId === card.instanceId)).toBe(false)
   })
 
@@ -461,17 +483,18 @@ describe('the zero-health lifecycle (ADR 0036)', () => {
     expect(healthy.facts[0].reason).toBe('That ally is not Downed.')
   })
 
-  it('incapacitates when the window actually expires, charging Escalation', () => {
+  // The window is gone (ADR 0039). Nothing expires, nothing is billed for a
+  // rescue nobody performed, and a body left alone stays exactly where it is.
+  it('leaves a Downed Hero Downed, however long nobody comes', () => {
     const { catalog, state } = wounded()
     let running = downTheMender(catalog, state)
-    const deadline = rescueDeadlineRound(running.heroes.mender)
     const escalationBefore = running.escalation
     let charged = false
 
-    // Walk real Round boundaries rather than submitting the transition by
-    // hand: the rule under test is *when* the window closes.
+    // Walk real Round boundaries: the rule under test is that none of them
+    // does anything to the body.
     let guard = 0
-    while (running.active && running.heroes.mender.status === 'downed' && guard < 40) {
+    while (running.active && guard < 40) {
       const stepped = advancePhase(catalog, running)
       running = stepped.state
       if (stepped.facts.some((f) => f.kind === 'gain_escalation' && (f.detail as { reason?: string }).reason === 'unanswered_rescue')) {
@@ -480,35 +503,84 @@ describe('the zero-health lifecycle (ADR 0036)', () => {
       guard += 1
     }
 
-    expect(running.heroes.mender.status).toBe('incapacitated')
-    // Rescuable through the deadline Round; gone once the next one opens.
-    expect(running.round).toBeGreaterThan(deadline)
-    expect(charged).toBe(true)
-    expect(running.escalation).toBeGreaterThan(escalationBefore)
-    // Off the board, cards gone, deck silent, Counters dropped with the body.
-    expect(running.board.entities.mender).toBeUndefined()
-    expect(running.heroes.mender.hand).toEqual([])
-    expect(running.heroes.mender.deck).toEqual([])
-    expect(running.counters['combatant:mender']).toBeUndefined()
+    expect(running.heroes.mender.status).toBe('downed')
+    expect(charged).toBe(false)
+    // Still a body on the board, with everything that rides on it. The
+    // Encounter ended on its own clock rather than on the Mender's.
+    expect(running.board.entities.mender).toBeDefined()
+    expect(running.escalation).toBeGreaterThanOrEqual(escalationBefore)
   })
 
-  it('lets an Incapacitated Hero act, and never on the Boss', () => {
+  // The two leaks ADR 0039 closes, both of which come from the same line:
+  // hands refill to `refillTarget` every Round, so anything a Downed Hero pays
+  // for with a card is free unless the refill stops.
+  it('does not refill a Downed hand, so the diminished actions run out', () => {
     const { catalog, state } = wounded()
-    const downed = downTheMender(catalog, state)
-    const out = resolve(catalog, downed, { kind: 'incapacitate_hero', sourceId: 'mender' }).state
+    let running = downTheMender(catalog, state)
+    const heldAtTheFall = running.heroes.mender.hand.length
+    expect(heldAtTheFall).toBeGreaterThan(0)
+
+    // Spend one first. A body falls holding a full hand, so asserting that a
+    // full hand stays full is satisfied by a refill too — the assertion has to
+    // be that a *short* hand stays short.
+    running = resolve(catalog, running, {
+      kind: 'diminished_action',
+      sourceId: 'mender',
+      action: 'reduce_escalation',
+      cardInstanceId: running.heroes.mender.hand[0].instanceId,
+    }).state
+    expect(running.heroes.mender.hand.length).toBe(heldAtTheFall - 1)
+    // Spend one of the Warden's too, so the two Heroes cross the boundary in
+    // the same condition and only the rule under test separates them.
+    running.heroes.warden.hand.pop()
+
+    running = advancePhase(catalog, running).state
+    while (running.active && running.phase !== 'loadout') {
+      running = advancePhase(catalog, running).state
+    }
+    // A living Hero is topped back up at the Round boundary; the body is not.
+    expect(running.heroes.warden.hand.length).toBe(running.heroes.warden.refillTarget)
+    expect(running.heroes.mender.hand.length).toBe(heldAtTheFall - 1)
+
+    // Spend the whole budget, one card a Round, and the fourth attempt has
+    // nothing left to pay with.
+    let held = running.heroes.mender.hand.length
+    while (held > 0) {
+      const spent = resolve(catalog, running, {
+        kind: 'diminished_action',
+        sourceId: 'mender',
+        action: 'reduce_escalation',
+        cardInstanceId: running.heroes.mender.hand[0].instanceId,
+      })
+      expect(spent.facts[0].succeeded).toBe(true)
+      running = spent.state
+      expect(running.heroes.mender.hand.length).toBe(held - 1)
+      held -= 1
+    }
+    const broke = resolve(catalog, running, {
+      kind: 'diminished_action', sourceId: 'mender', action: 'reduce_escalation', cardInstanceId: 'nothing',
+    })
+    expect(broke.facts[0].reason).toBe('A diminished action costs a card from hand.')
+  })
+
+  it('lets a Downed Hero act, at the price of a card, and never on the Boss', () => {
+    const { catalog, state } = wounded()
+    const out = downTheMender(catalog, state)
     out.heroes.warden.armor = 0
+    const spent = out.heroes.mender.hand[0]
 
     const armored = resolve(catalog, out, {
-      kind: 'diminished_action', sourceId: 'mender', action: 'grant_ally_armor', targetId: 'warden',
+      kind: 'diminished_action', sourceId: 'mender', action: 'grant_ally_armor', targetId: 'warden', cardInstanceId: spent.instanceId,
     })
     expect(armored.facts[0].succeeded).toBe(true)
     expect(armored.state.heroes.warden.armor).toBe(1)
+    expect(armored.state.heroes.mender.hand.some((c) => c.instanceId === spent.instanceId)).toBe(false)
     // The Boss's health is untouched by every diminished action.
     expect(armored.state.board.entities.probe_boss.health).toBe(out.board.entities.probe_boss.health)
 
     const withEscalation = { ...out, escalation: 2 }
     const reduced = resolve(catalog, withEscalation, {
-      kind: 'diminished_action', sourceId: 'mender', action: 'reduce_escalation',
+      kind: 'diminished_action', sourceId: 'mender', action: 'reduce_escalation', cardInstanceId: out.heroes.mender.hand[1].instanceId,
     })
     expect(reduced.state.escalation).toBe(1)
     expect(DIMINISHED_ACTIONS).toHaveLength(3)
@@ -517,9 +589,34 @@ describe('the zero-health lifecycle (ADR 0036)', () => {
   it('refuses a diminished action from a Hero who is still standing', () => {
     const { catalog, state } = wounded()
     const refused = resolve(catalog, state, {
-      kind: 'diminished_action', sourceId: 'warden', action: 'reduce_escalation',
+      kind: 'diminished_action', sourceId: 'warden', action: 'reduce_escalation', cardInstanceId: state.heroes.warden.hand[0].instanceId,
     })
-    expect(refused.facts[0].reason).toBe('Only an Incapacitated Hero takes a diminished action.')
+    expect(refused.facts[0].reason).toBe('Only a Downed Hero takes a diminished action.')
+  })
+
+  // The dose D-016 actually wants, replacing the binary end-state check: a
+  // Party that lost somebody in the final Round and won anyway is a good
+  // fight, not a decorative Hero.
+  it('counts the Hero-Rounds a Party spends short-handed', () => {
+    const { catalog, state } = wounded()
+    let running = downTheMender(catalog, state)
+    expect(heroRoundsLost(running)).toBe(0)
+
+    const fellOn = running.round
+    let guard = 0
+    while (running.active && running.round < fellOn + 2 && guard < 40) {
+      running = advancePhase(catalog, running).state
+      guard += 1
+    }
+    expect(running.round).toBe(fellOn + 2)
+    expect(heroRoundsLost(running)).toBe(2)
+
+    // A rescue stops the meter; it does not rewind it.
+    const revived = resolve(catalog, running, {
+      kind: 'revive_ally', sourceId: 'warden', targetId: 'mender', cardInstanceId: running.heroes.warden.hand[0].instanceId,
+    }).state
+    expect(revived.heroes.mender.status).toBe('living')
+    expect(heroRoundsLost(revived)).toBe(0)
   })
 
   // The exploit ADR 0036 names by hand: a Downed body still occupies its hex,
@@ -598,28 +695,29 @@ describe('the zero-health lifecycle (ADR 0036)', () => {
     expect(answered.some((a) => a.kind === 'gain_escalation' && a.reason === 'unanswered_proximity')).toBe(false)
   })
 
-  it('revives at the fraction the Encounter authors, not a compiled-in one', () => {
-    const catalog = party({ revive_health_fraction: 0.5 })
+  it('revives at the health the Encounter authors, not a compiled-in one', () => {
+    const catalog = party({ revive_to: 6 })
     const state = createEncounterState(catalog, 'probe_party')
     const downed = downTheMender(catalog, state)
     const card = downed.heroes.warden.hand[0]
     const revived = resolve(catalog, downed, {
       kind: 'revive_ally', sourceId: 'warden', targetId: 'mender', cardInstanceId: card.instanceId,
     })
-    // Half of 12, not the 0.25 default.
+    // The authored 6, not the default of 1.
     expect(revived.state.heroes.mender.health).toBe(6)
   })
 
-  it('keeps a solo Hero at zero an immediate defeat', () => {
+  it('keeps a solo Hero at zero an immediate defeat, with no rule of its own', () => {
     const catalog = party({ party: [{ hero: 'warden', start: { q: 0, r: 0 }, deck: [{ card: 'tank_strike', copies: 6 }] }] })
     const state = createEncounterState(catalog, 'probe_party')
     state.heroes.warden.health = 1
     const after = resolve(catalog, state, {
       kind: 'damage', sourceId: 'probe_boss', targetId: 'warden', amount: 5, reasonText: 'probe',
     }).state
-    // Nobody could ever perform the rescue, so the window would be a loss the
-    // screen had not admitted yet.
-    expect(after.heroes.warden.status).toBe('living')
+    // No special case does this (ADR 0039): the Hero goes Downed like anyone
+    // else, and a Party of one wholly on the floor *is* the wipe condition, so
+    // both authored solo Encounters behave exactly as they always have.
+    expect(after.heroes.warden.status).toBe('downed')
     expect(after.active).toBe(false)
     expect(after.outcomeReason).toBe('A Hero has fallen.')
   })

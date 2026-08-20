@@ -67,13 +67,22 @@ function spillAwayFrom(draft: EncounterState, from: Axial, bossCoords: Axial): A
 //   seeds, and a fight where the Boss's target depends on the RNG is one no
 //   party can plan against. `Threat` (CONTEXT.md, not yet in the engine) is
 //   the real answer and it replaces this rule rather than extending it.
-// - **A Downed Hero is not a target.** A Downed body is non-targetable and an
-//   Incapacitated Hero is off the board entirely (ADR 0036), so both are
-//   filtered out before a Role is matched.
+// - **A Downed Hero is not a target.** A Downed body is non-targetable (ADR
+//   0039), so it is filtered out before a Role is matched.
 // - **A selector that matches nobody falls back, loudly.** A party with no
 //   Healer must still be hittable by a Beat that asks for one, or the Boss
-//   would simply skip its turn against an off-composition party. The fallback
-//   is recorded on the fact rather than applied silently, because a Beat
+//   would simply skip its turn against an off-composition party.
+//
+//   ADR 0039 widened when this fires, and the widening is deliberately left
+//   unpriced. This rule was written for a party that is off-composition at
+//   *setup* — a fact settled before Round 1. Under a stable Downed state a
+//   party becomes off-composition *mid-fight*, every time somebody falls, so a
+//   Tank Hit authored against Tank Armor can land on seat 0 at full damage and
+//   seat order decides who takes it. Changing that before a cohort has run
+//   with bodies on the floor would be tuning against imagination; the sweep
+//   counts `target_selector_fell_back` instead, and the numbers decide.
+//
+//   The fallback is recorded on the fact rather than applied silently, because a Beat
 //   quietly hitting the wrong Role is exactly the kind of thing that reads as
 //   a balance mystery three cohorts later.
 export function selectBeatTarget(

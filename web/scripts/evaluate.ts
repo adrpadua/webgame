@@ -18,6 +18,7 @@ import {
   programPredictability,
   cardChargeCap,
   combatantRef,
+  heroRoundsLost,
   counterCount,
   createEncounterState,
   fireTargeting,
@@ -147,6 +148,17 @@ interface RunMetrics {
   burntHexes: number
   peakPricedCounter: number
   countersSpent: number
+  // D-074's replacement for the binary reduced-Party red flag ADR 0036 wrote.
+  // A Party that lost somebody in the final Round and won anyway is a good
+  // fight; what D-016 actually asks is whether the absent Hero mattered, which
+  // is a dose rather than an end-state.
+  heroRoundsLost: number
+  // The fallback ADR 0039 left unpriced on purpose. `selectBeatTarget` aims a
+  // Role-selected Beat at seat 0 when no living Hero plays that Role — a rule
+  // written for a party that is off-composition before Round 1, which now
+  // fires every time somebody falls. Counted so the tuning decision has
+  // numbers under it rather than an argument.
+  selectorFellBack: number
 }
 
 // Same policy shape as generateScenarios.ts, instrumented for metrics instead
@@ -567,6 +579,13 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     }
   }
 
+  let selectorFellBack = 0
+  for (const fact of facts) {
+    if ((fact.resolutionFact as Record<string, unknown> | undefined)?.target_selector_fell_back === true) {
+      selectorFellBack += 1
+    }
+  }
+
   let escalationFromDemands = 0
   for (const fact of facts) {
     if (fact.kind === 'gain_escalation' && fact.succeeded) {
@@ -602,6 +621,8 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
     burntHexes,
     peakPricedCounter,
     countersSpent,
+    heroRoundsLost: heroRoundsLost(state),
+    selectorFellBack,
   }
 }
 
@@ -656,6 +677,17 @@ for (const knobs of variants) {
   if (victoryPct > 0) {
     redFlags.push(`${label}: ${victoryPct}% solo victories`)
   }
+  // D-016's other half, as D-074 restates it. ADR 0036 extended the solo red
+  // flag to any reduced-Party victory, which fires on a Party that lost
+  // somebody in the last Round and won anyway — a good fight, flagged as a
+  // decorative Hero. The dose is the question: a win carrying several
+  // Hero-Rounds on the floor says the absent Hero was not load-bearing.
+  const shortHandedWins = runs.filter((run) => run.outcome === 'victory' && run.heroRoundsLost >= 2)
+  if (shortHandedWins.length > 0) {
+    redFlags.push(
+      `${label}: ${shortHandedWins.length} victories with 2+ Hero-Rounds lost — the absent Hero may be decorative (D-016, D-074)`,
+    )
+  }
   // The enrage wall, as ADR 0027 states it: a line that survives everything
   // the Boss does still cannot kill it, and something ends the fight anyway.
   wallRuns += runs.filter(
@@ -674,6 +706,8 @@ for (const knobs of variants) {
     escFromAdds: avg((run) => run.escalationFromDemands),
     whelpKills: avg((run) => run.minionsKilled),
     peakCtr: avg((run) => run.peakPricedCounter),
+    heroRdsLost: avg((run) => run.heroRoundsLost),
+    fellBack: avg((run) => run.selectorFellBack),
     ctrSpent: avg((run) => run.countersSpent),
     burnt: avg((run) => run.burntHexes),
     bossDmg: avg((run) => run.bossDamage),

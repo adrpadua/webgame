@@ -27,7 +27,7 @@ import {
   type CounterRef,
 } from './counters'
 import { evaluateGrantsFor, evaluateStandingGrants } from './signature'
-import { canBeDowned, goDowned, incapacitateHero, livingHeroIds, reviveHero } from './downed'
+import { goDowned, livingHeroIds, reviveHero } from './downed'
 import { cardChargeCap } from './content/catalog'
 import { RAID_HIT, TANK_HIT } from './keywords'
 import { ENCOUNTER_SOURCE, type EncounterActionInput } from './actions'
@@ -94,10 +94,11 @@ export function checkResolution(draft: EncounterState): void {
     draft.outcomeReason = 'The Boss is defeated.'
     return
   }
-  // Defeat is the whole Party out at once (ADR 0036), not any one Hero
-  // falling. A Hero at zero is `Downed` or `Incapacitated` and the fight goes
-  // on around them; solo, `canBeDowned` is false and the first zero ends it,
-  // which is why both authored solo Encounters behave exactly as before.
+  // Defeat is the whole Party Downed at once (ADR 0039), not any one Hero
+  // falling. A Hero at zero is `Downed` and the fight goes on around them.
+  // Solo needs no clause of its own: a Party of one that falls has every seat
+  // Downed, so this same check ends it immediately and both authored solo
+  // Encounters behave exactly as they always have.
   if (draft.partyHeroIds.length > 0 && livingHeroIds(draft).length === 0) {
     draft.active = false
     draft.outcome = 'defeat'
@@ -498,10 +499,13 @@ function resolveOne(
         break
       }
       fact.detail.dealt = resolutionFact.health_loss
-      // Zero health is a state change, not the end of the fight (ADR 0036).
-      // Solo, `canBeDowned` is false and `checkResolution` ends it below.
+      // Zero health is a state change, not the end of the fight (ADR 0039).
+      // No `canBeDowned` guard: every Hero at zero goes Downed, including the
+      // last one standing, and `checkResolution` below ends the Encounter
+      // because every seat is then Downed. That is why solo needs no rule of
+      // its own — a Party of one that falls is a Party wholly on the floor.
       const struck = draft.heroes[action.targetId]
-      if (struck && struck.status === 'living' && struck.health <= 0 && canBeDowned(draft, action.targetId)) {
+      if (struck && struck.status === 'living' && struck.health <= 0) {
         goDowned(draft, action.targetId)
         fact.detail.downed = action.targetId
         resolutionFact.downed = true
@@ -512,12 +516,6 @@ function resolveOne(
       succeed(fact)
       break
     }
-    case 'incapacitate_hero': {
-      incapacitateHero(draft, action.sourceId)
-      fact.detail.incapacitated = action.sourceId
-      succeed(fact)
-      break
-    }
     case 'revive_ally': {
       const rescuer = draft.heroes[action.sourceId]
       const encounter = catalog.encounters[draft.encounterId]
@@ -525,15 +523,18 @@ function resolveOne(
       // the save is the decision, and legality already refused every case
       // where the save could not happen at all.
       rescuer.discard.push(takeFromHand(rescuer, action.cardInstanceId))
-      const restored = reviveHero(draft, action.targetId, encounter?.revive_health_fraction ?? 0.25)
+      const restored = reviveHero(draft, action.targetId, encounter?.revive_to ?? 1)
       fact.detail.revived = action.targetId
       fact.detail.restoredHealth = restored
       succeed(fact)
       break
     }
     case 'diminished_action': {
-      // An Incapacitated Hero has no cards and no board presence, so each of
-      // these is free and none of them touches the Boss's health (ADR 0036).
+      // Each of these costs a card out of the hand the Hero fell with, which
+      // never refills (ADR 0039) — that finite budget is the whole price, and
+      // none of the three touches the Boss's health.
+      const actor = draft.heroes[action.sourceId]
+      actor.discard.push(takeFromHand(actor, action.cardInstanceId))
       const ally = action.targetId === undefined ? undefined : draft.heroes[action.targetId]
       if (action.action === 'grant_ally_armor' && ally) {
         ally.armor += 1
@@ -1016,12 +1017,10 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: `Damage ${action.amount} to ${action.targetId} (${action.reasonText})`, detail }
     case 'discard_for_stamina':
       return { title: 'Discard for Stamina', detail }
-    case 'incapacitate_hero':
-      return { title: `${action.sourceId} is Incapacitated`, detail }
     case 'revive_ally':
       return { title: `Revive ${action.targetId}`, detail }
     case 'diminished_action':
-      return { title: `Incapacitated: ${action.action.replace(/_/g, ' ')}`, detail }
+      return { title: `Downed: ${action.action.replace(/_/g, ' ')}`, detail }
     case 'place_counter':
       return { title: `${action.reasonText}: ${action.amount} ${action.counterId}`, detail }
     case 'advance_phase':

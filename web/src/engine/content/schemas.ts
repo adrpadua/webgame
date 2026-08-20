@@ -439,12 +439,17 @@ export const encounterSchema = z.object({
   boss_health: z.number().int().min(1),
   slot_count: z.number().int().min(1).max(8),
   hand_refill_target: z.number().int().min(1).max(12),
-  // What a Revived Hero comes back on, as a fraction of their maximum, rounded
-  // up (ADR 0036). Authored rather than compiled in because it decides how
-  // forgiving the whole fight is — the mistake `range_tiles` was before D-043,
-  // where the number that set the difficulty lived where no designer could
-  // reach it. `0.25` is CONTEXT.md's baseline.
-  revive_health_fraction: z.number().min(0.05).max(1).default(0.25),
+  // The health a Revived Hero comes back on (ADR 0039). Authored rather than
+  // compiled in because it decides how forgiving the whole fight is — the
+  // mistake `range_tiles` was before D-043, where the number that set the
+  // difficulty lived where no designer could reach it.
+  //
+  // Absolute, where ADR 0036 had a fraction of maximum. The ruling this
+  // implements is about the *state* a Hero returns in — one blow from going
+  // back down, and that is the cost of having fallen — which a fraction cannot
+  // say, because a quarter of maximum means two different things to a Hero
+  // with 40 health and one with 12. `1` is the baseline.
+  revive_to: z.number().int().min(1).default(1),
   player_deck: z.array(deckEntrySchema).min(1),
   boss_programs: z.array(z.string()).min(1),
   loop_boss_programs: z.boolean().default(true),

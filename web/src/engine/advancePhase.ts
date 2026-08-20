@@ -1,7 +1,7 @@
 import { cardChargeCap } from './content/catalog'
 import type { ContentCatalog } from './content/catalog'
 import { applyAction, checkResolution } from './resolve'
-import { expiredRescues } from './downed'
+
 import { ESCALATION_MAX, escalationActionsForRoundEnd, escalationModifiers, minionDemandTerms } from './escalation'
 import { detonationDue, minionDetonation, minionIntent } from './minions'
 import { actionsForTrack, refreshTelegraphs } from './timeline'
@@ -181,16 +181,15 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
         return { state: draft, facts }
       }
       submit({ kind: 'round_start', sourceId: ENCOUNTER_SOURCE, round: nextRound })
-      // The rescue window closes (ADR 0036). Checked after the Round has
-      // opened, so a Hero Downed in Round N is rescuable right through Round
-      // N+1 and expires as N+2 begins. The Escalation charge is submitted as
-      // an action rather than applied here, so a failed rescue lands on the
-      // fact stream beside every other demand the Party did not answer.
-      for (const heroId of expiredRescues(draft)) {
-        submit({ kind: 'incapacitate_hero', sourceId: heroId })
-        submit({ kind: 'gain_escalation', sourceId: ENCOUNTER_SOURCE, amount: 1, reason: 'unanswered_rescue', beatId: '' })
-      }
+      // Nothing expires at the Round boundary any more (ADR 0039). Downed is
+      // stable, so there is no window to close and no `unanswered_rescue` to
+      // bill: the pressure a body creates is already priced by the demands in
+      // `escalation.ts`, which a Hero on the floor cannot answer.
       for (const heroId of Object.keys(draft.heroes)) {
+        // A Downed hand does not refill. The hand they fell with is the whole
+        // budget for their time on the floor, which is what prices the
+        // diminished actions — a refilled hand would hand the Party a free
+        // card every Round and make falling an advantage.
         if (draft.heroes[heroId].status !== 'living') {
           continue
         }

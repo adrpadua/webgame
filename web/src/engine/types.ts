@@ -33,14 +33,15 @@ export interface SlotState {
   earnedCharges: number
 }
 
-// Where a Hero stands in the zero-health lifecycle (ADR 0036).
+// Where a Hero stands in the zero-health lifecycle (D-074, ADR 0039).
 //
-// `living` is the ordinary state. `downed` is a Hero at `0` health while a
-// rescue is still possible: a blocking, non-targetable body that answers no
-// demand. `incapacitated` is a Hero whose rescue window expired: off the
-// board, out of cards, and still choosing one ally-facing action a Round.
-// Never "removed" — nobody leaves the table.
-export type HeroStatus = 'living' | 'downed' | 'incapacitated'
+// Two states, and the second one is stable: `downed` is a Hero at `0` health,
+// a blocking non-targetable body that answers no demand, whose Slots and
+// Charges are frozen and whose hand no longer refills. It ends by a Revive or
+// with the Encounter and by nothing else. ADR 0036's `incapacitated` is gone
+// along with the rescue window that produced it. Never "removed" either way —
+// nobody leaves the table, and a Downed player still acts every Round.
+export type HeroStatus = 'living' | 'downed'
 
 export interface HeroState {
   id: string
@@ -53,9 +54,10 @@ export interface HeroState {
   refillTarget: number
   actionBar: SlotState[]
   status: HeroStatus
-  // The Round this Hero went Downed, so the window's expiry is a comparison
-  // rather than a countdown that has to be ticked in the right order. `0`
-  // whenever the Hero is not Downed.
+  // The Round this Hero went Downed. It no longer gates an expiry — nothing
+  // expires — but it is the basis of the Hero-Rounds-lost measure that replaced
+  // D-016's binary reduced-Party red flag, so how long a body lay there stays
+  // answerable. `0` whenever the Hero is not Downed.
   downedRound: number
 }
 

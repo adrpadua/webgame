@@ -45,7 +45,7 @@ export { buildProgramSequence, currentProgram, selectBeatTarget } from './timeli
 export { keywordTitle, heroRole, TANK } from './keywords'
 export { combatantRef, counterCount, readCounterEvent, counterCountByKeyword, getCounters, hexCounterRef, slotRef, type CounterRef } from './counters'
 export { readSignatureEvent, slotChargeCount, EVALUATED_GRANT_WHENS } from './signature'
-export { DIMINISHED_ACTIONS, isLivingHero, livingHeroIds, rescueDeadlineRound, type DiminishedAction } from './downed'
+export { DIMINISHED_ACTIONS, heroRoundsLost, isLivingHero, livingHeroIds, type DiminishedAction } from './downed'
 export { getEntityIdAt, isLegalMove, neighbors, isGuardedFront, guardedFrontHex } from './board'
 export {
   minionIntent,

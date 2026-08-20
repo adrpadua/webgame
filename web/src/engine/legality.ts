@@ -224,8 +224,15 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
     }
     case 'diminished_action': {
       const hero = state.heroes[action.sourceId]
-      if (!hero || hero.status !== 'incapacitated') {
-        return illegal('Only an Incapacitated Hero takes a diminished action.')
+      if (!hero || hero.status !== 'downed') {
+        return illegal('Only a Downed Hero takes a diminished action.')
+      }
+      // The price (ADR 0039). A Downed hand never refills, so this card is
+      // drawn from a budget fixed at the moment the Hero fell — which is what
+      // stops `reduce_escalation` from being a free Round-after-Round rebate
+      // on a state that has no expiry.
+      if (!hero.hand.some((card) => card.instanceId === action.cardInstanceId)) {
+        return illegal('A diminished action costs a card from hand.')
       }
       // The two ally-facing choices need a living ally to aim at; a Party with
       // none is a Party that has already lost.
