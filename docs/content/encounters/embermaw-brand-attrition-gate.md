@@ -65,9 +65,21 @@ Reuses the `embermaw` Boss with its own Program list (`embermaw_hunt`, `embermaw
 
 Tests 6 and 7 are the ones that will start failing when the Restorative's cleansing cards are authored. That failure is the deliverable, not a regression: update them to assert that the answer now exists and that it is hers.
 
-## What This Does Not Yet Prove
+## The Played Line
 
-The gate is structural — it proves no card *can* remove the mark. It does not yet prove that a one-seat Party actually fails to clear inside the 8-Round limit. That is the no-healer-clear measurement, and it wants a played line the way `embermaw_solo_ceiling` is a played line. It is recorded as outstanding evidence on D-082, and stays owed now that the Party can answer the mark (D-083): the line to play is the two-seat clear.
+The no-healer-clear measurement has been run (`npm run probe:attrition`, `web/scripts/attritionLine.ts`): both arms over the same 30 seeds, the same guardian sword-and-shield plan in each, with Maren's authored loop — clear, cover, bank — piloting the second seat in the duo arm only. The control arm is `embermaw_attrition_solo_probe`, an evaluation-only Encounter that is the trial with her seat removed.
+
+| Arm | Clears | Loss shape | Avg guardian health at end | Avg boss health left | Sear rounds standing | Cleanses / run |
+| --- | --- | --- | --- | --- | --- | --- |
+| Solo — no Healer | **0 / 30** | Dead to attrition at avg Round 7.1, before the Clock | 0.1 | 25.0 | 5.7 | 0 |
+| Duo — Maren playing | **5 / 30** | Mostly the Enrage Clock, boss nearly dead, party alive | 15.9 | 14.4 | 5.7 | 1.8 |
+
+What the numbers say:
+
+- **The gate holds in play.** Without her, the front line dies to the priced blows before the Clock ever matters, with the Boss barely half down. With her, the guardian ends alive at 15.9 of 34 — the same fight, survived — and full clears exist. The loss reads "I need my Healer", which is Principle 5's shape.
+- **The clears are hers.** The pinned line (`data/scenarios/brand_trial_duo_line.json`, seed 1002, 68 steps, victory at Round 8) cleanses Sears and lands her heals on the way to the kill; `attrition.test.ts` replays it and asserts the attribution.
+- **These are policy floors, not ceilings** — the same caveat every sweep row carries. Two tuning reads for the next pass, recorded rather than acted on: at this floor her overflow game barely fires (0.7 damage/run — the guardian is usually hurt, so heals land instead of converting), which means the Signature almost never reaches full bank (0.2 covers/run). Q23's cap and the earn rate should be re-read against a line that overheals on purpose before either number moves.
+- **Most duo losses are the Clock with the Boss under 15 health** — the pair's damage output is marginal for an 8-Round limit. Whether that is the trial's tuning or the intended pressure is a design question the next grilling can price; nothing here forces it.
 
 ## Related
 

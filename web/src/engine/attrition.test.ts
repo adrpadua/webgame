@@ -3,6 +3,7 @@ import { loadCatalog } from '@/content'
 import {
   advancePhase,
   buildCatalog,
+  runScenario,
   combatantRef,
   counterCount,
   createEncounterState,
@@ -353,5 +354,31 @@ describe('the overflow cap under scaling', () => {
     expect(after.facts[0].succeeded).toBe(true)
     expect(after.facts[0].detail.overflowConverted).toBe(2)
     expect(after.state.board.entities.probe_boss.health).toBe(bossBefore - 2)
+  })
+})
+
+// The no-healer-clear line, played and pinned (D-082's outstanding evidence).
+// The full measurement lives in scripts/attritionLine.ts — 30 seeds, both
+// arms — and its numbers are recorded in the Brand gate doc. What this test
+// pins is the replayable half: the committed duo line ends in victory, and
+// the victory is attributable — her kit actually fired on the way there.
+describe('the played no-healer-clear line', () => {
+  it('replays the committed duo line to victory, through her kit', () => {
+    const scenario = catalog.scenarios.brand_trial_duo_line
+    expect(scenario).toBeDefined()
+    const replay = runScenario(catalog, scenario)
+    const finalState = replay.entries[replay.entries.length - 1].state
+    expect(finalState.outcome).toBe('victory')
+    expect(finalState.board.entities[finalState.bossId]?.health ?? 0).toBe(0)
+    // Attribution: the line cleansed a Sear and fired her heals — a victory
+    // that never touched her kit would be the guardian soloing after all,
+    // which is exactly what the control arm proves he cannot do.
+    const facts = replay.entries.flatMap((entry) => entry.facts)
+    const cleansed = facts.some(
+      (fact) => fact.succeeded && fact.kind === 'fire_slot' && (fact.detail.spentCounters as { counter_id?: string }[] | undefined)?.some((spent) => spent.counter_id === 'seared'),
+    )
+    expect(cleansed).toBe(true)
+    const preserved = facts.some((fact) => fact.succeeded && fact.detail.preservedAlly === 'guardian')
+    expect(preserved).toBe(true)
   })
 })
