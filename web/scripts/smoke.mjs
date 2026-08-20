@@ -720,7 +720,7 @@ try {
   }
   const stepsBeforeDrag = JSON.parse(await page.evaluate(() => window.__workbench.exportScenario())).steps.length
   // East, to (1, 0), which is one of the hexes the script is pointing at.
-  // Since D-067 the cone's exits are not interchangeable: (-1, 0) dodges the
+  // Since D-070 the cone's exits are not interchangeable: (-1, 0) dodges the
   // breath and steps out of the slow Slot's reach, so the Round would end with
   // Unyielding Step unfired and the Slow Window lesson untaught. (1, 0) dodges
   // and stays in the fight, which is what the script highlights.

@@ -181,7 +181,7 @@ export const cardSchema = z.object({
   boss_damage: z.number().int().default(0),
   // How far this card reaches, in hexes, measured from the firing Hero to
   // whatever it lands on — a selected piece, a selected hex, or the Boss a
-  // `boss_damage` card never has to name (D-067). `0` is a card that reaches
+  // `boss_damage` card never has to name (D-070). `0` is a card that reaches
   // nothing but its own Hero, and the catalog refuses both halves of the
   // mismatch: a card that reaches without a reach, and a reach on a card that
   // touches nobody.
@@ -249,7 +249,7 @@ export const hazardSchema = z.object({
   enter_damage: z.number().int().min(0).default(0),
   blocks_voluntary_movement: z.boolean().default(false),
   // What this ground does to something crossing it under its own power
-  // (D-068). Both fields are authored per Hazard rather than decided by the
+  // (D-071). Both fields are authored per Hazard rather than decided by the
   // engine, because which terrain stops a Boss and which terrain burns it is
   // a per-encounter design decision — the kind a fight can be built around.
   //
@@ -273,6 +273,23 @@ export const minionSchema = z.object({
   rules_text: z.string().default(''),
   max_health: z.number().int().min(1),
   attack_damage: z.number().int().min(0).default(0),
+  // How far a Minion bites, and how it gets there (D-069) — the same three
+  // fields a Beat's movement clause carries, for the same reason.
+  //
+  // A Minion's reach was a literal `1` in the creep, and its route was its own
+  // rule: the first neighbour in board order that shortened the distance,
+  // stopping dead against anything in the way. That made it the last piece on
+  // the board whose reach and movement were engine constants rather than
+  // content, after cards answered the question in D-070 and Boss Beats in
+  // D-071. Whether a Whelp bites at 1 or at 2 is exactly the kind of decision
+  // ADR 0020 puts in `data/`.
+  //
+  // `range_tiles` is both the bite reach and the distance the creep stops at,
+  // because for a Minion they are the same question: it walks until it can
+  // bite, and then it bites.
+  range_tiles: z.number().int().min(0).default(0),
+  move_tiles: z.number().int().min(0).default(0),
+  traversal: z.enum(['walk', 'jump', 'teleport']).default('walk'),
   // A Minion's fuse (D-063). A Minion authoring a blast detonates on the
   // Incoming Row of the Round after it arrived, and the pair is authored here
   // rather than defaulted for the reason a Beat's reach is (D-043): how far a
@@ -350,8 +367,8 @@ export const bossBeatSchema = z.object({
   // instead — so the claw was left as the one Beat whose reach was infinite for
   // a reason that had moved somewhere better.
   //
-  // A `place_counter` Beat aimed at a Hero reads it since D-068, which is the
-  // Boss side of the same rule cards answered in D-067: marking the Party from
+  // A `place_counter` Beat aimed at a Hero reads it since D-071, which is the
+  // Boss side of the same rule cards answered in D-070: marking the Party from
   // the far corner was the one reach nothing measured. Aimed at itself it
   // measures nothing, and must not author one.
   //
@@ -360,7 +377,7 @@ export const bossBeatSchema = z.object({
   // close, rather than always spending its whole allowance.
   range_tiles: z.number().int().min(0).default(0),
   // The movement clause: how far this Beat travels before its own effect
-  // resolves (D-068). Any Beat kind may carry it, so "Move 2, then Claw" is one
+  // resolves (D-071). Any Beat kind may carry it, so "Move 2, then Claw" is one
   // Beat with one telegraph rather than two Beats a Program has to keep in
   // order — the shape a Gloomhaven monster card has, and the reason the field
   // moved off `advance_toward_player`, which is now simply the Beat kind whose
@@ -370,7 +387,7 @@ export const bossBeatSchema = z.object({
   // standing out of reach, and how hard that pressure bites is a per-Boss
   // identity question (D-041).
   move_tiles: z.number().int().min(0).default(0),
-  // How the movement clause crosses the board (D-068). Three kinds, and the
+  // How the movement clause crosses the board (D-071). Three kinds, and the
   // difference between them is entirely what the ground can do about it:
   //
   // `walk`     — steps hex to hex through ground it can stand on. Pieces and

@@ -41,7 +41,7 @@ const RANGED_BEAT_KINDS = new Set<BossBeat['kind']>(['forward_cone', 'demand_pro
 
 // Why *this* Beat needs a reach, named rather than counted so the authoring
 // error can say which clause asked for one — the same shape `cardReachingEffects`
-// takes on the card side (D-067).
+// takes on the card side (D-070).
 //
 // The list is longer than `RANGED_BEAT_KINDS` because two of the three reasons
 // are fields rather than kinds. A `place_counter` reaches only when it is aimed
@@ -284,7 +284,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       throw new Error(`${cardAt(card.id)} declares ${displacementField} but does not target a piece`)
     }
     // Both halves of the reach rule, the same pair the ranged Beat kinds
-    // answer below (D-043, extended to cards by D-067): a card that touches
+    // answer below (D-043, extended to cards by D-070): a card that touches
     // anything past its own Hero authors how far it touches, and a card that
     // touches nobody must not author a reach nothing reads.
     //
@@ -487,6 +487,30 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     if (minion.explode_radius > 0 && minion.explode_damage < 1) {
       throw new Error(`Minion ${minion.id} declares explode_radius ${minion.explode_radius} but no explode_damage`)
     }
+    // A Minion states its reach for the same reason a Card and a Beat do
+    // (D-070, D-071, extended here by D-069): a bite whose distance lives in
+    // engine code is a bite an author cannot tune. Both halves again — a
+    // Minion that bites says how far, and one that never bites must not carry
+    // a number nothing reads.
+    if (minion.attack_damage > 0 && minion.range_tiles < 1) {
+      throw new Error(`Minion ${minion.id} bites for ${minion.attack_damage} but authors no range_tiles`)
+    }
+    if (minion.attack_damage === 0 && minion.range_tiles > 0) {
+      throw new Error(`Minion ${minion.id} authors range_tiles ${minion.range_tiles} but has no attack to reach with`)
+    }
+    // The creep only runs for a Minion that has something to close for, so an
+    // allowance on one that never bites is movement nothing asks for.
+    if (minion.attack_damage === 0 && minion.move_tiles > 0) {
+      throw new Error(`Minion ${minion.id} authors move_tiles ${minion.move_tiles} but has no attack to close for`)
+    }
+    // The same two traversal rules Beats answer: a teleport spends no
+    // allowance, and a jump is an allowance spent differently.
+    if (minion.traversal === 'teleport' && minion.move_tiles > 0) {
+      throw new Error(`Minion ${minion.id} teleports but authors move_tiles ${minion.move_tiles}; a teleport spends no allowance — author a jump instead`)
+    }
+    if (minion.traversal === 'jump' && minion.move_tiles < 1) {
+      throw new Error(`Minion ${minion.id} authors traversal jump but no move_tiles to spend on it`)
+    }
   }
   for (const modifier of Object.values(catalog.chargeModifiers)) {
     if (modifier.keyword_id !== '') {
@@ -547,7 +571,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       // A movement kind with nothing to spend goes nowhere, and an allowance on
       // a teleport is a number it never consults — a teleport has no route to
       // spend it on, which is the whole difference between it and a jump
-      // (D-068).
+      // (D-071).
       if (beat.kind === 'advance_toward_player' && beat.traversal !== 'teleport' && beat.move_tiles < 1) {
         throw new Error(`Boss Beat ${beat.id} is an advance_toward_player but authors no move_tiles`)
       }

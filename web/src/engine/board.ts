@@ -235,7 +235,7 @@ export function isLegalMove(board: BoardState, entityId: string, destination: Ax
   return true
 }
 
-// --- Traversal (D-068) ---
+// --- Traversal (D-071) ---
 
 // Ground a piece moving under its own power can stand on: on the board, nobody
 // already there, and no Hazard authoring `blocks_traversal`.
@@ -253,6 +253,19 @@ export function isTraversable(board: BoardState, moverId: string, coords: Axial)
 }
 
 export type Traversal = 'walk' | 'jump' | 'teleport'
+
+// The facing a piece ends a traversal in: the direction of its last leg, the
+// same rule a Hero's paid step follows. Stated once and read by both the
+// timeline — which needs it to compute the Beat's own geometry from where the
+// move ends — and the resolver, which applies it. Two copies would be two
+// answers, and the Guarded Front would be drawn from whichever ran last.
+export function facingAlong(route: Axial[], from: Axial, currentFacing: number): number {
+  if (route.length === 0) {
+    return currentFacing
+  }
+  const last = route[route.length - 1]
+  return facingToward(route.length > 1 ? route[route.length - 2] : from, last, currentFacing)
+}
 
 // The route a Beat's movement clause actually takes, as the hexes entered in
 // order. Empty means it does not move — already close enough, or with nowhere

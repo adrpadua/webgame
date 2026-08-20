@@ -42,7 +42,7 @@ The rows are a rules structure, not a HUD band. The persistent strip that listed
 
 ### The Movement Clause
 
-Any Beat may carry a movement clause, and it resolves before the Beat's own effect (D-068). `move_tiles` is how far the Beat may travel, `traversal` is how it crosses the ground, and `range_tiles` is how close it is trying to get — one Beat can therefore be "Move 2, then Claw", the shape a Gloomhaven monster card has, rather than two Beats a Program has to keep in order. `advance_toward_player` is now simply the Beat kind whose *only* effect is the move.
+Any Beat may carry a movement clause, and it resolves before the Beat's own effect (D-071). `move_tiles` is how far the Beat may travel, `traversal` is how it crosses the ground, and `range_tiles` is how close it is trying to get — one Beat can therefore be "Move 2, then Claw", the shape a Gloomhaven monster card has, rather than two Beats a Program has to keep in order. `advance_toward_player` is now simply the Beat kind whose *only* effect is the move.
 
 The rule that governs all movement is **go no further than you have to**: a mover stops the moment its target is within the Beat's `range_tiles`, and does not move at all when it already is. That is what makes an advance readable — it comes exactly close enough to do the thing it is about to do — and it is what stops a Boss walking past the Hero it is hunting.
 
@@ -142,9 +142,11 @@ Pressing and holding the Hero still previews legal routes; a press that releases
 
 Moving also sets the player's facing to the traversed hex edge. Facing is always one of `E`, `NE`, `NW`, `W`, `SW`, or `SE`; no in-between directions are legal.
 
-Three different things move a piece, and they are not the same rule. A **paid step** is the Hero's own move above. A **displacement** is a force applied to a piece — Push and Pull ([ADR 0029](../adr/0029-resolve-forced-movement-one-hex-at-a-time.md)) — re-aimed every hex and stopping dead against whatever it runs into. A **traversal** is a piece crossing the board under its own power along a route it decided in advance, which is why it can go around what a displacement would stop at; it is what a Beat's movement clause emits.
+Three different things move a piece, and they are not the same rule. A **paid step** is the Hero's own move above. A **displacement** is a force applied to a piece — Push and Pull ([ADR 0029](../adr/0029-resolve-forced-movement-one-hex-at-a-time.md)) — re-aimed every hex and stopping dead against whatever it runs into. A **traversal** is a piece crossing the board under its own power along a route it decided in advance, which is why it can go around what a displacement would stop at.
 
-What ground does to a traverser is authored per Hazard, not decided by the engine (D-068):
+Every Enemy that moves under its own power traverses: a Boss Beat's movement clause and a Minion's creep are the same event and emit the same action (D-069). A displacement stays the dumber rule on purpose, but it respects the same impassable ground — "impassable" must not mean "impassable unless pushed", or a Push would be the one way onto ground the arena has taken away. A traversing piece ends facing the way it went, exactly as a paid step does.
+
+What ground does to a traverser is authored per Hazard, not decided by the engine (D-071):
 
 - `blocks_traversal` — ground a pathing Enemy has to route around. Held apart from `blocks_voluntary_movement` on purpose: one is what a Hero may *choose* to walk into, the other is what a mover *cannot*. Ground can be both, either, or neither.
 - `damages_source_team` — whether this ground burns the side that laid it. D-042's immunity is still the default and still the right one, but it is now the Hazard's decision rather than the engine's: Embermaw's Scorched declines to burn it, and a later Boss's ground can be authored to accept, which makes "lure it onto the hex it just burned" a fight somebody can build.
@@ -153,10 +155,10 @@ What ground does to a traverser is authored per Hazard, not decided by the engin
 
 Minions act at the end of each Round, after the Slow Window and before the Round wraps, in spawn order (D-006):
 
-- A Minion adjacent to its nearest Hero bites for its authored attack (`1` for a Whelp). Minion damage is a Raid Hit: Armor blocks it, and it never grants Riposte Ready.
-- A Minion not yet adjacent advances one hex toward its nearest Hero: the first neighbor in stable board order that shortens the distance and is unoccupied. A fully blocked Minion holds.
+- A Minion within its authored `range_tiles` of its nearest Hero bites for its authored attack (a Whelp reaches `1` and bites for `1`). Minion damage is a Raid Hit: Armor blocks it, and it never grants Riposte Ready.
+- A Minion out of reach traverses toward its nearest Hero, spending its authored `move_tiles` by its authored `traversal`, and stops the moment the Hero is within its reach. A Minion with nowhere to go holds. This is the same movement every Enemy uses (D-069): a Whelp walks the way Embermaw walks, so ground that funnels one funnels the other.
 - The creep is the deadline: `Kill Adds` means clearing a Minion before it arrives, and every step it takes also removes a route the party could have used.
-- Minion movement ignores Hazard blocking — Scorched is Embermaw's own element.
+- What Hazards do to a creeping Minion is authored on the Hazard, not assumed of Minions. Scorched declines to block or burn the side that laid it, which is why a Whelp crosses Embermaw's fire freely — a fact now visible in `data/hazards/scorched.json` rather than stated in engine code.
 - Each Minion's next action is a visible, deterministic Minion Intent derived from the live board; the engine exposes it as a projection (`minionIntents`).
 
 A Minion may also carry a fuse (D-063), authored on the Minion as `explode_damage` and `explode_radius` — both or neither:
@@ -180,13 +182,13 @@ Cards currently resolve against one of these target styles:
 
 ### Reach
 
-Every card that touches anything past the Hero firing it authors a reach: `range_tiles`, in hexes, measured from the Hero's hex to whatever the card lands on. It is one number for the whole card, and it answers every reaching effect the card has — a selected piece, a selected hex, forced movement, and the Boss a `boss_damage` card never has to name. A card that reaches nothing but its own Hero authors no reach at all, and the content validator refuses both halves of the mismatch (D-067).
+Every card that touches anything past the Hero firing it authors a reach: `range_tiles`, in hexes, measured from the Hero's hex to whatever the card lands on. It is one number for the whole card, and it answers every reaching effect the card has — a selected piece, a selected hex, forced movement, and the Boss a `boss_damage` card never has to name. A card that reaches nothing but its own Hero authors no reach at all, and the content validator refuses both halves of the mismatch (D-070).
 
 Two exemptions were withdrawn to get there. `boss_damage` used to resolve without a range check, so a Hero's position never blocked it; and the Boss was the one Enemy a piece-targeting card could mark from any distance, exempted expressly to stay consistent with the first rule (D-034, kept by D-047). Both are gone: the Boss answers the same reach every other Enemy does. `board_slot` stays reach-free, because an ally's prepared Top Card is not a place on the board and support was chosen adjacency-free (D-009).
 
 The melee vocabulary is authored as `range_tiles: 1` — Steady Strike, Shield Slam, Unyielding Step, Taunting Challenge, Quench, and Elian's Riposte all swing at arm's length, which is what their rules text already said.
 
-A Boss Beat answers the same rule, and needs a reach for any of three reasons (D-068): it is a kind that always reaches (`forward_cone`, `demand_proximity`, `targeted_hit`), it is a `place_counter` aimed at a Hero, or it carries a movement clause — which needs `range_tiles` to know how close is close enough. Marking the Party was the last thing the Boss could do to a Hero from anywhere on the board; it stayed that way only because no authored Beat used it. Marking *itself* measures nothing and must not author a reach. The other half of the rule stands: a Beat with no distance question to ask must not answer one.
+A Boss Beat answers the same rule, and needs a reach for any of three reasons (D-071): it is a kind that always reaches (`forward_cone`, `demand_proximity`, `targeted_hit`), it is a `place_counter` aimed at a Hero, or it carries a movement clause — which needs `range_tiles` to know how close is close enough. Marking the Party was the last thing the Boss could do to a Hero from anywhere on the board; it stayed that way only because no authored Beat used it. Marking *itself* measures nothing and must not author a reach. The other half of the rule stands: a Beat with no distance question to ask must not answer one.
 
 Counter-pressure against playing at a distance is now priced twice, in the card and in the encounter, and the encounter half is unchanged. A `demand_proximity` Beat (D-041) raises Escalation if no Hero stands within its authored reach at the Round end — Embermaw's `Within Reach` charges `1`. It is priced in Escalation rather than in Health on purpose, because a Health price is one a camper can simply out-heal or out-armor, while the clock is the thing that ends the fight. A Beat may still carry an `unguarded_bonus` for a hit that reaches past the hex the Boss faces; Raking Claw carried one until it gained a reach of `1`, at which point there was no unbraced hex left for it to price (D-062).
 

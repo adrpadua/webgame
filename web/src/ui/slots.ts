@@ -9,7 +9,7 @@ import type { WorkbenchCatalog } from '@/store/workbench'
 //
 // That last clause is the engine's, not this module's: the Slot is offered
 // only if some fire from it is legal (ADR 0013). Before every ability carried
-// a reach (D-067) the window match was the whole answer, because a charged
+// a reach (D-070) the window match was the whole answer, because a charged
 // Steady Strike could always fire — there was no board position that refused
 // it. Now there is, and a plate that stayed lit from out of reach would be
 // asserting a move the rules deny.

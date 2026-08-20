@@ -159,8 +159,19 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
               ...(escalationBonus > 0 ? { escalation_bonus: escalationBonus } : {}),
             },
           })
-        } else if (intent.destination) {
-          submit({ kind: 'move_minion', sourceId: minionId, destination: intent.destination })
+        } else if (intent.route.length > 0) {
+          // The same action the Boss's movement clause emits (D-069). A Minion
+          // crossing the board is the same event as a Boss crossing it, and the
+          // separate `move_minion` action retired because it quietly differed:
+          // it applied no Hazard entry at all, so a Whelp crossing ground the
+          // party had laid walked through it for free.
+          submit({
+            kind: 'traverse_piece',
+            sourceId: minionId,
+            path: intent.route,
+            traversal: catalog.minions[draft.board.entities[minionId].contentId ?? '']?.traversal ?? 'walk',
+            reasonText: `${draft.board.entities[minionId].title} advances`,
+          })
         }
       }
       if (!draft.active) {

@@ -17,7 +17,7 @@ export type EncounterActionInput =
   | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string; targetHex?: Axial; targetSlotIndex?: number }
   | { kind: 'move_hero'; sourceId: string; destination: Axial; cardInstanceId: string }
   | { kind: 'displace_piece'; sourceId: string; targetId: string; distance: number; movement: 'push' | 'pull'; reasonText: string }
-  // A piece crossing the board under its own power (D-068): a Beat's movement
+  // A piece crossing the board under its own power (D-071): a Beat's movement
   // clause, carried as the hexes entered in order rather than as a distance and
   // a direction.
   //
@@ -37,7 +37,6 @@ export type EncounterActionInput =
   | { kind: 'resolve_boss'; sourceId: string; beat: BossBeat; track: 'instant' | 'incoming' }
   | { kind: 'apply_hazard'; sourceId: string; coords: Axial; hazardId: string | null; fallbackDurationRounds: number; permanent?: boolean }
   | { kind: 'spawn_minion'; sourceId: string; minionId: string; coords: Axial; minionContentId?: string }
-  | { kind: 'move_minion'; sourceId: string; destination: Axial }
   // A Minion's fuse running out (D-063). It carries only the Minion, because
   // where the blast lands and how far it reaches are read from the live board
   // and the authored Minion at resolution — a footprint carried on the action

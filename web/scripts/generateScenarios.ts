@@ -30,7 +30,7 @@ interface PolicyKnobs {
   // Both Slots run Steady Strike, or Slot 1 runs Iron Guard for armor.
   slotPlan: 'dual_steady' | 'sword_shield'
   // Park out of Cinder Breath range (distance 3+), dodge telegraphed cones,
-  // or hold the Guarded Front. Since D-067 every card carries a reach, so
+  // or hold the Guarded Front. Since D-070 every card carries a reach, so
   // `far` deals no Boss damage at all — it stays in the search as the shape
   // the ceiling has to beat, not as a candidate for it.
   position: 'far' | 'dodge' | 'stay'

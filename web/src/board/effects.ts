@@ -277,7 +277,7 @@ export function deriveBoardEffects(
         break
       }
 
-      // A Beat's movement clause landing (D-068). Drawn in the boss tone rather
+      // A Beat's movement clause landing (D-071). Drawn in the boss tone rather
       // than the hero tone a displacement uses: a shove is something the party
       // did to a piece, and this is the piece coming for them.
       case 'traverse_piece': {

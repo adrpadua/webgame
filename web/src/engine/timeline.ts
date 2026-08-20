@@ -1,4 +1,4 @@
-import { emptyHexes, facingToward, firstEmptyHexes, forwardCone, frontArc, isGuardedFront, neighbors, traversalRoute } from './board'
+import { emptyHexes, facingAlong, facingToward, firstEmptyHexes, forwardCone, frontArc, isGuardedFront, neighbors, traversalRoute } from './board'
 import { escalationModifiers } from './escalation'
 import { combatantRef } from './counters'
 import { normalizeFacing } from './facing'
@@ -60,9 +60,8 @@ export function resolveBossBeat(
   track: 'instant' | 'incoming' | '',
 ): EncounterActionInput[] {
   const boss = draft.board.entities[bossId]
-  const bossFacing = boss?.facing ?? 0
   const playerCoords = draft.board.entities[draft.primaryHeroId]?.coords ?? { q: 999, r: 999 }
-  // The movement clause runs before the Beat's own effect (D-068), so "Move 2,
+  // The movement clause runs before the Beat's own effect (D-071), so "Move 2,
   // then Claw" is one Beat and the claw is measured from where the move ended.
   //
   // The route is computed here and the piece is moved by the action below, in
@@ -75,6 +74,11 @@ export function resolveBossBeat(
       ? []
       : traversalRoute(draft.board, bossId, playerCoords, beat.move_tiles, beat.range_tiles, beat.traversal)
   const bossCoords = route.at(-1) ?? boss?.coords ?? { q: 999, r: 999 }
+  // ...and the same for facing, which the move also changes. Reading the live
+  // facing here would have drawn the cone and the Guarded Front from the way
+  // the Beat was looking before it moved — the same staleness `bossCoords`
+  // exists to avoid, one field over.
+  const bossFacing = facingAlong(route, boss?.coords ?? bossCoords, boss?.facing ?? 0)
   let patternHexes: Axial[] = []
   const impactedHexes: Axial[] = []
   let playerDamage = 0
@@ -94,7 +98,7 @@ export function resolveBossBeat(
     // The answer to standing out of reach: distance stops being a decision the
     // Hero makes once and becomes one they have to keep re-making.
     //
-    // Since D-068 this arm is empty, and that is the whole change: every Beat
+    // Since D-071 this arm is empty, and that is the whole change: every Beat
     // carries the movement clause, so this kind is simply the one whose *only*
     // effect is the move. It used to emit a `displace_piece` — `pull`'s
     // geometry pointed at the Boss — which walked a straight line and stopped
@@ -198,9 +202,9 @@ export function resolveBossBeat(
   // marking the Party, which is the direction Counters could not previously
   // run.
   //
-  // Marking the Party is a reach (D-068), measured from where the Beat ends
+  // Marking the Party is a reach (D-071), measured from where the Beat ends
   // after its movement clause. It was the last thing the Boss could do to a
-  // Hero from anywhere on the board — the mirror of the hole D-067 closed on
+  // Hero from anywhere on the board — the mirror of the hole D-070 closed on
   // the card side, and it survived that long because no authored Beat used it.
   // Marking itself measures nothing and is never out of reach.
   if (beat.kind === 'place_counter' && beat.counter !== '') {

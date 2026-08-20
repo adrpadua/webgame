@@ -1,4 +1,4 @@
-import { addEntity, addHazard, advanceBoardRound, damageEntity, facingToward, getHazards, isGuardedFront, isOccupied, isOnBoard, moveEntity } from './board'
+import { addEntity, addHazard, advanceBoardRound, damageEntity, facingAlong, facingToward, getHazards, isGuardedFront, isOccupied, isOnBoard, isTraversable, moveEntity } from './board'
 import { axialAdd, axialSubtract, hexDistance, hexesWithinRadius, type Axial } from './hex'
 import { axialDeltaFor, directionForAxialDelta, FACING_NW } from './facing'
 import type { ContentCatalog } from './content/catalog'
@@ -408,18 +408,6 @@ function resolveOne(
       succeed(fact)
       break
     }
-    case 'move_minion': {
-      const entity = draft.board.entities[action.sourceId]
-      if (!entity) {
-        fail(fact, 'The Minion no longer exists.')
-        break
-      }
-      const fromCoords = entity.coords
-      moveEntity(draft.board, action.sourceId, action.destination)
-      entity.facing = directionForAxialDelta(axialSubtract(action.destination, fromCoords))
-      succeed(fact)
-      break
-    }
     case 'detonate_minion': {
       // The fuse running out (D-063). The blast is derived here rather than
       // carried on the action, so the footprint the fact records is the one
@@ -685,7 +673,7 @@ function resolveDisplacement(
   const from = { ...target.coords }
   const entered: Axial[] = []
   const requestedDistance = Math.max(Math.floor(action.distance), 0)
-  let stopReason: 'complete' | 'edge' | 'occupied' = 'complete'
+  let stopReason: 'complete' | 'edge' | 'occupied' | 'blocked' = 'complete'
   for (let step = 0; step < requestedDistance; step += 1) {
     const direction =
       action.movement === 'push'
@@ -698,6 +686,15 @@ function resolveDisplacement(
     }
     if (isOccupied(draft.board, destination, action.targetId)) {
       stopReason = 'occupied'
+      break
+    }
+    // Ground a walker routes around stops a shove too (D-069). A displacement
+    // is deliberately dumber than a traversal — it re-aims each hex and has no
+    // route to reconsider — but "impassable" cannot mean "impassable unless
+    // pushed", or Drive Back would be the one way onto ground the arena has
+    // taken away.
+    if (!isTraversable(draft.board, action.targetId, destination)) {
+      stopReason = 'blocked'
       break
     }
     moveEntity(draft.board, action.targetId, destination)
@@ -717,7 +714,7 @@ function resolveDisplacement(
   }
 }
 
-// A Beat's movement clause landing (D-068). The route was decided when the Beat
+// A Beat's movement clause landing (D-071). The route was decided when the Beat
 // resolved, so this only has to walk it — but it re-checks each hex rather than
 // trusting the plan, because anything generated between the two could have put
 // a piece in the way.
@@ -746,9 +743,14 @@ function resolveTraversal(
     }
     entered.push({ ...coords })
   }
+  // A piece ends a traversal facing the way it went, the same rule a Hero's
+  // paid step follows. Computed from what it actually entered rather than from
+  // what it planned, so a route cut short faces where it stopped.
+  mover.facing = facingAlong(entered, from, mover.facing)
   fact.resolutionFact = {
     from,
     to: { ...mover.coords },
+    facing: mover.facing,
     traversal: action.traversal,
     requested_distance: action.path.length,
     actual_distance: entered.length,
@@ -765,7 +767,7 @@ function hazardEntryActions(draft: EncounterState, targetId: string, coords: Axi
   return getHazards(draft.board, coords)
     .filter((hazard) => hazard.enterDamage > 0)
     // Immune to your own side's ground (D-042), unless the ground says
-    // otherwise (D-068). The rule is still the default and still the right one
+    // otherwise (D-071). The rule is still the default and still the right one
     // — without it a Boss advancing across its own permanent Ash Trail chips
     // itself, crediting a Hero with Boss damage they never dealt, against a
     // D-016 margin once down to 2 — but it is now the Hazard's decision rather
@@ -988,8 +990,6 @@ function factPresentation(action: EncounterActionInput): { title: string; detail
       return { title: `Hazard at (${action.coords.q}, ${action.coords.r})`, detail }
     case 'spawn_minion':
       return { title: `Spawn ${action.minionId}`, detail }
-    case 'move_minion':
-      return { title: `${action.sourceId} advances to (${action.destination.q}, ${action.destination.r})`, detail }
     case 'detonate_minion':
       return { title: `${action.sourceId} detonates`, detail }
     case 'damage':

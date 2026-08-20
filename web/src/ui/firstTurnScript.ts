@@ -91,7 +91,7 @@ function step(input: StepInput): FirstTurnStep {
 // Hexes that leave the telegraphed pattern the Boss is about to resolve, and
 // keep the Hero's prepared Slots in the fight.
 //
-// The second clause arrived with D-067. Every ability now carries a reach, so
+// The second clause arrived with D-070. Every ability now carries a reach, so
 // three of the cone's exits are no longer equivalent: two keep Embermaw inside
 // Unyielding Step's swing and one does not, and a scripted Round that walked
 // the player onto the third would teach the Slow Window lesson by showing the

@@ -1,6 +1,6 @@
 # Counter-Pressure Against Boss-Range Camping
 
-Status: shipped (D-017, 2026-08-17); premise amended (D-067, 2026-08-19)
+Status: shipped (D-017, 2026-08-17); premise amended (D-070, 2026-08-19)
 
 ## Player Problem
 
@@ -75,7 +75,7 @@ exits red-flag on any found solo victory, and the committed
 
 On Wednesday, August 19, 2026, the user reported the underlying premise as a
 bug rather than a ruling: Steady Strike reads as a melee swing and fired from
-several hexes away in the Workbench. D-067 gives every card a `range_tiles`
+several hexes away in the Workbench. D-070 gives every card a `range_tiles`
 reach — the Boss included — and authors the melee vocabulary at `1`, so
 `boss_damage` is no longer positionless. The counter-pressure this issue
 shipped is not undone by it: the unguarded bonus and the raised solo health

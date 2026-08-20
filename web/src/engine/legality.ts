@@ -107,7 +107,7 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       }
       const hasDisplacement = card.push_tiles > 0 || card.pull_tiles > 0
       let targetVerdict: LegalityVerdict | undefined
-      // The Boss is the one target a card never has to name, and until D-067
+      // The Boss is the one target a card never has to name, and until D-070
       // it was the one target no card had to reach: `boss_damage` resolved
       // from anywhere on the board, so Steady Strike read as a melee swing and
       // played as artillery. It is checked here, ahead of the selected-target
@@ -177,7 +177,7 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
       }
       // A card that places a Counter on a piece, or reads one there, needs an
       // Enemy, and every Enemy answers the same reach (D-034 and D-047 chose
-      // one rule per target kind; D-067 collapsed them to one). The Boss was
+      // one rule per target kind; D-070 collapsed them to one). The Boss was
       // the exception, exempted to stay consistent with positionless
       // `boss_damage` — so the exemption went out with the ruling that
       // justified it, and marking Embermaw now costs the same footwork as
