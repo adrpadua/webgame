@@ -41,7 +41,7 @@ import type { WorkbenchStore } from './workbench'
 
 export const selectState = (store: TimelinePosition): EncounterState => store.entries[store.index].state
 
-// The pilot: the Hero the consoles operate and the gestures act as (D-088,
+// The pilot: the Hero the consoles operate and the gestures act as (D-090,
 // the character-switching pass). The engine's `primaryHeroId` is seat 0 — the
 // replay identity, the solo-Scenario anchor — and never moves; this cursor is
 // UI state that defaults to it and is guarded against naming a Hero the
