@@ -256,6 +256,7 @@ describe('content catalog', () => {
       keywords: [
         { id: 'tank_hit', title: 'Tank Hit', kind: 'damage_type' },
         { id: 'raid_hit', title: 'Raid Hit', kind: 'damage_type' },
+  { id: 'overflow', title: 'Overflow', kind: 'trait' },
         { id: 'tank', title: 'Tank', kind: 'role' },
       ],
       chargeModifiers: [],
@@ -442,8 +443,11 @@ describe('content catalog', () => {
       })
 
       it('rejects a targeted fixed card, and a resource_title on a non-fixed one (D-065)', () => {
+        // `ally` joined `none` as a legal Signature target with Maren's
+        // Underwriting (D-080); hex and piece stay refused until a Hero
+        // needs one.
         expect(() => buildCatalog({ ...empty, cards: [signature({ target_type: 'piece', range_tiles: 1 })] })).toThrow(
-          'the Signature control supports untargeted activations only',
+          'a Signature activates untargeted or at an ally',
         )
         const named = {
           source: 'data/cards/probe_strike.json',
@@ -4105,7 +4109,8 @@ describe('Authored card reach (D-073)', () => {
         authored.push_tiles > 0 ||
         authored.pull_tiles > 0 ||
         authored.target_type === 'hex' ||
-        authored.target_type === 'piece'
+        authored.target_type === 'piece' ||
+        authored.target_type === 'ally'
       expect(authored.range_tiles >= 1, `${authored.id} reaches: ${reaches}, range_tiles: ${authored.range_tiles}`).toBe(reaches)
     }
   })

@@ -248,6 +248,14 @@ def main():
     cols, row_counts = alpha_profile(keyed)
     col_bands = content_bands(cols)
     row_bands = content_bands(row_counts)
+    # Rows can merge the same way columns do — a glow or the label gutter
+    # bridges the gap and two bands read as one. The grid is still regular,
+    # so the same fallback applies: split the merged run where the profile is
+    # thinnest near an even division. Maren's sheet is the first to need it —
+    # her orb's glow reaches the row below on two of six rows.
+    if len(row_bands) != len(rows) and row_bands:
+        merged_span = (row_bands[0][0], row_bands[-1][1])
+        row_bands = column_cuts(row_counts, merged_span[0], merged_span[1], len(rows))
     if len(row_bands) != len(rows):
         sys.exit(f'expected {len(rows)} pose rows, found {len(row_bands)}')
 

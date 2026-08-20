@@ -17,7 +17,7 @@ import {
   GUARDED_FRONT_NEAR_ALPHA,
   GUARDED_FRONT_RADIUS,
 } from './guardedFront'
-import { bossSheetKey, idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
+import { bossSheetKey, heroSheetKey, idleStep, spriteFrame, SHEETS, type SheetSpec } from './sheets'
 
 // The board is three layers: tiles and their tints, then the pieces, then the
 // text that has to be read over both. Phaser falls back to creation order
@@ -1024,12 +1024,19 @@ export class BoardScene extends Phaser.Scene {
   // Which pieces have authored art. Everything else stays a token, which is
   // not a placeholder: a token reads its facing and its state at a glance,
   // and only the pieces with a sheet have earned the right to be a body.
-  private sheetFor(entity: { kind: string }): SheetSpec | null {
-    // Every kind but the Boss maps straight to its sheet. A Boss wears the
-    // form its phase is in, which is read from the snapshot rather than
-    // remembered, so time travel across the Phase Trigger restores the first
-    // form on the way back as well as the second on the way out.
-    const kind = entity.kind === 'boss' ? bossSheetKey(this.snapshot?.state.bossPhase ?? 1) : entity.kind
+  private sheetFor(entity: { id: string; kind: string }): SheetSpec | null {
+    // A Boss wears the form its phase is in, which is read from the snapshot
+    // rather than remembered, so time travel across the Phase Trigger
+    // restores the first form on the way back as well as the second on the
+    // way out. A Hero wears their own body: the kind is shared across the
+    // Party, so the sheet is chosen by id (heroSheetKey), with Elian's as
+    // the shared fallback for a seat without authored art yet.
+    const kind =
+      entity.kind === 'boss'
+        ? bossSheetKey(this.snapshot?.state.bossPhase ?? 1)
+        : entity.kind === 'hero'
+          ? heroSheetKey(entity.id)
+          : entity.kind
     const sheet = SHEETS[kind]
     return sheet && this.textures.exists(sheet.key) ? sheet : null
   }

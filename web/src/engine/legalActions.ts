@@ -6,7 +6,7 @@ import type { EncounterActionInput } from './actions'
 import type { EncounterState } from './types'
 
 export interface FireTargeting {
-  mode: 'none' | 'piece' | 'hex'
+  mode: 'none' | 'piece' | 'hex' | 'ally'
   legalTargetIds: string[]
   legalHexes: Axial[]
   previewHexes: Axial[]
@@ -36,6 +36,15 @@ export function fireTargeting(
       legalHexes,
       previewHexes: hoveredIsLegal ? hexesWithinRadius(state.board.hexes, hoveredHex, card.burst_radius) : [],
     }
+  }
+  // An `ally` card targets a living party member (ADR 0035); the legal set
+  // comes from the same legality predicate every mode asks, so range and the
+  // Downed refusal live in one place.
+  if (card.target_type === 'ally') {
+    const legalTargetIds = Object.keys(state.board.entities)
+      .sort()
+      .filter((targetId) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }).legal)
+    return { mode: 'ally', legalTargetIds, legalHexes: [], previewHexes: [] }
   }
   if (card.damage > 0 || card.push_tiles > 0 || card.pull_tiles > 0 || cardNeedsPieceTarget(card)) {
     const legalTargetIds = Object.keys(state.board.entities)

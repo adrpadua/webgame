@@ -1,0 +1,12 @@
+{
+  "id": "seared",
+  "title": "Seared",
+  "rules_text": "This Hero takes 1 more damage for each Sear it carries. It does not fade on its own.",
+  "keywords": [],
+  "host": "combatant",
+  "max": 2,
+  "duration_rounds": 0,
+  "readers": [
+    { "when": "host_takes_damage", "event_keyword": "", "effect": "target_damage", "per": 1 }
+  ]
+}
