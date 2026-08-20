@@ -40,3 +40,13 @@ had. Facings verified against her face pre-build; mirrors are exact by
 construction. Residual: small glow specks at some cell tops from the
 grid-regular row cuts — invisible at board size, worth a look in the Sprite
 Inspector if her cells are ever re-cut.
+
+## Sizing
+
+`targetHeight` scales the *frame*, and her frame is not mostly body the way
+Elian's is: the staff crown and orb glow stretch her content box, so frame
+parity rendered her body at 59.5px against Elian's 68 — visibly too small on
+the board. Sized instead for **body parity**: head-to-feet in the NE row,
+measured through the densest column so the staff does not count as head.
+`targetHeight: 80` renders her body at ~66px, ~97% of Elian's, which reads as
+an unarmored healer beside an armored tank rather than as a smaller person.

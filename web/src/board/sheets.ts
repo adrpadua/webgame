@@ -46,7 +46,7 @@ export interface SheetSpec {
 // and separate by saturation, per the board direction.
 export const SHEETS: Record<string, SheetSpec> = {
   hero: { key: 'elian-idle', url: heroIdleUrl, frameWidth: 162, frameHeight: 210, targetHeight: 74, footOffset: 12 },
-  heroMaren: { key: 'maren-idle', url: marenIdleUrl, frameWidth: 170, frameHeight: 190, targetHeight: 72, footOffset: 12 },
+  heroMaren: { key: 'maren-idle', url: marenIdleUrl, frameWidth: 170, frameHeight: 190, targetHeight: 80, footOffset: 12 },
   boss: { key: 'embermaw-idle', url: bossIdleUrl, frameWidth: 238, frameHeight: 176, targetHeight: 80, footOffset: 22 },
   // Embermaw with its containment shed, from the Phase Trigger onward. Drawn
   // larger in its own contact sheet but at the same aspect, so the same
