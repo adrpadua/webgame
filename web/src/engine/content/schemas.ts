@@ -325,10 +325,20 @@ export const minionSchema = z.object({
   // D-074. Whether a Whelp bites at 1 or at 2 is exactly the kind of decision
   // ADR 0020 puts in `data/`.
   //
-  // `range_tiles` is both the bite reach and the distance the creep stops at,
-  // because for a Minion they are the same question: it walks until it can
-  // bite, and then it bites.
+  // `range_tiles` is the bite reach and nothing else since D-079. It used to be
+  // the creep's stopping distance too, on the reasoning that for a Minion they
+  // are the same question — it walks until it can bite, and then it bites. They
+  // are not: with spare allowance, where it *stops* decides how deep into the
+  // party's threat range it puts itself, and a Whelp that bites at 1 from two
+  // hexes out is a different piece from one that closes the last hex anyway.
   range_tiles: z.number().int().min(0).default(0),
+  // How close this Minion's creep is trying to stand (D-079) — the Standoff
+  // half of what `range_tiles` used to answer alone. Authored whenever there is
+  // an allowance to spend and refused when there is not, and it may not exceed
+  // the bite reach: a Minion that stops further out than it can bite is one the
+  // creep proves will never bite, which is an authoring error rather than a
+  // design.
+  standoff_tiles: z.number().int().min(0).default(0),
   move_tiles: z.number().int().min(0).default(0),
   traversal: z.enum(['walk', 'jump', 'teleport']).default('walk'),
   // A Minion's fuse (D-063). A Minion authoring a blast detonates on the
@@ -413,10 +423,27 @@ export const bossBeatSchema = z.object({
   // the far corner was the one reach nothing measured. Aimed at itself it
   // measures nothing, and must not author one.
   //
-  // On a Beat carrying a movement clause this is also the distance the movement
-  // is *trying to achieve* — the mover stops as soon as its target is this
-  // close, rather than always spending its whole allowance.
+  // This is Reach and only Reach since D-079. A movement clause used to read it
+  // as its stopping distance as well, which made `advance_toward_player` — the
+  // Beat whose only effect *is* the move — author a reach it never reached with,
+  // and left the far more interesting Beats unauthorable in both directions: one
+  // that closes to 1 and claws at 2, and one that stops at 3 and breathes at 2.
   range_tiles: z.number().int().min(0).default(0),
+  // How close the movement clause is trying to stand: the Standoff (D-079). The
+  // mover goes no further than it has to, so it stops the moment its target is
+  // this close and does not move at all when the target already is.
+  //
+  // Authored whenever the Beat carries a movement clause and refused when it
+  // does not, and never below `1`, because a mover cannot stand on top of what
+  // it is closing on — "spend the whole allowance" is a standoff of `1` the
+  // route cannot reach, not a standoff of `0`.
+  //
+  // It is deliberately unconstrained against `range_tiles`. The two numbers
+  // answer different questions and every ordering between them is a Boss
+  // somebody might build: closing inside your own reach is a brawler, stopping
+  // outside it is a Boss that keeps its distance, and a Beat that reaches
+  // nothing at all still has somewhere it wants to stand.
+  standoff_tiles: z.number().int().min(0).default(0),
   // The movement clause: how far this Beat travels before its own effect
   // resolves (D-074). Any Beat kind may carry it, so "Move 2, then Claw" is one
   // Beat with one telegraph rather than two Beats a Program has to keep in
@@ -426,7 +453,8 @@ export const bossBeatSchema = z.object({
   //
   // Distance is authored because it is the Boss's counter-pressure against
   // standing out of reach, and how hard that pressure bites is a per-Boss
-  // identity question (D-041).
+  // identity question (D-041). This is the *allowance* — how far it may go —
+  // where `standoff_tiles` is the destination it is going for.
   move_tiles: z.number().int().min(0).default(0),
   // How the movement clause crosses the board (D-074). Three kinds, and the
   // difference between them is entirely what the ground can do about it:
@@ -439,7 +467,7 @@ export const bossBeatSchema = z.object({
   //              could stand. Obstacles stop shaping the route and only shape
   //              where it ends.
   // `teleport` — no route at all: it appears on the hex that best answers its
-  //              `range_tiles`, anywhere on the board. `move_tiles` is not a
+  //              `standoff_tiles`, anywhere on the board. `move_tiles` is not a
   //              budget it spends, so a teleporting Beat must not author one.
   //
   // A Boss that walks can be kited into a corner and a Boss that teleports

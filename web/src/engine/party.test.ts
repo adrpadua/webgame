@@ -131,6 +131,7 @@ const beat = (patch: Record<string, unknown> = {}) => ({
   unguarded_bonus: 0,
   escalation_if_unanswered: 0,
   move_tiles: 0,
+  standoff_tiles: 0,
   traversal: 'walk' as const,
   duration_rounds: 1,
   permanent: false,

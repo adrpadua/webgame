@@ -16,11 +16,11 @@
     {
       "id": "close_the_gap",
       "title": "Close the Gap",
-      "rules_text": "Embermaw walks one hex toward the guardian, stopping once it is within reach. Distance is not an answer for long.",
+      "rules_text": "Embermaw walks one hex toward the guardian, stopping once it is adjacent. Distance is not an answer for long.",
       "kind": "advance_toward_player",
       "consequence_tier": "chip",
       "move_tiles": 1,
-      "range_tiles": 1,
+      "standoff_tiles": 1,
       "traversal": "walk",
       "answer_tags": [
         "position"

@@ -125,11 +125,11 @@ A board effect attached to one or more hexes. A Hazard may constrain voluntary m
 _Avoid_: Surprise damage, ambient effect
 
 **Reach**:
-The greatest hex distance from a source to what its effect touches, measured at the moment the effect resolves. Every ability has one — a Card, a Boss Beat, a Minion's bite — and an effect never lands past it. A Card's `boss_damage` was the exception until D-073: it resolved from anywhere, which let a melee swing read as artillery.
+The greatest hex distance from a source to what its effect touches, measured at the moment the effect resolves. Every ability has one — a Card, a Boss Beat, a Minion's bite — and an effect never lands past it. A Card's `boss_damage` was the exception until D-073: it resolved from anywhere, which let a melee swing read as artillery. It is authored as `range_tiles`, and since D-079 that field means Reach and nothing else: how far a piece *moves* is a `Standoff`, which is a different question and has its own field.
 _Avoid_: Range, radius, distance
 
 **Standoff**:
-The distance a `Movement Clause` is trying to achieve: how close the mover wants to stand before it acts. A mover goes no further than it has to, so it stops the moment its target is this close and does not move at all when the target already is. It is what makes an advance readable rather than arbitrary — the piece comes exactly close enough to do the thing it is about to do.
+The distance a `Movement Clause` is trying to achieve: how close the mover wants to stand before it acts. A mover goes no further than it has to, so it stops the moment its target is this close and does not move at all when the target already is. It is what makes an advance readable rather than arbitrary — the piece comes exactly close enough to do the thing it is about to do. Authored as `standoff_tiles`, and separate from `Reach` since D-079: a Beat may close inside the distance it strikes from or stop outside it, and the Beat whose only effect is the move has a Standoff and no Reach at all. The one place the two are constrained against each other is a Minion, whose single behaviour — creep until you can bite — makes a Standoff outside the bite a piece that provably never attacks.
 _Avoid_: Approach, closing distance, engagement range
 
 **Traversal**:
