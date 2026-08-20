@@ -70,11 +70,22 @@ PLATE_CSS = """
 /* Content held to the plate's vertical middle meets each cut at half depth. */
 .p-centered{--inset:calc(var(--off) / 2)}
 /* A plate carrying a text column measures each side at the corner that side
-   is worst at, and adds the notch back on top. */
+   is worst at, and adds the notch back on top.
+
+   The three gutters are variables, not constants, for the reason `--wb-gutter`
+   is one on the base rule: the *measurement* generalises to any raked column,
+   but the numbers were tuned on a ~374pt dock card. A 138pt party frame taking
+   them unchanged spends 33px — a quarter of its width — on padding, which is
+   what truncates an ally's name at six characters. The principle applies; the
+   constants do not. A narrow plate lowers them rather than abandoning the rule
+   or ducking under its own cut. */
 .p-raked{
-  padding-inline:calc(var(--off) + 13px) calc(var(--off) + 10px);
+  padding-inline:calc(var(--off) + var(--gutter-lead,13px)) calc(var(--off) + var(--gutter-trail,10px));
   padding-block:calc(var(--notch) + var(--gutter-block,8px)) var(--gutter-block,8px);
 }
+/* The narrow column: a plate under ~200px whose content is still a column.
+   Same measurement, gutters cut to what the width can afford. */
+.p-raked-narrow{--gutter-lead:5px;--gutter-trail:4px;--gutter-block:3px}
 /* Faces and accents. The accent is the status channel: gold on the live
    thing, ember on the irreversible one, glass on a player affordance. */
 .f-steel{--face:var(--steel-900);--edge:var(--steel-700)}
