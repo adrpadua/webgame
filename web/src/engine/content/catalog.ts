@@ -41,7 +41,7 @@ const RANGED_BEAT_KINDS = new Set<BossBeat['kind']>(['forward_cone', 'demand_pro
 
 // Why *this* Beat needs a reach, named rather than counted so the authoring
 // error can say which clause asked for one — the same shape `cardReachingEffects`
-// takes on the card side (D-070).
+// takes on the card side (D-073).
 //
 // The list is longer than `RANGED_BEAT_KINDS` because two of the three reasons
 // are fields rather than kinds. A `place_counter` reaches only when it is aimed
@@ -284,7 +284,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       throw new Error(`${cardAt(card.id)} declares ${displacementField} but does not target a piece`)
     }
     // Both halves of the reach rule, the same pair the ranged Beat kinds
-    // answer below (D-043, extended to cards by D-070): a card that touches
+    // answer below (D-043, extended to cards by D-073): a card that touches
     // anything past its own Hero authors how far it touches, and a card that
     // touches nobody must not author a reach nothing reads.
     //
@@ -488,7 +488,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       throw new Error(`Minion ${minion.id} declares explode_radius ${minion.explode_radius} but no explode_damage`)
     }
     // A Minion states its reach for the same reason a Card and a Beat do
-    // (D-070, D-071, extended here by D-069): a bite whose distance lives in
+    // (D-073, D-074, extended here by D-072): a bite whose distance lives in
     // engine code is a bite an author cannot tune. Both halves again — a
     // Minion that bites says how far, and one that never bites must not carry
     // a number nothing reads.
@@ -518,6 +518,25 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     }
   }
   for (const program of Object.values(catalog.programs)) {
+    // A Movement Clause belongs to the Instant Row alone (D-NEW). The Incoming
+    // Row is telegraphed a phase before it resolves, and where a moving Beat
+    // ends up is not knowable then — the Hero moves in between — so the painted
+    // cone becomes a promise the player breaks by playing correctly. ADR 0031
+    // removed the Forecast Row over exactly that: disclosure nobody can rely on
+    // teaches nothing. The Instant Row resolves immediately and promises
+    // nothing, which is why movement lives there.
+    //
+    // The honest form of a moving telegraphed Beat is to move the piece at
+    // *telegraph* time, so the cone is drawn from where the Boss will actually
+    // stand. That is a real design and it should arrive with the Boss that
+    // needs it, rather than being left available and quietly wrong.
+    for (const beat of program.incoming_beats) {
+      if (beatMoves(beat)) {
+        throw new Error(
+          `Boss Beat ${beat.id} carries a movement clause on the Incoming Row of ${program.id}; the telegraph is painted before it resolves, so where it ends up cannot be shown — author it on the Instant Row, or move the piece at telegraph time`,
+        )
+      }
+    }
     for (const beat of [...program.instant_beats, ...program.incoming_beats]) {
       if (beat.hazard && !catalog.hazards[beat.hazard]) {
         throw new Error(`Boss Beat ${beat.id} references unknown hazard ${beat.hazard}`)
@@ -571,7 +590,7 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       // A movement kind with nothing to spend goes nowhere, and an allowance on
       // a teleport is a number it never consults — a teleport has no route to
       // spend it on, which is the whole difference between it and a jump
-      // (D-071).
+      // (D-074).
       if (beat.kind === 'advance_toward_player' && beat.traversal !== 'teleport' && beat.move_tiles < 1) {
         throw new Error(`Boss Beat ${beat.id} is an advance_toward_player but authors no move_tiles`)
       }

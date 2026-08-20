@@ -5,6 +5,6 @@
   "duration_rounds": 1,
   "enter_damage": 1,
   "blocks_voluntary_movement": false,
-  "blocks_traversal": false,
+  "impassable": false,
   "damages_source_team": false
 }

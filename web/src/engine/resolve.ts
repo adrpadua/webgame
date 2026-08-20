@@ -358,7 +358,7 @@ function resolveOne(
             remainingRounds: definition.duration_rounds,
             enterDamage: definition.enter_damage,
             blocksVoluntaryMovement: definition.blocks_voluntary_movement,
-            blocksTraversal: definition.blocks_traversal,
+            impassable: definition.impassable,
             damagesSourceTeam: definition.damages_source_team,
           }
         : {
@@ -367,7 +367,7 @@ function resolveOne(
             remainingRounds: Math.max(action.fallbackDurationRounds, 1),
             enterDamage: 1,
             blocksVoluntaryMovement: true,
-            blocksTraversal: false,
+            impassable: false,
             damagesSourceTeam: false,
           }
       if (action.permanent === true) {
@@ -688,7 +688,7 @@ function resolveDisplacement(
       stopReason = 'occupied'
       break
     }
-    // Ground a walker routes around stops a shove too (D-069). A displacement
+    // Ground a walker routes around stops a shove too (D-072). A displacement
     // is deliberately dumber than a traversal — it re-aims each hex and has no
     // route to reconsider — but "impassable" cannot mean "impassable unless
     // pushed", or Drive Back would be the one way onto ground the arena has
@@ -714,7 +714,7 @@ function resolveDisplacement(
   }
 }
 
-// A Beat's movement clause landing (D-071). The route was decided when the Beat
+// A Beat's movement clause landing (D-074). The route was decided when the Beat
 // resolved, so this only has to walk it — but it re-checks each hex rather than
 // trusting the plan, because anything generated between the two could have put
 // a piece in the way.
@@ -767,7 +767,7 @@ function hazardEntryActions(draft: EncounterState, targetId: string, coords: Axi
   return getHazards(draft.board, coords)
     .filter((hazard) => hazard.enterDamage > 0)
     // Immune to your own side's ground (D-042), unless the ground says
-    // otherwise (D-071). The rule is still the default and still the right one
+    // otherwise (D-074). The rule is still the default and still the right one
     // — without it a Boss advancing across its own permanent Ash Trail chips
     // itself, crediting a Hero with Boss damage they never dealt, against a
     // D-016 margin once down to 2 — but it is now the Hazard's decision rather

@@ -160,7 +160,7 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
             },
           })
         } else if (intent.route.length > 0) {
-          // The same action the Boss's movement clause emits (D-069). A Minion
+          // The same action the Boss's movement clause emits (D-072). A Minion
           // crossing the board is the same event as a Boss crossing it, and the
           // separate `move_minion` action retired because it quietly differed:
           // it applied no Hazard entry at all, so a Whelp crossing ground the

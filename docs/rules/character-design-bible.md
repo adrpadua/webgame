@@ -171,7 +171,7 @@ Two authoring consequences. A Commitment may only bind to a Beat whose parameter
 
 A card may apply a Status Effect by naming one from the status catalog (D-033). Where it lands comes from the card's `target_type`: `none` applies it to the firing Hero, `piece` to a selected Enemy, `board_slot` to an ally's Top Card. An Enemy-facing status carries `damageTakenBonus` or `damageDealtPenalty`; a Hero-facing one carries the Armor and Boss-damage fields already in use.
 
-Two authoring rules. Reuse the target kind's existing rule rather than inventing one — every Enemy, the Boss included, must be within `range_tiles` (D-070), and an ally's card needs no adjacency. And check the catalog before writing a new status: if a status with the meaning you want exists, apply that one, because a second Sundered with different text is how a vocabulary stops being shared.
+Two authoring rules. Reuse the target kind's existing rule rather than inventing one — every Enemy, the Boss included, must be within `range_tiles` (D-073), and an ally's card needs no adjacency. And check the catalog before writing a new status: if a status with the meaning you want exists, apply that one, because a second Sundered with different text is how a vocabulary stops being shared.
 
 ## Card Family Guidance
 

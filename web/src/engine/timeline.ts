@@ -61,7 +61,7 @@ export function resolveBossBeat(
 ): EncounterActionInput[] {
   const boss = draft.board.entities[bossId]
   const playerCoords = draft.board.entities[draft.primaryHeroId]?.coords ?? { q: 999, r: 999 }
-  // The movement clause runs before the Beat's own effect (D-071), so "Move 2,
+  // The movement clause runs before the Beat's own effect (D-074), so "Move 2,
   // then Claw" is one Beat and the claw is measured from where the move ended.
   //
   // The route is computed here and the piece is moved by the action below, in
@@ -98,7 +98,7 @@ export function resolveBossBeat(
     // The answer to standing out of reach: distance stops being a decision the
     // Hero makes once and becomes one they have to keep re-making.
     //
-    // Since D-071 this arm is empty, and that is the whole change: every Beat
+    // Since D-074 this arm is empty, and that is the whole change: every Beat
     // carries the movement clause, so this kind is simply the one whose *only*
     // effect is the move. It used to emit a `displace_piece` — `pull`'s
     // geometry pointed at the Boss — which walked a straight line and stopped
@@ -202,9 +202,9 @@ export function resolveBossBeat(
   // marking the Party, which is the direction Counters could not previously
   // run.
   //
-  // Marking the Party is a reach (D-071), measured from where the Beat ends
+  // Marking the Party is a reach (D-074), measured from where the Beat ends
   // after its movement clause. It was the last thing the Boss could do to a
-  // Hero from anywhere on the board — the mirror of the hole D-070 closed on
+  // Hero from anywhere on the board — the mirror of the hole D-073 closed on
   // the card side, and it survived that long because no authored Beat used it.
   // Marking itself measures nothing and is never out of reach.
   if (beat.kind === 'place_counter' && beat.counter !== '') {
@@ -295,17 +295,15 @@ export function refreshTelegraphs(catalog: ContentCatalog, draft: EncounterState
         }
         break
       case 'spawn_minions': {
-        // The telegraph must not lie: it previews the escalated count.
+        // The telegraph must not lie: it previews the escalated count, and it
+        // picks hexes through the same helper the resolution does. It used to
+        // hand-roll its own occupancy test, which is two copies of one rule —
+        // and when the rule grew a clause (D-NEW: nothing arrives on impassable
+        // ground) only one copy would have grown with it.
         const count = beat.count + escalationModifiers(draft).extraSpawnCount
-        for (const coords of draft.spawnCandidates) {
-          if (draft.telegraphedSpawnHexes.length >= count) {
-            break
-          }
-          const key = hexKey(coords)
-          if (draft.board.hexes[key] && !Object.values(draft.board.entities).some((entity) => hexKey(entity.coords) === key)) {
-            draft.telegraphedSpawnHexes.push(coords)
-            draft.telegraphs[key] = 'spawn'
-          }
+        for (const coords of firstEmptyHexes(draft.spawnCandidates, emptyHexes(draft.board), count)) {
+          draft.telegraphedSpawnHexes.push(coords)
+          draft.telegraphs[hexKey(coords)] = 'spawn'
         }
         break
       }

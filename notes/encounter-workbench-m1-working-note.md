@@ -120,7 +120,7 @@ counter-pressure against distant play is authored encounter content, not a
 card range rule. The counter-pressure work is filed as product-backlog
 proposal 15 (`.scratch/product-backlog/issues/15-*.md`, `needs-triage`).
 
-**Withdrawn (2026-08-19, D-070)**: the finding above was right and the ruling
+**Withdrawn (2026-08-19, D-073)**: the finding above was right and the ruling
 was wrong. Reach is now a property of every card — `range_tiles` measured from
 the firing Hero to whatever the card lands on, the Boss included — and the
 melee vocabulary is authored at `1`. The counter-pressure D-017 shipped under

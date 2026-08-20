@@ -74,15 +74,15 @@ export interface HazardInstance {
   // not burn in its master's fire. Recorded per Hazard rather than assumed of
   // Enemies in general, because a Hero-placed damage zone has to keep working.
   //
-  // Since D-071 that immunity is a default an authored Hazard can decline:
+  // Since D-074 that immunity is a default an authored Hazard can decline:
   // `damagesSourceTeam` is what turns it off, and `sourceTeam` is who it is
   // turned off for.
   sourceTeam?: Team
   // Ground a pathing Enemy has to route around, rather than ground a Hero may
-  // choose not to walk into (D-071). Held apart from `blocksVoluntaryMovement`
+  // choose not to walk into (D-074). Held apart from `blocksVoluntaryMovement`
   // because they answer different questions about the same hex.
-  blocksTraversal?: boolean
-  // Whether this ground burns the side that laid it (D-071). Absent or false
+  impassable?: boolean
+  // Whether this ground burns the side that laid it (D-074). Absent or false
   // keeps D-042's rule; true is a Boss that can be lured onto its own fire.
   damagesSourceTeam?: boolean
 }

@@ -17,7 +17,7 @@ export type EncounterActionInput =
   | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string; targetHex?: Axial; targetSlotIndex?: number }
   | { kind: 'move_hero'; sourceId: string; destination: Axial; cardInstanceId: string }
   | { kind: 'displace_piece'; sourceId: string; targetId: string; distance: number; movement: 'push' | 'pull'; reasonText: string }
-  // A piece crossing the board under its own power (D-071): a Beat's movement
+  // A piece crossing the board under its own power (D-074): a Beat's movement
   // clause, carried as the hexes entered in order rather than as a distance and
   // a direction.
   //

@@ -75,11 +75,19 @@ export function damageEntity(board: BoardState, entityId: string, amount: number
   return dealt
 }
 
+// Ground a piece could arrive on: on the board, nobody standing there, and
+// nothing authored impassable (D-NEW).
+//
+// The last clause is what stops a Minion spawning onto ground the arena has
+// burned away. It used to filter on occupancy alone, and Embermaw authored two
+// of its five spawn candidates on hexes its own Escalation Thresholds scorch —
+// so past Ashen Verge, Whelps arrived on ground the rules say nothing can
+// stand on. Arriving is not moving, which is why the movement rules did not
+// catch it; a piece still cannot be somewhere a piece cannot be.
 export function emptyHexes(board: BoardState): Record<HexKey, true> {
   const result: Record<HexKey, true> = {}
-  const occupied = new Set(Object.values(board.entities).map((entity) => hexKey(entity.coords)))
   for (const key of Object.keys(board.hexes)) {
-    if (!occupied.has(key)) {
+    if (isTraversable(board, '', parseKey(key))) {
       result[key] = true
     }
   }
@@ -225,6 +233,15 @@ export function isLegalMove(board: BoardState, entityId: string, destination: Ax
   if (hexDistance(entity.coords, destination) > maximumDistance) {
     return false
   }
+  // Physics first, and it does not care whose move this is (D-NEW). Ground
+  // authored impassable stops a paid step exactly as it stops a traversal or a
+  // Push; a wall the Whelps have to walk around is not one the Tank strolls
+  // through.
+  if (!isTraversable(board, entityId, destination)) {
+    return false
+  }
+  // Then choice, which only a voluntary move has to answer: this is fire a
+  // Hero would not elect to step into, not a wall.
   if (voluntary) {
     for (const hazard of getHazards(board, destination)) {
       if (hazard.blocksVoluntaryMovement) {
@@ -235,10 +252,10 @@ export function isLegalMove(board: BoardState, entityId: string, destination: Ax
   return true
 }
 
-// --- Traversal (D-071) ---
+// --- Traversal (D-074) ---
 
 // Ground a piece moving under its own power can stand on: on the board, nobody
-// already there, and no Hazard authoring `blocks_traversal`.
+// already there, and no Hazard authoring `impassable`.
 //
 // Deliberately not `isLegalMove` with a flag. That predicate answers a Hero's
 // question — may I choose to step here — and its Hazard rule is
@@ -249,7 +266,7 @@ export function isTraversable(board: BoardState, moverId: string, coords: Axial)
   if (!isOnBoard(board, coords) || isOccupied(board, coords, moverId)) {
     return false
   }
-  return !getHazards(board, coords).some((hazard) => hazard.blocksTraversal === true)
+  return !getHazards(board, coords).some((hazard) => hazard.impassable === true)
 }
 
 export type Traversal = 'walk' | 'jump' | 'teleport'

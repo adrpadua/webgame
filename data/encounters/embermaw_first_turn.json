@@ -1,7 +1,7 @@
 {
   "id": "embermaw_first_turn",
   "title": "Embermaw: First Turn",
-  "rules_text": "The Ashen Trial as a new player meets it. The opening Hand holds five cards \u2014 enough to prepare both Slots, charge each one, and still pay a card to step out of the breath cone \u2014 so the scripted first turn can teach load, charge, fire Quick, fire Slow, and move in a single Round.",
+  "rules_text": "The Ashen Trial as a new player meets it. The opening Hand holds five cards — enough to prepare both Slots, charge each one, and still pay a card to step out of the breath cone — so the scripted first turn can teach load, charge, fire Quick, fire Slow, and move in a single Round.",
   "hero": "guardian",
   "fields_signature": false,
   "boss_id": "embermaw",
@@ -55,20 +55,20 @@
   "random_seed": 24,
   "minion_spawn_candidates": [
     {
-      "q": -2,
-      "r": 1
-    },
-    {
-      "q": -1,
-      "r": 2
-    },
-    {
       "q": 0,
       "r": 2
     },
     {
-      "q": 2,
+      "q": 0,
       "r": -2
+    },
+    {
+      "q": 1,
+      "r": 1
+    },
+    {
+      "q": 2,
+      "r": 0
     },
     {
       "q": 2,

@@ -8,7 +8,7 @@ export interface MinionIntent {
   targetHeroId: string
   damage: number
   // The hexes the creep enters, in order — empty when it bites instead, or
-  // when it has nowhere to go. A route rather than a destination since D-069,
+  // when it has nowhere to go. A route rather than a destination since D-072,
   // because a Minion authoring more than one `move_tiles` crosses ground on the
   // way and has to pay for it.
   route: Axial[]
@@ -33,10 +33,10 @@ export interface MinionDetonation {
 // - nearest Hero by hex distance, stable id tie-break;
 // - in reach, it bites; out of reach, it travels its authored `move_tiles`.
 //
-// Both halves are content since D-069, and neither used to be. The reach was a
+// Both halves are content since D-072, and neither used to be. The reach was a
 // literal `1` here, and the creep was this module's own movement rule — the
 // first neighbour in board order that shortened the distance, stopping dead
-// against anything in the way — which is the rule D-071 had just replaced for
+// against anything in the way — which is the rule D-074 had just replaced for
 // the Boss. A Whelp now walks the same way Embermaw does, so ground that funnels
 // one funnels the other, and the note that used to sit here ("Minions ignore
 // Hazard movement blocking, Scorched is Embermaw's element") is now a field on

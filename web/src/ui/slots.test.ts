@@ -112,7 +112,7 @@ describe('slot can fire', () => {
     expect(slotCanFire(catalog, armed('steady_strike'), 0)).toBe(true)
   })
 
-  it('leaves it dark from outside the Top Card\'s reach (D-070)', () => {
+  it('leaves it dark from outside the Top Card\'s reach (D-073)', () => {
     // Reach is a rule about where the Hero stands, so the same charged Slot
     // answers differently from two hexes. The plate has to follow it, or it
     // asserts a shot the resolver refuses.

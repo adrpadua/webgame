@@ -181,7 +181,7 @@ export const cardSchema = z.object({
   boss_damage: z.number().int().default(0),
   // How far this card reaches, in hexes, measured from the firing Hero to
   // whatever it lands on — a selected piece, a selected hex, or the Boss a
-  // `boss_damage` card never has to name (D-070). `0` is a card that reaches
+  // `boss_damage` card never has to name (D-073). `0` is a card that reaches
   // nothing but its own Hero, and the catalog refuses both halves of the
   // mismatch: a card that reaches without a reach, and a reach on a card that
   // touches nobody.
@@ -247,20 +247,28 @@ export const hazardSchema = z.object({
   rules_text: z.string().default(''),
   duration_rounds: z.number().int().min(1).default(1),
   enter_damage: z.number().int().min(0).default(0),
-  blocks_voluntary_movement: z.boolean().default(false),
-  // What this ground does to something crossing it under its own power
-  // (D-071). Both fields are authored per Hazard rather than decided by the
-  // engine, because which terrain stops a Boss and which terrain burns it is
-  // a per-encounter design decision — the kind a fight can be built around.
+  // The two questions ground answers about being entered, and the axis between
+  // them is **physics versus choice** (D-NEW).
   //
-  // `blocks_traversal` is the obstacle question, and it is separate from
-  // `blocks_voluntary_movement` on purpose: one is what a Hero may choose to
-  // walk into, the other is what a pathing Enemy has to route around. Ground
-  // can be both, either, or neither.
-  blocks_traversal: z.boolean().default(false),
-  // Whether this ground burns the side that laid it. D-042 made that an
-  // engine rule — an Enemy was immune to its own side's Hazards, full stop —
-  // which is the right default and the wrong place for it: Embermaw walking
+  // `blocks_voluntary_movement` is choice: a Hero may not *elect* to walk here.
+  // It is fire you would not step into, so a shove can still put you on it.
+  // `impassable` is physics: nothing enters, by any means — a paid step, a
+  // traversal, or a Push. Ground can be both, either, or neither.
+  //
+  // The axis started out as Hero-versus-Enemy (D-074), which produced a rule
+  // that read as a bug the first time anyone authored a wall: ground marked
+  // impassable stopped a Whelp and Embermaw and let the Tank stroll through it.
+  // Who is moving was never the question.
+  blocks_voluntary_movement: z.boolean().default(false),
+  impassable: z.boolean().default(false),
+  // Whether this ground burns the side that laid it — authored per Hazard
+  // rather than decided by the engine (D-074), because which terrain stops a
+  // Boss and which terrain burns it is a per-encounter design decision, the
+  // kind a fight can be built around.
+  //
+  // D-042 made this an engine rule — an Enemy was immune to its own side's
+  // Hazards, full stop — which is the right default and the wrong place for
+  // it: Embermaw walking
   // through its own fire is an arbitrary decision about Embermaw, not a fact
   // about fire. Authored, a later Boss can be built to be lured onto its own
   // ground, which is a fight the engine rule made unauthorable.
@@ -273,15 +281,15 @@ export const minionSchema = z.object({
   rules_text: z.string().default(''),
   max_health: z.number().int().min(1),
   attack_damage: z.number().int().min(0).default(0),
-  // How far a Minion bites, and how it gets there (D-069) — the same three
+  // How far a Minion bites, and how it gets there (D-072) — the same three
   // fields a Beat's movement clause carries, for the same reason.
   //
   // A Minion's reach was a literal `1` in the creep, and its route was its own
   // rule: the first neighbour in board order that shortened the distance,
   // stopping dead against anything in the way. That made it the last piece on
   // the board whose reach and movement were engine constants rather than
-  // content, after cards answered the question in D-070 and Boss Beats in
-  // D-071. Whether a Whelp bites at 1 or at 2 is exactly the kind of decision
+  // content, after cards answered the question in D-073 and Boss Beats in
+  // D-074. Whether a Whelp bites at 1 or at 2 is exactly the kind of decision
   // ADR 0020 puts in `data/`.
   //
   // `range_tiles` is both the bite reach and the distance the creep stops at,
@@ -367,8 +375,8 @@ export const bossBeatSchema = z.object({
   // instead — so the claw was left as the one Beat whose reach was infinite for
   // a reason that had moved somewhere better.
   //
-  // A `place_counter` Beat aimed at a Hero reads it since D-071, which is the
-  // Boss side of the same rule cards answered in D-070: marking the Party from
+  // A `place_counter` Beat aimed at a Hero reads it since D-074, which is the
+  // Boss side of the same rule cards answered in D-073: marking the Party from
   // the far corner was the one reach nothing measured. Aimed at itself it
   // measures nothing, and must not author one.
   //
@@ -377,7 +385,7 @@ export const bossBeatSchema = z.object({
   // close, rather than always spending its whole allowance.
   range_tiles: z.number().int().min(0).default(0),
   // The movement clause: how far this Beat travels before its own effect
-  // resolves (D-071). Any Beat kind may carry it, so "Move 2, then Claw" is one
+  // resolves (D-074). Any Beat kind may carry it, so "Move 2, then Claw" is one
   // Beat with one telegraph rather than two Beats a Program has to keep in
   // order — the shape a Gloomhaven monster card has, and the reason the field
   // moved off `advance_toward_player`, which is now simply the Beat kind whose
@@ -387,11 +395,11 @@ export const bossBeatSchema = z.object({
   // standing out of reach, and how hard that pressure bites is a per-Boss
   // identity question (D-041).
   move_tiles: z.number().int().min(0).default(0),
-  // How the movement clause crosses the board (D-071). Three kinds, and the
+  // How the movement clause crosses the board (D-074). Three kinds, and the
   // difference between them is entirely what the ground can do about it:
   //
   // `walk`     — steps hex to hex through ground it can stand on. Pieces and
-  //              Hazards authoring `blocks_traversal` lengthen the route or
+  //              Hazards authoring `impassable` lengthen the route or
   //              close it off, so a walker can be blocked, funnelled, or
   //              stranded.
   // `jump`     — crosses whatever is in between, but has to land somewhere it

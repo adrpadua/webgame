@@ -111,7 +111,7 @@ describe('scripted first turn', () => {
     expect(blocksTarget(null, 'next')).toBe(false)
   })
 
-  it('offers only dodges that keep the prepared Slots in reach (D-070)', () => {
+  it('offers only dodges that keep the prepared Slots in reach (D-073)', () => {
     // Every ability carries a reach now, so the cone's exits are no longer
     // interchangeable: one of them leaves Unyielding Step unable to land and
     // would teach the Slow Window lesson by showing the Slot go dark. The

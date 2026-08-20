@@ -38,6 +38,21 @@ export function findLiveBeat(
 // resolution consults something not printed here cannot be put on a card, so a
 // new field that changes an outcome and never appears in this function is a
 // defect in the port even while the digital game plays correctly.
+// How a Beat's Movement Clause reads on the card: what it does, how far it may
+// go, and how close it is trying to get. A teleport has no allowance to name,
+// so it prints where it is going instead of how far.
+function movementClauseLine(beat: BossBeat): string {
+  const closing = beat.range_tiles > 0 ? `, closing to ${beat.range_tiles}` : ''
+  if (beat.traversal === 'teleport') {
+    return `Appears within ${beat.range_tiles}`
+  }
+  if (beat.move_tiles < 1) {
+    return ''
+  }
+  const verb = beat.traversal === 'jump' ? 'Leaps' : 'Walks'
+  return `${verb} up to ${beat.move_tiles}${closing}`
+}
+
 export function beatCardStats(beat: BossBeat): BeatCardStat[] {
   const stats: BeatCardStat[] = []
   if (beat.damage > 0) {
@@ -52,8 +67,19 @@ export function beatCardStats(beat: BossBeat): BeatCardStat[] {
   if (beat.range_tiles > 0) {
     stats.push({ label: 'Reach', value: `${beat.range_tiles} hex${beat.range_tiles === 1 ? '' : 'es'}` })
   }
-  if (beat.move_tiles > 0) {
-    stats.push({ label: 'Advances', value: `${beat.move_tiles} hex${beat.move_tiles === 1 ? '' : 'es'}` })
+  // The Movement Clause, as one line (D-NEW). It has to print at all, and it
+  // has to print every field the resolution reads, because D-055's gate is
+  // exactly that: a field that changes an outcome and never appears here is a
+  // port defect. `traversal` changes both the destination and the Hazard bill
+  // and printed nowhere; a teleport spends no allowance, so `move_tiles > 0`
+  // did not even notice it was moving.
+  //
+  // This is also the first surface where Reach and Standoff are two different
+  // numbers, which is the cheap test of whether one field can keep serving
+  // both.
+  const clause = movementClauseLine(beat)
+  if (clause !== '') {
+    stats.push({ label: 'Moves', value: clause })
   }
   if (beat.minion !== undefined) {
     stats.push({ label: 'Spawns', value: `${beat.count} ${beat.minion}` })
