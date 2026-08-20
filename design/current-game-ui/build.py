@@ -303,7 +303,9 @@ BAR_CSS = """
 .dot{margin-left:auto;height:8px;width:8px;flex-shrink:0;border-radius:9999px}
 .want{display:flex;flex-shrink:0;align-items:center;gap:4px}
 .i16{height:16px;width:16px}
-.slot-sub{margin-top:4px;font-size:10px;font-weight:600;letter-spacing:.025em;text-transform:uppercase}
+.slot-sub{margin-top:4px;display:flex;align-items:center;gap:6px}
+.slot-word{font-size:10px;font-weight:600;letter-spacing:.025em;text-transform:uppercase}
+.want{margin-left:auto}
 .slot-empty{display:flex;height:100%;align-items:center;justify-content:center;font-size:24px;line-height:1;font-weight:300;color:var(--steel-700)}
 .i28{height:28px;width:28px}
 """
@@ -329,19 +331,25 @@ def slot(title=None, cap=3, charges=0, state="loaded", speed="quick", wants=("gu
     dot = "var(--glass-400)" if speed == "quick" else "var(--gold-400)"
     takes = state not in ("full", "fired") and not out_of_window
     want_col = "var(--gold-400)" if takes else "var(--steel-600)"
+    # The state word and the want marks share the row under the pins. Neither
+    # fits above: a three-Charge Top Card carrying one want mark needed 106px of
+    # tumbler row inside a 97px Slot, which put the glyph in the plate's own cut.
+    # Loaded still prints no word — that rule was always about the word, not the
+    # row — so a Loaded Slot with an appetite renders the row for its marks alone.
     want_html = ""
     if wants:
         marks = "".join(KEYWORD[w]("i16") for w in wants)
         want_html = f'<span class="want" style="color:{want_col}">{marks}</span>'
-    sub = ""
+    word = ""
     if state in ("charged", "full", "fired"):
-        sub = f'<div class="slot-sub" style="color:{tone}">{state.capitalize()}</div>'
+        word = f'<span class="slot-word" style="color:{tone}">{state.capitalize()}</span>'
+    sub = f'<div class="slot-sub">{word}{want_html}</div>' if (word or want_html) else ""
     return (
         f'<button class="plate p-slot p-lg {face} slot">'
         f'<span class="slot-title" style="color:{title_col}">{title}</span>'
         f'<div class="slot-row">{lock_head(lock, "lock")}'
         f'<div class="tumblers{seated}">{pins}</div>'
-        f'<span class="dot" style="background:{dot}"></span>{want_html}</div>{sub}</button>'
+        f'<span class="dot" style="background:{dot}"></span></div>{sub}</button>'
     )
 
 
@@ -458,7 +466,7 @@ FRAME_CSS = """
 .pile{display:flex;align-items:center;gap:4px}
 /* The Signature button: its own plate at the row's right end, mounted only
    while the Signature can actually be fired — the button IS the offer. */
-.sig{margin-left:auto;display:flex;min-height:52px;width:74px;flex-shrink:0;flex-direction:column;align-items:center;
+.sig{margin-left:auto;display:flex;min-height:52px;width:84px;flex-shrink:0;flex-direction:column;align-items:center;
      justify-content:center;gap:2px;padding-top:6px;padding-bottom:6px;color:var(--gold-950)}
 .sig-name{width:100%;text-align:center;font-size:10px;line-height:1;font-weight:900;letter-spacing:.025em;text-transform:uppercase;
           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

@@ -60,7 +60,7 @@
     {
       "path": "preview/type-scale.html",
       "group": "Typography",
-      "subtitle": "9 steps, 8\u201324px \u00b7 transcribed from usage",
+      "subtitle": "7 steps, 9\u201324px \u00b7 ratified D-067",
       "name": "Scale"
     },
     {
@@ -72,7 +72,7 @@
     {
       "path": "preview/spacing-scale.html",
       "group": "Spacing",
-      "subtitle": "Tailwind default \u00b7 4\u201332px \u00b7 unnarrowed",
+      "subtitle": "Tailwind default \u00b7 the escape hatch is refused",
       "name": "Scale"
     },
     {

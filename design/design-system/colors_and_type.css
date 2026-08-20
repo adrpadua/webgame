@@ -183,7 +183,9 @@ body{
 .dot{margin-left:auto;height:8px;width:8px;flex-shrink:0;border-radius:9999px}
 .want{display:flex;flex-shrink:0;align-items:center;gap:4px}
 .i16{height:16px;width:16px}
-.slot-sub{margin-top:4px;font-size:10px;font-weight:600;letter-spacing:.025em;text-transform:uppercase}
+.slot-sub{margin-top:4px;display:flex;align-items:center;gap:6px}
+.slot-word{font-size:10px;font-weight:600;letter-spacing:.025em;text-transform:uppercase}
+.want{margin-left:auto}
 .slot-empty{display:flex;height:100%;align-items:center;justify-content:center;font-size:24px;line-height:1;font-weight:300;color:var(--steel-700)}
 .i28{height:28px;width:28px}
 
@@ -231,7 +233,7 @@ body{
 .pile{display:flex;align-items:center;gap:4px}
 /* The Signature button: its own plate at the row's right end, mounted only
    while the Signature can actually be fired — the button IS the offer. */
-.sig{margin-left:auto;display:flex;min-height:52px;width:74px;flex-shrink:0;flex-direction:column;align-items:center;
+.sig{margin-left:auto;display:flex;min-height:52px;width:84px;flex-shrink:0;flex-direction:column;align-items:center;
      justify-content:center;gap:2px;padding-top:6px;padding-bottom:6px;color:var(--gold-950)}
 .sig-name{width:100%;text-align:center;font-size:10px;line-height:1;font-weight:900;letter-spacing:.025em;text-transform:uppercase;
           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -261,28 +263,33 @@ body{
 .prompt-cancel{min-height:44px;font-weight:700;color:var(--gold-950)}
 
 
-/* --- Card chrome ---------------------------------------------------------
-   Every preview card sits on this, so the pane reads as one system rather
-   than as twenty differently-padded screenshots. */
+/* --- Preview chrome ------------------------------------------------------
+   Every preview sits on this, so the pane reads as one system rather than as
+   twenty differently-padded screenshots.
+
+   Namespaced `ds-`, because the component classes above it are the real ones,
+   shared with the canvas builder, and `.card` is already the Compact Card. The
+   collision crushed every hand card on a preview to 45px of content before the
+   overrun check caught it. */
 html, body { margin: 0; background: transparent; color: var(--fg-primary); font-family: var(--font-sans); }
-.card {
+.ds-card {
   padding: 18px 22px; display: flex; flex-direction: column; gap: 12px;
   background: var(--surface); border: 1px solid var(--steel-800); border-radius: 14px;
 }
-.lbl {
+.ds-lbl {
   font-size: var(--type-chip); letter-spacing: var(--tracking-widest);
   text-transform: uppercase; color: var(--fg-quiet);
 }
-.note { font-size: 11px; line-height: 1.55; color: var(--steel-400); }
-.note b { color: var(--ceramic-300); font-weight: 600; }
-.warn {
+.ds-note { font-size: 11px; line-height: 1.55; color: var(--steel-400); }
+.ds-note b { color: var(--ceramic-300); font-weight: 600; }
+.ds-warn {
   font-size: 11px; line-height: 1.5; color: var(--gold-200);
   border-left: 3px solid var(--gold-500); padding-left: 10px;
 }
-.grid { display: flex; flex-wrap: wrap; gap: 10px; }
-.stack { display: flex; flex-direction: column; gap: 10px; }
-.swatch { display: flex; flex-direction: column; gap: 4px; }
-.chipbox { width: 74px; height: 44px; border-radius: 3px; border: 1px solid rgba(255,255,255,.07); }
-.mono { font-family: var(--font-mono); font-size: 10px; color: var(--steel-400); }
-.name { font-size: 11px; font-weight: 600; color: var(--ceramic-300); }
-.demo { background: linear-gradient(180deg,#131c2b,#0b1220); border-radius: 6px; padding: 12px; }
+.ds-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.ds-stack { display: flex; flex-direction: column; gap: 10px; }
+.ds-swatch { display: flex; flex-direction: column; gap: 4px; }
+.ds-chipbox { width: 74px; height: 44px; border-radius: 3px; border: 1px solid rgba(255,255,255,.07); }
+.ds-mono { font-family: var(--font-mono); font-size: 10px; color: var(--steel-400); }
+.ds-name { font-size: 11px; font-weight: 600; color: var(--ceramic-300); }
+.ds-demo { background: linear-gradient(180deg,#131c2b,#0b1220); border-radius: 6px; padding: 12px; }

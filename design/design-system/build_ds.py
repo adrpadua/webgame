@@ -7,7 +7,6 @@ Emits the file layout a Claude Design *design-system* project expects:
     preview/*.html          one card per concept, each opening with @dsCard
     _ds_manifest.json       the card index and token table the pane reads
     README.md               what this is and where every value came from
-    design-system/*.md      the written canon, carried over from docs/
 
 Two rules hold the whole thing together:
 
@@ -15,10 +14,12 @@ Two rules hold the whole thing together:
      `design/oathcraft_tokens.py`; the component renderers and the plate CSS
      are imported from the canvas builder next door, which already ports them
      faithfully from `web/src/`. A card is a caption around a real component.
-  2. Anything that is not shipped canon says so on its own card. Typography
-     and spacing are transcriptions of live usage, not rules the interface
-     direction has ratified, and a design system that hides that distinction
-     is worse than none.
+  2. No prose is carried by copy. An earlier version shipped three canon docs
+     as verbatim copies, and one of them was stale on arrival — it asserted a
+     board palette collision the code had already resolved, and said so to
+     anyone reading the design language cold. The cards carry the reasoning
+     that matters at the point of use; everything else links to the repo
+     (D-068).
 
 Run from the repo root:  python3 design/design-system/build_ds.py
 """
@@ -67,31 +68,36 @@ def stylesheet():
 {canvas.FRAME_CSS}
 {canvas.DOCK_CSS}
 
-/* --- Card chrome ---------------------------------------------------------
-   Every preview card sits on this, so the pane reads as one system rather
-   than as twenty differently-padded screenshots. */
+/* --- Preview chrome ------------------------------------------------------
+   Every preview sits on this, so the pane reads as one system rather than as
+   twenty differently-padded screenshots.
+
+   Namespaced `ds-`, because the component classes above it are the real ones,
+   shared with the canvas builder, and `.card` is already the Compact Card. The
+   collision crushed every hand card on a preview to 45px of content before the
+   overrun check caught it. */
 html, body {{ margin: 0; background: transparent; color: var(--fg-primary); font-family: var(--font-sans); }}
-.card {{
+.ds-card {{
   padding: 18px 22px; display: flex; flex-direction: column; gap: 12px;
   background: var(--surface); border: 1px solid var(--steel-800); border-radius: 14px;
 }}
-.lbl {{
+.ds-lbl {{
   font-size: var(--type-chip); letter-spacing: var(--tracking-widest);
   text-transform: uppercase; color: var(--fg-quiet);
 }}
-.note {{ font-size: 11px; line-height: 1.55; color: var(--steel-400); }}
-.note b {{ color: var(--ceramic-300); font-weight: 600; }}
-.warn {{
+.ds-note {{ font-size: 11px; line-height: 1.55; color: var(--steel-400); }}
+.ds-note b {{ color: var(--ceramic-300); font-weight: 600; }}
+.ds-warn {{
   font-size: 11px; line-height: 1.5; color: var(--gold-200);
   border-left: 3px solid var(--gold-500); padding-left: 10px;
 }}
-.grid {{ display: flex; flex-wrap: wrap; gap: 10px; }}
-.stack {{ display: flex; flex-direction: column; gap: 10px; }}
-.swatch {{ display: flex; flex-direction: column; gap: 4px; }}
-.chipbox {{ width: 74px; height: 44px; border-radius: 3px; border: 1px solid rgba(255,255,255,.07); }}
-.mono {{ font-family: var(--font-mono); font-size: 10px; color: var(--steel-400); }}
-.name {{ font-size: 11px; font-weight: 600; color: var(--ceramic-300); }}
-.demo {{ background: linear-gradient(180deg,#131c2b,#0b1220); border-radius: 6px; padding: 12px; }}
+.ds-grid {{ display: flex; flex-wrap: wrap; gap: 10px; }}
+.ds-stack {{ display: flex; flex-direction: column; gap: 10px; }}
+.ds-swatch {{ display: flex; flex-direction: column; gap: 4px; }}
+.ds-chipbox {{ width: 74px; height: 44px; border-radius: 3px; border: 1px solid rgba(255,255,255,.07); }}
+.ds-mono {{ font-family: var(--font-mono); font-size: 10px; color: var(--steel-400); }}
+.ds-name {{ font-size: 11px; font-weight: 600; color: var(--ceramic-300); }}
+.ds-demo {{ background: linear-gradient(180deg,#131c2b,#0b1220); border-radius: 6px; padding: 12px; }}
 """
 
 
@@ -107,12 +113,12 @@ def card(path, group, name, subtitle, body, extra_css="", width=560):
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../colors_and_type.css" />
     <style>
-      .card {{ width: {width}px; }}
+      .ds-card {{ width: {width}px; }}
       {extra_css}
     </style>
   </head>
   <body>
-    <div class="card">{body}</div>
+    <div class="ds-card">{body}</div>
   </body>
 </html>
 """
@@ -129,16 +135,16 @@ def write(rel, text):
 # --- Colour cards ----------------------------------------------------------
 def ramp_card(material, stem, carries, ramp, anchor, subtitle):
     swatches = "".join(
-        f'<div class="swatch"><div class="chipbox" style="background:{ramp[s]}'
+        f'<div class="ds-swatch"><div class="ds-chipbox" style="background:{ramp[s]}'
         f'{";box-shadow:0 0 0 2px var(--gold-400)" if s == anchor else ""}"></div>'
-        f'<div class="name">{stem}-{s}{" ·" if s == anchor else ""}</div>'
-        f'<div class="mono">{ramp[s].upper()}</div></div>'
+        f'<div class="ds-name">{stem}-{s}{" ·" if s == anchor else ""}</div>'
+        f'<div class="ds-mono">{ramp[s].upper()}</div></div>'
         for s in sorted(ramp)
     )
     body = (
-        f'<div class="lbl">{material} — {carries}</div>'
-        f'<div class="grid">{swatches}</div>'
-        f'<div class="note">The gold-ringed step is the interface direction\'s own hex; the rest are what '
+        f'<div class="ds-lbl">{material} — {carries}</div>'
+        f'<div class="ds-grid">{swatches}</div>'
+        f'<div class="ds-note">The gold-ringed step is the interface direction\'s own hex; the rest are what '
         f'that material looks like lit, dim, or as a dark ground. <b>A material picks its step from the '
         f'ground it sits on</b> — the ramp exists so it can, not so a designer can pick a nicer blue.</div>'
     )
@@ -147,17 +153,17 @@ def ramp_card(material, stem, carries, ramp, anchor, subtitle):
 
 def colour_cards():
     table = "".join(
-        f'<tr><td style="padding:5px 12px 5px 0"><span class="chipbox" style="width:26px;height:16px;'
+        f'<tr><td style="padding:5px 12px 5px 0"><span class="ds-chipbox" style="width:26px;height:16px;'
         f'display:inline-block;vertical-align:middle;background:{ramp[anchor]}"></span></td>'
-        f'<td style="padding:5px 12px 5px 0" class="name">{material}</td>'
-        f'<td style="padding:5px 12px 5px 0" class="mono">{ramp[anchor].upper()}</td>'
-        f'<td style="padding:5px 0" class="note">{carries}</td></tr>'
+        f'<td style="padding:5px 12px 5px 0" class="ds-name">{material}</td>'
+        f'<td style="padding:5px 12px 5px 0" class="ds-mono">{ramp[anchor].upper()}</td>'
+        f'<td style="padding:5px 0" class="ds-note">{carries}</td></tr>'
         for material, stem, carries, ramp, anchor in T.PALETTE
     )
     body = (
-        '<div class="lbl">The locked table</div>'
+        '<div class="ds-lbl">The locked table</div>'
         f'<table style="border-collapse:collapse;width:100%">{table}</table>'
-        '<div class="note"><b>Colour reads as role and material, never as decoration.</b> If a new colour is '
+        '<div class="ds-note"><b>Colour reads as role and material, never as decoration.</b> If a new colour is '
         'needed, the answer is almost always that the wrong material was chosen. Two entries have scope: '
         '<b>signal cloth is a material, not a value</b> — every Hero role picks its own within it, and this ramp '
         'is Shield Wall\'s. <b>Ember and ember coral are one family in two jobs</b> — ember is the interface\'s '
@@ -179,15 +185,15 @@ def colour_cards():
             ramp_card(material, stem, carries, ramp, anchor, subtitles[stem])
 
     aliases = "".join(
-        f'<tr><td style="padding:4px 14px 4px 0" class="name">{name}</td>'
-        f'<td style="padding:4px 14px 4px 0" class="mono">{value}</td>'
-        f'<td style="padding:4px 0" class="note">{note}</td></tr>'
+        f'<tr><td style="padding:4px 14px 4px 0" class="ds-name">{name}</td>'
+        f'<td style="padding:4px 14px 4px 0" class="ds-mono">{value}</td>'
+        f'<td style="padding:4px 0" class="ds-note">{note}</td></tr>'
         for name, value, note in T.SEMANTIC
     )
     body = (
-        '<div class="lbl">Semantic aliases</div>'
+        '<div class="ds-lbl">Semantic aliases</div>'
         f'<table style="border-collapse:collapse;width:100%">{aliases}</table>'
-        '<div class="note">What the chrome reaches for by name. <b>--fg-quiet</b> is worth its own note: it is set '
+        '<div class="ds-note">What the chrome reaches for by name. <b>--fg-quiet</b> is worth its own note: it is set '
         'to the dimmest step that still clears 4.5:1 on the brightest ground it sits on, which makes it lighter '
         'than the zinc it replaced. The step before it was failing at 3.09:1 and nobody could see it — Tailwind\'s '
         'own ramps compute to oklch(), which the contrast probe could not read, so it skipped every element '
@@ -200,46 +206,50 @@ def colour_cards():
 def type_cards():
     rows = "".join(
         f'<div style="display:flex;align-items:baseline;gap:14px">'
-        f'<span class="mono" style="width:96px;flex-shrink:0">--type-{role}</span>'
-        f'<span class="mono" style="width:34px;flex-shrink:0">{px}px</span>'
+        f'<span class="ds-mono" style="width:96px;flex-shrink:0">--type-{role}</span>'
+        f'<span class="ds-mono" style="width:34px;flex-shrink:0">{px}px</span>'
         f'<span style="font-size:{px}px;font-weight:700;color:var(--ceramic-200);width:120px;flex-shrink:0">Riposte</span>'
-        f'<span class="note" style="flex:1">{note} <b>{uses} uses</b></span></div>'
+        f'<span class="ds-note" style="flex:1">{note} <b>{uses} uses</b></span></div>'
         for role, px, uses, note in T.TYPE
     )
     body = (
-        '<div class="warn">Not canon. The interface direction lists typography under '
-        '<b>“What This Does Not Decide”</b>. These nine steps are a transcription of what the components '
-        'actually use — arbitrary pixel values and Tailwind\'s named scale, mixed — with role names this pass '
-        'adds. Ratify or narrow it; do not cite it as a rule yet.</div>'
-        f'<div class="stack">{rows}</div>'
-        '<div class="note">The obvious narrowing: <b>pip</b> at 8px has two uses and could fold into '
-        '<b>micro</b>, and <b>read</b> at 16px has one. Seven steps would cover the interface. A lint rule '
-        'refusing a new arbitrary <span class="mono">text-[Npx]</span> is what would hold the line afterwards.</div>'
+        f'<div class="ds-stack">{rows}</div>'
+        '<div class="ds-note">Ratified at seven steps (D-067) by transcribing what shipped and then narrowing it, '
+        'which is how the palette was settled too. Nine steps had accumulated under the interface direction\'s '
+        'silence; both singletons lived in the How to Play guide, so <b>8px folded into micro</b> and '
+        '<b>16px up to title</b> — folding it down to body instead would have left the guide\'s heading the '
+        'same size as its own body text.</div>'
+        '<div class="ds-note"><b>The 9/10/11 cluster is deliberate and is not a candidate for merging.</b> Three '
+        'sizes within three pixels looks like drift and is not: 9px is the demoted register, 10px the counted '
+        'register, 11px the named register, each applied consistently. Collapsing them would be a redesign '
+        'wearing a cleanup\'s clothes. An ESLint rule refuses a new arbitrary '
+        '<span class="ds-mono">text-[Npx]</span> outside the seven — this line already failed on documentation '
+        'alone, which is why the padding rule needed a browser check too.</div>'
     )
-    card("type-scale.html", "Typography", "Scale", "9 steps, 8–24px · transcribed from usage", body, width=620)
+    card("type-scale.html", "Typography", "Scale", "7 steps, 9–24px · ratified D-067", body, width=620)
 
     weights = "".join(
         f'<div style="display:flex;align-items:baseline;gap:14px">'
-        f'<span class="mono" style="width:110px;flex-shrink:0">--weight-{role}</span>'
+        f'<span class="ds-mono" style="width:110px;flex-shrink:0">--weight-{role}</span>'
         f'<span style="font-size:15px;font-weight:{w};color:var(--ceramic-200);width:130px;flex-shrink:0">Sweeping Blow</span>'
-        f'<span class="note" style="flex:1">{note} · <b>{uses} uses</b></span></div>'
+        f'<span class="ds-note" style="flex:1">{note} · <b>{uses} uses</b></span></div>'
         for role, w, uses, note in T.TYPE_WEIGHTS
     )
     tracking = "".join(
         f'<div style="display:flex;align-items:baseline;gap:14px">'
-        f'<span class="mono" style="width:110px;flex-shrink:0">--tracking-{role}</span>'
-        f'<span class="mono" style="width:56px;flex-shrink:0">{value}</span>'
+        f'<span class="ds-mono" style="width:110px;flex-shrink:0">--tracking-{role}</span>'
+        f'<span class="ds-mono" style="width:56px;flex-shrink:0">{value}</span>'
         f'<span style="font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:{value};'
         f'color:var(--ceramic-200);width:130px;flex-shrink:0">Quick</span>'
-        f'<span class="note" style="flex:1">{note}</span></div>'
+        f'<span class="ds-note" style="flex:1">{note}</span></div>'
         for role, value, note in T.TYPE_TRACKING
     )
     body = (
-        '<div class="lbl">Weight</div>'
-        f'<div class="stack">{weights}</div>'
-        '<div class="lbl" style="margin-top:6px">Tracking</div>'
-        f'<div class="stack">{tracking}</div>'
-        '<div class="note">There is no light or regular weight in the interface: at 9–12px on a dark ground '
+        '<div class="ds-lbl">Weight</div>'
+        f'<div class="ds-stack">{weights}</div>'
+        '<div class="ds-lbl" style="margin-top:6px">Tracking</div>'
+        f'<div class="ds-stack">{tracking}</div>'
+        '<div class="ds-note">There is no light or regular weight in the interface: at 9–12px on a dark ground '
         'nothing under 600 survives. <b>Black is rationed</b> — it appears only on words sitting on a lit '
         'face, where the ink is the face\'s own 950 step.</div>'
     )
@@ -248,29 +258,31 @@ def type_cards():
 
 def spacing_cards():
     items = "".join(
-        f'<div class="swatch" style="align-items:center"><div style="width:22px;height:{px}px;'
+        f'<div class="ds-swatch" style="align-items:center"><div style="width:22px;height:{px}px;'
         f'background:var(--gold-500);border-radius:2px"></div>'
-        f'<div class="mono">{step} · {px}</div></div>'
+        f'<div class="ds-mono">{step} · {px}</div></div>'
         for step, px in T.SPACING
     )
     body = (
-        '<div class="warn">Not narrowed. Spacing inherits Tailwind\'s default scale wholesale; nothing in the '
-        'canon says which steps are legal, and arbitrary values (<span class="mono">gap-[2px]</span>, '
-        '<span class="mono">gap-[3px]</span>) have crept in beside them. These are the steps in live use.</div>'
-        f'<div class="grid" style="align-items:flex-end">{items}</div>'
+        f'<div class="ds-grid" style="align-items:flex-end">{items}</div>'
+        '<div class="ds-note">Tailwind\'s default scale is the system (D-067), and deliberately not narrowed. '
+        'Unlike typography it shows no evidence of harm — no truncation, no collision, no contradiction — and '
+        'a rule with no defect behind it is ceremony. What did bite was the escape hatch, so arbitrary '
+        '<span class="ds-mono">gap-[Npx]</span> is refused by the same lint rule that guards the type ramp. Use a '
+        'scale step, or change the design.</div>'
     )
-    card("spacing-scale.html", "Spacing", "Scale", "Tailwind default · 4–32px · unnarrowed", body)
+    card("spacing-scale.html", "Spacing", "Scale", "Tailwind default · the escape hatch is refused", body)
 
     radii = "".join(
-        f'<div class="swatch"><div class="chipbox" style="background:var(--steel-800);border-radius:{value}"></div>'
-        f'<div class="name">{name}</div><div class="mono">{value}</div>'
-        f'<div class="note" style="max-width:120px">{note}</div></div>'
+        f'<div class="ds-swatch"><div class="ds-chipbox" style="background:var(--steel-800);border-radius:{value}"></div>'
+        f'<div class="ds-name">{name}</div><div class="ds-mono">{value}</div>'
+        f'<div class="ds-note" style="max-width:120px">{note}</div></div>'
         for name, value, note in T.RADII
     )
     body = (
-        '<div class="lbl">Radii</div>'
-        f'<div class="grid">{radii}</div>'
-        '<div class="note"><b>The default is 0, and that is a rule rather than an omission.</b> A plate\'s '
+        '<div class="ds-lbl">Radii</div>'
+        f'<div class="ds-grid">{radii}</div>'
+        '<div class="ds-note"><b>The default is 0, and that is a rule rather than an omission.</b> A plate\'s '
         'silhouette is its rake; a rounded corner on one would blunt the cut that carries its accent. Radii '
         'appear only on things that are not plates — gauge tracks, the class-resource bar, timing dots.</div>'
     )
@@ -280,19 +292,19 @@ def spacing_cards():
 # --- Plate cards -----------------------------------------------------------
 def plate_cards():
     body = (
-        '<div class="lbl">Anatomy</div>'
-        '<div class="demo"><div class="plate p-xl f-steel a-gold" style="height:112px;display:flex;'
+        '<div class="ds-lbl">Anatomy</div>'
+        '<div class="ds-demo"><div class="plate p-xl f-steel a-gold" style="height:112px;display:flex;'
         'flex-direction:column;justify-content:center;gap:6px">'
         '<div style="font-size:12px;font-weight:700;color:var(--ceramic-200)">Content sits above both layers</div>'
-        '<div class="note" style="font-size:10px">::before paints the face and its 1px edge. '
+        '<div class="ds-note" style="font-size:10px">::before paints the face and its 1px edge. '
         '::after paints the 3px leading accent.</div></div></div>'
-        '<div class="note">Every surface in the chrome is a parallelogram <b>raked 8° from vertical</b>, with the '
+        '<div class="ds-note">Every surface in the chrome is a parallelogram <b>raked 8° from vertical</b>, with the '
         'top-left corner notched out of the silhouette and the leading edge carrying an accent that runs the '
         'full cut. The rake is drawn on a <b>::before</b> layer with <b>clip-path</b> rather than by clipping the '
         'element, for two reasons that both matter: a clipped element loses its focus ring and shadow — and the '
         'accessibility contract requires a visible ring on every control — and it loses its border on the two '
         'cut edges.</div>'
-        '<div class="note"><b>offset = height × tan(8°)</b>. Derived, never chosen: a plate much taller than its '
+        '<div class="ds-note"><b>offset = height × tan(8°)</b>. Derived, never chosen: a plate much taller than its '
         'size class simply wears a shallower rake, which is why the offset is the cut\'s real depth rather than '
         'an angle.</div>'
     )
@@ -302,53 +314,53 @@ def plate_cards():
         f'<div style="display:flex;align-items:center;gap:14px">'
         f'<div class="plate p-{cls} f-steel a-gold" style="width:180px;height:52px;display:flex;'
         f'align-items:center;font-size:11px;font-weight:600">wb-plate-{cls}</div>'
-        f'<div class="note" style="flex:1"><b>off {off}px · notch {notch}px · gutter {gutter}px</b><br>{use} — {note}</div></div>'
+        f'<div class="ds-note" style="flex:1"><b>off {off}px · notch {notch}px · gutter {gutter}px</b><br>{use} — {note}</div></div>'
         for cls, off, notch, gutter, use, note in T.PLATE_SIZES
     )
-    body = f'<div class="lbl">Seven sizes</div><div class="stack">{rows}</div>'
+    body = f'<div class="ds-lbl">Seven sizes</div><div class="ds-stack">{rows}</div>'
     card("plate-sizes.html", "Plates", "Sizes", "7 classes · offset = height × tan(8°)", body, width=620)
 
     body = (
-        '<div class="lbl">The one padding rule</div>'
-        '<div class="mono" style="background:var(--steel-950);border:1px solid var(--steel-800);border-radius:6px;'
+        '<div class="ds-lbl">The one padding rule</div>'
+        '<div class="ds-mono" style="background:var(--steel-950);border:1px solid var(--steel-800);border-radius:6px;'
         'padding:12px 14px;font-size:11px;line-height:1.7;color:var(--glass-200)">'
         'padding-inline: calc(var(--wb-inset) + var(--wb-gutter));</div>'
-        '<div class="note"><b>--wb-inset</b> is how deep the cut reaches <i>this plate\'s content</i>. The leading '
+        '<div class="ds-note"><b>--wb-inset</b> is how deep the cut reaches <i>this plate\'s content</i>. The leading '
         'edge is furthest in at the top and reaches zero at the bottom; the trailing edge does the reverse. So '
         'content spanning the plate meets the full offset, and content held to the middle band meets half of it '
         '(<b>wb-plate-centered</b>). <b>--wb-gutter</b> is the breathing room past the cut, and it is the only '
         'figure in the system tuned by eye.</div>'
-        '<div class="note">Nothing else sets padding-inline. A plate that wants width back lowers its gutter or '
+        '<div class="ds-note">Nothing else sets padding-inline. A plate that wants width back lowers its gutter or '
         'declares where its content sits — it never ducks under its own cut. One exception, '
         '<b>wb-gutter-raked</b>, is for a plate carrying a text column: a raked box read as a column is a wedge, '
         'so it measures each side at the corner that side is worst at and adds the notch back on top.</div>'
-        '<div class="note"><b>A browser check holds every visible plate to padding ≥ --wb-inset</b>, so a new '
+        '<div class="ds-note"><b>A browser check holds every visible plate to padding ≥ --wb-inset</b>, so a new '
         'size cannot ship with content sitting in its own cut. This rule replaced seven hand-set values, a '
         'per-caller utility, and two inline styles no class could beat.</div>'
     )
     card("plate-padding.html", "Plates", "Padding rule", "One derived rule · guarded in the browser", body)
 
     faces = "".join(
-        f'<div class="swatch"><div class="plate p-md {"f-" + name} a-none" style="width:112px;height:48px;'
+        f'<div class="ds-swatch"><div class="plate p-md {"f-" + name} a-none" style="width:112px;height:48px;'
         f'display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;'
         f'letter-spacing:.08em;text-transform:uppercase;color:{ink}">{name}</div>'
-        f'<div class="note" style="max-width:112px">{use}</div></div>'
+        f'<div class="ds-note" style="max-width:112px">{use}</div></div>'
         for name, face, edge, ink, use in T.PLATE_FACES
     )
-    body = f'<div class="lbl">Six faces</div><div class="grid">{faces}</div>'
+    body = f'<div class="ds-lbl">Six faces</div><div class="ds-grid">{faces}</div>'
     card("plate-faces.html", "Plates", "Faces", "steel · dim · ceramic · gold · coral · glass", body, width=600)
 
     accents = "".join(
         f'<div style="display:flex;align-items:center;gap:14px">'
         f'<div class="plate p-md f-steel {"a-" + name}" style="width:150px;height:48px;display:flex;'
         f'align-items:center;font-size:10px;color:var(--steel-400)">a-{name}</div>'
-        f'<div class="note" style="flex:1">{use}</div></div>'
+        f'<div class="ds-note" style="flex:1">{use}</div></div>'
         for name, value, use in T.PLATE_ACCENTS
     )
     body = (
-        '<div class="lbl">The status channel</div>'
-        f'<div class="stack">{accents}</div>'
-        '<div class="note">The accent runs <b>parallel to the cut, along that edge\'s full length</b> — it is '
+        '<div class="ds-lbl">The status channel</div>'
+        f'<div class="ds-stack">{accents}</div>'
+        '<div class="ds-note">The accent runs <b>parallel to the cut, along that edge\'s full length</b> — it is '
         'drawn from the same offset variable as the face, not with a fixed-degree skew. A skew travels '
         'height × tan(8°), which matches the face only on a plate the height its size class assumed; on a tall '
         'modal it ran 70px inward and cut across the content while the face\'s own edge stayed 16px in.</div>'
@@ -367,19 +379,19 @@ def component_cards():
         ("Out of window", canvas.slot("Fortify", 2, 2, "full", "slow", ("guard",), True) + canvas.slot("Quench", 2, 1, "charged", "slow", (), True)),
     ]
     rows = "".join(
-        f'<div><div class="lbl" style="margin-bottom:6px">{label}</div>'
+        f'<div><div class="ds-lbl" style="margin-bottom:6px">{label}</div>'
         f'<div style="width:390px;background:var(--surface)">{canvas.action_bar(s)}</div></div>'
         for label, s in states
     )
     body = (
-        f'<div class="stack">{rows}</div>'
-        '<div class="note">State lives in two channels at once. The <b>leading-edge accent</b> is the status '
+        f'<div class="ds-stack">{rows}</div>'
+        '<div class="ds-note">State lives in two channels at once. The <b>leading-edge accent</b> is the status '
         'channel every plate shares. The <b>lock head</b> is the glance-distance signal: its ward ring is broken '
         'while charging and closed at full stack with a second faint ring outside it — a ring closing is a shape '
         'change, so it reads in peripheral vision and without colour. The tumblers say it a second way: separate '
         'raked pins with gaps while charging, and when the last one seats the gaps close and they read as one '
         'continuous bar.</div>'
-        '<div class="note"><b>Full and Fired share a complete Charge Stack and mean opposite things</b>, so they '
+        '<div class="ds-note"><b>Full and Fired share a complete Charge Stack and mean opposite things</b>, so they '
         'cannot share a picture. Fired reopens the ring, dulls the head and draws one runeglass strike across '
         'it. An out-of-window Slot drops to the dim face before Full is consulted: Full\'s gold says “can fire”, '
         'which is the one claim it must not make.</div>'
@@ -393,17 +405,17 @@ def component_cards():
         ("Full bank, with a Counter chip", canvas.hero_frame(health=24, armor=2, charges=2, cap=2, deck=9, discard=7, ready=True, counters=("Fortified",))),
     ]
     rows = "".join(
-        f'<div><div class="lbl" style="margin-bottom:6px">{label}</div>'
-        f'<div class="demo" style="position:relative;width:390px;height:84px;overflow:hidden;padding:0">{f}</div></div>'
+        f'<div><div class="ds-lbl" style="margin-bottom:6px">{label}</div>'
+        f'<div class="ds-demo" style="position:relative;width:390px;height:84px;overflow:hidden;padding:0">{f}</div></div>'
         for label, f in frames
     )
     body = (
-        f'<div class="stack">{rows}</div>'
-        '<div class="note">A left-justified vertical stack: <b>name</b>, <b>health with the Armor overlay</b>, '
+        f'<div class="ds-stack">{rows}</div>'
+        '<div class="ds-note">A left-justified vertical stack: <b>name</b>, <b>health with the Armor overlay</b>, '
         '<b>the class resource where an MMO puts mana</b>, then <b>the deck and discard counts</b>. '
         '<b>One hold target, not four</b> — every button owes a 44px tap target, so four interactive rows would '
         'be 176px of chrome over a board with 95px to spare.</div>'
-        '<div class="note"><b>The bar is read; the button is pressed.</b> The resource bar is segmented because '
+        '<div class="ds-note"><b>The bar is read; the button is pressed.</b> The resource bar is segmented because '
         'a Charge is counted rather than continuous, and unlabelled because its position is the label. The '
         'Signature button exists only while the Signature can fire — safe precisely because the bar carries '
         'permanence, and refused before the bar existed.</div>'
@@ -427,25 +439,25 @@ def component_cards():
             canvas.stamina_face("Fortify", False, w), canvas.stamina_face("Quench", False, w)]), " offering"),
     ]
     rows = "".join(
-        f'<div><div class="lbl" style="margin-bottom:6px">{label}</div>'
+        f'<div><div class="ds-lbl" style="margin-bottom:6px">{label}</div>'
         f'<div class="hand{cls}" style="width:390px">{h}</div></div>'
         for label, h, cls in faces
     )
     body = (
-        f'<div class="stack">{rows}</div>'
-        '<div class="note">What a Compact Card shows is the face the current gesture calls for. The '
+        f'<div class="ds-stack">{rows}</div>'
+        '<div class="ds-note">What a Compact Card shows is the face the current gesture calls for. The '
         '<b>card face</b> describes it as a Top Card, which is what Loadout is choosing. The <b>keyword face</b> '
         'drops the speed word and the Charge pips — both describe a Top Card, and a card being tucked adds one '
         'Charge whatever its own speed says — and promotes the Hero\'s marks, gold on the ones a loaded Top Card '
         'would pay off for. The <b>Stamina face</b> makes the Hand a stack of interchangeable coins, because '
         'looking like anything else would suggest the choice of which to spend matters more than it does.</div>'
-        '<div class="note">A card keeps one width — its share of a full Hand — whether five remain or one. Cards '
+        '<div class="ds-note">A card keeps one width — its share of a full Hand — whether five remain or one. Cards '
         'that stretched to fill the row stopped reading as cards.</div>'
     )
     card("components-hand-card.html", "Components", "Compact Card", "Card · Keyword · Stamina faces", body, width=440)
 
     tracks = "".join(
-        f'<div><div class="lbl" style="margin-bottom:6px">{label}</div>'
+        f'<div><div class="ds-lbl" style="margin-bottom:6px">{label}</div>'
         f'<div style="width:390px;background:var(--surface)">{canvas.phase_band(phase, r, e, f)}</div></div>'
         for phase, label, r, e, f in [
             ("loadout", "Loadout", 1, 0, 0.25), ("instant", "Boss Instant", 2, 0, 0.5),
@@ -453,27 +465,27 @@ def component_cards():
             ("slow", "Slow Window", 7, 4, 0.0)]
     )
     body = (
-        f'<div class="stack">{tracks}</div>'
-        '<div class="note">Five marks, one per window, each wearing its owner\'s tone at rest and its wedge — '
+        f'<div class="ds-stack">{tracks}</div>'
+        '<div class="ds-note">Five marks, one per window, each wearing its owner\'s tone at rest and its wedge — '
         '<b>the Boss\'s windows point down at the board, yours point up</b> — so the Round\'s shape reads before '
         'any window opens. Loadout carries no wedge: nothing fires there, and the blank is the signal.</div>'
-        '<div class="note">The live window is not a sixth tint but the row\'s <b>one lit chip</b>: a raked plate '
+        '<div class="ds-note">The live window is not a sixth tint but the row\'s <b>one lit chip</b>: a raked plate '
         'in the owner\'s material carrying the window\'s word. One word always fits where five never did, and a '
         'lit plate is visible from the board the way an 18px hue shift was not.</div>'
     )
     card("components-phase-track.html", "Components", "Round track", "5 windows · owner wedges · one lit chip", body, width=440)
 
     body = (
-        '<div class="lbl">Escalation — the encounter\'s only clock</div>'
-        f'<div class="demo" style="width:390px">{canvas.escalation(0, 0.5)}{canvas.escalation(2, 0)}{canvas.escalation(4, 0)}</div>'
-        '<div class="note">It carries <b>no label</b>: a word costs more room than the reading it buys, and the '
+        '<div class="ds-lbl">Escalation — the encounter\'s only clock</div>'
+        f'<div class="ds-demo" style="width:390px">{canvas.escalation(0, 0.5)}{canvas.escalation(2, 0)}{canvas.escalation(4, 0)}</div>'
+        '<div class="ds-note">It carries <b>no label</b>: a word costs more room than the reading it buys, and the '
         'reading is in the shape. The last band — the one that ends the fight — is washed in at the far end '
         'before the clock ever reaches it, and a <b>fuse</b> burns through the first band while the automatic '
         'ticks are still dormant, so a clock that cannot move yet does not read as one that has stopped.</div>'
-        '<div class="note">The bar is divided at the band boundaries rather than left to slide: <b>a bar that '
+        '<div class="ds-note">The bar is divided at the band boundaries rather than left to slide: <b>a bar that '
         'only slides is a percentage</b>, and Escalation moves in bands that each land once.</div>'
-        '<div class="lbl" style="margin-top:6px">The shared gauge language</div>'
-        '<div class="note">A dark track, a fill measured from the left, and the number overlaid with a shadow so '
+        '<div class="ds-lbl" style="margin-top:6px">The shared gauge language</div>'
+        '<div class="ds-note">A dark track, a fill measured from the left, and the number overlaid with a shadow so '
         'it stays crisp where it straddles the fill edge. <b>Armor rides the health bar in the same currency</b> — '
         'when the stack exceeds max health the track\'s scale stretches so both fills stay inside it.</div>'
     )
@@ -492,12 +504,12 @@ def component_cards():
               '<span style="font-size:10px;font-weight:600;color:var(--ember-300)">Unanswered</span></div>')
     toast = '<div class="plate p-sm f-steel a-ember toast">The Signature charges only through its standing clause.</div>'
     body = (
-        f'<div class="stack" style="width:374px">{beat}{demand}{toast}</div>'
-        '<div class="note">Every floating surface lands in one of three zones, and the zones are flex siblings '
+        f'<div class="ds-stack" style="width:374px">{beat}{demand}{toast}</div>'
+        '<div class="ds-note">Every floating surface lands in one of three zones, and the zones are flex siblings '
         'of one column — so no two can share a pixel, and a bar appearing or leaving <b>never resizes the board '
         'mid-Encounter</b>. Guidance floats over the top hexes; the stage takes the middle for one announcement '
         'at a time; the dock hugs the Action Bar, and its floor is the Hero Frame\'s top edge.</div>'
-        '<div class="note">The Beat Card\'s <b>accent</b> breathes, not its face. A face dipping to 55% shows the '
+        '<div class="ds-note">The Beat Card\'s <b>accent</b> breathes, not its face. A face dipping to 55% shows the '
         'board straight through a card carrying rules text — and nothing flags it, because the text\'s own '
         'opacity never moves, so a contrast check on declared colours passes while the composited pixels '
         'fail.</div>'
@@ -505,7 +517,7 @@ def component_cards():
     card("components-dock.html", "Components", "Dock", "Beat Card · Standing Demand · toasts", body, width=440)
 
     rails = (
-        '<div class="grid" style="align-items:center">'
+        '<div class="ds-grid" style="align-items:center">'
         '<button class="plate p-lg p-centered f-steel a-glass rail" style="width:58px;color:var(--glass-200)">'
         + canvas.ICON["undo"]("i28") + '</button>'
         '<button class="plate p-lg p-centered f-dim a-none rail" style="width:58px;color:var(--steel-500)">'
@@ -522,15 +534,15 @@ def component_cards():
     )
     body = (
         f'{rails}'
-        '<div class="note">Left to right: <b>undo armed</b>, <b>undo inert</b>, <b>next</b>, <b>continue</b>, '
+        '<div class="ds-note">Left to right: <b>undo armed</b>, <b>undo inert</b>, <b>next</b>, <b>continue</b>, '
         '<b>restart</b>, the <b>Signature button</b>, a <b>Counter chip</b>. Undo is steel and the advance rail '
         'is gold: both are always present, and the eye has to tell the move that advances the fight from the one '
         'that walks it back without reading either.</div>'
-        '<div class="note">The two forward marks are deliberately different shapes. <b>A bare triangle plays</b> '
+        '<div class="ds-note">The two forward marks are deliberately different shapes. <b>A bare triangle plays</b> '
         'the next beat of a Boss Row; <b>a triangle against a bar</b> runs to the end of the window and stops. '
         'Both rails hold their mark to the plate\'s middle, so they take the centred inset — the cut is half as '
         'deep there, and the glyph keeps the room the full rake would have spent.</div>'
-        '<div class="note"><b>An inert rail is dimmed, not absent.</b> At the step below, the mark scored about '
+        '<div class="ds-note"><b>An inert rail is dimmed, not absent.</b> At the step below, the mark scored about '
         '2.2:1 and read as an empty plate, which makes the bar look like it lost a control rather than like this '
         'one is waiting.</div>'
     )
@@ -540,20 +552,20 @@ def component_cards():
 def motion_card():
     rows = "".join(
         f'<div style="display:flex;align-items:baseline;gap:12px">'
-        f'<span class="mono" style="width:132px;flex-shrink:0">{name}</span>'
-        f'<span class="mono" style="width:52px;flex-shrink:0">{dur}</span>'
-        f'<span class="name" style="width:44px;flex-shrink:0;color:{"var(--gold-400)" if kind == "loop" else "var(--glass-300)"}">{kind}</span>'
-        f'<span class="note" style="flex:1">{note}</span></div>'
+        f'<span class="ds-mono" style="width:132px;flex-shrink:0">{name}</span>'
+        f'<span class="ds-mono" style="width:52px;flex-shrink:0">{dur}</span>'
+        f'<span class="ds-name" style="width:44px;flex-shrink:0;color:{"var(--gold-400)" if kind == "loop" else "var(--glass-300)"}">{kind}</span>'
+        f'<span class="ds-note" style="flex:1">{note}</span></div>'
         for name, dur, ease, kind, note in T.MOTION
     )
     body = (
-        f'<div class="stack">{rows}</div>'
-        '<div class="note">The house rule: <b>motion that carries state fires once; only ambient motion may '
+        f'<div class="ds-stack">{rows}</div>'
+        '<div class="ds-note">The house rule: <b>motion that carries state fires once; only ambient motion may '
         'loop.</b> A Full Slot can persist for Rounds, and anything that breathes that long becomes furniture '
         'the eye edits out — the failure that got an earlier idle pulse deleted.</div>'
-        '<div class="note">A second rule follows from contrast: <b>never breathe a layer that has text on it.</b> '
+        '<div class="ds-note">A second rule follows from contrast: <b>never breathe a layer that has text on it.</b> '
         'The face and accent live on ::before and ::after precisely so a plate can pulse without its label '
-        'dipping under its contrast floor. Everything freezes under <span class="mono">prefers-reduced-motion</span>.</div>'
+        'dipping under its contrast floor. Everything freezes under <span class="ds-mono">prefers-reduced-motion</span>.</div>'
     )
     card("motion-set.html", "Motion", "The set", "7 animations · only ambient motion loops", body, width=620)
 
