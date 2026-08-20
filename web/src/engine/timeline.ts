@@ -4,6 +4,8 @@ import { combatantRef } from './counters'
 import { normalizeFacing } from './facing'
 import { containsHex, hexDistance, hexKey, type Axial } from './hex'
 import { randiRange, shuffle, type RngState } from './rng'
+import { heroRole } from './keywords'
+import { livingHeroIds } from './downed'
 import type { BossBeat, BossProgram } from './content/schemas'
 import type { ContentCatalog } from './content/catalog'
 import type { EncounterActionInput } from './actions'
@@ -51,18 +53,67 @@ function spillAwayFrom(draft: EncounterState, from: Axial, bossCoords: Axial): A
   return (clean.length > 0 ? clean : away)[0]
 }
 
+// Which Hero a Boss Beat is aimed at, and whether the Beat got the Role it
+// asked for.
+//
+// `target_selector` has been an authored, validated `role` Keyword since D-044
+// and until now it was only ever *recorded* on the fact — there was one Hero,
+// so there was nothing to select. This is where it becomes a rule.
+//
+// Three deliberate choices:
+//
+// - **Seat order breaks every tie.** Two Tanks means the Beat hits the first
+//   one seated. Authored order is the only tiebreaker that is stable across
+//   seeds, and a fight where the Boss's target depends on the RNG is one no
+//   party can plan against. `Threat` (CONTEXT.md, not yet in the engine) is
+//   the real answer and it replaces this rule rather than extending it.
+// - **A Downed Hero is not a target.** A Downed body is non-targetable and an
+//   Incapacitated Hero is off the board entirely (ADR 0036), so both are
+//   filtered out before a Role is matched.
+// - **A selector that matches nobody falls back, loudly.** A party with no
+//   Healer must still be hittable by a Beat that asks for one, or the Boss
+//   would simply skip its turn against an off-composition party. The fallback
+//   is recorded on the fact rather than applied silently, because a Beat
+//   quietly hitting the wrong Role is exactly the kind of thing that reads as
+//   a balance mystery three cohorts later.
+export function selectBeatTarget(
+  catalog: ContentCatalog,
+  draft: EncounterState,
+  beat: BossBeat,
+): { heroId: string; requestedRole: string; fellBack: boolean } {
+  const living = livingHeroIds(draft)
+  const seats = living.length > 0 ? living : draft.partyHeroIds
+  const fallback = seats[0] ?? draft.primaryHeroId
+  if (beat.target_selector === '') {
+    return { heroId: fallback, requestedRole: '', fellBack: false }
+  }
+  const matched = seats.find((heroId) => heroRole(catalog, draft.encounterId, heroId) === beat.target_selector)
+  return {
+    heroId: matched ?? fallback,
+    requestedRole: beat.target_selector,
+    fellBack: matched === undefined,
+  }
+}
+
 // Authored Boss Beat resolution (ADR 0016 carried over): the spatial rule for
 // each Beat kind and its conversion into generated actions live together here.
 export function resolveBossBeat(
+  catalog: ContentCatalog,
   draft: EncounterState,
   bossId: string,
   beat: BossBeat,
   track: 'instant' | 'incoming' | '',
 ): EncounterActionInput[] {
   const boss = draft.board.entities[bossId]
-  const playerCoords = draft.board.entities[draft.primaryHeroId]?.coords ?? { q: 999, r: 999 }
+  // Who this Beat is aimed at. Solo this is always the one Hero, so every
+  // spatial rule below reads the same coordinates it always did.
+  const selection = selectBeatTarget(catalog, draft, beat)
+  const targetHeroId = selection.heroId
+  const playerCoords = draft.board.entities[targetHeroId]?.coords ?? { q: 999, r: 999 }
   // The movement clause runs before the Beat's own effect (D-074), so "Move 2,
   // then Claw" is one Beat and the claw is measured from where the move ended.
+  // It closes on the Hero the selector picked, not on the first seat: a Beat
+  // that hunts the Tank has to walk to the Tank.
   //
   // The route is computed here and the piece is moved by the action below, in
   // that order — which is why the geometry reads `bossCoords` rather than the
@@ -123,7 +174,7 @@ export function resolveBossBeat(
         // longer authors it: at reach `1` every hex in reach *is* the Guarded
         // Front once `turn_toward_player` has run, so the bonus could never
         // fire (D-062).
-        if (beat.unguarded_bonus > 0 && !isGuardedFront(draft.board, bossId, draft.primaryHeroId)) {
+        if (beat.unguarded_bonus > 0 && !isGuardedFront(draft.board, bossId, targetHeroId)) {
           unguardedBonusApplied = beat.unguarded_bonus
           playerDamage += unguardedBonusApplied
         }
@@ -213,7 +264,7 @@ export function resolveBossBeat(
       actions.push({
         kind: 'place_counter',
         sourceId: bossId,
-        hostRef: combatantRef(marksHero ? draft.primaryHeroId : bossId),
+        hostRef: combatantRef(marksHero ? targetHeroId : bossId),
         counterId: beat.counter,
         amount: beat.counter_amount,
         reasonText: beat.title,
@@ -233,6 +284,12 @@ export function resolveBossBeat(
     }
     if (beat.target_selector !== '') {
       factContext.target_selector = beat.target_selector
+      // The Beat asked for a Role no living Hero plays and hit someone else.
+      // Recorded so an off-composition party's damage is explainable rather
+      // than a mystery in the numbers.
+      if (selection.fellBack) {
+        factContext.target_selector_fell_back = true
+      }
     }
     if (beat.damage_keywords.length > 0) {
       factContext.damage_keywords = [...beat.damage_keywords]
@@ -246,7 +303,7 @@ export function resolveBossBeat(
     actions.push({
       kind: 'damage',
       sourceId: bossId,
-      targetId: draft.primaryHeroId,
+      targetId: targetHeroId,
       amount: playerDamage,
       reasonText: beat.title,
       factContext,

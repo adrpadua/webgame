@@ -195,6 +195,26 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
           }
         }
       }
+      // An `ally` target is a living party member within the card's range.
+      // The firing Hero qualifies — a Healer covering herself is a worse use
+      // of the card, never an illegal one, and refusing it would leave a solo
+      // Party unable to fire its own preservation cards at all.
+      if (card.target_type === 'ally') {
+        const targetId = action.targetId ?? ''
+        const target = state.board.entities[targetId]
+        if (!target || target.team !== 'party') {
+          return illegal('The Top Card needs an ally target.')
+        }
+        if ((state.heroes[targetId]?.health ?? 0) <= 0) {
+          return illegal('That ally is Downed.')
+        }
+        if (targetId !== action.sourceId) {
+          targetVerdict = rangeVerdict(state, action.sourceId, targetId, card.range_tiles, "The chosen ally is outside the Top Card's range.")
+          if (!targetVerdict.legal) {
+            return targetVerdict
+          }
+        }
+      }
       // Every `gate` the Card declares has to pass, and they AND together.
       // Checked here so the Slot simply is not firable, and so the targeting
       // projection the board draws from never offers an illegal piece.
@@ -202,6 +222,42 @@ export function legality(catalog: ContentCatalog, state: EncounterState, action:
         return illegal('The Top Card needs more Counters than are there.')
       }
       return targetVerdict ?? bossVerdict ?? legal()
+    }
+    case 'revive_ally': {
+      // The rescue's whole cost is adjacency plus a card, so both are checked
+      // here and neither is checked anywhere else (ADR 0036).
+      const rescuer = state.heroes[action.sourceId]
+      if (!rescuer || rescuer.status !== 'living') {
+        return illegal('Only a living Hero can revive an ally.')
+      }
+      const fallen = state.heroes[action.targetId]
+      if (!fallen || fallen.status !== 'downed') {
+        return illegal('That ally is not Downed.')
+      }
+      if (!rescuer.hand.some((card) => card.instanceId === action.cardInstanceId)) {
+        return illegal('Reviving an ally costs a card from hand.')
+      }
+      const rescuerAt = state.board.entities[action.sourceId]?.coords
+      const fallenAt = state.board.entities[action.targetId]?.coords
+      if (!rescuerAt || !fallenAt || hexDistance(rescuerAt, fallenAt) > 1) {
+        return illegal('You must be adjacent to the Downed ally.')
+      }
+      return legal()
+    }
+    case 'diminished_action': {
+      const hero = state.heroes[action.sourceId]
+      if (!hero || hero.status !== 'incapacitated') {
+        return illegal('Only an Incapacitated Hero takes a diminished action.')
+      }
+      // The two ally-facing choices need a living ally to aim at; a Party with
+      // none is a Party that has already lost.
+      if (action.action !== 'reduce_escalation') {
+        const ally = action.targetId === undefined ? undefined : state.heroes[action.targetId]
+        if (!ally || ally.status !== 'living') {
+          return illegal('That action needs a living ally.')
+        }
+      }
+      return legal()
     }
     case 'move_hero': {
       const hero = state.heroes[action.sourceId]

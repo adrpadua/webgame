@@ -5,6 +5,7 @@
 export { createEncounterState } from './setup'
 export { resolve } from './resolve'
 export { advancePhase } from './advancePhase'
+export { escalationActionsForRoundEnd } from './escalation'
 export { legality } from './legality'
 export { legalActions } from './legalActions'
 export { fireTargeting, type FireTargeting } from './legalActions'
@@ -40,10 +41,11 @@ export {
   FACING_SW,
   FACING_SE,
 } from './facing'
-export { buildProgramSequence, currentProgram } from './timeline'
+export { buildProgramSequence, currentProgram, selectBeatTarget } from './timeline'
 export { keywordTitle, heroRole, TANK } from './keywords'
 export { combatantRef, counterCount, readCounterEvent, counterCountByKeyword, getCounters, hexCounterRef, slotRef, type CounterRef } from './counters'
 export { readSignatureEvent, slotChargeCount, EVALUATED_GRANT_WHENS } from './signature'
+export { DIMINISHED_ACTIONS, isLivingHero, livingHeroIds, rescueDeadlineRound, type DiminishedAction } from './downed'
 export { getEntityIdAt, isLegalMove, neighbors, isGuardedFront, guardedFrontHex, facingToward, facingAlong, isTraversable, traversalRoute, type Traversal } from './board'
 export {
   minionIntent,

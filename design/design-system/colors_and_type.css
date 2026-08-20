@@ -77,7 +77,7 @@ body{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue","Noto Sans",Arial,sans-serif;
   -webkit-font-smoothing:antialiased;
 }
-/* The gauge language, written once (web/src/ui/theme.ts): a dark track, a
+/* The gauge language, written once (web/src/ui/common/theme.ts): a dark track, a
    fill measured from the left, the number overlaid with a shadow so it stays
    crisp where it straddles the fill edge. */
 .gauge{position:relative;display:block;height:18px;overflow:hidden;border-radius:2px;background:var(--steel-950)}

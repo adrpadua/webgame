@@ -25,7 +25,7 @@ import {
 } from './schemas'
 import { ENGINE_KEYWORDS, KEYWORD_REFERENCES, type KeywordKind } from '../keywords'
 import { ENGINE_COUNTERS, READABLE_READER_PAIRS } from '../counters'
-import { EVALUATED_GRANT_WHENS } from '../signature'
+import { EVALUATED_GRANT_WHENS, GATES_BY_WHEN } from '../signature'
 import { hexDistance } from '../hex'
 
 // The Beat kinds that always ask a distance question, and therefore must always
@@ -91,7 +91,7 @@ function cardReachingEffects(card: Card): string[] {
   if (card.pull_tiles > 0) {
     reaching.push('pull_tiles')
   }
-  if (card.target_type === 'hex' || card.target_type === 'piece') {
+  if (card.target_type === 'hex' || card.target_type === 'piece' || card.target_type === 'ally') {
     reaching.push(`target_type ${card.target_type}`)
   }
   return reaching
@@ -239,7 +239,10 @@ function sourceAwareLabel<T extends { id: string }>(entries: ParsedEntry<T>[], l
 // the frozen ContentValidator.gd did for .tres resources (ADR 0020).
 // Which `target_type` values can supply each Counter host.
 const HOST_TARGETS: Record<CounterDefinition['host'], string[]> = {
-  combatant: ['none', 'piece'],
+  // An `ally` target is a combatant like any other, which is what lets a
+  // Healer card place a Counter on the party member it preserves — the ward
+  // shape the healer research note calls the Bond.
+  combatant: ['none', 'piece', 'ally'],
   hex: ['hex'],
   slot: ['board_slot'],
 }
@@ -288,9 +291,12 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     // anything past its own Hero authors how far it touches, and a card that
     // touches nobody must not author a reach nothing reads.
     //
-    // `board_slot` is deliberately outside the reaching set: an ally's
-    // prepared Slot is not a place on the board, and support was chosen
-    // adjacency-free (D-009).
+    // `board_slot` is deliberately outside the reaching set: an ally's prepared
+    // Slot is not a place on the board, and support was chosen adjacency-free
+    // (D-009). An `ally` *is* in it, because ADR 0035 chose the other answer
+    // for the Hero themselves — a card reaches an ally at an authored distance,
+    // and `legality` enforces it — so the two halves of D-009's ruling came
+    // apart: the Slot stays adjacency-free, the body does not.
     const reaching = cardReachingEffects(card)
     if (reaching.length > 0 && card.range_tiles < 1) {
       throw new Error(`${cardAt(card.id)} reaches past its Hero (${reaching.join(', ')}) but authors no range_tiles`)
@@ -412,6 +418,24 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
         throw new Error(
           `${cardAt(card.id)} authors a ${grant.when} standing clause, which nothing evaluates; the evaluated whens are ${EVALUATED_GRANT_WHENS.join(', ')}`,
         )
+      }
+      // Which gates the event can answer (ADR 0037). A gate is a question
+      // about a moment, and three of the four moments are not blows: asking
+      // whether a Round start lost zero health is incoherent rather than
+      // merely false. Refused here rather than allowed to load and quietly
+      // never pass — the same trap the `when` check above closes.
+      const allowedGates = GATES_BY_WHEN[grant.when as keyof typeof GATES_BY_WHEN] ?? []
+      for (const gate of grant.gates) {
+        if (!allowedGates.includes(gate)) {
+          throw new Error(
+            `${cardAt(card.id)} gates a ${grant.when} standing clause on ${gate}, which that event cannot answer; ${grant.when} takes ${allowedGates.length > 0 ? allowedGates.join(' or ') : 'no gates'}`,
+          )
+        }
+      }
+      // An event_keyword narrows a *blow*. On an event that is not one there
+      // is no Keyword to match, so the clause would never fire.
+      if (grant.event_keyword !== '' && grant.when !== 'host_takes_damage' && grant.when !== 'host_deals_damage') {
+        throw new Error(`${cardAt(card.id)} narrows a ${grant.when} standing clause by event_keyword, but that event carries no damage Keywords`)
       }
       if (grant.event_keyword !== '') {
         requireKeyword(catalog, grant.event_keyword, KEYWORD_REFERENCES.damageKeywords, `Card ${card.id}`, 'standing event_keyword')
@@ -640,11 +664,43 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
     }
   }
   for (const encounter of Object.values(catalog.encounters)) {
-    // The Hero an Encounter fields has to exist before the fight can start,
+    // Every Hero the Party fields has to exist before the fight can start,
     // and the error names the Encounter file because that is the one being
     // edited when the reference breaks.
-    if (!catalog.heroes[encounter.hero]) {
-      throw new Error(`${encounterAt(encounter.id)} references unknown hero ${encounter.hero}`)
+    const seated = new Set<string>()
+    for (const seat of encounter.party) {
+      if (!catalog.heroes[seat.hero]) {
+        throw new Error(`${encounterAt(encounter.id)} references unknown hero ${seat.hero}`)
+      }
+      // One Hero cannot hold two seats: the Party is keyed by Hero id
+      // everywhere downstream — board entities, Counter hosts, Slot refs —
+      // so a duplicate would be two seats quietly sharing one health pool.
+      if (seated.has(seat.hero)) {
+        throw new Error(`${encounterAt(encounter.id)} seats ${seat.hero} twice; one Hero holds one seat`)
+      }
+      seated.add(seat.hero)
+      for (const entry of seat.deck) {
+        if (!catalog.cards[entry.card]) {
+          throw new Error(`${encounterAt(encounter.id)} seat ${seat.hero} references unknown card ${entry.card}`)
+        }
+        if (catalog.cards[entry.card].fixed) {
+          throw new Error(`${encounterAt(encounter.id)} seat ${seat.hero} lists ${entry.card}, which is fixed; a Signature is never in the deck`)
+        }
+      }
+    }
+    // Two Heroes cannot open on the same hex. Occupancy is a board rule the
+    // rest of the game enforces move by move; setup is the one place it could
+    // be authored past.
+    const starts = new Map<string, string>()
+    for (const seat of encounter.party) {
+      const key = `${seat.start.q},${seat.start.r}`
+      const held = starts.get(key)
+      if (held !== undefined) {
+        throw new Error(
+          `${encounterAt(encounter.id)} starts ${seat.hero} on (${seat.start.q}, ${seat.start.r}), where ${held} already stands`,
+        )
+      }
+      starts.set(key, seat.hero)
     }
     for (const entry of encounter.player_deck) {
       if (!catalog.cards[entry.card]) {
@@ -802,18 +858,21 @@ export function reachableEncounterContent(catalog: ContentCatalog, encounterId: 
   }
 
   reachable.set(`encounter:${encounterId}`, encounter)
-  // The Hero definition is reachable content (ADR 0034): their health pool
-  // changes the Encounter's rules, so retuning a Hero starts a new evidence
-  // cohort for every Encounter that fields them.
-  const hero = requireDefinition('hero', encounter.hero, catalog.heroes)
-  encounter.player_deck.forEach((entry) => addCard(entry.card))
-  // The Signature is reachable content like any deck card (D-064): it changes
-  // the Encounter's rules, so retuning it starts a new evidence cohort. Only
-  // when fielded — the teaching slice's fight is the same fight whether or
-  // not the printed card exists.
-  if (encounter.fields_signature && hero.signature_card !== '') {
-    addCard(hero.signature_card)
+  // Every seated Hero definition is reachable content (ADR 0034): their
+  // health pool changes the Encounter's rules, so retuning a Hero starts a
+  // new evidence cohort for every Encounter that fields them.
+  for (const seat of encounter.party) {
+    const hero = requireDefinition('hero', seat.hero, catalog.heroes)
+    seat.deck.forEach((entry) => addCard(entry.card))
+    // The Signature is reachable content like any deck card (D-064): it
+    // changes the Encounter's rules, so retuning it starts a new evidence
+    // cohort. Only when fielded — the teaching slice's fight is the same
+    // fight whether or not the printed card exists.
+    if (seat.fields_signature && hero.signature_card !== '') {
+      addCard(hero.signature_card)
+    }
   }
+  encounter.player_deck.forEach((entry) => addCard(entry.card))
   for (const programId of [...encounter.boss_programs, ...encounter.phase_two_programs]) {
     addProgram(programId)
   }

@@ -141,7 +141,15 @@ export const signatureGrantSchema = z.object({
   // mitigation fully answered the blow — and `guarded_front` is the Warden
   // sentence as a predicate. Both already exist as engine computations; a
   // Grant only exposes them (D-064).
-  gates: z.array(z.enum(['health_loss_zero', 'guarded_front'])).default([]),
+  // The closed gate list. `health_loss_zero` is the perfect block —
+  // mitigation fully answered the blow — and `guarded_front` is the Warden
+  // sentence as a predicate; both are questions about a blow taken.
+  // `effect_landed` asks whether the event actually did anything, which is
+  // what stops an offensive or tempo earn being farmed by firing into
+  // nothing (ADR 0037). Which gates each `when` may use is a closed pairing
+  // the catalog checks, because a gate asking about a blow is incoherent on
+  // an event that is not one.
+  gates: z.array(z.enum(['health_loss_zero', 'guarded_front', 'effect_landed'])).default([]),
   grants_charge: z.number().int().min(1).default(1),
 })
 
@@ -174,7 +182,17 @@ export const cardSchema = z.object({
   // the card title. Presentation vocabulary only — the rules say Charges.
   resource_title: z.string().default(''),
   max_charge: z.number().int().min(0).default(2),
-  target_type: z.enum(['none', 'hex', 'board_slot', 'piece']).default('none'),
+  // What must be selected to fire this card.
+  //
+  // `ally` is the Healer seam: a living party member, chosen at fire time,
+  // who receives this card's Armor and healing instead of the firing Hero.
+  // It is its own family rather than a widening of `piece` because `piece`
+  // means "an Enemy" everywhere else in the rules — legality, range, Counter
+  // hosting — and overloading it would make every existing target check ask
+  // which kind of piece it meant. The firing Hero is a legal `ally` target:
+  // self-preservation is a worse use of the card, not an illegal one, and a
+  // rule refusing it would make a solo Party unable to fire its own cards.
+  target_type: z.enum(['none', 'hex', 'board_slot', 'piece', 'ally']).default('none'),
   armor_delta: z.number().int().default(0),
   armor_next_round: z.number().int().min(0).default(0),
   healing: z.number().int().default(0),
@@ -464,29 +482,58 @@ export const deckEntrySchema = z.object({
   copies: z.number().int().min(1),
 })
 
-export const encounterSchema = z.object({
-  id: z.string().min(1),
-  title: z.string().min(1),
-  rules_text: z.string().default(''),
-  // The Hero this Encounter fields, by id from data/heroes/ (ADR 0034).
-  // Identity, health, and the Signature ride the Hero definition; the
-  // Encounter keeps what the fight decides — start hex, deck, Slot count.
+// One seat in the Party: which Hero fills it, and the two things the *fight*
+// decides about them rather than the Hero definition does. Deck and Slot
+// count stay on the Encounter for now because the solo slice authored them
+// there; a per-seat deck is the increment that arrives with the second
+// authored Hero, not this one.
+export const partyMemberSchema = z.object({
+  // The Hero in this seat, by id from data/heroes/ (ADR 0034).
   hero: z.string().min(1),
-  // Whether the Hero's Signature Slot is installed at setup (D-064). The
+  start: axialSchema,
+  // This seat's decklist. Empty falls back to the Encounter's `player_deck`,
+  // which is what every solo Encounter authored before the Party existed and
+  // what evaluation decks still override.
+  //
+  // A seat needs its own deck for a reason beyond convenience: a Hero's Role
+  // is not stored anywhere, it is *read back* out of the Role Keyword every
+  // card in their deck carries (ADR 0034). Two seats sharing one deck are
+  // therefore two seats with the same Role, and a Boss Beat that selects by
+  // Role could never tell them apart — a party of one Hero played twice.
+  deck: z.array(z.object({ card: z.string().min(1), copies: z.number().int().min(1) })).default([]),
+  // Whether this Hero's Signature Slot is installed at setup (D-064). The
   // teaching slice sets this false and keeps its two-Slot bar until its
   // scripted first turn learns the third; everywhere else the printed card
   // is part of what fielding the Hero means, so the default is true.
   fields_signature: z.boolean().default(true),
+})
+
+export const encounterSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  rules_text: z.string().default(''),
+  // The Party this Encounter fields, in order. CONTEXT.md defines a Party as
+  // two to four Heroes; `1` stays legal because the teaching slice and the
+  // Ashen Trial are solo, and a solo fight is a Party of one rather than a
+  // different kind of Encounter — which is the whole point of making the
+  // seat a list. The first seat is the primary Hero: the one the HUD's Hero
+  // Frame reads (ADR 0033) and the one a solo Scenario replays.
+  party: z.array(partyMemberSchema).min(1).max(4),
   boss_id: z.string().min(1),
   boss_title: z.string().min(1),
   round_limit: z.number().int().min(1),
   enrage_text: z.string().default('The Encounter Clock expired.'),
   board_radius: z.number().int().min(1).max(8),
-  player_start: axialSchema,
   boss_start: axialSchema,
   boss_health: z.number().int().min(1),
   slot_count: z.number().int().min(1).max(8),
   hand_refill_target: z.number().int().min(1).max(12),
+  // What a Revived Hero comes back on, as a fraction of their maximum, rounded
+  // up (ADR 0036). Authored rather than compiled in because it decides how
+  // forgiving the whole fight is — the mistake `range_tiles` was before D-043,
+  // where the number that set the difficulty lived where no designer could
+  // reach it. `0.25` is CONTEXT.md's baseline.
+  revive_health_fraction: z.number().min(0.05).max(1).default(0.25),
   player_deck: z.array(deckEntrySchema).min(1),
   boss_programs: z.array(z.string()).min(1),
   loop_boss_programs: z.boolean().default(true),
@@ -547,6 +594,7 @@ export type ChargeModifier = z.infer<typeof chargeModifierSchema>
 export type Card = z.infer<typeof cardSchema>
 export type SignatureGrant = z.infer<typeof signatureGrantSchema>
 export type Hero = z.infer<typeof heroSchema>
+export type PartyMember = z.infer<typeof partyMemberSchema>
 export type Hazard = z.infer<typeof hazardSchema>
 export type Minion = z.infer<typeof minionSchema>
 export type CounterDefinition = z.infer<typeof counterSchema>

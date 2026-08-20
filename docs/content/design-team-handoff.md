@@ -40,7 +40,13 @@ redeploys on every push to `main` or the active workbench branch that touches
    — or copy the closest existing JSON file if an existing design is the
    better starting point.
 2. Give it a stable lowercase `snake_case` `id` — the filename should match it —
-   and complete player-facing `title` and `rules_text`.
+   and complete player-facing `title` and `rules_text`. **An id is a working
+   name; flavour rides the `title`.** A card or Hero id may be evocative
+   because it names one specific thing (`iron_guard`, `elian_riposte`), but
+   anything in a *closed set the whole game shares* — a Beat kind, a target
+   family, a Counter Reader event — is named for the mechanic, so that a
+   second Boss or Hero wanting different words for the same effect renames a
+   title rather than forking the vocabulary.
 3. Reference it by `id` from a Card, Boss Program, Encounter, or deck.
 4. Validate and play:
 
@@ -112,7 +118,7 @@ file is the authority when this table and the code disagree.
 
 | Type and home | Required authoring contract |
 | --- | --- |
-| Card: `data/cards/` | `id`, `title`, complete `rules_text`, `speed` (`quick`/`slow`), `max_charge`, `target_type` (`none`/`hex`/`board_slot`/`piece`), `range_tiles` for selected pieces or hexes, effect fields, registered Keyword ids in `tags`, optional `charge_modifiers`, optional `places_counter` with `counter_amount`, optional `reads`, optional `damage_keywords` for what its own damage is made of. `draw_count` draws `0` to `3` cards for the firing Hero after every other Card consequence; these draws may exceed `hand_refill_target`, because it is a Round-refill floor rather than a hand ceiling. `burst_radius >= 1` deals positive `damage` to every Enemy within that radius of a selected hex, including the Boss; the center may be empty and requires `target_type: "hex"` (ADR 0030). `push_tiles` moves the target away from the firing Hero and `pull_tiles` moves it toward the Hero; either requires a piece target and range of at least 1, and one Card cannot declare both. The Top Card owns timing, target, and Charge Value. |
+| Card: `data/cards/` | `id`, `title`, complete `rules_text`, `speed` (`quick`/`slow`), `max_charge`, `target_type` (`none`/`hex`/`board_slot`/`piece`/`ally`), `range_tiles` for selected pieces, hexes, or allies, effect fields, registered Keyword ids in `tags`, optional `charge_modifiers`, optional `places_counter` with `counter_amount`, optional `reads`, optional `damage_keywords` for what its own damage is made of. `draw_count` draws `0` to `3` cards for the firing Hero after every other Card consequence; these draws may exceed `hand_refill_target`, because it is a Round-refill floor rather than a hand ceiling. `burst_radius >= 1` deals positive `damage` to every Enemy within that radius of a selected hex, including the Boss; the center may be empty and requires `target_type: "hex"` (ADR 0030). `push_tiles` moves the target away from the firing Hero and `pull_tiles` moves it toward the Hero; either requires a piece target and range of at least 1, and one Card cannot declare both. The Top Card owns timing, target, and Charge Value. |
 | Hero: `data/heroes/` | `id`, display `title`, `rules_text` naming the raid job, `max_health`, and the `signature_card` printed on the Hero — a `fixed: true` card id, or empty while the Hero has no Signature authored (ADR 0034). A Hero exists independently of any fight: Encounters field one by id, and two Encounters fielding the same Hero share one health pool and one printed card. The Hero carries no Role field — every deck card carries the Role Keyword, and the deck's unanimity is what names the Role. |
 | Keyword: `data/keywords/` | Stable `id`, display `title`, one concise mechanical definition. Cards reference the id in `tags`; a card contributes each distinct Keyword once to each matching modifier. A required `kind` — `role`, `trait`, `damage_type`, or `answer` — says what sort of thing the Keyword is, and every reference is checked against it: a Beat's and a Card's `damage_keywords` take `damage_type`, its `target_selector` takes `role`, its `answer_tags` take `answer`, and a card tag takes `trait` or `role` (D-044). `kind: "role"` replaces the old `role_marker` flag, and the HUD leaves Roles off the glance surfaces. |
 | Charge Modifier: `data/charge_modifiers/` | Stable identity and rules text, optional `keyword_id` (empty counts every charged card), `effect` (`armor`, `healing`, `boss_damage`, `target_damage`), and positive `amount_per_match`. It modifies the Top Card; a tucked card never resolves itself. |
@@ -121,7 +127,7 @@ file is the authority when this table and the code disagree.
 | Boss Program / Beat: `data/boss_programs/` | Program identity plus non-empty ordered `instant_beats` and `incoming_beats` — row membership is timing. Every Beat carries identity, rules text, visible `answer_tags`, optional `damage_keywords` saying what its blow is made of and who it is aimed at (plural — D-049), and for a `place_counter` Beat the `counter` it places with `counter_amount` and `counter_target` (`self` marks the Boss, `hero` marks the Party — D-051), a `consequence_tier` (`severe` marks a Beat that can end a run, which is what keeps it out of the first program of any phase — ADR 0031, D-036), and the fields its `kind` requires: `damage`, `unguarded_bonus`, `hazard`, `minion`, `count`, `duration_rounds`, `escalation_if_unanswered`, `move_tiles`, `range_tiles`. Reach is authored, not defaulted (D-043): a `forward_cone`, `demand_proximity` or `targeted_hit` Beat must declare `range_tiles`, and every other kind must not. `targeted_hit` joined that list in D-062 — it was rangeless while D-017 wanted a hit footwork could not answer, and D-041 moved that job to `demand_proximity`, which prices standing out of reach in Escalation rather than in Health. Both halves are rejected at load. |
 | Hazard: `data/hazards/` | Identity, `duration_rounds`, and at least one supported behavior: `enter_damage` or `blocks_voluntary_movement`. |
 | Minion: `data/minions/` | Identity, positive `max_health`, `attack_damage`, and complete rules text. Boss Beats reference the Minion they spawn. New Minion triggers or movement rules require engineering. |
-| Encounter: `data/encounters/` | The `hero` fielded by id from `data/heroes/` (with optional `fields_signature: false` to hold the Signature back, as the teaching slice does), Boss identity, `board_radius`, legal starts, `boss_health`, `slot_count`, `hand_refill_target`, complete `player_deck`, ordered `boss_programs`, `loop_boss_programs`, `round_limit` and `enrage_text`, `random_seed`, `minion_spawn_candidates`, optional `phase_trigger` + `phase_two_programs` + `phase_break_text` (ADR 0023), and optional `escalation_thresholds` (ADR 0027). No new file to register — it appears in the Workbench's Encounter list on save. |
+| Encounter: `data/encounters/` | The `party` it fields — an ordered list of seats, each naming a `hero` by id from `data/heroes/`, a `start` hex, an optional per-seat `deck` (empty falls back to `player_deck`), and optional `fields_signature: false` to hold that Hero's Signature back as the teaching slice does (ADR 0035). One to four seats; a solo fight is a Party of one. A seat's own deck is what states that Hero's Role, so two seats sharing one deck are two seats with the same Role. Boss identity, `board_radius`, legal starts, `boss_health`, `slot_count`, `hand_refill_target`, `revive_health_fraction` (what a Revived Hero returns on, as a fraction of maximum rounded up — `0.25` by default, and authored because it decides how forgiving the fight is), complete `player_deck`, ordered `boss_programs`, `loop_boss_programs`, `round_limit` and `enrage_text`, `random_seed`, `minion_spawn_candidates`, optional `phase_trigger` + `phase_two_programs` + `phase_break_text` (ADR 0023), and optional `escalation_thresholds` (ADR 0027). No new file to register — it appears in the Workbench's Encounter list on save. |
 | Evaluation deck: `data/decks/` | Identity, the `encounter` it is played against, and a complete `player_deck`. Used by the balance tooling to compare decklists against one fight. Run one with `npm run evaluate -- --deck <id>` (D-052): a candidate card can be measured without being promoted into the live starter deck first, which is the promotion the measurement is meant to gate. |
 | Scenario: `data/scenarios/` | Named, versioned action sequence replayed from a seeded initial state — never a state snapshot. Author these by exporting from the debug rail rather than by hand. |
 
@@ -192,14 +198,18 @@ closed set the engine switches on:
   Beat, or Program they describe.
 - **Status triggers.** `on_round_start`, `on_enter_hex`, `on_damage_taken`,
   `on_slot_fired`.
-- **Target families.** `none`, `hex` (Burst center), `board_slot`, `piece`.
+- **Target families.** `none`, `hex` (Burst center), `board_slot`, `piece` (an Enemy), `ally` (a living party member in range, who receives the card's Armor, healing, and Counter instead of the firing Hero — ADR 0035).
 - **Charge Modifier effects.** `armor`, `healing`, `boss_damage`,
   `target_damage`.
-- **Signature gates.** `health_loss_zero`, `guarded_front`. A gate is a
-  predicate computed over board state, so a new Hero pattern's earn condition
-  is the one part of an otherwise data-only Hero that routinely needs an
-  engineering request — [authoring-a-new-hero.md](authoring-a-new-hero.md)
-  step 5 says how to raise it.
+- **Signature earn events.** All four: `host_takes_damage`,
+  `host_deals_damage`, `slot_fired`, `round_start` (ADR 0037). A Hero may earn
+  by being hit, by landing a blow, by firing a Slot, or on a clock.
+- **Signature gates, paired to their event.** `host_takes_damage` takes
+  `health_loss_zero` (the perfect block) and `guarded_front` (the Warden
+  sentence); `host_deals_damage` and `slot_fired` take `effect_landed` (the
+  event actually did something, which is what stops an earn being farmed by
+  firing into nothing); `round_start` takes none. A gate paired with an event
+  it cannot answer is refused at load and names both.
 
 When a rule you want cannot be expressed in a field, raise it as an engineering
 request. Do not encode it in `rules_text` alone: the Detail Popup would promise

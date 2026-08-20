@@ -2,21 +2,36 @@
   "id": "new_encounter",
   "title": "New Encounter",
   "rules_text": "What the party must do before the Encounter Clock expires.",
-  "hero": "new_hero",
+  "party": [
+    {
+      "hero": "new_hero",
+      "start": {
+        "q": 0,
+        "r": 0
+      }
+    }
+  ],
   "boss_id": "new_boss",
   "boss_title": "New Boss",
   "round_limit": 8,
   "enrage_text": "Enrage: the Boss overwhelms the party.",
   "board_radius": 2,
-  "player_start": { "q": 0, "r": 0 },
-  "boss_start": { "q": 1, "r": -1 },
+  "boss_start": {
+    "q": 1,
+    "r": -1
+  },
   "boss_health": 40,
   "slot_count": 2,
   "hand_refill_target": 4,
   "player_deck": [
-    { "card": "new_card", "copies": 4 }
+    {
+      "card": "new_card",
+      "copies": 4
+    }
   ],
-  "boss_programs": ["new_boss_program"],
+  "boss_programs": [
+    "new_boss_program"
+  ],
   "loop_boss_programs": true,
   "random_seed": 1,
   "minion_spawn_candidates": [],

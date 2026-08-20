@@ -16,7 +16,20 @@ import type { EncounterState, SlotState } from './types'
 // Reader vocabulary, and authoring a `when` nothing evaluates is a load error
 // rather than a Grant that silently never fires. Teaching the rules a new
 // event means adding it here and reading it where that event resolves.
-export const EVALUATED_GRANT_WHENS = ['host_takes_damage'] as const
+export const EVALUATED_GRANT_WHENS = ['host_takes_damage', 'host_deals_damage', 'slot_fired', 'round_start'] as const
+
+// Which gates each event can actually answer. A gate is a question about a
+// moment, and three of these four moments are not blows: asking whether a
+// Round start lost zero health is not a hard question, it is an incoherent
+// one. Rather than let such a Grant load and silently never fire — the exact
+// trap `EVALUATED_GRANT_WHENS` exists to close, one level down — the catalog
+// refuses the pairing at load.
+export const GATES_BY_WHEN: Record<(typeof EVALUATED_GRANT_WHENS)[number], string[]> = {
+  host_takes_damage: ['health_loss_zero', 'guarded_front'],
+  host_deals_damage: ['effect_landed'],
+  slot_fired: ['effect_landed'],
+  round_start: [],
+}
 
 // How many Charges a Slot holds right now. A fixed Slot's Charges are earned
 // tokens; a deck Slot's are its tucked cards. Every rule that asks "how
@@ -44,51 +57,67 @@ export function readSignatureEvent(
   return { cardId: raw.card_id, event: String(raw.event ?? ''), reason: String(raw.reason ?? ''), charges: Number(raw.charges ?? 0) }
 }
 
-// Whether one Grant's gates all pass for one resolved damage event. Gates
-// AND, exactly like Card Readers: there is no `or` and there will not be one.
+// Whether one Grant's gates all pass. Gates AND, exactly like Card Readers:
+// there is no `or` and there will not be one.
+//
+// `counterpartId` is whoever the event puts opposite the Hero — the attacker
+// for a blow taken, the target for a blow dealt — and is empty for events
+// with no second party. `resolutionFact` is the event's own record, absent
+// for events that produce none.
 function gatesPass(
   draft: EncounterState,
   grant: SignatureGrant,
   heroId: string,
-  attackerId: string,
-  resolutionFact: Record<string, unknown>,
+  counterpartId: string,
+  resolutionFact: Record<string, unknown> | undefined,
 ): { pass: boolean; failed: string } {
   for (const gate of grant.gates) {
-    if (gate === 'health_loss_zero' && (resolutionFact.health_loss as number) !== 0) {
+    if (gate === 'health_loss_zero' && (resolutionFact?.health_loss as number | undefined) !== 0) {
       return { pass: false, failed: 'health_lost' }
     }
-    if (gate === 'guarded_front' && !isGuardedFront(draft.board, attackerId, heroId)) {
+    if (gate === 'guarded_front' && !isGuardedFront(draft.board, counterpartId, heroId)) {
       return { pass: false, failed: 'not_guarded_front' }
+    }
+    // "The fire actually did something." Without it a `slot_fired` earn is
+    // farmable by firing an empty Slot at nothing, which would make the
+    // earn a formality rather than a reward for correct play — the failure
+    // mode the Kardia warning in the healer research note describes.
+    if (gate === 'effect_landed' && (resolutionFact?.effect_landed as boolean | undefined) !== true) {
+      return { pass: false, failed: 'no_effect' }
     }
   }
   return { pass: true, failed: '' }
 }
 
-// Standing-clause evaluation for a resolved damage action: the
-// `host_takes_damage` event, the only Grant `when` the rules read today. The
-// evaluation is always recorded on the resolution fact — a Grant that did
-// not fire says why, the same honesty the old Riposte Ready evaluation kept —
-// and an earn while the stack is full is recorded as waste, because overcap
-// is the Signature's one loss surface and the cohort has to be able to count
-// it (D-064).
-export function evaluateStandingGrants(
+// Standing-clause evaluation for one Hero at one event. Every Grant `when`
+// runs through here, so the earn, the waste at the cap, and the refusal with
+// its reason are recorded identically whichever event produced them — a
+// Grant that did not fire always says why, the honesty the old Riposte Ready
+// evaluation kept (D-064).
+export function evaluateGrantsFor(
   catalog: ContentCatalog,
   draft: EncounterState,
-  action: Extract<EncounterActionInput, { kind: 'damage' }>,
-  resolutionFact: Record<string, unknown>,
+  heroId: string,
+  when: (typeof EVALUATED_GRANT_WHENS)[number],
+  options: {
+    counterpartId?: string
+    eventKeywords?: string[]
+    resolutionFact?: Record<string, unknown>
+  } = {},
 ): void {
-  const hero = draft.heroes[action.targetId]
+  const hero = draft.heroes[heroId]
   if (!hero) {
     return
   }
-  const eventKeywords = (resolutionFact.damage_keywords as string[] | undefined) ?? []
+  const eventKeywords = options.eventKeywords ?? []
+  const record = options.resolutionFact
   for (const slot of hero.actionBar) {
     if (!slot.fixed || slot.topCard === null) {
       continue
     }
     const card = catalog.cards[slot.topCard.cardId]
     for (const grant of card.standing) {
-      if (grant.when !== 'host_takes_damage') {
+      if (grant.when !== when) {
         continue
       }
       // An empty event_keyword answers every blow; a named one answers only
@@ -96,9 +125,11 @@ export function evaluateStandingGrants(
       if (grant.event_keyword !== '' && !eventKeywords.includes(grant.event_keyword)) {
         continue
       }
-      const verdict = gatesPass(draft, grant, action.targetId, action.sourceId, resolutionFact)
+      const verdict = gatesPass(draft, grant, heroId, options.counterpartId ?? '', record)
       if (!verdict.pass) {
-        resolutionFact.signature_event = signatureEvent(card.id, 'not_granted', verdict.failed, slot.earnedCharges)
+        if (record !== undefined) {
+          record.signature_event = signatureEvent(card.id, 'not_granted', verdict.failed, slot.earnedCharges)
+        }
         continue
       }
       const cap = cardChargeCap(card)
@@ -107,11 +138,39 @@ export function evaluateStandingGrants(
         // design — overcap is the price of holding a full bank (D-064
         // decision 8), and it has to be visible to the player and the cohort
         // alike, never silently absorbed.
-        resolutionFact.signature_event = signatureEvent(card.id, 'wasted', 'at_max', slot.earnedCharges)
+        if (record !== undefined) {
+          record.signature_event = signatureEvent(card.id, 'wasted', 'at_max', slot.earnedCharges)
+        }
         continue
       }
       slot.earnedCharges = Math.min(cap, slot.earnedCharges + grant.grants_charge)
-      resolutionFact.signature_event = signatureEvent(card.id, 'charge_granted', 'standing_clause', slot.earnedCharges)
+      if (record !== undefined) {
+        record.signature_event = signatureEvent(card.id, 'charge_granted', 'standing_clause', slot.earnedCharges)
+      }
     }
   }
+}
+
+// The two halves of a resolved blow. The Hero who took it reads
+// `host_takes_damage`; the Hero who landed it reads `host_deals_damage`,
+// which is the earn an offensive machine is built on and which nothing
+// evaluated before ADR 0037.
+export function evaluateStandingGrants(
+  catalog: ContentCatalog,
+  draft: EncounterState,
+  action: Extract<EncounterActionInput, { kind: 'damage' }>,
+  resolutionFact: Record<string, unknown>,
+): void {
+  const eventKeywords = (resolutionFact.damage_keywords as string[] | undefined) ?? []
+  evaluateGrantsFor(catalog, draft, action.targetId, 'host_takes_damage', {
+    counterpartId: action.sourceId,
+    eventKeywords,
+    resolutionFact,
+  })
+  evaluateGrantsFor(catalog, draft, action.sourceId, 'host_deals_damage', {
+    counterpartId: action.targetId,
+    eventKeywords,
+    // A blow that landed is one that actually cost the target health.
+    resolutionFact: { ...resolutionFact, effect_landed: (resolutionFact.health_loss as number) > 0 },
+  })
 }
