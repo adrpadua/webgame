@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { axialAdd, axialDeltaFor, axialEquals, facingName, VALID_FACINGS } from '@/engine'
-import { selectState, useWorkbench } from '@/store/workbench'
+import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { Notify } from './NotificationLayer'
 import { FOCUS_RING_CLASS } from '../common/theme'
 
@@ -15,6 +15,7 @@ export function MovePaymentCue() {
   const pendingMove = useWorkbench((store) => store.pendingMove)
   const cancelMove = useWorkbench((store) => store.cancelMove)
   const state = useWorkbench(selectState)
+  const pilotId = useWorkbench(selectPilotId)
 
   useEffect(() => {
     if (pendingMove === null) {
@@ -32,7 +33,7 @@ export function MovePaymentCue() {
   if (pendingMove === null) {
     return null
   }
-  const heroCoords = state.board.entities[state.primaryHeroId]?.coords
+  const heroCoords = state.board.entities[pilotId]?.coords
   // The destination as a hex edge — the vocabulary the piece labels already
   // use, rather than a pair of coordinates the player never sees anywhere
   // else.

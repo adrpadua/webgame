@@ -84,10 +84,13 @@ function reviveIsLegal(catalog: ContentCatalog, state: EncounterState, targetId:
 // Every seat but the primary, in authored order — the column reads seats the
 // way the Encounter authored them, so two sessions of the same Encounter show
 // the same stack.
-export function partyFrames(catalog: ContentCatalog, state: EncounterState): PartyFrameModel[] {
+export function partyFrames(catalog: ContentCatalog, state: EncounterState, pilotId: string = state.primaryHeroId): PartyFrameModel[] {
   const aimedAt = threatHeroId(catalog, state)
+  // Every seat but the pilot's: the column shows whoever the console does
+  // not, so switching control swaps a Hero out of the column and the
+  // displaced one in, symmetrically.
   return state.partyHeroIds
-    .filter((heroId) => heroId !== state.primaryHeroId)
+    .filter((heroId) => heroId !== pilotId)
     .map((heroId) => {
       const hero = state.heroes[heroId]
       const definition = catalog.heroes[heroId]

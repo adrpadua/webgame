@@ -14,7 +14,7 @@ import { currentFirstTurnStep } from '@/ui/onboarding/useFirstTurn'
 import { useOnboarding } from '@/store/onboarding'
 import { usePlayout } from '@/store/playout'
 import { catalog } from '@/store/catalog'
-import { selectState, useWorkbench } from '@/store/workbench'
+import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { BoardScene, type BoardSnapshot } from './BoardScene'
 import { marksGuardedFront } from './guardedFront'
 import { deriveBoardEffects, derivePlayoutScript, type BoardEffect } from './effects'
@@ -23,6 +23,7 @@ import { BOARD_HEIGHT, BOARD_WIDTH, pixelToAxial } from './layout'
 function buildSnapshot(
   catalog: ContentCatalog,
   state: EncounterState,
+  pilotId: string,
   targetingSlotIndex: number | null,
   hoveredHexKey: string | null,
   previewingRoutes: boolean,
@@ -34,10 +35,10 @@ function buildSnapshot(
   // Legal routes light up while dragging a hand card (the paid move) or
   // holding the Hero (the free preview); movement is Quick Window only.
   if (previewingRoutes && state.phase === 'quick' && state.active) {
-    const heroEntity = state.board.entities[state.primaryHeroId]
+    const heroEntity = state.board.entities[pilotId]
     if (heroEntity) {
       for (const destination of neighbors(state.board.hexes, heroEntity.coords)) {
-        if (isLegalMove(state.board, state.primaryHeroId, destination)) {
+        if (isLegalMove(state.board, pilotId, destination)) {
           legalMoveKeys.push(hexKey(destination))
         }
       }
@@ -49,7 +50,7 @@ function buildSnapshot(
       : fireTargeting(
           catalog,
           state,
-          state.primaryHeroId,
+          pilotId,
           targetingSlotIndex,
           hoveredHexKey === null ? undefined : parseHexKey(hoveredHexKey),
         )
@@ -71,6 +72,7 @@ function buildSnapshot(
   const blastHexKeys = minionDetonations(catalog, state).flatMap((blast) => blast.hexes.map(hexKey))
   return {
     state,
+    pilotId,
     targetableHexKeys,
     targetPreviewHexKeys: targeting?.previewHexes.map(hexKey) ?? [],
     targetPreviewCenterKey: targeting?.previewHexes.length ? hoveredHexKey : null,
@@ -177,6 +179,7 @@ export function PhaserBoard() {
         buildSnapshot(
           catalog,
           selectState(store),
+          selectPilotId(store),
           store.targetingSlotIndex,
           store.hoveredHexKey,
           // A move waiting on its card keeps the routes lit too: the board

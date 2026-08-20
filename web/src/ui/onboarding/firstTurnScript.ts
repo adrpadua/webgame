@@ -226,7 +226,7 @@ export function firstTurnStep(catalog: WorkbenchCatalog, state: EncounterState):
           ),
         })
       }
-      if (quickSlot && slotCanFire(catalog, state, 0)) {
+      if (quickSlot && slotCanFire(catalog, state, state.primaryHeroId, 0)) {
         return step({
           id: 'fire-quick',
           cue: `Fire ${slotCardTitle(catalog, quickSlot, 'the Slot')}`,
@@ -292,7 +292,7 @@ export function firstTurnStep(catalog: WorkbenchCatalog, state: EncounterState):
           detail: detail('charge-slow', 'Charge the slow Slot', 'Charge can be added in either of your windows — the Slot only fires in the one that matches its Top Card.'),
         })
       }
-      if (slowSlot && slotCanFire(catalog, state, 1)) {
+      if (slowSlot && slotCanFire(catalog, state, state.primaryHeroId, 1)) {
         return step({
           id: 'fire-slow',
           cue: `Fire ${slotCardTitle(catalog, slowSlot, 'the Slot')}`,

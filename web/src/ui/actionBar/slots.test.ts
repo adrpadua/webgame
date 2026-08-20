@@ -121,7 +121,7 @@ describe('slot can fire', () => {
   }
 
   it('lights a charged Slot whose Top Card matches the window', () => {
-    expect(slotCanFire(catalog, armed('steady_strike'), 0)).toBe(true)
+    expect(slotCanFire(catalog, armed('steady_strike'), 'guardian', 0)).toBe(true)
   })
 
   it('leaves it dark from outside the Top Card\'s reach (D-073)', () => {
@@ -135,23 +135,23 @@ describe('slot can fire', () => {
       .sort((left, right) => hexDistance(right, bossCoords) - hexDistance(left, bossCoords))[0]
     expect(hexDistance(furthest, bossCoords)).toBeGreaterThan(catalog.cards.steady_strike.range_tiles)
     state.board.entities[state.primaryHeroId].coords = furthest
-    expect(slotCanFire(catalog, state, 0)).toBe(false)
+    expect(slotCanFire(catalog, state, state.primaryHeroId, 0)).toBe(false)
   })
 
   it('leaves a Minion-seeking Slot dark while the board holds no Minion to hit', () => {
     // The other half of the same predicate, and the one that was always true:
     // Sweeping Blow needs a piece, and the opening board has none.
-    expect(slotCanFire(catalog, armed('sweeping_blow'), 0)).toBe(false)
+    expect(slotCanFire(catalog, armed('sweeping_blow'), 'guardian', 0)).toBe(false)
   })
 
   it('leaves it dark out of window, uncharged, or already fired', () => {
-    expect(slotCanFire(catalog, armed('steady_strike', 'slow'), 0)).toBe(false)
+    expect(slotCanFire(catalog, armed('steady_strike', 'slow'), 'guardian', 0)).toBe(false)
     const uncharged = armed('steady_strike')
     uncharged.heroes[uncharged.primaryHeroId].actionBar[0].charges = []
-    expect(slotCanFire(catalog, uncharged, 0)).toBe(false)
+    expect(slotCanFire(catalog, uncharged, uncharged.primaryHeroId, 0)).toBe(false)
     const spent = armed('steady_strike')
     spent.heroes[spent.primaryHeroId].actionBar[0].activatedWindow = 'quick'
-    expect(slotCanFire(catalog, spent, 0)).toBe(false)
+    expect(slotCanFire(catalog, spent, spent.primaryHeroId, 0)).toBe(false)
   })
 })
 
@@ -183,14 +183,14 @@ describe('slot state name', () => {
 
 describe('what an in-hand card would do to a Slot', () => {
   it('answers nothing when the player is holding nothing', () => {
-    expect(slotIncoming(catalog, opening('quick'), slotState({}), 0, null)).toBeNull()
+    expect(slotIncoming(catalog, opening('quick'), 'guardian', slotState({}), 0, null)).toBeNull()
   })
 
   it('prepares into an empty Slot, and charges an occupied one in a player window', () => {
     const state = opening('quick')
     const card = state.heroes[state.primaryHeroId].hand[0].instanceId
-    expect(slotIncoming(catalog, state, slotState({}), 0, card)?.action).toBe('Prepare')
-    expect(slotIncoming(catalog, state, slotState({ topCard: instance('iron_guard', 'top') }), 0, card)?.action).toBe('Charge')
+    expect(slotIncoming(catalog, state, state.primaryHeroId, slotState({}), 0, card)?.action).toBe('Prepare')
+    expect(slotIncoming(catalog, state, state.primaryHeroId, slotState({ topCard: instance('iron_guard', 'top') }), 0, card)?.action).toBe('Charge')
   })
 
   // The Loadout distinction the confirmation modal exists for: a card placed
@@ -201,8 +201,8 @@ describe('what an in-hand card would do to a Slot', () => {
     const card = state.heroes[state.primaryHeroId].hand[0].instanceId
     const tentative = slotState({ topCard: instance('iron_guard', 'top'), placedThisLoadout: true })
     const kept = slotState({ topCard: instance('iron_guard', 'top'), placedThisLoadout: false })
-    expect(slotIncoming(catalog, state, tentative, 0, card)?.action).toBe('Swap')
-    expect(slotIncoming(catalog, state, kept, 0, card)?.action).toBe('Replace')
+    expect(slotIncoming(catalog, state, state.primaryHeroId, tentative, 0, card)?.action).toBe('Swap')
+    expect(slotIncoming(catalog, state, state.primaryHeroId, kept, 0, card)?.action).toBe('Replace')
   })
 
   // Legality is the engine's answer, not the plate's (ADR 0013). Charging
@@ -211,7 +211,7 @@ describe('what an in-hand card would do to a Slot', () => {
   it('takes its legality from the engine', () => {
     const bossRow = opening('instant')
     const card = bossRow.heroes[bossRow.primaryHeroId].hand[0].instanceId
-    expect(slotIncoming(catalog, bossRow, slotState({ topCard: instance('iron_guard', 'top') }), 0, card)?.legal).toBe(false)
+    expect(slotIncoming(catalog, bossRow, bossRow.primaryHeroId, slotState({ topCard: instance('iron_guard', 'top') }), 0, card)?.legal).toBe(false)
   })
 })
 
@@ -256,25 +256,25 @@ describe('what a screen reader is told', () => {
   const state = opening('quick')
 
   it('names an empty Slot by position', () => {
-    const reading = readSlot(catalog, state, slotState({}), 1, null)
+    const reading = readSlot(catalog, state, state.primaryHeroId, slotState({}), 1, null)
     expect(slotLabel(catalog, reading, 1)).toBe('Slot 2: empty')
   })
 
   it('names the card and its state', () => {
-    const reading = readSlot(catalog, state, slotState({ topCard: instance('steady_strike', 'top') }), 0, null)
+    const reading = readSlot(catalog, state, state.primaryHeroId, slotState({ topCard: instance('steady_strike', 'top') }), 0, null)
     expect(slotLabel(catalog, reading, 0)).toBe('Slot 1: Steady Strike, Loaded')
   })
 
   // The want marks are the only thing on the plate with no word beside them,
   // so the label is the one place they are spoken.
   it('speaks the want marks while the Slot can still act on one', () => {
-    const reading = readSlot(catalog, state, slotState({ topCard: instance('iron_guard', 'top') }), 0, null)
+    const reading = readSlot(catalog, state, state.primaryHeroId, slotState({ topCard: instance('iron_guard', 'top') }), 0, null)
     expect(slotLabel(catalog, reading, 0)).toContain('takes Guard cards')
   })
 
   it('says which window a Slot waiting on the other one fires in', () => {
     // fortify fires slow, so it is out of window during Quick.
-    const reading = readSlot(catalog, state, slotState({ topCard: instance('fortify', 'top') }), 0, null)
+    const reading = readSlot(catalog, state, state.primaryHeroId, slotState({ topCard: instance('fortify', 'top') }), 0, null)
     expect(slotLabel(catalog, reading, 0)).toContain('fires in the Slow Window')
   })
 })
@@ -287,7 +287,7 @@ describe('reading a whole Slot', () => {
     // from *this Slot index* is legal (D-073), so a Slot the state does not
     // hold at that index answers for the empty one it does.
     state.heroes[state.primaryHeroId].actionBar[0] = charged
-    const reading = readSlot(catalog, state, charged, 0, null)
+    const reading = readSlot(catalog, state, state.primaryHeroId, charged, 0, null)
     expect(reading.card?.id).toBe('steady_strike')
     expect(reading.chargeCount).toBe(1)
     expect(reading.stateName).toBe('charged')
@@ -299,7 +299,7 @@ describe('reading a whole Slot', () => {
   it('agrees with the predicates it composes', () => {
     const state = opening('slow')
     const quickSlot = slotState({ topCard: instance('steady_strike', 'top') })
-    const reading = readSlot(catalog, state, quickSlot, 0, null)
+    const reading = readSlot(catalog, state, state.primaryHeroId, quickSlot, 0, null)
     expect(reading.outOfWindow).toBe(slotOutOfWindow(catalog, state, quickSlot))
     expect(reading.takesCharge).toBe(slotTakesCharge(catalog, state, quickSlot))
     expect(reading.wanted).toEqual(slotWantedKeywords(catalog, quickSlot))

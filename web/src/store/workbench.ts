@@ -46,6 +46,7 @@ export {
   selectOutcomeReason,
   selectPhase,
   selectPhaseBreakText,
+  selectPilotId,
   selectState,
 } from './selectors'
 export { selectUndoTarget, type FactEntry, type HistoryEntry, type TimelinePosition } from './sessionTimeline'

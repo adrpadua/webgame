@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useCatalog } from '@/content/CatalogContext'
 import type { ContentCatalog, EncounterState } from '@/engine'
 import { usePlayout } from '@/store/playout'
-import { selectState, useWorkbench, type WorkbenchStore } from '@/store/workbench'
+import { selectPilotId, selectState, useWorkbench, type WorkbenchStore } from '@/store/workbench'
 import { blocksTarget } from '../onboarding/firstTurnScript'
 import { AdvanceIcon, PlayIcon, RestartIcon } from '../common/icons'
 import { Modal } from '../common/Modal'
@@ -34,7 +34,8 @@ interface SkipWarning {
 const PLAYER_ACTION_KINDS = new Set(['load_slot', 'charge_slot', 'fire_slot', 'move_hero', 'discard_for_stamina'])
 
 function skipWarning(catalog: ContentCatalog, store: WorkbenchStore, state: EncounterState): SkipWarning | null {
-  const hero = state.heroes[state.primaryHeroId]
+  const pilotId = selectPilotId(store)
+  const hero = state.heroes[pilotId]
   if (!hero) {
     return null
   }
@@ -62,7 +63,7 @@ function skipWarning(catalog: ContentCatalog, store: WorkbenchStore, state: Enco
           fact.succeeded &&
           fact.round === state.round &&
           fact.phase === state.phase &&
-          fact.sourceId === state.primaryHeroId &&
+          fact.sourceId === pilotId &&
           PLAYER_ACTION_KINDS.has(fact.kind),
       ),
     )
@@ -71,7 +72,7 @@ function skipWarning(catalog: ContentCatalog, store: WorkbenchStore, state: Enco
   }
   // ...and is anything still possible? A fireable Slot or any hand card
   // (Charge, or a paid step during the Quick Window) counts.
-  const canFire = hero.actionBar.some((_slot, slotIndex) => slotCanFire(catalog, state, slotIndex))
+  const canFire = hero.actionBar.some((_slot, slotIndex) => slotCanFire(catalog, state, pilotId, slotIndex))
   if (!canFire && hero.hand.length === 0) {
     return null
   }

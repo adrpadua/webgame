@@ -1,6 +1,6 @@
 import { useCatalog } from '@/content/CatalogContext'
 import { fireTargeting } from '@/engine'
-import { selectState, useWorkbench } from '@/store/workbench'
+import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { Notify } from './NotificationLayer'
 import { FOCUS_RING_CLASS } from '../common/theme'
 
@@ -11,10 +11,11 @@ export function TargetingBanner() {
   const cancelTargeting = useWorkbench((store) => store.cancelTargeting)
   const catalog = useCatalog()
   const state = useWorkbench(selectState)
+  const pilotId = useWorkbench(selectPilotId)
   if (targetingSlotIndex === null) {
     return null
   }
-  const targetMode = fireTargeting(catalog, state, state.primaryHeroId, targetingSlotIndex).mode
+  const targetMode = fireTargeting(catalog, state, pilotId, targetingSlotIndex).mode
   // Docked. At its old fixed `top-40` this prompt printed across the advance
   // control, which then sat in the phase strip — the one control the player
   // must not lose while a Top Card waits for its target.

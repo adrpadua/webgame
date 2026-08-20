@@ -253,7 +253,7 @@ const MUTATIONS = [
     name: 'the Action Bar lights a Slot the rules would refuse',
     guards: 'D-073: a plate that stays lit from out of reach asserts a shot the resolver refuses',
     file: 'ui/actionBar/slots.ts',
-    from: "  return legality(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex }).legal",
+    from: "  return legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex }).legal",
     to: '  return true',
   },
   {
@@ -675,6 +675,27 @@ const MUTATIONS = [
     file: 'engine/counters.ts',
     from: '  return action.targetId ? combatantRef(action.targetId) : null',
     to: '  return combatantRef(action.sourceId)',
+  },
+  {
+    name: 'the control cursor is decorative — gestures still act as seat 0',
+    guards: 'Character switching: the consoles operate the pilot the cursor names',
+    file: 'store/selectors.ts',
+    from: "  return cursor !== null && state.heroes[cursor] !== undefined ? cursor : state.primaryHeroId",
+    to: '  return state.primaryHeroId',
+  },
+  {
+    name: 'a stranded cursor pilots a Hero the session does not field',
+    guards: 'Character switching: a session transition falls back to seat 0 rather than stranding control',
+    file: 'store/selectors.ts',
+    from: "  return cursor !== null && state.heroes[cursor] !== undefined ? cursor : state.primaryHeroId",
+    to: '  return cursor !== null ? cursor : state.primaryHeroId',
+  },
+  {
+    name: 'an armed targeting survives a control switch',
+    guards: 'Character switching: nothing dangles — switching drops every in-flight gesture',
+    file: 'store/interactionSlice.ts',
+    from: '      controlledHeroId: heroId,\n      targetingSlotIndex: null,',
+    to: '      controlledHeroId: heroId,\n      targetingSlotIndex: get().targetingSlotIndex,',
   },
   {
     name: 'a Boss Beat marks the wrong side',

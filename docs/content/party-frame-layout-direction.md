@@ -31,6 +31,12 @@ Healthy · Hurt-with-Armor · Holding Threat · Downed · Downed-nearly-gone · 
 | Ember coral | The Threat mark. It names the Boss's attention, not the Hero. |
 | Oathsteel | The ally plate face, dim where the primary's is lit ceramic. |
 
+## The frame is also the switch (the character-switching pass)
+
+Single-player control arrived after the mockups and completes the frame's gesture story: **a tap on a resting ally frame takes control of that Hero** — the whole console (Hand, Action Bar, Hero Frame, board drag) swaps to the pilot, the displaced Hero joins the column, and the camera stays put. The revivable frame keeps its rescue tap: the one legal ally action still outranks the switch, which preserves the 40/44 rule's promise that a frame's grown state means exactly one thing.
+
+The pattern is BG3's portrait click on Spirit Island's structure, per the [party-switching research note](research/2026-08-21-single-player-party-switching-bg3-spirit-island.md): switching drops in-flight gestures and keeps commitments, and the cursor survives undo because the window — not the character — is the commit boundary.
+
 ## Engine mapping (first pass, `web/src/ui/party/partyFrames.ts`)
 
 | Mock element | Engine backing |

@@ -1,5 +1,5 @@
 import { useCatalog } from '@/content/CatalogContext'
-import { selectState, useWorkbench } from '@/store/workbench'
+import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { partyFrames, type PartyFrameModel } from './partyFrames'
 import { GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, FOCUS_RING_CLASS, healthBarScale } from '../common/theme'
 
@@ -65,6 +65,7 @@ function RoleGlyph({ role }: { role: string }) {
 
 function AllyFrame({ frame }: { frame: PartyFrameModel }) {
   const reviveTapped = useWorkbench((store) => store.reviveTapped)
+  const switchControl = useWorkbench((store) => store.switchControl)
   const offering = useWorkbench((store) => store.pendingRevive?.targetId === frame.heroId)
   const down = frame.status !== 'living'
   const scale = healthBarScale(frame.health, frame.maxHealth, frame.armor)
@@ -82,19 +83,23 @@ function AllyFrame({ frame }: { frame: PartyFrameModel }) {
       aria-label={
         frame.revivable
           ? `${frame.name}, Downed. Tap to revive for one card.`
-          : `${frame.name}, ${down ? frame.status : `${frame.health} of ${frame.maxHealth} health`}`
+          : `${frame.name}, ${down ? frame.status : `${frame.health} of ${frame.maxHealth} health`}. Tap to take control.`
       }
       // The 44pt rule: at rest the frame is a 40px readout that swallows no
       // taps; while a rescue is legal the same frame grows its hit box
       // outward with padding into the gap it already owns.
-      className={`wb-plate wb-plate-sm pointer-events-auto flex w-full flex-col items-stretch gap-0.5 py-1 text-left ${FOCUS_RING_CLASS} ${
-        frame.revivable ? 'cursor-pointer' : 'cursor-default'
-      } ${offering ? 'wb-face-pulse' : ''} ${frame.status === 'incapacitated' ? 'opacity-60' : ''}`}
+      className={`wb-plate wb-plate-sm pointer-events-auto flex w-full flex-col items-stretch gap-0.5 py-1 text-left ${FOCUS_RING_CLASS} cursor-pointer ${offering ? 'wb-face-pulse' : ''} ${frame.status === 'incapacitated' ? 'opacity-60' : ''}`}
       style={{ '--wb-face': 'var(--color-steel-950)', '--wb-acc': accent } as React.CSSProperties}
+      // The one legal ally action keeps the frame (direction 1A's rule);
+      // otherwise the frame is the switch — BG3's portrait click, arrived at
+      // through the party-switching research note. Whole-panel swap, shared
+      // board, and deliberately no camera movement.
       onClick={() => {
         if (frame.revivable) {
           reviveTapped(frame.heroId)
+          return
         }
+        switchControl(frame.heroId)
       }}
     >
       <span className="flex min-w-0 items-center gap-1 leading-none">
@@ -157,7 +162,8 @@ function AllyFrame({ frame }: { frame: PartyFrameModel }) {
 export function PartyFrames() {
   const catalog = useCatalog()
   const state = useWorkbench(selectState)
-  const frames = partyFrames(catalog, state)
+  const pilotId = useWorkbench(selectPilotId)
+  const frames = partyFrames(catalog, state, pilotId)
   if (frames.length === 0) {
     return null
   }

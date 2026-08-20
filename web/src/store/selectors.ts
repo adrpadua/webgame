@@ -41,6 +41,18 @@ import type { WorkbenchStore } from './workbench'
 
 export const selectState = (store: TimelinePosition): EncounterState => store.entries[store.index].state
 
+// The pilot: the Hero the consoles operate and the gestures act as (D-087,
+// the character-switching pass). The engine's `primaryHeroId` is seat 0 — the
+// replay identity, the solo-Scenario anchor — and never moves; this cursor is
+// UI state that defaults to it and is guarded against naming a Hero the
+// current Encounter does not field, so a session transition into a solo
+// Encounter simply falls back rather than stranding control.
+export const selectPilotId = (store: WorkbenchStore): string => {
+  const state = selectState(store)
+  const cursor = store.controlledHeroId
+  return cursor !== null && state.heroes[cursor] !== undefined ? cursor : state.primaryHeroId
+}
+
 export const selectPhase = (store: WorkbenchStore): Phase => selectState(store).phase
 export const selectActive = (store: WorkbenchStore): boolean => selectState(store).active
 export const selectOutcome = (store: WorkbenchStore): Outcome => selectState(store).outcome

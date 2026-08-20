@@ -36,6 +36,10 @@ const LABEL_DEPTH = 2
 // what it is handed and reports hex-level intents upward (ADR 0019).
 export interface BoardSnapshot {
   state: EncounterState
+  // The Hero the player is piloting (the control cursor): the one whose tile
+  // a press-and-drag moves, and whose routes the preview lights. Seat 0 when
+  // no switch has happened.
+  pilotId: string
   // Rules-derived target centers and the burst footprint for the center
   // currently under the pointer. The scene paints these but never decides
   // which hexes an action may name (ADR 0019).
@@ -259,7 +263,7 @@ export class BoardScene extends Phaser.Scene {
     this.flameLayer = this.add.graphics().setDepth(FLAME_DEPTH)
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       const coords = pixelToAxial(pointer.x, pointer.y)
-      const heroCoords = this.snapshot ? this.snapshot.state.board.entities[this.snapshot.state.primaryHeroId]?.coords : undefined
+      const heroCoords = this.snapshot ? this.snapshot.state.board.entities[this.snapshot.pilotId]?.coords : undefined
       if (heroCoords && heroCoords.q === coords.q && heroCoords.r === coords.r) {
         // A press on the Hero is not yet a tap: it becomes one on release at
         // the same hex, and a move on release anywhere else. Reporting the

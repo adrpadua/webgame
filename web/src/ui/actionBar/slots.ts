@@ -13,8 +13,8 @@ import type { WorkbenchCatalog } from '@/store/workbench'
 // Steady Strike could always fire — there was no board position that refused
 // it. Now there is, and a plate that stayed lit from out of reach would be
 // asserting a move the rules deny.
-export function slotCanFire(catalog: WorkbenchCatalog, state: EncounterState, slotIndex: number): boolean {
-  const slot = state.heroes[state.primaryHeroId]?.actionBar[slotIndex]
+export function slotCanFire(catalog: WorkbenchCatalog, state: EncounterState, heroId: string, slotIndex: number): boolean {
+  const slot = state.heroes[heroId]?.actionBar[slotIndex]
   if (!state.active || !slot || slot.topCard === null || slotChargeCount(slot) === 0 || slot.activatedWindow !== null) {
     return false
   }
@@ -24,14 +24,14 @@ export function slotCanFire(catalog: WorkbenchCatalog, state: EncounterState, sl
   // A card that selects something can fire if anything legal is selectable;
   // one that selects nothing is asked directly. Both questions are the
   // engine's, so the bar and the resolver cannot drift apart.
-  const targeting = fireTargeting(catalog, state, state.primaryHeroId, slotIndex)
+  const targeting = fireTargeting(catalog, state, heroId, slotIndex)
   if (targeting.mode === 'piece') {
     return targeting.legalTargetIds.length > 0
   }
   if (targeting.mode === 'hex') {
     return targeting.legalHexes.length > 0
   }
-  return legality(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex }).legal
+  return legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex }).legal
 }
 
 // The Keywords this Slot's Top Card is hunting for: every Keyword its Charge
@@ -156,6 +156,7 @@ export interface SlotIncoming {
 export function slotIncoming(
   catalog: WorkbenchCatalog,
   state: EncounterState,
+  heroId: string,
   slot: SlotState,
   slotIndex: number,
   incomingCardId: string | null,
@@ -167,7 +168,7 @@ export function slotIncoming(
     slot.topCard === null ? 'Prepare' : state.phase === 'loadout' ? (slot.placedThisLoadout ? 'Swap' : 'Replace') : 'Charge'
   const legal = legality(catalog, state, {
     kind: action === 'Charge' ? 'charge_slot' : 'load_slot',
-    sourceId: state.primaryHeroId,
+    sourceId: heroId,
     slotIndex,
     cardInstanceId: incomingCardId,
   }).legal
@@ -234,6 +235,7 @@ export interface SlotReading {
 export function readSlot(
   catalog: WorkbenchCatalog,
   state: EncounterState,
+  heroId: string,
   slot: SlotState,
   slotIndex: number,
   incomingCardId: string | null,
@@ -241,9 +243,9 @@ export function readSlot(
   const card = slot.topCard ? catalog.cards[slot.topCard.cardId] : null
   const chargeCap = card ? cardChargeCap(card) : 0
   const stateName = slotStateName(slot, chargeCap)
-  const canFire = slotCanFire(catalog, state, slotIndex)
+  const canFire = slotCanFire(catalog, state, heroId, slotIndex)
   const outOfWindow = slotOutOfWindow(catalog, state, slot)
-  const incoming = slotIncoming(catalog, state, slot, slotIndex, incomingCardId)
+  const incoming = slotIncoming(catalog, state, heroId, slot, slotIndex, incomingCardId)
   return {
     card,
     chargeCap,

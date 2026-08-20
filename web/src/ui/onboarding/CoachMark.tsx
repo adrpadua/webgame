@@ -35,7 +35,7 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | nul
     return null
   }
   const loadedSlots = hero.actionBar.filter((slot) => slot.topCard !== null)
-  const fireable = hero.actionBar.some((_slot, slotIndex) => slotCanFire(catalog, state, slotIndex))
+  const fireable = hero.actionBar.some((_slot, slotIndex) => slotCanFire(catalog, state, state.primaryHeroId, slotIndex))
   const chargeable = hero.actionBar.some(
     (slot) => slot.topCard !== null && slot.activatedWindow === null && slot.charges.length < cardChargeCap(catalog.cards[slot.topCard.cardId]),
   )

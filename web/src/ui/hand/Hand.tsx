@@ -1,6 +1,6 @@
 import { useCatalog } from '@/content/CatalogContext'
 import { cardChargeCap, cardWindowSpeed, type Card } from '@/engine'
-import { selectState, useWorkbench } from '@/store/workbench'
+import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { blocksTarget } from '../onboarding/firstTurnScript'
 import { useFirstTurnStep } from '../onboarding/useFirstTurn'
 import { handCanAct } from '../actionBar/slots'
@@ -133,7 +133,7 @@ function CompactCard({
   const reviving = useWorkbench((store) => store.pendingRevive !== null)
   const selected = useWorkbench((store) => store.selectedCardId === instanceId)
   const dragging = useWorkbench((store) => store.draggingCardId === instanceId)
-  const heroId = useWorkbench((store) => selectState(store).primaryHeroId)
+  const heroId = useWorkbench(selectPilotId)
   const card = catalog.cards[cardId]
   const hold = useHold(cardDetail(card, 'hand', offering ? (reviving ? 'Tap it to spend it on the rescue.' : 'Tap it to spend it on the step.') : 'Drop it on a Slot to prepare or charge it.'))
   // With nothing dragged or selected — the Hero is being held instead — no
@@ -228,7 +228,8 @@ export function Hand() {
   // A move dragged from the Hero is waiting on the card that pays for it.
   // The whole Hand is that answer, so the row takes over as the prompt.
   const offering = useWorkbench((store) => store.pendingMove !== null || store.pendingRevive !== null)
-  const hero = state.heroes[state.primaryHeroId]
+  const pilotId = useWorkbench(selectPilotId)
+  const hero = state.heroes[pilotId]
   if (!hero) {
     return null
   }
@@ -249,8 +250,8 @@ export function Hand() {
   // it and wears the offer as chrome over the top. The Stamina face belongs
   // to the step before: a move being lined up, nothing committed, where the
   // question is only whether there is a step to spend at all.
-  const face = handFace(state, movePrepped(state, { hoveredHexKey, draggingCardId, selectedCardId, heroRoutePreview }))
-  const liveKeywords = payingKeywords(catalog, state)
+  const face = handFace(state, movePrepped(state, pilotId, { hoveredHexKey, draggingCardId, selectedCardId, heroRoutePreview }))
+  const liveKeywords = payingKeywords(catalog, state, pilotId)
   // A Compact Card keeps one width — its share of a full Hand — whether
   // five cards remain or one. Cards that stretched to fill the row stopped
   // reading as cards; a thinning Hand stays centered, with the freed space

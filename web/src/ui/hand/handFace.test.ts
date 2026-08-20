@@ -60,39 +60,39 @@ describe('hand face', () => {
 describe('move prep', () => {
   it('reads a dragged card held over an adjacent legal hex', () => {
     const state = opening('quick')
-    expect(movePrepped(state, { ...NO_GESTURE, hoveredHexKey: adjacentHexKey(state), draggingCardId: 'card-1' })).toBe(true)
+    expect(movePrepped(state, state.primaryHeroId, { ...NO_GESTURE, hoveredHexKey: adjacentHexKey(state), draggingCardId: 'card-1' })).toBe(true)
   })
 
   it('reads a selected card, and the Hero held for a route preview', () => {
     const state = opening('quick')
     const hoveredHexKey = adjacentHexKey(state)
-    expect(movePrepped(state, { ...NO_GESTURE, hoveredHexKey, selectedCardId: 'card-1' })).toBe(true)
-    expect(movePrepped(state, { ...NO_GESTURE, hoveredHexKey, heroRoutePreview: true })).toBe(true)
+    expect(movePrepped(state, state.primaryHeroId, { ...NO_GESTURE, hoveredHexKey, selectedCardId: 'card-1' })).toBe(true)
+    expect(movePrepped(state, state.primaryHeroId, { ...NO_GESTURE, hoveredHexKey, heroRoutePreview: true })).toBe(true)
   })
 
   it('needs a hex that is hovered, adjacent, and legal', () => {
     const state = opening('quick')
     const hero = state.board.entities[state.primaryHeroId]
-    expect(movePrepped(state, { ...NO_GESTURE, draggingCardId: 'card-1' })).toBe(false)
+    expect(movePrepped(state, state.primaryHeroId, { ...NO_GESTURE, draggingCardId: 'card-1' })).toBe(false)
     // The Hero's own tile: a legal move of zero length is still not a move.
-    expect(movePrepped(state, { ...NO_GESTURE, hoveredHexKey: hexKey(hero.coords), draggingCardId: 'card-1' })).toBe(false)
+    expect(movePrepped(state, state.primaryHeroId, { ...NO_GESTURE, hoveredHexKey: hexKey(hero.coords), draggingCardId: 'card-1' })).toBe(false)
     // Two hexes out, and off the board entirely.
-    expect(movePrepped(state, { ...NO_GESTURE, hoveredHexKey: hexKey({ q: hero.coords.q - 2, r: hero.coords.r }), draggingCardId: 'card-1' })).toBe(false)
-    expect(movePrepped(state, { ...NO_GESTURE, hoveredHexKey: '9,9', draggingCardId: 'card-1' })).toBe(false)
+    expect(movePrepped(state, state.primaryHeroId, { ...NO_GESTURE, hoveredHexKey: hexKey({ q: hero.coords.q - 2, r: hero.coords.r }), draggingCardId: 'card-1' })).toBe(false)
+    expect(movePrepped(state, state.primaryHeroId, { ...NO_GESTURE, hoveredHexKey: '9,9', draggingCardId: 'card-1' })).toBe(false)
   })
 
   it('never reads a move outside the one window movement is legal in', () => {
     const state = opening('slow')
     const gesture = { ...NO_GESTURE, hoveredHexKey: adjacentHexKey(state), draggingCardId: 'card-1' }
-    expect(movePrepped(state, gesture)).toBe(false)
+    expect(movePrepped(state, state.primaryHeroId, gesture)).toBe(false)
     // Slow wears the Keyword face, and no gesture over the board changes it:
     // there is nothing to spend Stamina on until the next Quick Window.
-    expect(handFace(state, movePrepped(state, gesture))).toBe('keywords')
+    expect(handFace(state, movePrepped(state, state.primaryHeroId, gesture))).toBe('keywords')
   })
 
   it('lines up nothing with an empty gesture', () => {
     const state = opening('quick')
-    expect(movePrepped(state, { ...NO_GESTURE, hoveredHexKey: adjacentHexKey(state) })).toBe(false)
+    expect(movePrepped(state, state.primaryHeroId, { ...NO_GESTURE, hoveredHexKey: adjacentHexKey(state) })).toBe(false)
   })
 })
 
@@ -121,14 +121,14 @@ describe('paying keywords', () => {
   it('names the Keywords a loaded Top Card would pay off', () => {
     // Iron Guard: "Gain 1 Armor for each charged Guard card."
     const state = withSlot(opening('quick'), { topCard: instance('iron_guard', 'top') })
-    expect([...payingKeywords(catalog, state)]).toEqual(['guard'])
+    expect([...payingKeywords(catalog, state, state.primaryHeroId)]).toEqual(['guard'])
   })
 
   it('names none for a modifier that counts every charge alike', () => {
     // Steady Strike pays for the Charge itself, whatever Keyword brought it,
     // so no card in hand is the better one to tuck.
     const state = withSlot(opening('quick'), { topCard: instance('steady_strike', 'top') })
-    expect(payingKeywords(catalog, state).size).toBe(0)
+    expect(payingKeywords(catalog, state, state.primaryHeroId).size).toBe(0)
   })
 
   it('stays quiet for a Slot that cannot take the card', () => {
@@ -136,12 +136,12 @@ describe('paying keywords', () => {
       topCard: instance('iron_guard', 'top'),
       charges: [instance('steady_strike', 'a'), instance('steady_strike', 'b'), instance('steady_strike', 'c')],
     })
-    expect(payingKeywords(catalog, full).size).toBe(0)
+    expect(payingKeywords(catalog, full, full.primaryHeroId).size).toBe(0)
     const fired = withSlot(opening('quick'), { topCard: instance('iron_guard', 'top'), activatedWindow: 'quick' })
-    expect(payingKeywords(catalog, fired).size).toBe(0)
+    expect(payingKeywords(catalog, fired, fired.primaryHeroId).size).toBe(0)
   })
 
   it('stays quiet with no Top Card anywhere', () => {
-    expect(payingKeywords(catalog, opening('quick')).size).toBe(0)
+    expect(payingKeywords(catalog, opening('quick'), 'guardian').size).toBe(0)
   })
 })
