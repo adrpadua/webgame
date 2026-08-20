@@ -87,8 +87,8 @@ export function EntityInspect() {
         </span>
         <EnemyGauge entity={entity} testId={isBoss ? 'boss-health' : undefined} detail={bossDetail} />
         {/* A Boss or a Minion carries its afflictions on the same panel the
-            Hero Frame carries the Hero's boons on: one readout per piece, in
-            the same Status Icons. */}
+            Hero Frame carries the Hero's boons on: one readout per piece, and
+            the same Status Icon tray on both. */}
         <StatusIcons entityId={entity.id} />
         <button
           type="button"

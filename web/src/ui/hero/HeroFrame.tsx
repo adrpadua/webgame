@@ -23,8 +23,9 @@ import { FOCUS_RING_CLASS, GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, GAUGE_TRACK_CLAS
 // 44px tap target, so a stack of four interactive rows would be 176px of
 // chrome over a board that has 95px to spare below its last hex row. One
 // target over the stack costs 58px and still carries the sentences a hold is
-// for. The Counter chips stay their own controls beside the frame, where an
-// MMO puts buffs, because each one explains a different authored rule.
+// for. The Status Icons beside the frame answer the same constraint the same
+// way (D-088): one tray, one target, and a popup that names every Counter in
+// it, rather than 44px of chrome per mark.
 //
 // The Signature is a separate control (`SignatureButton`), on screen only
 // while it can fire. The frame's resource bar and that button are two faces
@@ -235,10 +236,10 @@ export function HeroFrame() {
         </span>
       </button>
       {/* Counters sit beside the frame, where an MMO puts its buffs: they are
-          the Hero's state, but each is its own authored rule and so its own
-          control, which a single frame-wide hold target cannot contain. As
-          Status Icons rather than named chips, because the row has to hold
-          three of them beside a 208px frame. */}
+          the Hero's state, but each is its own authored rule, which a hold on
+          the frame's own numbers cannot explain. The tray is their readout and
+          their hold target both — packed at the density the direction drew,
+          because the row has to hold three of them beside a 208px frame. */}
       <StatusIcons entityId={heroId} />
       <SignatureButton />
     </div>

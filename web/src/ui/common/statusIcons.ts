@@ -52,10 +52,20 @@ export function statusMark(counterId: string): StatusMark {
   return MARKS[counterId] ?? NEUTRAL_MARK
 }
 
-// The one-line reading of a Counter's state, used as the icon's accessible
-// name and its title: the square carries the glyph, and this carries what the
-// glyph cannot — which Counter it is, how many are held, how long it lasts.
+// The one-line reading of a Counter's state, used as the tray's accessible
+// name: the squares carry the glyphs, and this carries what a glyph cannot —
+// which Counter it is, how many are held, how long it lasts.
 export function statusLabel(title: string, count: number, remainingRounds: number): string {
   const held = count > 1 ? `${title}, ${count} held` : title
   return remainingRounds > 0 ? `${held}, ${remainingRounds} round${remainingRounds === 1 ? '' : 's'} left` : held
+}
+
+// The same two numbers as a figure, for a list row beside the square that is
+// already drawing them: `×2 · 1r`. Empty for the quiet case — one held,
+// no clock — because a row that prints `×1` for every unstacked Counter
+// teaches the reader to stop looking at the column.
+export function statusFigure(count: number, remainingRounds: number): string {
+  const held = count > 1 ? `×${count}` : ''
+  const clock = remainingRounds > 0 ? `${remainingRounds}r` : ''
+  return [held, clock].filter((part) => part !== '').join(' · ')
 }

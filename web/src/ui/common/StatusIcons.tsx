@@ -1,11 +1,11 @@
 import { useCatalog } from '@/content/CatalogContext'
 import { combatantRef, getCounters, type CounterInstance } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
-import { useHold } from './HoldPopover'
-import { statusLabel, statusMark, type StatusGlyph, type StatusMark, type StatusMaterial } from './statusIcons'
+import { useHold, type HoldDetail } from './HoldPopover'
+import { statusFigure, statusLabel, statusMark, type StatusGlyph, type StatusMark, type StatusMaterial } from './statusIcons'
 import { FOCUS_RING_CLASS } from './theme'
 
-// The Status Icon (D-087, party-frame direction 1A): a Counter as a raked square
+// The Status Icon (D-088, party-frame direction 1A): a Counter as a raked square
 // rather than a word. It replaced the Counter chip, which spelled its title
 // across a 74px plate — `SEARED` beside the Hero Frame took the width two
 // Counters need, and a third one had nowhere to go on a 390pt surface.
@@ -90,11 +90,13 @@ export function StatusIcon({
   count,
   remainingRounds,
   durationRounds,
+  counterId,
 }: {
   mark: StatusMark
   count: number
   remainingRounds: number
   durationRounds: number
+  counterId?: string
 }) {
   const material = MATERIAL_COLOR[mark.material]
   const stacked = count > 1
@@ -113,6 +115,8 @@ export function StatusIcon({
           '--wb-gutter': '3px',
         } as React.CSSProperties
       }
+      data-testid="status-icon"
+      data-counter={counterId}
       data-material={mark.material}
       data-glyph={mark.glyph}
     >
@@ -145,73 +149,132 @@ export function StatusIcon({
   )
 }
 
-// One control per live Counter, on whichever piece is holding it. Shared by
-// the Hero Frame and the (Enemy-only) Stat Panel: the mechanism is two-sided
-// (D-032), so one component renders a piece's Counters wherever that piece's
-// readout lives. The popup quotes the authored rules text when the Counter
-// came from `data/counters/`, and falls back to the trigger reason for
-// engine-built ones.
-function StatusControl({
-  counter,
-  rulesText,
-  durationRounds,
-}: {
+interface StatusEntry {
   counter: CounterInstance
   rulesText: string
   durationRounds: number
-}) {
-  const stats = [{ label: 'Held', value: String(counter.count) }]
-  if (counter.remainingRounds > 0) {
-    stats.push({ label: 'Rounds left', value: String(counter.remainingRounds) })
+}
+
+// The tray's Detail Popup. One Counter reads exactly as it always has — the
+// title, its numbers, its authored text. Several read as a list, one row per
+// Counter, each row led by the same square that is standing in the tray: the
+// mark is what the player has to learn, so the popup teaches it beside the
+// name rather than restating the name alone.
+//
+// The list rides `diagram` rather than `stats` because a stat row is a label
+// and a number, and what a Counter owes here is a sentence attributed to a
+// mark. Attribution is the whole job: three Counters' rules texts run
+// together in one paragraph say nothing about which rule belongs to which
+// square.
+function statusDetail(entries: StatusEntry[]): HoldDetail | null {
+  if (entries.length === 0) {
+    return null
   }
-  const hold = useHold({
-    id: `counter:${counter.id}`,
-    title: counter.title,
-    badge: 'Counter',
+  if (entries.length === 1) {
+    const [entry] = entries
+    const stats = [{ label: 'Held', value: String(entry.counter.count) }]
+    if (entry.counter.remainingRounds > 0) {
+      stats.push({ label: 'Rounds left', value: String(entry.counter.remainingRounds) })
+    }
+    return {
+      id: `counter:${entry.counter.id}`,
+      title: entry.counter.title,
+      badge: 'Counter',
+      tone: 'guard',
+      stats,
+      text: entry.rulesText,
+    }
+  }
+  // Past three, the list drops to a roll call — mark, name, numbers. The
+  // popup is a fixed-width plate anchored to the tray with nothing to scroll
+  // it (it takes no pointer events, by design), so a tall enough list walks
+  // off the top of the screen and takes the rows the player needed with it. A
+  // roll call of eight still fits; eight paragraphs never would.
+  const roll = entries.length > 3
+  return {
+    // Keyed by the whole set, so gaining or losing one Counter mid-hold
+    // replaces the popup rather than leaving a stale row on screen.
+    id: `counters:${entries.map((entry) => entry.counter.id).join('+')}`,
+    title: 'Conditions',
+    badge: `×${entries.length}`,
     tone: 'guard',
-    stats,
-    text: rulesText,
-  })
-  const label = statusLabel(counter.title, counter.count, counter.remainingRounds)
+    diagram: (
+      <div className={`flex flex-col ${roll ? 'gap-1' : 'gap-2'}`}>
+        {entries.map((entry) => (
+          <div key={entry.counter.id} className="flex items-start gap-2">
+            <StatusIcon
+              mark={statusMark(entry.counter.id)}
+              count={entry.counter.count}
+              remainingRounds={entry.counter.remainingRounds}
+              durationRounds={entry.durationRounds}
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[11px] font-semibold text-ceramic-200">{entry.counter.title}</span>
+                <span className="shrink-0 text-[10px] font-semibold text-steel-400">{statusFigure(entry.counter.count, entry.counter.remainingRounds)}</span>
+              </div>
+              {!roll && <p className="text-[10px] leading-relaxed text-ceramic-300">{entry.rulesText}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+    ),
+  }
+}
+
+// The tray: every live Counter a piece is holding, in one control, on
+// whichever readout that piece owns. Shared by the Hero Frame and the
+// (Enemy-only) Stat Panel — the mechanism is two-sided (D-032), so one
+// component renders a piece's Counters wherever its readout lives.
+//
+// One control rather than one per Counter, which is the Hero Frame's own
+// resolution to the 44pt rule applied a second time: a tray of four Counters
+// as four targets is 176px of chrome beside a 208px frame on a 390pt surface,
+// so the squares pack at the density they were drawn at and the tray as a
+// whole takes the press. The popup then has to carry every Counter's rules
+// text rather than one, which is what `statusDetail` is for.
+//
+// The rows wrap upward when the row runs out of width, because this sits in
+// an `items-end` row above the Action Bar: a fourth Counter grows the tray
+// into the board's spare height instead of pushing the Signature button off
+// the surface.
+export function StatusIcons({ entityId }: { entityId: string }) {
+  const state = useWorkbench(selectState)
+  const catalog = useCatalog()
+  const entries: StatusEntry[] = getCounters(state, combatantRef(entityId)).map((counter) => ({
+    counter,
+    rulesText: catalog.counters[counter.id]?.rules_text ?? counter.triggerReason,
+    durationRounds: catalog.counters[counter.id]?.duration_rounds ?? counter.remainingRounds,
+  }))
+  const hold = useHold(statusDetail(entries))
+  if (entries.length === 0) {
+    return null
+  }
   return (
     <button
       type="button"
       {...hold.holdProps}
-      data-testid="status-icon"
-      data-counter={counter.id}
+      data-testid="status-tray"
+      data-counters={entries.length}
       // No `title`: this control already answers a hover with the Detail
       // Popup, and a native tooltip racing it is two readouts for one gesture.
-      aria-label={label}
-      // The square is 28px and the target is 44px: the icon is what the
-      // player reads and the padding around it is what the finger gets, which
-      // is how a buff tray stays a tray without breaking the 44pt rule. The
-      // control is explicitly pointer-enabled because the Hero Frame's row is
-      // a pass-through layer over the board.
-      className={`pointer-events-auto flex min-h-11 min-w-11 shrink-0 items-center justify-center ${FOCUS_RING_CLASS}`}
+      aria-label={entries.map((entry) => statusLabel(entry.counter.title, entry.counter.count, entry.counter.remainingRounds)).join(', ')}
+      // The squares are 28px and the target is 44px: the block padding is what
+      // buys the tap target, so the tray keeps the density it was drawn at
+      // while the finger gets its 44pt. Pointer events are opted back in
+      // because the Hero Frame's row is a pass-through layer over the board.
+      className={`pointer-events-auto flex min-h-11 min-w-11 flex-wrap content-center items-center justify-start gap-1 py-2 ${FOCUS_RING_CLASS}`}
     >
-      <StatusIcon
-        mark={statusMark(counter.id)}
-        count={counter.count}
-        remainingRounds={counter.remainingRounds}
-        durationRounds={durationRounds}
-      />
-    </button>
-  )
-}
-
-export function StatusIcons({ entityId }: { entityId: string }) {
-  const state = useWorkbench(selectState)
-  const catalog = useCatalog()
-  return (
-    <>
-      {getCounters(state, combatantRef(entityId)).map((counter) => (
-        <StatusControl
-          key={counter.id}
-          counter={counter}
-          rulesText={catalog.counters[counter.id]?.rules_text ?? counter.triggerReason}
-          durationRounds={catalog.counters[counter.id]?.duration_rounds ?? counter.remainingRounds}
+      {entries.map((entry) => (
+        <StatusIcon
+          key={entry.counter.id}
+          counterId={entry.counter.id}
+          mark={statusMark(entry.counter.id)}
+          count={entry.counter.count}
+          remainingRounds={entry.counter.remainingRounds}
+          durationRounds={entry.durationRounds}
         />
       ))}
-    </>
+    </button>
   )
 }
