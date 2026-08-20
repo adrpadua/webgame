@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { EncounterState } from '@/engine'
-import { catalog } from '@/store/catalog'
+import { useCatalog } from '@/content/CatalogContext'
+import type { ContentCatalog, EncounterState } from '@/engine'
 import { usePlayout } from '@/store/playout'
 import { selectState, useWorkbench, type WorkbenchStore } from '@/store/workbench'
 import { blocksTarget } from '../onboarding/firstTurnScript'
@@ -33,7 +33,7 @@ interface SkipWarning {
 
 const PLAYER_ACTION_KINDS = new Set(['load_slot', 'charge_slot', 'fire_slot', 'move_hero', 'discard_for_stamina'])
 
-function skipWarning(store: WorkbenchStore, state: EncounterState): SkipWarning | null {
+function skipWarning(catalog: ContentCatalog, store: WorkbenchStore, state: EncounterState): SkipWarning | null {
   const hero = state.heroes[state.primaryHeroId]
   if (!hero) {
     return null
@@ -85,6 +85,7 @@ function skipWarning(store: WorkbenchStore, state: EncounterState): SkipWarning 
 }
 
 export function AdvanceControl() {
+  const catalog = useCatalog()
   const state = useWorkbench(selectState)
   const advance = useWorkbench((store) => store.advance)
   const restart = useWorkbench((store) => store.restart)
@@ -125,7 +126,7 @@ export function AdvanceControl() {
       return
     }
     if (step === null && state.active) {
-      const warning = skipWarning(useWorkbench.getState(), state)
+      const warning = skipWarning(catalog, useWorkbench.getState(), state)
       if (warning) {
         setPendingSkip(warning)
         return
