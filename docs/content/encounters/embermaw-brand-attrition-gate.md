@@ -1,6 +1,6 @@
 # Embermaw: The Brand - Attrition Gate
 
-Status: authored and passing its gate test. This Encounter exists to prove a problem, not to be fun yet. It is the prerequisite the Restorative Archetype is authored against (D-079).
+Status: the gate has flipped (D-083). Maren Tallis holds the second seat, and the two tests that proved no card could answer the mark now prove the answer exists and is hers alone. The Encounter is the Restorative's proving ground; the no-healer-clear *measurement* — a played line on this Encounter — is still owed.
 
 ## Why This Exists Before The Healer
 
@@ -67,10 +67,10 @@ Tests 6 and 7 are the ones that will start failing when the Restorative's cleans
 
 ## What This Does Not Yet Prove
 
-The gate is structural — it proves no card *can* remove the mark. It does not yet prove that a one-seat Party actually fails to clear inside the 8-Round limit. That is the no-healer-clear measurement, and it wants a played line the way `embermaw_solo_ceiling` is a played line. It is recorded as outstanding evidence on D-079.
+The gate is structural — it proves no card *can* remove the mark. It does not yet prove that a one-seat Party actually fails to clear inside the 8-Round limit. That is the no-healer-clear measurement, and it wants a played line the way `embermaw_solo_ceiling` is a played line. It is recorded as outstanding evidence on D-082, and stays owed now that the Party can answer the mark (D-083): the line to play is the two-seat clear.
 
 ## Related
 
-- [../design-decision-log.md](../design-decision-log.md) — D-079
+- [../design-decision-log.md](../design-decision-log.md) — D-082
 - [embermaw-ashen-trial-design.md](embermaw-ashen-trial-design.md) — the Boss's language, unchanged by this Encounter
 - [../research/2026-08-20-healer-support-taxonomies-mmo-hero-shooter.md](../research/2026-08-20-healer-support-taxonomies-mmo-hero-shooter.md) — the taxonomy work that named residual attrition as the Healer's justification

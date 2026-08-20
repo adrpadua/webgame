@@ -18,11 +18,19 @@ export const RAID_HIT = 'raid_hit'
 // a renamed `tank.json` would take that mark away with no load error and no
 // failing test — the mark would simply stop appearing.
 export const TANK = 'tank'
+// The overflow conversion carrier (D-080): a heal card carrying this trait
+// converts healing beyond what its ally can hold into Boss damage, capped at
+// the card's printed healing. Named here because the conversion is one engine
+// rule reading one Keyword — the same shape as the two damage Keywords — and
+// a renamed `overflow.json` would silently turn the Restorative's whole
+// damage game off.
+export const OVERFLOW = 'overflow'
 
 export const ENGINE_KEYWORDS: { id: string; kind: KeywordKind }[] = [
   { id: TANK_HIT, kind: 'damage_type' },
   { id: RAID_HIT, kind: 'damage_type' },
   { id: TANK, kind: 'role' },
+  { id: OVERFLOW, kind: 'trait' },
 ]
 
 // Which kinds each authored reference accepts. A reference is a join into the

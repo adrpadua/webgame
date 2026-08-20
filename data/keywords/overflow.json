@@ -1,0 +1,6 @@
+{
+  "id": "overflow",
+  "title": "Overflow",
+  "kind": "trait",
+  "rules_text": "Healing beyond what the ally can hold converts one-to-one into Boss damage, capped at the card's printed healing."
+}

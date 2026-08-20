@@ -1,6 +1,6 @@
 # Maren Tallis: Restorative Healer
 
-Status: character design adopted (D-080), decks not yet authored. This document defines content intent and rules contracts against the authored attrition gate (D-079). It does not authorize UI-only behavior or unsupported card text.
+Status: character design adopted (D-080) and implemented — Maren, her Signature, and the twenty-card deck are authored content, and `embermaw_attrition_trial` seats her (D-083). This document defines content intent and rules contracts against the authored attrition gate (D-082). It does not authorize UI-only behavior or unsupported card text.
 
 ## Character Promise
 
@@ -82,7 +82,7 @@ Card authoring is the next step after this document and follows [../../rules/pla
 1. **The `overflow` rule** — the one new engine mechanic: healing routed to an ally at or above `maxHealth`, on a card carrying the Keyword, deals the surplus (capped at printed healing) as Boss damage and stamps `effect_landed`. Everything else she does is expressible today.
 2. **Verify `spend` on an ally target** — Q11's risk: `on: "target"` predates ally targeting. A test must prove it reads the chosen ally, not the caster, with a mutation entry if it does not.
 3. **The Signature cover effect** — a pre-emptive per-Hero conversion of the next incoming blow. Closest existing shape is the Counter system; whether it is a Counter or a new Hero flag is an engineering choice, not a design one.
-4. **The second seat** — `embermaw_attrition_trial` adds `maren` to its `party` when she is authored, which is the moment the D-079 gate tests flip from proving the problem to proving the answer.
+4. **The second seat** — `embermaw_attrition_trial` adds `maren` to its `party` when she is authored, which is the moment the D-082 gate tests flip from proving the problem to proving the answer.
 
 ## Playtest Scorecard
 

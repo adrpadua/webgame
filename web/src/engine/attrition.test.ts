@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { loadCatalog } from '@/content'
 import {
   advancePhase,
+  buildCatalog,
   combatantRef,
   counterCount,
   createEncounterState,
@@ -126,33 +127,231 @@ describe('the residual-attrition problem (Restorative gate)', () => {
     expect(markCount(hit.state)).toBe(1)
   })
 
-  // The gate itself. Everything above proves the problem is real; this proves
-  // the authored Party cannot answer it — which is the reason to author a
-  // Healer rather than to tune the Tank.
-  it('has no answer in the Encounter as authored', () => {
+  // The gate, flipped (D-080). These two tests spent their first life
+  // proving no card could answer the mark — that failure was the reason to
+  // author a Healer. Maren's cleansing card exists now, so they prove the
+  // other half: the answer exists, it is hers, and it is the only one.
+  it("has its answer in Maren's seat, and nowhere else", () => {
     const encounter = catalog.encounters[ENCOUNTER]
-    const authored = encounter.party.flatMap((seat) => (seat.deck.length > 0 ? seat.deck : encounter.player_deck))
-    expect(authored.length).toBeGreaterThan(0)
-    const removers = authored
-      .map((entry) => catalog.cards[entry.card])
-      .filter((card) => card.reads.some((reader) => reader.verb === 'spend' && reader.counter === MARK))
-    expect(removers).toEqual([])
-    // And no Hero's Signature removes it either: a fixed card is not in the
-    // deck, so the check above cannot see it.
-    for (const seat of encounter.party) {
-      const signature = catalog.cards[catalog.heroes[seat.hero].signature_card]
-      expect(signature?.reads.some((reader) => reader.verb === 'spend' && reader.counter === MARK) ?? false).toBe(false)
-    }
+    const removers = encounter.party.flatMap((seat) =>
+      (seat.deck.length > 0 ? seat.deck : encounter.player_deck)
+        .map((entry) => catalog.cards[entry.card])
+        .filter((card) => card.reads.some((reader) => reader.verb === 'spend' && reader.counter === MARK))
+        .map((card) => ({ seat: seat.hero, card: card.id })),
+    )
+    expect(removers.length).toBeGreaterThan(0)
+    expect(removers.every((remover) => remover.seat === 'maren')).toBe(true)
   })
 
-  it('declares the answer it does not have', () => {
-    // The Beat says how it is meant to be answered, and the answer Keyword it
-    // names is one no authored card carries yet. That mismatch is the backlog
-    // item, stated in content rather than in a comment.
+  it('is answered by the Role the Beat names', () => {
+    // The Beat's `cleanse` answer tag now has carriers, and every carrier is
+    // a Healer card — the Role owns the answer (D-025's superiority), which
+    // is what the no-healer-clear principle asks the content to state.
     expect(markBeat().answer_tags).toContain('cleanse')
     const carriers = Object.values(catalog.cards).filter((card) =>
       card.reads.some((reader) => reader.verb === 'spend' && reader.counter === MARK),
     )
-    expect(carriers).toEqual([])
+    expect(carriers.length).toBeGreaterThan(0)
+    expect(carriers.every((card) => card.tags.includes('healer'))).toBe(true)
+  })
+})
+
+// The Restorative's machine (D-080), proved against the real catalog on the
+// same Encounter the gate lives in: Maren's cards are the content under test,
+// not stand-ins, so a retuned number here fails here.
+describe("Maren's loop (D-080)", () => {
+  // A ready Slot holding one of Maren's cards, fired through the ordinary
+  // resolution path so legality and the fire resolve together.
+  function marenFires(state: EncounterState, cardId: string, targetId?: string, targetHex?: { q: number; r: number }) {
+    state.phase = 'quick'
+    const card = catalog.cards[cardId]
+    if (card.speed === 'slow') {
+      state.phase = 'slow'
+    }
+    state.heroes.maren.actionBar[0].topCard = { instanceId: `${cardId}_probe`, cardId }
+    state.heroes.maren.actionBar[0].charges = [{ instanceId: 'fuel_probe', cardId: 'field_dressing' }]
+    state.heroes.maren.actionBar[0].activatedWindow = null
+    return resolve(catalog, state, {
+      kind: 'fire_slot',
+      sourceId: 'maren',
+      slotIndex: 0,
+      ...(targetId === undefined ? {} : { targetId }),
+      ...(targetHex === undefined ? {} : { targetHex }),
+    })
+  }
+
+  it('converts overflow into Boss damage, capped at the printed healing', () => {
+    const state = start()
+    const bossBefore = state.board.entities.embermaw.health
+    // The guardian is 1 short of full: Surplus of Care heals 3, so 1 lands
+    // and 2 convert.
+    state.heroes.guardian.health = state.heroes.guardian.maxHealth - 1
+    const after = marenFires(state, 'surplus_of_care', 'guardian')
+    expect(after.state.heroes.guardian.health).toBe(after.state.heroes.guardian.maxHealth)
+    expect(after.facts[0].detail.overflowConverted).toBe(2)
+    expect(after.state.board.entities.embermaw.health).toBe(bossBefore - 2)
+  })
+
+  it('does not convert on a card without the Keyword', () => {
+    const state = start()
+    const bossBefore = state.board.entities.embermaw.health
+    // Braced Recovery heals 3 into a full Hero: everything is lost, nothing
+    // converts — the conversion is the Keyword's, not healing's.
+    const after = marenFires(state, 'braced_recovery', 'guardian')
+    expect(after.facts[0].detail.overflowConverted).toBeUndefined()
+    expect(after.state.board.entities.embermaw.health).toBe(bossBefore)
+  })
+
+  it('charges the Signature from converted overflow, and only from a blow that landed', () => {
+    const state = start()
+    state.heroes.guardian.health = state.heroes.guardian.maxHealth
+    const after = marenFires(state, 'surplus_of_care', 'guardian')
+    // The whole heal converted (capped at 3), the Boss lost health, and the
+    // host_deals_damage Grant read it: her Signature banks its first Charge.
+    const signature = after.state.heroes.maren.actionBar.find((slot) => slot.fixed)
+    expect(after.facts[0].detail.overflowConverted).toBe(3)
+    expect(signature?.earnedCharges).toBe(1)
+  })
+
+  it('spreads a healing Burst over every party Hero inside it', () => {
+    const state = start()
+    state.heroes.guardian.health = 10
+    state.heroes.maren.health = 10
+    // Guardian at (0,0), Maren at (-1,1): the hex between them at (0, 0)...
+    // Triage Line reaches 1 and covers radius 1, so aim it at Maren's own hex
+    // — the guardian sits adjacent at distance 1 and is covered too.
+    const after = marenFires(state, 'triage_line', undefined, { q: -1, r: 1 })
+    expect(after.facts[0].succeeded).toBe(true)
+    expect(after.state.heroes.maren.health).toBe(12)
+    expect(after.state.heroes.guardian.health).toBe(12)
+  })
+
+  it('spends the mark off the chosen ally, never off the caster (Q11)', () => {
+    let state = start()
+    // Both Heroes marked, so a spend that reads the wrong subject has a
+    // Counter to remove either way — the assertion can tell them apart.
+    state = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: markBeat(), track: 'instant' }).state
+    const placing = { kind: 'place_counter', sourceId: state.bossId, hostRef: combatantRef('maren'), counterId: MARK, amount: 1, reasonText: 'probe' }
+    state = resolve(catalog, state, placing as never).state
+    expect(counterCount(state, combatantRef('guardian'), MARK)).toBe(1)
+    expect(counterCount(state, combatantRef('maren'), MARK)).toBe(1)
+    const after = marenFires(state, 'strike_the_entry', 'guardian')
+    expect(counterCount(after.state, combatantRef('guardian'), MARK)).toBe(0)
+    expect(counterCount(after.state, combatantRef('maren'), MARK)).toBe(1)
+  })
+
+  it('converts the covered ally\'s next blow into healing, spending the cover', () => {
+    let state = start()
+    state.heroes.guardian.health = 10
+    state.heroes.guardian.armor = 3
+    const covering = { kind: 'place_counter', sourceId: 'maren', hostRef: combatantRef('guardian'), counterId: 'underwritten', amount: 1, reasonText: 'probe' }
+    state = resolve(catalog, state, covering as never).state
+    const hit = resolve(catalog, state, { kind: 'damage', sourceId: state.bossId, targetId: 'guardian', amount: 4, reasonText: 'probe' })
+    const fact = hit.facts.find((entry) => entry.kind === 'damage')
+    // The blow heals instead of landing, the Armor is untouched — a converted
+    // blow was never mitigated — and the cover is spent by the one blow.
+    expect(fact?.resolutionFact).toMatchObject({ health_loss: 0, converted_to_healing: 4 })
+    expect(hit.state.heroes.guardian.health).toBe(14)
+    expect(hit.state.heroes.guardian.armor).toBe(3)
+    expect(counterCount(hit.state, combatantRef('guardian'), 'underwritten')).toBe(0)
+    const second = resolve(catalog, hit.state, { kind: 'damage', sourceId: state.bossId, targetId: 'guardian', amount: 4, reasonText: 'probe' })
+    expect(second.state.heroes.guardian.health).toBe(13)
+  })
+
+  it('fires the Signature at an ally, covering them — and Maren too at full bank', () => {
+    const state = start()
+    const signatureIndex = state.heroes.maren.actionBar.findIndex((slot) => slot.fixed)
+    expect(signatureIndex).toBeGreaterThanOrEqual(0)
+    state.phase = 'quick'
+    state.heroes.maren.actionBar[signatureIndex].earnedCharges = 2
+    const after = resolve(catalog, state, { kind: 'fire_slot', sourceId: 'maren', slotIndex: signatureIndex, targetId: 'guardian' })
+    expect(after.facts[0].succeeded).toBe(true)
+    expect(counterCount(after.state, combatantRef('guardian'), 'underwritten')).toBe(1)
+    // The full-bank rider extends the cover to the one ally the gesture could
+    // not choose: the firing Hero.
+    expect(counterCount(after.state, combatantRef('maren'), 'underwritten')).toBe(1)
+  })
+
+  it('covers only the chosen ally below the full bank', () => {
+    const state = start()
+    const signatureIndex = state.heroes.maren.actionBar.findIndex((slot) => slot.fixed)
+    state.phase = 'quick'
+    state.heroes.maren.actionBar[signatureIndex].earnedCharges = 1
+    const after = resolve(catalog, state, { kind: 'fire_slot', sourceId: 'maren', slotIndex: signatureIndex, targetId: 'guardian' })
+    expect(counterCount(after.state, combatantRef('guardian'), 'underwritten')).toBe(1)
+    expect(counterCount(after.state, combatantRef('maren'), 'underwritten')).toBe(0)
+  })
+})
+
+// The one overflow rule the authored deck cannot yet reach: the cap binds
+// only when something scales the heal past its printed number, and no
+// authored Healer card carries a charge modifier today. A hand-built catalog
+// supplies the scaled heal, so the cap is guarded before the content that
+// needs it exists.
+describe('the overflow cap under scaling', () => {
+  it('caps converted overflow at the printed healing, not the scaled total', () => {
+    const fixture = buildCatalog({
+      cards: [
+        { id: 'probe_fuel', title: 'Fuel', speed: 'quick', range_tiles: 1, boss_damage: 1, tags: ['healer'] },
+        {
+          id: 'scaled_mercy',
+          title: 'Scaled Mercy',
+          speed: 'quick',
+          target_type: 'ally',
+          range_tiles: 3,
+          healing: 2,
+          tags: ['healer', 'support', 'overflow'],
+          charge_modifiers: ['probe_boost'],
+        },
+      ],
+      heroes: [
+        { id: 'warden', title: 'Warden', max_health: 20 },
+        { id: 'mender', title: 'Mender', max_health: 12 },
+      ],
+      keywords: [
+        { id: 'tank', title: 'Tank', kind: 'role' },
+        { id: 'healer', title: 'Healer', kind: 'role' },
+        { id: 'support', title: 'Support', kind: 'trait' },
+        { id: 'overflow', title: 'Overflow', kind: 'trait' },
+        { id: 'tank_hit', title: 'Tank Hit', kind: 'damage_type' },
+        { id: 'raid_hit', title: 'Raid Hit', kind: 'damage_type' },
+      ],
+      counters: [],
+      bosses: [{ id: 'probe_boss', title: 'Probe Boss', max_health: 40 }],
+      chargeModifiers: [{ id: 'probe_boost', title: 'Boost', effect: 'healing', amount_per_match: 2 }],
+      hazards: [],
+      minions: [],
+      programs: [{ id: 'probe_program', title: 'Probe Program', instant_beats: [], incoming_beats: [] }],
+      encounters: [
+        {
+          id: 'probe_party',
+          title: 'Probe Party',
+          party: [
+            { hero: 'mender', start: { q: 0, r: 0 }, deck: [{ card: 'scaled_mercy', copies: 4 }] },
+            { hero: 'warden', start: { q: 1, r: 0 }, deck: [{ card: 'probe_fuel', copies: 4 }] },
+          ],
+          boss: 'probe_boss',
+          round_limit: 6,
+          board_radius: 3,
+          boss_start: { q: 0, r: -3 },
+          slot_count: 2,
+          hand_refill_target: 4,
+          player_deck: [{ card: 'probe_fuel', copies: 4 }],
+          boss_programs: ['probe_program'],
+          random_seed: 7,
+        },
+      ],
+    })
+    const state = createEncounterState(fixture, 'probe_party')
+    state.phase = 'quick'
+    // A full-health target and one charged card: the heal scales 2 -> 4, and
+    // everything overflows — but the conversion answers for the printed 2.
+    state.heroes.mender.actionBar[0].topCard = { instanceId: 'mercy_probe', cardId: 'scaled_mercy' }
+    state.heroes.mender.actionBar[0].charges = [{ instanceId: 'fuel_probe', cardId: 'probe_fuel' }]
+    const bossBefore = state.board.entities.probe_boss.health
+    const after = resolve(fixture, state, { kind: 'fire_slot', sourceId: 'mender', slotIndex: 0, targetId: 'warden' })
+    expect(after.facts[0].succeeded).toBe(true)
+    expect(after.facts[0].detail.overflowConverted).toBe(2)
+    expect(after.state.board.entities.probe_boss.health).toBe(bossBefore - 2)
   })
 })

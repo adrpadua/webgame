@@ -1,0 +1,9 @@
+{
+  "id": "ledger_review",
+  "title": "Ledger Review",
+  "rules_text": "Draw 2 cards. The count is re-read before it is trusted.",
+  "speed": "quick",
+  "target_type": "none",
+  "draw_count": 2,
+  "tags": ["healer", "tempo"]
+}

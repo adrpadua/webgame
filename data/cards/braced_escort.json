@@ -1,0 +1,10 @@
+{
+  "id": "braced_escort",
+  "title": "Braced Escort",
+  "rules_text": "An ally within 3 gains 2 Armor. Maren walks the line beside them.",
+  "speed": "quick",
+  "target_type": "ally",
+  "range_tiles": 3,
+  "armor_delta": 2,
+  "tags": ["healer", "guard", "support"]
+}

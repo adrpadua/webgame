@@ -39,5 +39,5 @@ The Restorative ships first (D-080): her verbs exist in the engine today — all
 ## Related
 
 - [../../rules/character-design-bible.md](../../rules/character-design-bible.md) — Healer Design Principles, Second Hero Of A Role
-- [../encounters/embermaw-brand-attrition-gate.md](../encounters/embermaw-brand-attrition-gate.md) — the authored problem the Restorative is designed against (D-079)
+- [../encounters/embermaw-brand-attrition-gate.md](../encounters/embermaw-brand-attrition-gate.md) — the authored problem the Restorative is designed against (D-082)
 - [../research/2026-08-20-healer-support-taxonomies-mmo-hero-shooter.md](../research/2026-08-20-healer-support-taxonomies-mmo-hero-shooter.md) — taxonomy grounding (directional, per D-071's evidence discipline)

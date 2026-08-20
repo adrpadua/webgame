@@ -1,0 +1,12 @@
+{
+  "id": "strike_the_entry",
+  "title": "Strike the Entry",
+  "rules_text": "Choose an ally within 3: remove up to 2 Sear from them. The Boss wrote something on their record; Maren removes it.",
+  "speed": "quick",
+  "target_type": "ally",
+  "range_tiles": 3,
+  "tags": ["healer", "support"],
+  "reads": [
+    { "verb": "spend", "counter": "seared", "on": "target", "amount": 2, "timing": "resolution" }
+  ]
+}

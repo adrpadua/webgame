@@ -279,8 +279,11 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
   }
 
   for (const card of Object.values(catalog.cards)) {
-    if (card.burst_radius > 0 && card.damage < 1) {
-      throw new Error(`${cardAt(card.id)} declares burst_radius ${card.burst_radius} but deals no damage`)
+    // A Burst spreads whichever effect the card carries: damage over the
+    // Enemies inside it, or healing over the party Heroes inside it (D-080,
+    // the paper Radial pattern). A Burst carrying neither covers nothing.
+    if (card.burst_radius > 0 && card.damage < 1 && card.healing < 1) {
+      throw new Error(`${cardAt(card.id)} declares burst_radius ${card.burst_radius} but deals no damage and heals nothing`)
     }
     if (card.burst_radius > 0 && card.target_type !== 'hex') {
       throw new Error(`${cardAt(card.id)} declares burst_radius ${card.burst_radius} but does not target a hex`)
@@ -404,12 +407,15 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
           )
         }
       }
-      // The Hero Frame's Signature control fires with a tap and carries no
-      // targeting flow (D-065): a targeted Signature is refused at load until
-      // a Hero actually needs one, so the gap is loud rather than latent.
-      if (card.target_type !== 'none') {
+      // The Signature control fires with a tap (D-065) or, since Maren's
+      // Underwriting (D-080), through the same targeting flow every Slot
+      // uses: `ally` targeting resolves by tapping the ally's hex, and
+      // `fireTargeting` projects the legal set. Hex and piece targeting on a
+      // fixed card still have no consumer, so they stay refused at load —
+      // the gap loud rather than latent, exactly as D-065 wanted.
+      if (card.target_type !== 'none' && card.target_type !== 'ally') {
         throw new Error(
-          `${cardAt(card.id)} is fixed but targets ${card.target_type}; the Signature control supports untargeted activations only (D-065)`,
+          `${cardAt(card.id)} is fixed but targets ${card.target_type}; a Signature activates untargeted or at an ally (D-065, D-080)`,
         )
       }
     }
@@ -457,7 +463,11 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
       if (riderCounter.host !== 'combatant') {
         throw new Error(`${cardAt(card.id)} full_charge places ${riderCounter.id}, which is hosted on a ${riderCounter.host}; the rider marks the Boss`)
       }
-      if (card.boss_damage === 0) {
+      // An enemy-facing rider follows the card's Boss damage (the Riposte's
+      // Sundered); a preservation Signature's rider follows its ally cover
+      // instead, landing on the firing Hero (D-080). A card with neither has
+      // nothing for the rider to ride.
+      if (card.boss_damage === 0 && card.target_type !== 'ally') {
         throw new Error(`${cardAt(card.id)} authors a full_charge rider but deals no Boss damage for it to follow`)
       }
     }

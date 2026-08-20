@@ -1,0 +1,25 @@
+{
+  "id": "marens_underwriting",
+  "title": "Underwriting",
+  "rules_text": "Standing: converted overflow lands on the Boss — this Slot gains one Charge. Activation: spend all Charges to certify one ally; their next incoming blow converts into healing. Spent 2? Maren underwrites her own record too.",
+  "speed": "quick",
+  "fixed": true,
+  "resource_title": "Certifications",
+  "max_charge": 2,
+  "target_type": "ally",
+  "range_tiles": 3,
+  "places_counter": "underwritten",
+  "counter_amount": 1,
+  "tags": ["healer", "support"],
+  "full_charge": {
+    "places_counter": "underwritten",
+    "counter_amount": 1
+  },
+  "standing": [
+    {
+      "when": "host_deals_damage",
+      "gates": ["effect_landed"],
+      "grants_charge": 1
+    }
+  ]
+}

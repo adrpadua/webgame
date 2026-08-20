@@ -1,0 +1,11 @@
+{
+  "id": "triage_line",
+  "title": "Triage Line",
+  "rules_text": "Choose a hex within 1. Every Hero within 1 of it heals 2. The evacuation line holds because someone walks it.",
+  "speed": "slow",
+  "target_type": "hex",
+  "range_tiles": 1,
+  "burst_radius": 1,
+  "healing": 2,
+  "tags": ["healer", "support"]
+}

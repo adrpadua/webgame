@@ -12,6 +12,7 @@ const KEYWORDS = [
   { id: 'healer', title: 'Healer', kind: 'role' },
   { id: 'tank_hit', title: 'Tank Hit', kind: 'damage_type' },
   { id: 'raid_hit', title: 'Raid Hit', kind: 'damage_type' },
+  { id: 'overflow', title: 'Overflow', kind: 'trait' },
 ]
 
 const CARDS = [
