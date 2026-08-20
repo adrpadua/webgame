@@ -22,23 +22,11 @@ export function slotChargeCount(slot: SlotState): number {
   return slot.fixed ? slot.earnedCharges : slot.charges.length
 }
 
-// The one Signature event record on the fact stream, mirrored by
-// `readSignatureEvent` the way counterEvent/readCounterEvent pair up — the
-// evaluation harness reads facts through one reader so a renamed key breaks
-// in exactly one place.
-export function signatureEvent(cardId: string, event: string, reason: string, charges: number): Record<string, unknown> {
-  return { card_id: cardId, event, reason, charges }
-}
-
-export function readSignatureEvent(
-  resolutionFact: Record<string, unknown> | undefined,
-): { cardId: string; event: string; reason: string; charges: number } | null {
-  const raw = resolutionFact?.signature_event as Record<string, unknown> | undefined
-  if (raw === undefined || typeof raw.card_id !== 'string') {
-    return null
-  }
-  return { cardId: raw.card_id, event: String(raw.event ?? ''), reason: String(raw.reason ?? ''), charges: Number(raw.charges ?? 0) }
-}
+// The Grant's record on the fact stream is the raising action's
+// `subscriber_matches` detail, read back through `readSubscriberMatches` in
+// `events.ts` (D-087). The old singular `signature_event` is gone: a raise is
+// plural — two Grants can answer one blow — and a singular field was
+// last-write-wins, which is how the dealing-side earn went invisible.
 
 // Whether one Grant's gates all pass. Gates AND, exactly like Card Readers:
 // there is no `or` and there will not be one.
@@ -80,6 +68,10 @@ function gatesPass(
 export interface GrantOutcome {
   cardId: string
   outcome: 'charge_granted' | 'wasted' | 'not_granted'
+  // Why: the gate that refused, `standing_clause`, or `at_max` (D-087).
+  reason: string
+  // The stack after the event — the `counter_event.count` convention.
+  charges: number
 }
 
 export function evaluateGrantsFor(
@@ -116,10 +108,7 @@ export function evaluateGrantsFor(
       }
       const verdict = gatesPass(draft, grant, heroId, options.counterpartId ?? '', record)
       if (!verdict.pass) {
-        outcomes.push({ cardId: card.id, outcome: 'not_granted' })
-        if (record !== undefined) {
-          record.signature_event = signatureEvent(card.id, 'not_granted', verdict.failed, slot.earnedCharges)
-        }
+        outcomes.push({ cardId: card.id, outcome: 'not_granted', reason: verdict.failed, charges: slot.earnedCharges })
         continue
       }
       const cap = cardChargeCap(card)
@@ -128,17 +117,11 @@ export function evaluateGrantsFor(
         // design — overcap is the price of holding a full bank (D-064
         // decision 8), and it has to be visible to the player and the cohort
         // alike, never silently absorbed.
-        outcomes.push({ cardId: card.id, outcome: 'wasted' })
-        if (record !== undefined) {
-          record.signature_event = signatureEvent(card.id, 'wasted', 'at_max', slot.earnedCharges)
-        }
+        outcomes.push({ cardId: card.id, outcome: 'wasted', reason: 'at_max', charges: slot.earnedCharges })
         continue
       }
       slot.earnedCharges = Math.min(cap, slot.earnedCharges + grant.grants_charge)
-      outcomes.push({ cardId: card.id, outcome: 'charge_granted' })
-      if (record !== undefined) {
-        record.signature_event = signatureEvent(card.id, 'charge_granted', 'standing_clause', slot.earnedCharges)
-      }
+      outcomes.push({ cardId: card.id, outcome: 'charge_granted', reason: 'standing_clause', charges: slot.earnedCharges })
     }
   }
   return outcomes

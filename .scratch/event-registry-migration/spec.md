@@ -1,6 +1,6 @@
 # Event Registry Migration
 
-Status: delivered (issues 01–03 merged: PRs #128, #129, #130; follow-up D-087 decided Adopted, implementation awaiting routing)
+Status: resolved (issues 01–03 merged: PRs #128, #129, #130; D-087 implemented — issue 04)
 
 ## Triggering decision
 

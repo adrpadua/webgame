@@ -4995,8 +4995,14 @@ describe('damage and Resolution Facts', () => {
       prevented: 3,
       health_loss: 1,
       target_available: true,
-      signature_event: { card_id: 'elian_riposte', event: 'not_granted', reason: 'health_lost' },
     })
+    // The refusal and its reason ride the raise record (D-087), one grant
+    // entry per Grant that heard the blow — never a singular field.
+    expect(result.facts[0].detail.subscriber_matches).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'grant', id: 'elian_riposte', outcome: 'not_granted', reason: 'health_lost', charges: 0 }),
+      ]),
+    )
     expect(result.state.heroes[state.primaryHeroId].health).toBe(33)
     expect(result.state.heroes[state.primaryHeroId].armor).toBe(0)
   })
@@ -5031,8 +5037,12 @@ describe('damage and Resolution Facts', () => {
     expect(hit.facts[0].resolutionFact).toMatchObject({
       health_loss: 0,
       guarded_front: true,
-      signature_event: { card_id: 'elian_riposte', event: 'charge_granted', reason: 'standing_clause', charges: 1 },
     })
+    expect(hit.facts[0].detail.subscriber_matches).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'grant', id: 'elian_riposte', outcome: 'charge_granted', reason: 'standing_clause', charges: 1 }),
+      ]),
+    )
     expect(hero(state).actionBar[2].earnedCharges).toBe(1)
     // No Counter is involved any more: the Charge Stack IS the riposte count.
     expect(state.counters[combatantRef(state.primaryHeroId)] ?? []).toHaveLength(0)
@@ -5090,9 +5100,11 @@ describe('damage and Resolution Facts', () => {
       reasonText: 'Raking Claw',
       factContext: { damage_keywords: ['tank_hit'] },
     })
-    expect(third.facts[0].resolutionFact).toMatchObject({
-      signature_event: { card_id: 'elian_riposte', event: 'wasted', reason: 'at_max', charges: 2 },
-    })
+    expect(third.facts[0].detail.subscriber_matches).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'grant', id: 'elian_riposte', outcome: 'wasted', reason: 'at_max', charges: 2 }),
+      ]),
+    )
     expect(hero(third.state).actionBar[2].earnedCharges).toBe(2)
   })
 
