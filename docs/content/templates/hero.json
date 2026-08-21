@@ -1,6 +1,7 @@
 {
   "id": "new_hero",
   "title": "New Hero",
+  "full_name": "",
   "rules_text": "One sentence naming the raid job this Hero owns for the party.",
   "max_health": 30,
   "signature_card": ""

@@ -23,7 +23,7 @@ Status: handoff specification for Architecture and QA. Do not add these cards to
 3. Advance from Loadout through Instant to Quick.
 4. Apply `LOAD_SLOT` for Sweeping Blow into Slot 1. The action succeeds.
 5. Apply `CHARGE_SLOT` with the other hand Card. The action succeeds; the card becomes the single Charge.
-6. Resolve typed `fire_slot(guardian_id, 0, whelp_id)`. The action succeeds.
+6. Resolve typed `fire_slot(elian_id, 0, whelp_id)`. The action succeeds.
 
 ### Required Snapshot And Outcome
 
@@ -41,12 +41,12 @@ The replay log must preserve the chosen `target_id`, target range, dealt amount 
 
 ### Required Rejections
 
-- `fire_slot(guardian_id, 0, empty_id)`: reject; no snapshot state changes.
-- `fire_slot(guardian_id, 0, boss_id)`: reject because Sweeping Blow selects a Minion; no snapshot state changes.
-- `fire_slot(guardian_id, 0, hero_id)`: reject because a Hero is not a Minion; no snapshot state changes.
-- `fire_slot(guardian_id, 0, distant_whelp_id)`: reject because target distance exceeds 1; no snapshot state changes.
-- `fire_slot(guardian_id, 0, whelp_id)` before at least one Charge: reject; no snapshot state changes.
-- `fire_slot(guardian_id, 0, whelp_id)` during Loadout or Slow: reject; no snapshot state changes.
+- `fire_slot(elian_id, 0, empty_id)`: reject; no snapshot state changes.
+- `fire_slot(elian_id, 0, boss_id)`: reject because Sweeping Blow selects a Minion; no snapshot state changes.
+- `fire_slot(elian_id, 0, hero_id)`: reject because a Hero is not a Minion; no snapshot state changes.
+- `fire_slot(elian_id, 0, distant_whelp_id)`: reject because target distance exceeds 1; no snapshot state changes.
+- `fire_slot(elian_id, 0, whelp_id)` before at least one Charge: reject; no snapshot state changes.
+- `fire_slot(elian_id, 0, whelp_id)` during Loadout or Slow: reject; no snapshot state changes.
 
 Target selection is explicit and typed: the caller supplies a single stable entity ID. The engine validates that the selected entity exists, is a Minion, and is within the Top Card's Range before any Card effect, damage, Hand, Charge Stack, or activation state changes. The engine does not auto-select a nearby Whelp.
 
@@ -74,7 +74,7 @@ Add one focused seeded replay scenario, `whelp_clear`, plus a scene-parity asser
 4. Apply `CHARGE_SLOT` with the first Card. The action succeeds.
 5. Advance through Incoming to Slow.
 6. Apply `CHARGE_SLOT` with the second Card. The action succeeds and makes Fortify fully charged.
-7. Resolve typed `fire_slot(guardian_id, 0, empty_id)`. The action succeeds because Fortify has no selected target.
+7. Resolve typed `fire_slot(elian_id, 0, empty_id)`. The action succeeds because Fortify has no selected target.
 8. Advance out of Slow. Full-Charge Cleanup runs before the next Loadout state.
 
 ### Required Snapshot And Outcome
@@ -91,9 +91,9 @@ The replay log must preserve the Card IDs, Charge order, activation window, `max
 
 ### Required Rejections
 
-- `fire_slot(guardian_id, 0, empty_id)` in Loadout: reject; no snapshot state changes.
-- `fire_slot(guardian_id, 0, empty_id)` in Quick after one or two Charges: reject; no snapshot state changes.
-- `fire_slot(guardian_id, 0, empty_id)` in Slow with zero Charges: reject; no snapshot state changes.
+- `fire_slot(elian_id, 0, empty_id)` in Loadout: reject; no snapshot state changes.
+- `fire_slot(elian_id, 0, empty_id)` in Quick after one or two Charges: reject; no snapshot state changes.
+- `fire_slot(elian_id, 0, empty_id)` in Slow with zero Charges: reject; no snapshot state changes.
 - Add a third Charge to full Fortify: reject; no snapshot state changes.
 - Add a Charge after Fortify fires in Slow: reject; no snapshot state changes.
 

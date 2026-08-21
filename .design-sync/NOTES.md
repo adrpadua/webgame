@@ -75,16 +75,28 @@ it. Do not un-namespace them.
   alone here; if it is meant to stay current it needs a regeneration path of its
   own, and if it is not, it should say so at the top of the file.
 
-### One finding this sync did not fix, because it is not the sync's to fix
+### The cloth wording, corrected 2026-08-21
 
-`docs/content/oathcraft-interface-direction.md` (lines ~40, ~48) still describes
-Signal cloth as a **per-Hero** accent with `#2F5680` standing in for Shield
-Wall's. The party frames settled it as **per-Role** — three assigned steps. The
-material's own rule ("a material, not a value", allowed to grow within the ramp)
-survived; only the per-Hero framing is stale.
+`docs/content/oathcraft-interface-direction.md` described Signal cloth as a
+**per-Hero** accent with `#2F5680` standing in for Shield Wall's. Both labels
+were wrong and the hex was right: the channel assigns **per Role** (Tank
+`cloth-500`, Damage `cloth-400`, Healer `cloth-300`), and Shield Wall is an
+Archetype *within* Tank, so it inherits Tank's step rather than owning one.
+Corrected in place at the user's request.
 
-The design system's own README and cloth card now state the shipped rule, so
-nothing uploaded to Claude Design is wrong. But the canon doc is the source
-those were written from, and it is owned by whoever authors the interface
-direction — not by a sync run. Left for its authors, deliberately, rather than
-rewritten here.
+**And it surfaced a real defect — do not lose this one.** Role assigns the cloth
+steps; the section immediately below it in that same doc assigns steps by
+**ground contrast**. On the party frames the two rules disagree, because all
+three ally frames sit on the same dark `steel-950` face:
+
+    cloth-500  Tank     2.39:1   fails 1.4.11
+    cloth-400  Damage   4.07:1   clears
+    cloth-300  Healer   6.86:1   clears
+
+The doc's own table already records this failure for `cloth-500` on a dark well
+(2.62:1); the Role assignment walked straight into it. Written up in the
+interface direction as an open defect with both candidate fixes stated — shift
+the Role steps to the light end on dark grounds, or stop carrying Role in cloth
+on that surface — rather than picked, because it is a design decision. The
+design-system cards still draw the shipped colours and do not mention it yet;
+if the fix lands, the party frames and cloth cards both need regenerating.

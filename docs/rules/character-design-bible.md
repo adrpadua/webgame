@@ -39,6 +39,7 @@ Every authored Hero must name the following before its deck grows beyond the tea
 
 | Element | Required statement | Design test |
 | --- | --- | --- |
+| Name | The first name the party calls this Hero by, and — separately — the full name on their character sheet. The first name is what `title` and the id carry, and it is the only one any readout prints; rank, house and epithet are flavour, authored as `full_name` and told by a hold (D-095). | The first name is one word and belongs to nobody else in the roster, and it is not the Hero's Role wearing a name's clothes: a second Hero of that Role would take the same word. |
 | Raid job | What danger or opportunity does this Hero own for the party? | A player can say why the party wants this Hero. |
 | Signature | The Hero's fixed two-clause power: an earn condition (standing clause) that restates the raid job as a rule, and an activation that is the machine's cash-out. | A new player can connect the earn condition to the Hero's board job, and the payoff reads as correct play converted, not a bonus button. |
 | Engine nouns | Two to four persistent or countable things that cards care about. | Each noun is visible, bounded, and has a plain-language meaning. |

@@ -3,7 +3,7 @@
 // Two arms over the same seeds. `solo` plays the Brand trial with Maren's
 // seat removed (`embermaw_attrition_solo_probe`): Elian's sword-and-shield
 // plan against a Boss that brands him, with nobody able to strike the entry.
-// `duo` plays the shipped two-seat trial with the same guardian plan plus
+// `duo` plays the shipped two-seat trial with the same Elian plan plus
 // Maren's authored loop — clear the Sears, overheal the front line into Boss
 // damage, bank Certifications, cover at full bank.
 //
@@ -59,7 +59,7 @@ interface RunResult {
   outcome: string
   rounds: number
   bossHealthLeft: number
-  guardianHealthLeft: number
+  elianHealthLeft: number
   marenHealthLeft: number | null
   searRoundsStanding: number
   searsPlaced: number
@@ -126,8 +126,8 @@ function play(encounterId: string, seed: number, withMaren: boolean): RunResult 
 
   // --- Elian's plan: sword_shield from the sweep, condensed. Steady Strike
   // needs the Boss adjacent; the hunt program closes the gap itself.
-  const GUARDIAN = 'guardian'
-  const GUARDIAN_PLAN: Record<number, string> = { 0: 'steady_strike', 1: 'iron_guard' }
+  const ELIAN = 'elian'
+  const ELIAN_PLAN: Record<number, string> = { 0: 'steady_strike', 1: 'iron_guard' }
 
   const loadPlan = (heroId: string, plan: Record<number, string>) => {
     for (const slotIndex of Object.keys(plan).map(Number)) {
@@ -167,28 +167,28 @@ function play(encounterId: string, seed: number, withMaren: boolean): RunResult 
   }
 
   const fireGuardian = () => {
-    if (!living(GUARDIAN)) {
+    if (!living(ELIAN)) {
       return
     }
     for (const slotIndex of [0, 1]) {
-      const slot = hero(GUARDIAN).actionBar[slotIndex]
+      const slot = hero(ELIAN).actionBar[slotIndex]
       if (!slot.topCard || slot.charges.length === 0) {
         continue
       }
       const card = catalog.cards[slot.topCard.cardId]
       if (card.boss_damage > 0) {
-        const here = state.board.entities[GUARDIAN]?.coords
+        const here = state.board.entities[ELIAN]?.coords
         const boss = state.board.entities[state.bossId]
         if (!here || !boss || hexDistance(here, boss.coords) > card.range_tiles) {
           continue
         }
       }
-      submit({ kind: 'fire_slot', sourceId: GUARDIAN, slotIndex })
+      submit({ kind: 'fire_slot', sourceId: ELIAN, slotIndex })
     }
     // The Riposte, cashed at one — the sweep's measured floor.
-    hero(GUARDIAN).actionBar.forEach((slot, slotIndex) => {
+    hero(ELIAN).actionBar.forEach((slot, slotIndex) => {
       if (slot.fixed && slot.earnedCharges > 0 && slot.topCard !== null) {
-        submit({ kind: 'fire_slot', sourceId: GUARDIAN, slotIndex })
+        submit({ kind: 'fire_slot', sourceId: ELIAN, slotIndex })
       }
     })
   }
@@ -223,7 +223,7 @@ function play(encounterId: string, seed: number, withMaren: boolean): RunResult 
     if (!living(MAREN)) {
       return
     }
-    reviveIfNeeded(MAREN, GUARDIAN)
+    reviveIfNeeded(MAREN, ELIAN)
     loadPlan(MAREN, MAREN_PLAN)
     chargeSlots(MAREN, MAREN_PLAN)
     // Clear: the most-marked ally loses their Sears first — the mark prices
@@ -238,17 +238,17 @@ function play(encounterId: string, seed: number, withMaren: boolean): RunResult 
     // Cover: the overflow heal goes to the front line — a heal when Elian is
     // hurt, converted Boss damage when he is not. Both charge the Signature.
     const mercy = hero(MAREN).actionBar[1]
-    if (mercy.topCard?.cardId === 'surplus_of_care' && mercy.charges.length > 0 && living(GUARDIAN)) {
-      submit({ kind: 'fire_slot', sourceId: MAREN, slotIndex: 1, targetId: GUARDIAN })
+    if (mercy.topCard?.cardId === 'surplus_of_care' && mercy.charges.length > 0 && living(ELIAN)) {
+      submit({ kind: 'fire_slot', sourceId: MAREN, slotIndex: 1, targetId: ELIAN })
     }
     // Bank: the Signature holds to its full cap for the rider, then covers
-    // the guardian — Q23's rhythm.
+    // Elian — Q23's rhythm.
     hero(MAREN).actionBar.forEach((slot, slotIndex) => {
       if (!slot.fixed || slot.topCard === null) {
         return
       }
-      if (slot.earnedCharges >= cardChargeCap(catalog.cards[slot.topCard.cardId]) && living(GUARDIAN)) {
-        submit({ kind: 'fire_slot', sourceId: MAREN, slotIndex, targetId: GUARDIAN })
+      if (slot.earnedCharges >= cardChargeCap(catalog.cards[slot.topCard.cardId]) && living(ELIAN)) {
+        submit({ kind: 'fire_slot', sourceId: MAREN, slotIndex, targetId: ELIAN })
       }
     })
   }
@@ -258,8 +258,8 @@ function play(encounterId: string, seed: number, withMaren: boolean): RunResult 
     guard += 1
     switch (state.phase) {
       case 'loadout': {
-        if (living(GUARDIAN)) {
-          loadPlan(GUARDIAN, GUARDIAN_PLAN)
+        if (living(ELIAN)) {
+          loadPlan(ELIAN, ELIAN_PLAN)
         }
         if (withMaren && living(MAREN)) {
           loadPlan(MAREN, MAREN_PLAN)
@@ -277,10 +277,10 @@ function play(encounterId: string, seed: number, withMaren: boolean): RunResult 
         break
       }
       case 'quick': {
-        if (living(GUARDIAN)) {
-          reviveIfNeeded(GUARDIAN, MAREN)
-          loadPlan(GUARDIAN, GUARDIAN_PLAN)
-          chargeSlots(GUARDIAN, GUARDIAN_PLAN)
+        if (living(ELIAN)) {
+          reviveIfNeeded(ELIAN, MAREN)
+          loadPlan(ELIAN, ELIAN_PLAN)
+          chargeSlots(ELIAN, ELIAN_PLAN)
         }
         if (withMaren) {
           marenQuick()
@@ -293,8 +293,8 @@ function play(encounterId: string, seed: number, withMaren: boolean): RunResult 
         advance()
         break
       case 'slow': {
-        if (living(GUARDIAN)) {
-          chargeSlots(GUARDIAN, GUARDIAN_PLAN)
+        if (living(ELIAN)) {
+          chargeSlots(ELIAN, ELIAN_PLAN)
         }
         advance()
         break
@@ -307,7 +307,7 @@ function play(encounterId: string, seed: number, withMaren: boolean): RunResult 
     outcome: state.outcome,
     rounds: state.round,
     bossHealthLeft: state.board.entities[state.bossId]?.health ?? 0,
-    guardianHealthLeft: hero(GUARDIAN)?.health ?? 0,
+    elianHealthLeft: hero(ELIAN)?.health ?? 0,
     marenHealthLeft: withMaren ? (hero('maren')?.health ?? 0) : null,
     ...metrics,
     steps,
@@ -322,7 +322,7 @@ function summarize(label: string, runs: RunResult[]): void {
   console.log(`clears ${clears}/${runs.length}, defeats ${defeats}, other ${runs.length - clears - defeats}`)
   console.log(
     `avg rounds ${average((run) => run.rounds)}, boss health left ${average((run) => run.bossHealthLeft)}, ` +
-      `guardian health left ${average((run) => run.guardianHealthLeft)}`,
+      `Elian health left ${average((run) => run.elianHealthLeft)}`,
   )
   console.log(
     `Sear rounds standing ${average((run) => run.searRoundsStanding)}, Sears placed ${average((run) => run.searsPlaced)}, ` +
