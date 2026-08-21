@@ -18,7 +18,7 @@
 // Exit status is the gate: 0 when every mutation is caught, 1 otherwise.
 
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -199,6 +199,13 @@ const MUTATIONS = [
     file: 'content/decisionIds.ts',
     from: 'upstream.has(row.id) && !base.has(row.id)',
     to: 'upstream.has(row.id)',
+  },
+  {
+    name: 'a merged-in upstream row is renumbered like one this branch invented',
+    guards: 'D-105 authoring: upstream\'s landed row keeps its number; the branch that arrived second moves',
+    file: 'content/decisionIds.ts',
+    from: '    if (row.id !== DECISION_PLACEHOLDER && upstreamText.get(row.id) === row.text) {',
+    to: '    if (false) {',
   },
   {
     name: 'a reassigned id lands on a number a later row already holds',
@@ -940,6 +947,102 @@ if (selected.length === 0) {
 // source is invisible to a reader and lint rejects it outright.
 const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
 
+// Two audits at once corrupt each other: the second reads a file the first has
+// already mutated, takes that defect for the original, and restores *it* when
+// it finishes. The lock makes the second run refuse instead. It holds the pid
+// so a lock left by a machine that lost power names something checkable rather
+// than blocking the repo forever.
+const LOCK = join(WEB, '.mutate.lock')
+let lockHeld = false
+
+function releaseLock() {
+  if (lockHeld) {
+    lockHeld = false
+    try {
+      unlinkSync(LOCK)
+    } catch {
+      // Already gone: another handler won the race to clean up, which is the
+      // outcome this wanted anyway.
+    }
+  }
+}
+
+function takeLock() {
+  try {
+    // `wx` is the atomic half: create-or-fail, so two runs starting together
+    // cannot both believe they made it.
+    writeFileSync(LOCK, `${process.pid}\n`, { flag: 'wx' })
+  } catch (error) {
+    if (error.code !== 'EEXIST') {
+      throw error
+    }
+    const owner = readFileSync(LOCK, 'utf8').trim()
+    const alive = Number.isInteger(Number(owner)) && processAlive(Number(owner))
+    if (alive) {
+      console.error(`\nmutate: another audit is running (pid ${owner}). It rewrites source files, so two at once corrupt each other.`)
+      console.error('mutate: wait for it to finish, or stop it and re-run.')
+      process.exit(1)
+    }
+    // A stale lock is the fingerprint of the failure this whole guard is for:
+    // the previous audit died without unwinding, so the tree may still be
+    // carrying one of its mutations. Say so, then let the anchor check below
+    // be the thing that finds it.
+    console.error(`\nmutate: found a stale lock from pid ${owner}, which did not exit cleanly.`)
+    console.error('mutate: that run may have left a mutation in the tree. Checking every anchor before starting.')
+    unlinkSync(LOCK)
+    writeFileSync(LOCK, `${process.pid}\n`, { flag: 'wx' })
+  }
+  lockHeld = true
+}
+
+function processAlive(pid) {
+  try {
+    // Signal 0 checks for the process without touching it.
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return error.code === 'EPERM'
+  }
+}
+
+// Every anchor, before any mutation. The per-entry STALE check already reports
+// an anchor that has stopped matching, but only for the entries a run reaches:
+// a filtered run touches a handful, so a mutation left behind in some other
+// file stays invisible and stays committable. This asks the whole table every
+// time, which is what turns "a defect is loose in the tree" into a message
+// that names the file.
+function refuseLooseMutations() {
+  const loose = []
+  for (const mutation of MUTATIONS) {
+    const path = join(SRC, mutation.file)
+    let source
+    try {
+      source = readFileSync(path, 'utf8')
+    } catch {
+      loose.push({ mutation, why: 'its file is missing' })
+      continue
+    }
+    if (source.split(mutation.from).length - 1 === 1) {
+      continue
+    }
+    // The telling case: the anchor is gone and the replacement is present.
+    // That is this entry's own mutation, still on disk.
+    const applied = mutation.to !== '' && source.includes(mutation.to)
+    loose.push({ mutation, why: applied ? 'its mutation is still applied' : 'its anchor no longer matches' })
+  }
+  const applied = loose.filter((entry) => entry.why === 'its mutation is still applied')
+  if (applied.length === 0) {
+    return
+  }
+  console.error('\nmutate: a previous audit left its mutation in the tree. Refusing to start.\n')
+  for (const entry of applied) {
+    console.error(`  ${entry.mutation.file}: ${entry.mutation.name}`)
+    console.error(`    restore with: git checkout -- src/${entry.mutation.file}`)
+  }
+  console.error('\nmutate: these are defects, not authored code. Restore them, then re-run.')
+  process.exit(1)
+}
+
 function runSuite() {
   try {
     execFileSync('npx', ['vitest', 'run', '--reporter=dot'], { cwd: WEB, stdio: 'pipe', encoding: 'utf8' })
@@ -967,18 +1070,42 @@ function runSuite() {
 const results = []
 const touched = new Map()
 
-// Whatever happens — a thrown error, a Ctrl-C — the tree goes back the way it
-// was found. A mutation left on disk is far worse than a missing report.
+// Whatever happens — a thrown error, a Ctrl-C, a `kill` — the tree goes back
+// the way it was found. A mutation left on disk is far worse than a missing
+// report: it is a defect that reads as authored code, and the next `git add`
+// commits it.
 function restoreAll() {
   for (const [path, original] of touched) {
     writeFileSync(path, original)
   }
   touched.clear()
 }
-process.on('SIGINT', () => {
+
+// SIGINT alone was not enough, and the gap was not theoretical. A supervisor
+// that stops a background job sends SIGTERM, not SIGINT, so the handler below
+// never ran: the audit died mid-mutation and left two defects in the tree, one
+// of which reached a commit. SIGHUP is the same story for a closed terminal.
+// Node's default action for all three is to exit without unwinding, so each
+// one needs saying.
+for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(signal, () => {
+    restoreAll()
+    releaseLock()
+    // 128 + the signal number, the shell's own convention for "killed by".
+    process.exit(signal === 'SIGINT' ? 130 : signal === 'SIGTERM' ? 143 : 129)
+  })
+}
+// The ordinary exits, including a throw that reaches the top. `exit` runs for
+// every one of them and may only do synchronous work, which unlinking is.
+process.on('exit', () => {
   restoreAll()
-  process.exit(130)
+  releaseLock()
 })
+
+// Order matters: take the lock first so the check below cannot be racing a
+// live audit's mutations and report them as leftovers.
+takeLock()
+refuseLooseMutations()
 
 try {
   for (const mutation of selected) {
