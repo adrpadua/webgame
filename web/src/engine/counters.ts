@@ -119,7 +119,7 @@ export function counterCount(state: EncounterState, ref: CounterRef, counterId: 
 }
 
 // Every Counter on a combatant carrying a given Keyword, summed. This is the
-// Charge Modifier's match-by-keyword (`cardResolver.ts`) lifted off the Charge
+// Charge Modifier's match-by-keyword (`firedCard.ts`) lifted off the Charge
 // Stack: one card can read "every fire Counter" without naming them all, which
 // is what lets a Counter be added later without editing the cards that care.
 export function counterCountByKeyword(

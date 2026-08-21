@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Architecture review — webgame engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam { border-style: dashed; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+
+      <header class="flex items-end justify-between border-b border-slate-200 pb-4">
+        <div>
+          <h1 class="font-serif text-3xl">Architecture review — the rules engine</h1>
+          <p class="text-sm text-slate-500 mt-1">adrpadua/webgame · web/src/engine · 2026-08-21 · main @ a86fd91</p>
+        </div>
+        <div class="text-xs text-slate-500 space-y-1 text-right">
+          <div><span class="inline-block w-4 h-3 border border-slate-400 align-middle"></span> module</div>
+          <div><span class="inline-block w-4 border-t-2 border-dashed border-slate-400 align-middle"></span> seam</div>
+          <div><span class="inline-block w-4 border-t-2 border-red-600 align-middle"></span> leak</div>
+          <div><span class="inline-block w-4 h-3 deep align-middle rounded-sm"></span> deep module</div>
+        </div>
+      </header>
+
+      <section id="candidates" class="space-y-10">
+
+        <!-- ============ 1. FIRED CARD ============ -->
+        <article id="fired-card" class="bg-white rounded-xl border border-slate-200 p-8 space-y-5">
+          <div class="flex items-center gap-3">
+            <h2 class="font-serif text-2xl">Deepen the Fired Card into one module</h2>
+            <span class="text-xs font-semibold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-1 rounded">Strong</span>
+            <span class="text-xs uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-1 rounded">in-process</span>
+          </div>
+          <p class="font-mono text-sm text-slate-600">resolve.ts:188-445, 1014-1064 · cardResolver.ts · counters.ts:381-444 · content/catalog.ts:288-483</p>
+
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — the fire is everywhere</div>
+              <div class="rounded-lg border border-slate-200 bg-white p-3">
+                <pre class="mermaid">
+flowchart TD
+  FS["fire_slot case<br/>resolve.ts · 258 lines"]
+  CR["resolveFire<br/>cardResolver.ts"]
+  FE["FireEffects<br/>9-field mutable bag"]
+  SP["spendCardReaders<br/>resolve.ts:1014"]
+  SC["applyScaleReaders<br/>resolve.ts:1037"]
+  CG["cardGatesPass<br/>counters.ts:432"]
+  RS["readerSubject / readerCount<br/>counters.ts:404-429"]
+  FS -->|"cost spend FIRST<br/>(prose contract)"| SP
+  FS --> CR
+  CR --> FE
+  SC -.->|mutates in place| FE
+  FS -->|"resolution spend AFTER"| SP
+  SP --> RS
+  SC --> RS
+  CG --> RS
+  CR -.->|"duplicate 4-arm<br/>effect switch"| SC
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class FE,SC,CR leak
+                </pre>
+              </div>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — one interface, ordered inside</div>
+              <div class="relative rounded-lg border border-slate-200 bg-white p-3 h-full flex flex-col justify-center">
+                <div class="border-2 border-dashed border-slate-400 rounded-md p-1 mb-2 text-center">
+                  <div class="text-xs uppercase tracking-wider text-slate-600 py-1">resolveFiredCard(catalog, draft, action, slot) → { detail, generated }</div>
+                </div>
+                <div class="deep rounded-md p-4 text-slate-200 space-y-1.5">
+                  <div class="text-xs uppercase tracking-wider text-slate-400">firedCard.ts — implementation</div>
+                  <div class="text-xs opacity-70">cost spends → charge arithmetic → scale readers → recipients &amp; overflow → burst geometry → counter placement → resolution spends → generated damage/displacement fan-out → full-bank rider → raises → draws</div>
+                  <div class="text-xs opacity-70 border-t border-slate-600 pt-1.5">the Reader grammar — gate · scale · spend — stated once, beside the one effect-mapping switch</div>
+                </div>
+                <div class="text-xs text-slate-500 mt-2 text-center">The ordering contract becomes the implementation, not a comment at a call site.</div>
+              </div>
+            </div>
+          </div>
+
+          <p><strong>Problem.</strong> The Fired Card — the deepest concept in the game — is smeared over four files: <code class="text-sm">cardResolver.ts</code> owns only charge arithmetic (and has never once changed without <code class="text-sm">resolve.ts</code>, 6/6 commits), the effect-mapping switch exists twice line-for-line, <code class="text-sm">FireEffects</code> is a mutable bag the caller keeps mutating after it crosses the seam, and the cost-spend → resolve → scale → resolution-spend ordering is a prose contract.</p>
+          <p><strong>Solution.</strong> One module behind the <code class="text-sm">fire_slot</code> case: it absorbs the case body, <code class="text-sm">resolveFire</code>, both Reader executors, and the Reader helpers now bolted to <code class="text-sm">counters.ts</code> — the same move that deepened legality (PR #147), aimed at the switch's one 258-line case.</p>
+          <ul class="text-sm space-y-1 list-disc list-inside text-slate-700">
+            <li>locality: the whole answer to "what happens when a Card fires" in one file</li>
+            <li>the duplicate effect switch collapses to one</li>
+            <li>ordering contract testable through the interface</li>
+            <li>gate/scale/spend grammar gets one owner</li>
+            <li>~400 lines of engine.test.ts fire blocks map to one seam</li>
+          </ul>
+        </article>
+
+        <!-- ============ 2. ROUND ============ -->
+        <article id="round" class="bg-white rounded-xl border border-slate-200 p-8 space-y-5">
+          <div class="flex items-center gap-3">
+            <h2 class="font-serif text-2xl">Give the Round one seam</h2>
+            <span class="text-xs font-semibold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-1 rounded">Strong</span>
+            <span class="text-xs uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-1 rounded">in-process</span>
+          </div>
+          <p class="font-mono text-sm text-slate-600">advancePhase.ts:47-225 · resolve.ts:689-722 · escalation.ts:184-204 · timeline.ts:449-473</p>
+
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — "the Round wraps" lives in four files</div>
+              <div class="rounded-lg border border-slate-200 bg-white p-3">
+                <pre class="mermaid">
+flowchart TD
+  AP["advancePhase.ts slow case · 91 lines<br/>order + refill loop + rescue expiry + clock check"]
+  RS["resolve.ts round_start case<br/>board tick · Armor wipe · upkeep · program advance"]
+  ES["escalation.ts:184<br/>round-end demands"]
+  TL["timeline.ts:449<br/>program cursor"]
+  AP -->|submits| RS
+  AP -->|asks| ES
+  RS -->|calls| TL
+  AP -.->|"13/13 commits<br/>change together"| RS
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class AP,RS leak
+                </pre>
+              </div>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — the cycle declared, the wrap named</div>
+              <div class="rounded-lg border border-slate-200 bg-white p-3 h-full flex flex-col justify-center gap-2">
+                <div class="flex items-center gap-1 justify-center text-xs uppercase tracking-wider">
+                  <span class="border border-slate-400 rounded px-2 py-1">loadout</span><span>→</span>
+                  <span class="border border-slate-400 rounded px-2 py-1">instant</span><span>→</span>
+                  <span class="border border-slate-400 rounded px-2 py-1">quick</span><span>→</span>
+                  <span class="border border-slate-400 rounded px-2 py-1">incoming</span><span>→</span>
+                  <span class="border border-slate-400 rounded px-2 py-1">slow</span>
+                </div>
+                <div class="text-center text-xs text-slate-500">one transition table — still explicit, still authored</div>
+                <div class="deep rounded-md p-3 text-slate-200 mt-1">
+                  <div class="text-xs uppercase tracking-wider text-slate-400">wrapRound — implementation</div>
+                  <div class="text-xs opacity-70">end-of-clock → round_start (board tick, Armor, upkeep, program advance) → rescue expiry → refill</div>
+                </div>
+                <div class="text-xs text-slate-500 text-center">Folding Loadout into Quick/Slow becomes an edit to one table + one legality predicate.</div>
+              </div>
+            </div>
+          </div>
+
+          <p><strong>Problem.</strong> <code class="text-sm">advancePhase</code> is a script, not a module: five inline phase scripts, the phase cycle stated only as hand-written <code class="text-sm">advanceAction(from, to)</code> calls, and the Round's own bookkeeping split between the script and the <code class="text-sm">round_start</code> case (<code class="text-sm">advancePhase.ts</code> has never committed without <code class="text-sm">resolve.ts</code>, 13/13). The Loadout fold you're considering currently lands in five engine files plus ten UI sites.</p>
+          <p><strong>Solution.</strong> Name each phase script, declare the cycle as one transition table, and concentrate the wrap (clock check → round_start → rescue expiry → refill) behind one named seam. No new abstraction — the same scripts, given locality.</p>
+          <ul class="text-sm space-y-1 list-disc list-inside text-slate-700">
+            <li>locality: phase-cycle changes land in one module</li>
+            <li>the Loadout fold's engine half shrinks to two edits</li>
+            <li>wrap order testable through one interface</li>
+            <li>13/13 co-change coupling cut at a real seam</li>
+          </ul>
+          <div class="bg-amber-50 border border-amber-200 text-amber-900 text-sm rounded px-3 py-2">Brushes the engine-hardening non-goal "don't generalize the explicit phase engine" — this deepens without generalizing: the cycle stays authored data, no data-driven phase machine. Worth stating in the D-row if taken.</div>
+        </article>
+
+        <!-- ============ 3. CATALOG ============ -->
+        <article id="catalog" class="bg-white rounded-xl border border-slate-200 p-8 space-y-5">
+          <div class="flex items-center gap-3">
+            <h2 class="font-serif text-2xl">State each content concept once</h2>
+            <span class="text-xs font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-1 rounded">Worth exploring</span>
+            <span class="text-xs uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-1 rounded">in-process</span>
+          </div>
+          <p class="font-mono text-sm text-slate-600">content/schemas.ts (714) · content/catalog.ts:261-857 (buildCatalog, 596 lines, 87 throws)</p>
+
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — split by mechanism</div>
+              <div class="rounded-lg border border-slate-200 p-4 space-y-2">
+                <div class="border border-slate-300 rounded p-2">
+                  <div class="text-xs uppercase tracking-wider">schemas.ts — shape only</div>
+                  <div class="text-xs text-slate-500">25 zod objects, zero refinements; every Card carries every Signature field</div>
+                </div>
+                <div class="text-center text-red-600 text-xs">31 of 39 commits touch both ↓↑</div>
+                <div class="border border-red-400 rounded p-2">
+                  <div class="text-xs uppercase tracking-wider">buildCatalog — all the meaning</div>
+                  <div class="h-24 bg-gradient-to-b from-red-50 to-red-100 rounded mt-1 flex items-center justify-center text-xs text-red-800">one 596-line procedure · eleven passes · 87 throws</div>
+                </div>
+                <div class="text-xs text-slate-500">…plus cardChargeCap / cardWindowSpeed / cardNeedsPieceTarget riding along as a grab-bag (24 call sites)</div>
+              </div>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — split by concept, same interface</div>
+              <div class="rounded-lg border border-slate-200 p-4 h-full flex flex-col justify-center gap-2">
+                <div class="border-2 border-dashed border-slate-400 rounded p-1 text-center text-xs uppercase tracking-wider">buildCatalog(raw) → ContentCatalog — unchanged</div>
+                <div class="grid grid-cols-3 gap-1 text-center text-xs">
+                  <div class="deep text-slate-200 rounded p-2">card.ts<br/><span class="opacity-60">shape + rules + derived props</span></div>
+                  <div class="deep text-slate-200 rounded p-2">beat.ts<br/><span class="opacity-60">shape + ~30 rules</span></div>
+                  <div class="deep text-slate-200 rounded p-2">counterDef.ts<br/><span class="opacity-60">shape + registry check</span></div>
+                </div>
+                <div class="text-xs text-slate-500 text-center">Each concept: its schema, its cross-field rules, and its accessors in one file. buildCatalog composes them.</div>
+              </div>
+            </div>
+          </div>
+
+          <p><strong>Problem.</strong> "What a Card is" has no single statement: the shape sits in <code class="text-sm">schemas.ts</code>, the rules 400 lines away inside one 596-line procedure, and the derived properties (<code class="text-sm">cardChargeCap</code>, 12 call sites) in a grab-bag at the file's tail. Beat semantics are additionally duplicated as validation predicates (<code class="text-sm">beatMoves</code>) restating what <code class="text-sm">timeline.ts</code> does imperatively.</p>
+          <p><strong>Solution.</strong> Per-concept definition modules — schema, cross-field rules, derived accessors together — composed by an unchanged <code class="text-sm">buildCatalog</code> interface. The 758-line validation test block splits along the same lines.</p>
+          <ul class="text-sm space-y-1 list-disc list-inside text-slate-700">
+            <li>locality: adding a Card field edits one file, not two</li>
+            <li>31/39 co-change coupling dissolves</li>
+            <li>leverage: derived props live beside their rules</li>
+            <li>each concept's throws testable in isolation</li>
+          </ul>
+        </article>
+
+        <!-- ============ 4. BOARD ============ -->
+        <article id="board" class="bg-white rounded-xl border border-slate-200 p-8 space-y-5">
+          <div class="flex items-center gap-3">
+            <h2 class="font-serif text-2xl">Let the board own the board</h2>
+            <span class="text-xs font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-1 rounded">Worth exploring</span>
+            <span class="text-xs uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-1 rounded">in-process</span>
+          </div>
+          <p class="font-mono text-sm text-slate-600">board.ts (23 exports) · types.ts:100-105 · resolve.ts:555, 1131 · counters.ts:91-104</p>
+
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — a function library over a public struct</div>
+              <div class="relative rounded-lg border border-slate-200 p-4">
+                <div class="border-2 border-red-400 rounded p-3 text-center">
+                  <div class="text-xs uppercase tracking-wider">BoardState — fully exposed</div>
+                  <div class="text-xs text-slate-500">entities · hexes · hazards</div>
+                </div>
+                <div class="mt-3 text-xs text-red-700 space-y-1">
+                  <div>107 direct <code>.board.*</code> accesses across 15+ files</div>
+                  <div>no <code>removeEntity</code> — removal is raw <code>delete</code> ×2 in resolve.ts, bypassing <code>clearCounters</code></div>
+                  <div>"a Counter never outlives its host" implemented three separate times</div>
+                  <div>three movement paths, three facing rules</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — the invariants move inside</div>
+              <div class="rounded-lg border border-slate-200 p-4 h-full flex flex-col justify-center gap-2">
+                <div class="border-2 border-dashed border-slate-400 rounded p-1 text-center text-xs uppercase tracking-wider">add · move · damage · removeEntity(state, id)</div>
+                <div class="deep rounded p-3 text-slate-200 text-xs">
+                  <div class="uppercase tracking-wider text-slate-400 mb-1">board.ts — implementation</div>
+                  <div class="opacity-70">removal clears the piece AND its Counters, once · facing owned by the movement that caused it · geometry helpers take BoardState, not the raw hex record</div>
+                </div>
+                <div class="text-xs text-slate-500 text-center">Incremental: start with removeEntity — it deletes the tripled invariant on day one.</div>
+              </div>
+            </div>
+          </div>
+
+          <p><strong>Problem.</strong> <code class="text-sm">board.ts</code> has genuinely deep functions (<code class="text-sm">traversalRoute</code> is 153 strong lines) but the module is shallow: the struct is the real interface, callers reach through it 107 times, and the missing <code class="text-sm">removeEntity</code> forces <code class="text-sm">resolve.ts</code> to hand-roll piece removal twice — which is why the Counter-host-liveness invariant exists in three places.</p>
+          <p><strong>Solution.</strong> Grow the interface the struct's users actually need — <code class="text-sm">removeEntity</code> first, facing next, geometry-over-BoardState after — and shrink direct struct access commit by commit. No big bang.</p>
+          <ul class="text-sm space-y-1 list-disc list-inside text-slate-700">
+            <li>locality: host-liveness invariant stated once</li>
+            <li>the two raw deletes become one interface call</li>
+            <li>facing rules concentrate with the movement kinds</li>
+          </ul>
+        </article>
+
+        <!-- ============ 5. BEAT VOCAB ============ -->
+        <article id="beat-vocab" class="bg-white rounded-xl border border-slate-200 p-8 space-y-5">
+          <div class="flex items-center gap-3">
+            <h2 class="font-serif text-2xl">One owner for the Beat kind vocabulary</h2>
+            <span class="text-xs font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-1 rounded">Worth exploring</span>
+            <span class="text-xs uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-1 rounded">in-process</span>
+          </div>
+          <p class="font-mono text-sm text-slate-600">timeline.ts:100-339 · escalation.ts:65-140 · content/catalog.ts:42-75 · ui/overlays/beatCardModel.ts</p>
+
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — four re-declarations</div>
+              <div class="rounded-lg border border-slate-200 bg-white p-3">
+                <pre class="mermaid">
+flowchart TD
+  K["Beat kinds<br/>schemas.ts z.enum — 8 kinds"]
+  T["timeline.ts<br/>8-case resolution switch"]
+  E["escalation.ts DEMANDS<br/>kind: bare string ⚠"]
+  C["catalog.ts<br/>RANGED_BEAT_KINDS · beatMoves"]
+  U["beatCardModel.ts<br/>presentation reads 14 fields"]
+  K --> T
+  K -.->|untyped| E
+  K -.->|predicates restate| C
+  K -.-> U
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class E,C leak
+                </pre>
+              </div>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — the EVENT_REGISTRY shape, again</div>
+              <div class="rounded-lg border border-slate-200 p-4 h-full flex flex-col justify-center gap-2">
+                <div class="deep rounded p-3 text-slate-200 text-xs">
+                  <div class="uppercase tracking-wider text-slate-400 mb-1">BEAT_REGISTRY — one table</div>
+                  <div class="opacity-70">per kind: reaches? · moves? · demand pricing hook · resolution — validated at load like the event registry, dispatched by the one switch</div>
+                </div>
+                <div class="text-xs text-slate-500 text-center">The engine already proved this shape once: events.ts is "one vocabulary, one table, one owner." First slice is free: type DEMANDS on <code>BossBeat['kind']</code> — a renamed kind currently fails <em>silently</em> and the Party is never charged.</div>
+              </div>
+            </div>
+          </div>
+
+          <p><strong>Problem.</strong> The Boss Beat kind union is re-declared as bare strings in <code class="text-sm">escalation.ts</code> (the engine's one deliberate type-system opt-out — a renamed kind silently stops pricing demands), as validation predicates in <code class="text-sm">catalog.ts</code> that restate <code class="text-sm">timeline.ts</code>'s dispatch, and as field-reads in presentation.</p>
+          <p><strong>Solution.</strong> A registry row per Beat kind carrying its reach/move/demand facts, following <code class="text-sm">events.ts</code>. Take the typed-DEMANDS fix immediately regardless — it's a one-line hazard.</p>
+          <ul class="text-sm space-y-1 list-disc list-inside text-slate-700">
+            <li>the silent-rename hazard becomes a compile error</li>
+            <li>validation predicates and resolution stop diverging</li>
+            <li>leverage: a new Beat kind is one row</li>
+          </ul>
+        </article>
+
+        <!-- ============ 6. TEST SEAMS ============ -->
+        <article id="test-seams" class="bg-white rounded-xl border border-slate-200 p-8 space-y-5">
+          <div class="flex items-center gap-3">
+            <h2 class="font-serif text-2xl">Split engine.test.ts along the seams it already respects</h2>
+            <span class="text-xs font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-1 rounded">Worth exploring</span>
+            <span class="text-xs uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-1 rounded">in-process</span>
+          </div>
+          <p class="font-mono text-sm text-slate-600">engine.test.ts (5,532 lines · 44 describes · 55 commits — the #1 churn file)</p>
+
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — one file, every seam</div>
+              <div class="rounded-lg border border-slate-200 p-4 space-y-1">
+                <div class="h-5 bg-red-100 border-l-4 border-red-400 text-xs px-2 flex items-center">catalog validation · 758 lines</div>
+                <div class="h-5 bg-red-100 border-l-4 border-red-400 text-xs px-2 flex items-center">Counters &amp; Readers · ~990 lines</div>
+                <div class="h-5 bg-amber-100 border-l-4 border-amber-400 text-xs px-2 flex items-center">board &amp; movement · ~1000 lines</div>
+                <div class="h-5 bg-amber-100 border-l-4 border-amber-400 text-xs px-2 flex items-center">Beats &amp; programs · ~900 lines</div>
+                <div class="h-5 bg-stone-100 border-l-4 border-stone-400 text-xs px-2 flex items-center">fire · damage · escalation · minions · records…</div>
+                <div class="text-xs text-red-700 pt-1">97 hand-built state mutations vs 10 runScenario uses · 3 index.ts exports exist only for these tests</div>
+              </div>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — each module's interface is its test surface</div>
+              <div class="rounded-lg border border-slate-200 p-4 h-full flex flex-col justify-center gap-1 text-xs">
+                <div class="border border-slate-300 rounded px-2 py-1 font-mono">catalog.test.ts — buildCatalog throws</div>
+                <div class="border border-slate-300 rounded px-2 py-1 font-mono">counters.test.ts — the Reader grammar</div>
+                <div class="border border-slate-300 rounded px-2 py-1 font-mono">board.test.ts — movement &amp; hazards</div>
+                <div class="border border-slate-300 rounded px-2 py-1 font-mono">timeline.test.ts — Beats &amp; programs</div>
+                <div class="text-slate-500 pt-1">Staging that keeps hand-building states is the signal for a missing Scenario or a wrong seam — the survey's 97:10 ratio becomes a metric to drive down.</div>
+              </div>
+            </div>
+          </div>
+
+          <p><strong>Problem.</strong> The repo's #1 churn file is a test monolith whose 44 describes already map cleanly onto module seams; meanwhile 97 tests hand-mutate authoritative state (CONTEXT.md names Scenario as the seam for exactly this) and three engine exports exist only so this file can reach past the interface.</p>
+          <p><strong>Solution.</strong> Mechanical split along the survey's seam table (the repo has done five such extractions already — terminal, events, party, attrition, legalActions); then retire the test-only exports and grow Scenario staging where hand-built states cluster.</p>
+          <ul class="text-sm space-y-1 list-disc list-inside text-slate-700">
+            <li>interface becomes the test surface, file by file</li>
+            <li>3 test-only exports leave the engine's interface</li>
+            <li>churn stops concentrating in one 5,532-line file</li>
+          </ul>
+        </article>
+
+      </section>
+
+      <!-- ============ TOP RECOMMENDATION ============ -->
+      <section id="top-recommendation" class="bg-slate-900 text-slate-100 rounded-xl p-8">
+        <div class="text-xs uppercase tracking-wider text-slate-400 mb-2">Top recommendation</div>
+        <h2 class="font-serif text-2xl mb-3"><a href="#fired-card" class="underline decoration-emerald-400">Deepen the Fired Card into one module</a></h2>
+        <p class="text-sm text-slate-300">It concentrates the most friction per unit of work: the engine's #3 churn file hosts a 258-line case whose logic is duplicated across a seam that leaks a mutable bag, the Reader grammar has no owner, and the repo has already proven the exact move on legality (PR #147) — same switch shape, same evidence pattern, mutation anchors re-pointed the same way. It also clears the ground for the Round seam (second pick, and the one that makes your Loadout fold cheap), since both currently meet in resolve.ts.</p>
+      </section>
+
+      <footer class="text-xs text-slate-400 border-t border-slate-200 pt-4">
+        Survey evidence: sub-agent walk of web/src/engine, 2026-08-21, main @ a86fd91 · co-change figures from full git history · vocabulary: CONTEXT.md + codebase-design skill.
+      </footer>
+    </main>
+  </body>
+</html>
