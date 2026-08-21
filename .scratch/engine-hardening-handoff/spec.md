@@ -1,6 +1,6 @@
 # Engine Hardening Handoff
 
-Status: active
+Status: closed — every routed issue delivered (issues 01–03 via PRs #142, #145, #147; issue 04 deferred to its recorded trigger). Follow-up review received 2026-08-21 and routed as [engine-hardening-followup](../engine-hardening-followup/spec.md).
 
 ## Source and routing
 
@@ -15,8 +15,8 @@ Status: active
 ## Delivery sequence
 
 1. **Issue 01 — P2 + P1, the command space** (delivered this session): the declared player-command vocabulary, the completed enumeration, the guarded external seam.
-2. **Issue 02 — P5, terminal-state formalization** (open): the consequence-tree vs terminal-state ordering rule, simultaneous victory/defeat, tested rather than incidental.
-3. **Issue 03 — P3, legality modularization** (open): focused validators behind the single `legality` seam. Housekeeping; no rules change.
+2. **Issue 02 — P5, terminal-state formalization** (delivered, PR #145, D-096): the consequence-tree vs terminal-state ordering rule, simultaneous victory/defeat, tested rather than incidental.
+3. **Issue 03 — P3, legality modularization** (delivered, PR #147): focused validators behind the single `legality` seam. Housekeeping; no rules change.
 4. **Issue 04 — P4, the fire_slot audit** (deferred to trigger): folds into the resumable-resolution ADR when interception, reaction cards, or true multiplayer enters the backlog; auditing it twice would be waste.
 
 ## Non-goals

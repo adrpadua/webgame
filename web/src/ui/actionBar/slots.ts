@@ -23,15 +23,26 @@ export function slotCanFire(catalog: WorkbenchCatalog, state: EncounterState, he
   }
   // A card that selects something can fire if anything legal is selectable;
   // one that selects nothing is asked directly. Both questions are the
-  // engine's, so the bar and the resolver cannot drift apart.
+  // engine's, so the bar and the resolver cannot drift apart. The switch is
+  // exhaustive on the targeting modes: an ally card once fell through to the
+  // untargeted question here, which legality refuses, so its plate never lit
+  // however legal the shot was (engine-hardening follow-up P0).
   const targeting = fireTargeting(catalog, state, heroId, slotIndex)
-  if (targeting.mode === 'piece') {
-    return targeting.legalTargetIds.length > 0
+  switch (targeting.mode) {
+    case 'piece':
+    case 'ally':
+      return targeting.legalTargetIds.length > 0
+    case 'hex':
+      return targeting.legalHexes.length > 0
+    case 'board_slot':
+      return targeting.legalSlotIndexes.length > 0
+    case 'none':
+      return legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex }).legal
+    default: {
+      const undecided: never = targeting.mode
+      throw new Error(`fire targeting mode ${String(undecided)} has no can-fire decision`)
+    }
   }
-  if (targeting.mode === 'hex') {
-    return targeting.legalHexes.length > 0
-  }
-  return legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex }).legal
 }
 
 // The Keywords this Slot's Top Card is hunting for: every Keyword its Charge
