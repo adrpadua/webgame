@@ -58,7 +58,7 @@ export const chargeModifierSchema = z.object({
 // at module load. D-085 split the takes side: `host_damage_incoming` is the
 // modifier moment, read before mitigation, and `host_takes_damage` survives
 // meaning only the reaction, read after the blow lands.
-export const AUTHORED_WHENS = ['round_start', 'host_damage_incoming', 'host_takes_damage', 'host_deals_damage', 'slot_fired', 'host_entered'] as const
+export const AUTHORED_WHENS = ['round_start', 'host_damage_incoming', 'host_takes_damage', 'host_deals_damage', 'slot_fired', 'host_entered', 'counter_spent'] as const
 export type AuthoredWhen = (typeof AUTHORED_WHENS)[number]
 
 export const counterReaderSchema = z.object({

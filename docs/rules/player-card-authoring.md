@@ -134,7 +134,7 @@ The live/default deck is the five-identity Elian Voss Shield Wall list, specifie
 
 | Signature (not in the deck) | Standing clause | Activation |
 | --- | --- | --- |
-| *Riposte* (`elian_riposte`, `fixed: true`) | Absorb a Tank Hit on the Guarded Front for zero Health loss: this Slot gains one Charge (max 2, banked across Rounds; a block while full earns nothing). | Quick. Spend all Charges: 3 Boss damage, +2 per Charge. Spent 2? The Boss is Sundered, after this damage resolves. |
+| *Riposte* (`elian_riposte`, `fixed: true`) | Absorb a Tank Hit on the Guarded Front for zero Health loss: this Slot gains one Charge (max 2, banked across Rounds; a block while full earns nothing). | Quick. Spend all Charges: 2 Boss damage, +3 per Charge. Spent 2? The Boss is Sundered, after this damage resolves. (D-101 moved the value off the base and onto the Charge so the bank is not the worse line.) |
 
 The deck tests the choice between firing a reusable Top Card immediately and saving cards to build its Charge Stack, plus the Shield Wall role decisions layered on that loop — and, through the Signature, the choice between cashing an earned Charge for tempo and banking to the cap for the Sundering hit. The historical `10x Steady Strike` / `10x Iron Guard` dummy deck is baseline evidence for the old mechanics shell only. Adding a sixth card identity requires the deck-evaluation evidence in [deck-evaluation-rubric.md](../content/deck-evaluation-rubric.md).
 

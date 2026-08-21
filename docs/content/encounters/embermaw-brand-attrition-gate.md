@@ -75,16 +75,18 @@ Against the wall, over the same 30 seeds:
 
 | Arm | Clears | Loss shape | Avg Elian health at end | Avg boss health left | Cleanses / run |
 | --- | --- | --- | --- | --- | --- |
-| Solo — no Healer | **0 / 30** | Dead to attrition at avg Round 7.1, before the Clock | 0.1 | 49.0 of 72 | 0 |
-| Duo — Maren playing | **0 / 30** | The Enrage Clock, both Heroes alive, Boss holding half its pool | 15.8 | 37.9 of 72 | 1.8 |
+| Solo — no Healer | **0 / 30** | Dead to attrition at avg Round 7.0, before the Clock | 0.2 | 49.8 of 72 | 0 |
+| Duo — Maren playing | **0 / 30** | The Enrage Clock, both Heroes alive, Boss holding half its pool | 19.0 | 37.5 of 72 | 2.2 |
+
+> **Re-measured (2026-08-21)** after the deck pass (D-100 through D-104). Both gates hold, and hold with more margin on the half that was thin: the duo's cleanses rise 1.8 → 2.2 a run and Elian ends 3.2 health higher, while the clear count stays `0 / 30` in both arms and boss health left barely moves (37.9 → 37.5). That is the shape the pass was aiming for — Maren's loop runs more often without the duo getting closer to a clear it is not supposed to reach.
 
 What the numbers say:
 
 - **Both composition gates hold in play.** Without the Healer, the front line dies to the priced blows before the Clock matters — the loss names the missing Healer. With her, the Party survives the full fight and still cannot end it — the loss names the missing Damage seats. Each Role's absence produces its own legible failure, which is Principle 5's shape twice over.
 - **The wall is sized for the seats that are missing.** The duo removes ~34 health across a full run; a single Damage Hero contributing ~5–8 per Round closes the remaining ~38, so a trio clears where a duo cannot and a full four-seat Party clears with room. Those forward numbers are assumptions until a Damage Hero exists to measure — the third arm this probe grows when one lands.
-- **The pinned line** (`data/scenarios/brand_trial_duo_line.json`, seed 1002, 71 steps) is the survived loss: defeat by the Clock with both Heroes living and the Boss standing. `attrition.test.ts` replays it asserting exactly that shape plus her kit's attribution — a duo that clears here again means the Damage seats stopped being load-bearing.
+- **The pinned line** (`data/scenarios/brand_trial_duo_line.json`, seed 1004, 83 steps) is the survived loss: defeat by the Clock with both Heroes living and the Boss standing. `attrition.test.ts` replays it asserting exactly that shape plus her kit's attribution — a duo that clears here again means the Damage seats stopped being load-bearing. The seed moved from 1002 to 1004 with the deck pass, for the reason the pin exists: the decklist change reshuffles every seed, and 1002's new line cleansed nothing, which would have left the attribution assertion passing on a line that did not demonstrate it. 1004 runs the whole loop — 4 cleanses, 3 overflow damage, 1 cover — so the earn, the conversion, and the Signature are each visible in one replayable record.
 - **These are policy floors, not ceilings** — the sweep's standing caveat. The floor-vs-ceiling gap is why the wall sits at 72 rather than snug against the measured 48: a human duo playing the ceiling (deliberate overheal, banked covers) beats these scripts and must still fall short.
-- Two tuning reads carried forward unchanged: at the policy floor her overflow game barely fires (0.7 damage/run) so the Signature reached full bank in under a quarter of runs — Q23's cap and the earn rate still want a deliberate-overheal line before either number moves.
+- **The overflow game is still the thin half, and D-102 is why that no longer starves the Signature.** At the policy floor her conversion barely fires (0.5 damage/run) — the scripted pilot does not play the deliberate-overheal line, and since D-103 it could not fake one by aiming the card at Maren. What changed is that the Signature no longer depends on it: the `counter_spent` earn pays for cleansing, which the same policy does 2.2 times a run, so covers land (0.5/run) off the half of her kit the script actually plays. Q23's cap still wants a human deliberate-overheal line before it moves; the earn rate no longer does.
 
 ## Related
 

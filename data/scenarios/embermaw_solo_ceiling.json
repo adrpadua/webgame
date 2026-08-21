@@ -28,7 +28,7 @@
           "q": 1,
           "r": 0
         },
-        "cardInstanceId": "iron_guard_12"
+        "cardInstanceId": "sweeping_blow_12"
       }
     },
     {
@@ -82,7 +82,7 @@
         "kind": "charge_slot",
         "sourceId": "elian",
         "slotIndex": 0,
-        "cardInstanceId": "sweeping_blow_14"
+        "cardInstanceId": "fortify_14"
       }
     },
     {
@@ -138,7 +138,7 @@
           "q": 2,
           "r": -1
         },
-        "cardInstanceId": "fortify_16"
+        "cardInstanceId": "fortify_13"
       }
     },
     {
@@ -154,7 +154,7 @@
         "kind": "charge_slot",
         "sourceId": "elian",
         "slotIndex": 0,
-        "cardInstanceId": "sweeping_blow_13"
+        "cardInstanceId": "unyielding_step_16"
       }
     },
     {
@@ -194,7 +194,7 @@
           "q": 2,
           "r": -2
         },
-        "cardInstanceId": "fortify_15"
+        "cardInstanceId": "iron_guard_6"
       }
     },
     {
@@ -202,7 +202,7 @@
         "kind": "charge_slot",
         "sourceId": "elian",
         "slotIndex": 1,
-        "cardInstanceId": "iron_guard_6"
+        "cardInstanceId": "drive_back_18"
       }
     },
     {
@@ -242,7 +242,7 @@
           "q": 1,
           "r": -2
         },
-        "cardInstanceId": "iron_guard_11"
+        "cardInstanceId": "sweeping_blow_11"
       }
     },
     {
@@ -250,7 +250,7 @@
         "kind": "charge_slot",
         "sourceId": "elian",
         "slotIndex": 0,
-        "cardInstanceId": "drive_back_18"
+        "cardInstanceId": "unyielding_step_15"
       }
     },
     {

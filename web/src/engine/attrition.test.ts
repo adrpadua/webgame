@@ -214,6 +214,68 @@ describe("Maren's loop (D-080)", () => {
     expect(signature?.earnedCharges).toBe(1)
   })
 
+  it('converts nothing when the surplus is spent on Maren herself (D-103)', () => {
+    const state = start()
+    const bossBefore = state.board.entities[state.bossId].health
+    // Maren untouched, so every point of the heal is surplus. Before D-103
+    // this was her strongest line and her least thoughtful one: the card's
+    // whole printed value in Boss damage plus a Charge, off a target that
+    // needed nothing and a Beat she never had to read.
+    state.heroes.maren.health = state.heroes.maren.maxHealth
+    const after = marenFires(state, 'surplus_of_care', 'maren')
+    // The fire is still legal — an `ally` card may name its own Hero — it
+    // simply converts nothing and earns nothing.
+    expect(after.facts[0].succeeded).toBe(true)
+    expect(after.facts[0].detail.overflowConverted).toBeUndefined()
+    expect(after.state.board.entities[state.bossId].health).toBe(bossBefore)
+    expect(after.state.heroes.maren.actionBar.find((slot) => slot.fixed)?.earnedCharges).toBe(0)
+  })
+
+  it('charges the Signature by striking a mark off a record (D-102)', () => {
+    let state = start()
+    state = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: markBeat(), track: 'instant' }).state
+    expect(counterCount(state, combatantRef('elian'), MARK)).toBe(1)
+    const after = marenFires(state, 'strike_the_entry', 'elian')
+    // The mark came off, so `counter_spent` raised and the Grant heard it.
+    // This is the earn that answers the attrition curve: Sear accrues as the
+    // fight goes on, so the engine turns on under pressure rather than off.
+    expect(counterCount(after.state, combatantRef('elian'), MARK)).toBe(0)
+    expect(after.state.heroes.maren.actionBar.find((slot) => slot.fixed)?.earnedCharges).toBe(1)
+  })
+
+  it('earns nothing for striking an entry the Boss never wrote (D-102)', () => {
+    const state = start()
+    expect(counterCount(state, combatantRef('elian'), MARK)).toBe(0)
+    const after = marenFires(state, 'strike_the_entry', 'elian')
+    // No Counter came off, so no raise happened at all — the reason the row
+    // needs no `effect_landed` gate, and the reason the earn is unfarmable.
+    expect(after.state.heroes.maren.actionBar.find((slot) => slot.fixed)?.earnedCharges).toBe(0)
+    expect(after.facts[0].detail.subscriber_matches).toBeUndefined()
+  })
+
+  it('reads a spend-only Card as having landed an effect (D-102)', () => {
+    let state = start()
+    state = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: markBeat(), track: 'instant' }).state
+    const after = marenFires(state, 'strike_the_entry', 'elian')
+    // Strike the Entry deals nothing, heals nothing, and places nothing: its
+    // whole effect is the spend. Reading that as `effect_landed: false` was
+    // the gap D-102 found — a Card that did its entire job looked inert to
+    // every `slot_fired` subscriber.
+    const spent = after.facts[0].detail.spentCounters as { counter_id: string; amount: number }[]
+    expect(spent).toMatchObject([{ counter_id: MARK, amount: 1 }])
+  })
+
+  it('scales a Slow heal with the Charge Stack (D-100)', () => {
+    const state = start()
+    state.heroes.elian.health = 10
+    // `marenFires` tucks exactly one card, so Braced Recovery pays 3 + 1.
+    // Before D-100 not one card in her deck read the Charge Stack, while
+    // activation still cost her a tucked card: she paid the tax and bought
+    // nothing with it.
+    const after = marenFires(state, 'braced_recovery', 'elian')
+    expect(after.state.heroes.elian.health).toBe(14)
+  })
+
   it('spreads a healing Burst over every party Hero inside it', () => {
     const state = start()
     state.heroes.elian.health = 10
@@ -223,8 +285,10 @@ describe("Maren's loop (D-080)", () => {
     // — Elian sits adjacent at distance 1 and is covered too.
     const after = marenFires(state, 'triage_line', undefined, { q: -1, r: 1 })
     expect(after.facts[0].succeeded).toBe(true)
-    expect(after.state.heroes.maren.health).toBe(12)
-    expect(after.state.heroes.elian.health).toBe(12)
+    // 2 printed, +1 for the one card `marenFires` tucks (D-100's Charge
+    // payoff) — the burst pays the same scaled number to everyone inside it.
+    expect(after.state.heroes.maren.health).toBe(13)
+    expect(after.state.heroes.elian.health).toBe(13)
   })
 
   it('spends the mark off the chosen ally, never off the caster (Q11)', () => {
@@ -354,6 +418,101 @@ describe('the overflow cap under scaling', () => {
     expect(after.facts[0].succeeded).toBe(true)
     expect(after.facts[0].detail.overflowConverted).toBe(2)
     expect(after.state.board.entities.probe_boss.health).toBe(bossBefore - 2)
+  })
+})
+
+// The other half of D-102, which the shipped catalog cannot reach: a Card
+// whose entire effect is a `spend` has to read as having landed one. No
+// authored Signature earns on `slot_fired` today, so the rule is guarded here
+// against a hand-built one — the same reason the overflow cap above is.
+describe('a spend is an effect (D-102)', () => {
+  const fixture = buildCatalog({
+    cards: [
+      { id: 'probe_fuel', title: 'Fuel', speed: 'quick', range_tiles: 1, boss_damage: 1, tags: ['healer'] },
+      {
+        id: 'probe_strike',
+        title: 'Probe Strike',
+        speed: 'quick',
+        target_type: 'ally',
+        range_tiles: 3,
+        tags: ['healer', 'support'],
+        reads: [{ verb: 'spend', counter: 'probe_mark', on: 'target', amount: 1, timing: 'resolution' }],
+      },
+      {
+        id: 'probe_ledger',
+        title: 'Probe Ledger',
+        speed: 'quick',
+        fixed: true,
+        max_charge: 2,
+        tags: ['healer'],
+        standing: [{ when: 'slot_fired', gates: ['effect_landed'], grants_charge: 1 }],
+      },
+    ],
+    heroes: [
+      { id: 'warden', title: 'Warden', max_health: 20 },
+      { id: 'mender', title: 'Mender', max_health: 12, signature_card: 'probe_ledger' },
+    ],
+    keywords: [
+      { id: 'tank', title: 'Tank', kind: 'role' },
+      { id: 'healer', title: 'Healer', kind: 'role' },
+      { id: 'support', title: 'Support', kind: 'trait' },
+      { id: 'overflow', title: 'Overflow', kind: 'trait' },
+      { id: 'tank_hit', title: 'Tank Hit', kind: 'damage_type' },
+      { id: 'raid_hit', title: 'Raid Hit', kind: 'damage_type' },
+    ],
+    counters: [{ id: 'probe_mark', title: 'Probe Mark', host: 'combatant', max: 2, duration_rounds: 0, readers: [] }],
+    bosses: [{ id: 'probe_boss', title: 'Probe Boss', max_health: 40 }],
+    chargeModifiers: [],
+    hazards: [],
+    minions: [],
+    programs: [{ id: 'probe_program', title: 'Probe Program', instant_beats: [], incoming_beats: [] }],
+    encounters: [
+      {
+        id: 'probe_party',
+        title: 'Probe Party',
+        party: [
+          { hero: 'mender', start: { q: 0, r: 0 }, deck: [{ card: 'probe_strike', copies: 4 }] },
+          { hero: 'warden', start: { q: 1, r: 0 }, deck: [{ card: 'probe_fuel', copies: 4 }] },
+        ],
+        boss: 'probe_boss',
+        round_limit: 6,
+        board_radius: 3,
+        boss_start: { q: 0, r: -3 },
+        slot_count: 2,
+        hand_refill_target: 4,
+        player_deck: [{ card: 'probe_fuel', copies: 4 }],
+        boss_programs: ['probe_program'],
+        random_seed: 7,
+      },
+    ],
+  })
+
+  function fireStrike(marked: boolean) {
+    let state = createEncounterState(fixture, 'probe_party')
+    if (marked) {
+      const placing = { kind: 'place_counter', sourceId: 'probe_boss', hostRef: combatantRef('warden'), counterId: 'probe_mark', amount: 1, reasonText: 'probe' }
+      state = resolve(fixture, state, placing as never).state
+    }
+    state.phase = 'quick'
+    state.heroes.mender.actionBar[0].topCard = { instanceId: 'strike_probe', cardId: 'probe_strike' }
+    state.heroes.mender.actionBar[0].charges = [{ instanceId: 'fuel_probe', cardId: 'probe_strike' }]
+    return resolve(fixture, state, { kind: 'fire_slot', sourceId: 'mender', slotIndex: 0, targetId: 'warden' })
+  }
+
+  it('earns a slot_fired Charge when the spend took something off', () => {
+    const after = fireStrike(true)
+    expect(after.facts[0].succeeded).toBe(true)
+    expect(counterCount(after.state, combatantRef('warden'), 'probe_mark')).toBe(0)
+    expect(after.state.heroes.mender.actionBar.find((slot) => slot.fixed)?.earnedCharges).toBe(1)
+  })
+
+  it('earns nothing when the spend found nothing to take', () => {
+    const after = fireStrike(false)
+    expect(after.facts[0].succeeded).toBe(true)
+    // The fire was legal and did nothing: `effect_landed` is false and the
+    // gate refuses it, which is the half that keeps the rule from becoming
+    // "any fire earns".
+    expect(after.state.heroes.mender.actionBar.find((slot) => slot.fixed)?.earnedCharges).toBe(0)
   })
 })
 

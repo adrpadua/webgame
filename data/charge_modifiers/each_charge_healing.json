@@ -1,0 +1,7 @@
+{
+  "id": "each_charge_healing",
+  "title": "Compounded Care",
+  "rules_text": "Gain 1 healing for each charged card.",
+  "effect": "healing",
+  "amount_per_match": 1
+}
