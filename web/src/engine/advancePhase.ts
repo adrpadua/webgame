@@ -34,6 +34,225 @@ function cleanupActions(catalog: ContentCatalog, draft: EncounterState, window: 
   return actions
 }
 
+// The Round's cycle, declared once rather than implied by hand-written
+// transition calls scattered through the scripts. Still authored data, not a
+// generalized phase machine — the engine-hardening non-goal stands. A future
+// change to the cycle's shape (the recorded intent to fold Loadout's job into
+// Quick and Slow, for one) starts here: edit the table, retire the script,
+// and the compiler demands the rest.
+const NEXT_PHASE: Record<Phase, Phase> = {
+  loadout: 'instant',
+  instant: 'quick',
+  quick: 'incoming',
+  incoming: 'slow',
+  slow: 'loadout',
+}
+
+type Submit = (action: EncounterActionInput) => void
+
+// One named script per phase boundary, dispatched from the table below —
+// the same table-of-contents shape the legality module uses for its
+// validators. Each script may return early once the Encounter has ended;
+// the terminal check after dispatch is a no-op on an ended draft, so an
+// early return only ever skips the rest of its own script.
+type PhaseScript = (catalog: ContentCatalog, draft: EncounterState, submit: Submit) => void
+
+// Leaving Loadout opens the Boss's Instant window and resolves its row.
+function loadoutScript(catalog: ContentCatalog, draft: EncounterState, submit: Submit): void {
+  submit(advanceAction('loadout', NEXT_PHASE.loadout, draft.round))
+  for (const action of actionsForTrack(catalog, draft, 'instant')) {
+    submit(action)
+  }
+}
+
+// Leaving the Instant row opens the Quick Window and aims the telegraphs.
+function instantScript(catalog: ContentCatalog, draft: EncounterState, submit: Submit): void {
+  submit(advanceAction('instant', NEXT_PHASE.instant, draft.round))
+  refreshTelegraphs(catalog, draft)
+}
+
+// Leaving the Quick Window: cleanup, then the Boss's Incoming window opens —
+// Minion fuses first, then the Row itself.
+function quickScript(catalog: ContentCatalog, draft: EncounterState, submit: Submit): void {
+  for (const action of cleanupActions(catalog, draft, 'quick')) {
+    submit(action)
+  }
+  submit(advanceAction('quick', NEXT_PHASE.quick, draft.round))
+  // The Minion fuses (D-063), before the Boss acts. A Whelp's clock is its
+  // own: it was set when the Whelp arrived, so what the Boss does this
+  // Round must not decide when it runs out. Resolving first also means the
+  // hexes a blast frees are available to the spawn telegraph re-aimed
+  // below, rather than being counted as occupied by pieces that are gone.
+  //
+  // Collected before the loop, because the list is what detonates: a
+  // detonation removes its own Minion, and reading the live board mid-loop
+  // would be iterating a collection the loop is emptying.
+  let detonated = false
+  for (const minionId of Object.values(draft.board.entities)
+    .filter((entity) => entity.kind === 'minion' && detonationDue(draft, entity.id))
+    .map((entity) => entity.id)) {
+    if (!draft.active) {
+      break
+    }
+    if (minionDetonation(catalog, draft, minionId) !== null) {
+      submit({ kind: 'detonate_minion', sourceId: minionId })
+      detonated = true
+    }
+  }
+  // A Whelp reaching its fuse IS the Brood Call going unanswered, so the
+  // Beat's authored `escalation_if_unanswered` is charged here rather than
+  // at the Round-end step a detonating Whelp can never reach. Without it a
+  // party that simply stepped out of the blast paid nothing at all for the
+  // adds, and the measured sweep put a solo victory on the board — a
+  // tuning defect by definition (D-016).
+  //
+  // Once per Round, not once per Whelp, because that is the rate the
+  // Round-end demand charged at and this is the same demand moved rather
+  // than a new one: billing each Whelp separately front-loads the same
+  // total into one Round and pulls the collapse forward half a Round
+  // across the sweep. Clearing part of a brood is still paid for — in the
+  // blasts that never land — just not in Escalation.
+  if (detonated && draft.active) {
+    const demand = minionDemandTerms(catalog, draft)
+    if (demand.amount > 0) {
+      submit({
+        kind: 'gain_escalation',
+        sourceId: ENCOUNTER_SOURCE,
+        amount: demand.amount,
+        reason: 'unanswered_minions',
+        beatId: demand.beatId,
+      })
+    }
+  }
+  if (!draft.active) {
+    return
+  }
+  // Re-aim the telegraphs before the Incoming Row resolves.
+  refreshTelegraphs(catalog, draft)
+  for (const action of actionsForTrack(catalog, draft, 'incoming')) {
+    submit(action)
+  }
+}
+
+// Leaving the Incoming row opens the Slow Window.
+function incomingScript(_catalog: ContentCatalog, draft: EncounterState, submit: Submit): void {
+  submit(advanceAction('incoming', NEXT_PHASE.incoming, draft.round))
+}
+
+// Leaving the Slow Window: cleanup, the Minion end step, then the Round wraps.
+function slowScript(catalog: ContentCatalog, draft: EncounterState, submit: Submit): void {
+  for (const action of cleanupActions(catalog, draft, 'slow')) {
+    submit(action)
+  }
+  // The Minion end step (D-006): each living Minion, in spawn order,
+  // bites its nearest Hero when adjacent or advances one hex toward
+  // them — before the Round wraps, so bites meet the Round's remaining
+  // Armor. Each intent is recomputed from the live draft, so a later
+  // Minion sees the positions its predecessors just took.
+  const minionIds = Object.values(draft.board.entities)
+    .filter((entity) => entity.kind === 'minion')
+    .map((entity) => entity.id)
+  for (const minionId of minionIds) {
+    if (!draft.active) {
+      break
+    }
+    const intent = minionIntent(catalog, draft, minionId)
+    if (!intent) {
+      continue
+    }
+    if (intent.damage > 0) {
+      const escalationBonus = escalationModifiers(draft).minionDamageBonus
+      submit({
+        kind: 'damage',
+        sourceId: minionId,
+        targetId: intent.targetHeroId,
+        amount: intent.damage + escalationBonus,
+        reasonText: `${draft.board.entities[minionId].title} bites`,
+        factContext: {
+          minion_intent: true,
+          damage_keywords: [RAID_HIT],
+          ...(escalationBonus > 0 ? { escalation_bonus: escalationBonus } : {}),
+        },
+      })
+    } else if (intent.route.length > 0) {
+      // The same action the Boss's movement clause emits (D-072). A Minion
+      // crossing the board is the same event as a Boss crossing it, and the
+      // separate `move_minion` action retired because it quietly differed:
+      // it applied no Hazard entry at all, so a Whelp crossing ground the
+      // party had laid walked through it for free.
+      submit({
+        kind: 'traverse_piece',
+        sourceId: minionId,
+        path: intent.route,
+        traversal: catalog.minions[draft.board.entities[minionId].contentId ?? '']?.traversal ?? 'walk',
+        reasonText: `${draft.board.entities[minionId].title} advances`,
+      })
+    }
+  }
+  if (!draft.active) {
+    return
+  }
+  wrapRound(catalog, draft, submit)
+}
+
+// The Round wraps — the one place the boundary's bookkeeping is ordered.
+// What each submitted action *does* stays with the resolver (the
+// `round_start` case carries the board tick, the Armor wipe, Counter
+// upkeep, and the program advance); what this owns is the order the
+// boundary asks its questions in, which used to be the untitled tail of
+// one 91-line case.
+function wrapRound(catalog: ContentCatalog, draft: EncounterState, submit: Submit): void {
+  // The Escalation step (ADR 0027): the automatic tick once it has begun,
+  // then acceleration for any demand still standing — after the Minion end
+  // step, so a bite that downs the Hero resolves first. Escalation is the
+  // only clock, so its top threshold ends the fight; there is no separate
+  // round-limit check.
+  for (const action of escalationActionsForRoundEnd(catalog, draft)) {
+    submit(action)
+  }
+  const nextRound = draft.round + 1
+  if (draft.escalation >= ESCALATION_MAX) {
+    submit({ kind: 'end_of_clock', sourceId: ENCOUNTER_SOURCE, round: nextRound, reason: draft.enrageText })
+    return
+  }
+  submit({ kind: 'round_start', sourceId: ENCOUNTER_SOURCE, round: nextRound })
+  // The rescue window closes (ADR 0036). Checked after the Round has
+  // opened, so a Hero Downed in Round N is rescuable right through Round
+  // N+1 and expires as N+2 begins. The Escalation charge is submitted as
+  // an action rather than applied here, so a failed rescue lands on the
+  // fact stream beside every other demand the Party did not answer.
+  for (const heroId of expiredRescues(draft)) {
+    submit({ kind: 'incapacitate_hero', sourceId: heroId })
+    submit({ kind: 'gain_escalation', sourceId: ENCOUNTER_SOURCE, amount: 1, reason: 'unanswered_rescue', beatId: '' })
+  }
+  for (const heroId of Object.keys(draft.heroes)) {
+    if (draft.heroes[heroId].status !== 'living') {
+      continue
+    }
+    while (draft.heroes[heroId].hand.length < draft.heroes[heroId].refillTarget) {
+      if (draft.heroes[heroId].deck.length === 0) {
+        if (draft.heroes[heroId].discard.length === 0) {
+          break
+        }
+        submit({ kind: 'shuffle_deck', sourceId: heroId, label: 'discard_shuffle' })
+      }
+      submit({ kind: 'draw_card', sourceId: heroId })
+    }
+  }
+  submit(advanceAction('slow', NEXT_PHASE.slow, nextRound))
+  refreshTelegraphs(catalog, draft)
+}
+
+// A script per phase, compile-complete: a phase added to the union cannot
+// ship without deciding its boundary script here.
+const PHASE_SCRIPTS: Record<Phase, PhaseScript> = {
+  loadout: loadoutScript,
+  instant: instantScript,
+  quick: quickScript,
+  incoming: incomingScript,
+  slow: slowScript,
+}
+
 // Advances one phase boundary; every mutation it causes rides an action, and
 // the returned facts are the complete ordered slice it produced (ADR 0015).
 //
@@ -51,175 +270,7 @@ export function advancePhase(catalog: ContentCatalog, state: EncounterState): Re
   const draft = structuredClone(state)
   const facts: ResolvedActionFact[] = []
   const submit = (action: EncounterActionInput) => applyAction(catalog, draft, action, facts, 0)
-  switch (draft.phase) {
-    case 'loadout':
-      submit(advanceAction('loadout', 'instant', draft.round))
-      for (const action of actionsForTrack(catalog, draft, 'instant')) {
-        submit(action)
-      }
-      break
-    case 'instant':
-      submit(advanceAction('instant', 'quick', draft.round))
-      refreshTelegraphs(catalog, draft)
-      break
-    case 'quick': {
-      for (const action of cleanupActions(catalog, draft, 'quick')) {
-        submit(action)
-      }
-      submit(advanceAction('quick', 'incoming', draft.round))
-      // The Minion fuses (D-063), before the Boss acts. A Whelp's clock is its
-      // own: it was set when the Whelp arrived, so what the Boss does this
-      // Round must not decide when it runs out. Resolving first also means the
-      // hexes a blast frees are available to the spawn telegraph re-aimed
-      // below, rather than being counted as occupied by pieces that are gone.
-      //
-      // Collected before the loop, because the list is what detonates: a
-      // detonation removes its own Minion, and reading the live board mid-loop
-      // would be iterating a collection the loop is emptying.
-      let detonated = false
-      for (const minionId of Object.values(draft.board.entities)
-        .filter((entity) => entity.kind === 'minion' && detonationDue(draft, entity.id))
-        .map((entity) => entity.id)) {
-        if (!draft.active) {
-          break
-        }
-        if (minionDetonation(catalog, draft, minionId) !== null) {
-          submit({ kind: 'detonate_minion', sourceId: minionId })
-          detonated = true
-        }
-      }
-      // A Whelp reaching its fuse IS the Brood Call going unanswered, so the
-      // Beat's authored `escalation_if_unanswered` is charged here rather than
-      // at the Round-end step a detonating Whelp can never reach. Without it a
-      // party that simply stepped out of the blast paid nothing at all for the
-      // adds, and the measured sweep put a solo victory on the board — a
-      // tuning defect by definition (D-016).
-      //
-      // Once per Round, not once per Whelp, because that is the rate the
-      // Round-end demand charged at and this is the same demand moved rather
-      // than a new one: billing each Whelp separately front-loads the same
-      // total into one Round and pulls the collapse forward half a Round
-      // across the sweep. Clearing part of a brood is still paid for — in the
-      // blasts that never land — just not in Escalation.
-      if (detonated && draft.active) {
-        const demand = minionDemandTerms(catalog, draft)
-        if (demand.amount > 0) {
-          submit({
-            kind: 'gain_escalation',
-            sourceId: ENCOUNTER_SOURCE,
-            amount: demand.amount,
-            reason: 'unanswered_minions',
-            beatId: demand.beatId,
-          })
-        }
-      }
-      if (!draft.active) {
-        return { state: draft, facts }
-      }
-      // Re-aim the telegraphs before the Incoming Row resolves.
-      refreshTelegraphs(catalog, draft)
-      for (const action of actionsForTrack(catalog, draft, 'incoming')) {
-        submit(action)
-      }
-      break
-    }
-    case 'incoming':
-      submit(advanceAction('incoming', 'slow', draft.round))
-      break
-    case 'slow': {
-      for (const action of cleanupActions(catalog, draft, 'slow')) {
-        submit(action)
-      }
-      // The Minion end step (D-006): each living Minion, in spawn order,
-      // bites its nearest Hero when adjacent or advances one hex toward
-      // them — before the Round wraps, so bites meet the Round's remaining
-      // Armor. Each intent is recomputed from the live draft, so a later
-      // Minion sees the positions its predecessors just took.
-      const minionIds = Object.values(draft.board.entities)
-        .filter((entity) => entity.kind === 'minion')
-        .map((entity) => entity.id)
-      for (const minionId of minionIds) {
-        if (!draft.active) {
-          break
-        }
-        const intent = minionIntent(catalog, draft, minionId)
-        if (!intent) {
-          continue
-        }
-        if (intent.damage > 0) {
-          const escalationBonus = escalationModifiers(draft).minionDamageBonus
-          submit({
-            kind: 'damage',
-            sourceId: minionId,
-            targetId: intent.targetHeroId,
-            amount: intent.damage + escalationBonus,
-            reasonText: `${draft.board.entities[minionId].title} bites`,
-            factContext: {
-              minion_intent: true,
-              damage_keywords: [RAID_HIT],
-              ...(escalationBonus > 0 ? { escalation_bonus: escalationBonus } : {}),
-            },
-          })
-        } else if (intent.route.length > 0) {
-          // The same action the Boss's movement clause emits (D-072). A Minion
-          // crossing the board is the same event as a Boss crossing it, and the
-          // separate `move_minion` action retired because it quietly differed:
-          // it applied no Hazard entry at all, so a Whelp crossing ground the
-          // party had laid walked through it for free.
-          submit({
-            kind: 'traverse_piece',
-            sourceId: minionId,
-            path: intent.route,
-            traversal: catalog.minions[draft.board.entities[minionId].contentId ?? '']?.traversal ?? 'walk',
-            reasonText: `${draft.board.entities[minionId].title} advances`,
-          })
-        }
-      }
-      if (!draft.active) {
-        return { state: draft, facts }
-      }
-      // The Escalation step (ADR 0027): the automatic tick once it has begun,
-      // then acceleration for any demand still standing — after the Minion end
-      // step, so a bite that downs the Hero resolves first. Escalation is the
-      // only clock, so its top threshold ends the fight; there is no separate
-      // round-limit check.
-      for (const action of escalationActionsForRoundEnd(catalog, draft)) {
-        submit(action)
-      }
-      const nextRound = draft.round + 1
-      if (draft.escalation >= ESCALATION_MAX) {
-        submit({ kind: 'end_of_clock', sourceId: ENCOUNTER_SOURCE, round: nextRound, reason: draft.enrageText })
-        return { state: draft, facts }
-      }
-      submit({ kind: 'round_start', sourceId: ENCOUNTER_SOURCE, round: nextRound })
-      // The rescue window closes (ADR 0036). Checked after the Round has
-      // opened, so a Hero Downed in Round N is rescuable right through Round
-      // N+1 and expires as N+2 begins. The Escalation charge is submitted as
-      // an action rather than applied here, so a failed rescue lands on the
-      // fact stream beside every other demand the Party did not answer.
-      for (const heroId of expiredRescues(draft)) {
-        submit({ kind: 'incapacitate_hero', sourceId: heroId })
-        submit({ kind: 'gain_escalation', sourceId: ENCOUNTER_SOURCE, amount: 1, reason: 'unanswered_rescue', beatId: '' })
-      }
-      for (const heroId of Object.keys(draft.heroes)) {
-        if (draft.heroes[heroId].status !== 'living') {
-          continue
-        }
-        while (draft.heroes[heroId].hand.length < draft.heroes[heroId].refillTarget) {
-          if (draft.heroes[heroId].deck.length === 0) {
-            if (draft.heroes[heroId].discard.length === 0) {
-              break
-            }
-            submit({ kind: 'shuffle_deck', sourceId: heroId, label: 'discard_shuffle' })
-          }
-          submit({ kind: 'draw_card', sourceId: heroId })
-        }
-      }
-      submit(advanceAction('slow', 'loadout', nextRound))
-      refreshTelegraphs(catalog, draft)
-      break
-    }
-  }
+  PHASE_SCRIPTS[draft.phase](catalog, draft, submit)
   checkResolution(draft)
   return { state: draft, facts }
 }
