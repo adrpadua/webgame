@@ -2,7 +2,7 @@ import type { ContentCatalog, EncounterState } from '@/engine'
 import { selectState, type TimelinePosition } from '@/store/workbench'
 import { slotCanFire } from '../actionBar/slots'
 
-// Who still owes this window an action (D-092).
+// Who still owes this window an action (D-093).
 //
 // Multi-character play introduced a failure a solo slice cannot have: a Hero
 // whose console you are not looking at can sit through a whole window doing

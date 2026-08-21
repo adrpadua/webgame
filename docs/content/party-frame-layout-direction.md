@@ -37,7 +37,7 @@ Single-player control arrived after the mockups and completes the frame's gestur
 
 The pattern is BG3's portrait click on Spirit Island's structure, per the [party-switching research note](research/2026-08-21-single-player-party-switching-bg3-spirit-island.md): switching drops in-flight gestures and keeps commitments, and the cursor survives undo because the window — not the character — is the commit boundary.
 
-## The unacted nudge (D-092)
+## The unacted nudge (D-093)
 
 Multi-character play added a failure the solo slice could not have: a seat you are not piloting can sit out a whole window in silence. Total War's campaign map is the tested answer — the end-turn button becomes "a unit has not moved", each press jumps to one, and it reverts to end-turn once none are left — and it lands here as **three faces of one rule** (`web/src/ui/party/unacted.ts`), so the frame that nudges and the rail that offers can never disagree about who is waiting.
 
@@ -63,7 +63,7 @@ Multi-character play added a failure the solo slice could not have: a seat you a
 | REVIVE · 1 CARD | `legality({kind:'revive_ally'})` — the frame lights only when the engine's own predicate would accept the rescue (ADR 0014's one-predicate discipline). Tap parks `pendingRevive`; the Hand pays, reusing the move-payment idiom. |
 | Class resource segments | The seat's own Signature bank (`earnedCharges` / cap) — every seat may field one (ADR 0035). |
 | Threat mark | Derived, not stored: the Hero the current program's first Role-selecting Beat resolves to, via `selectBeatTarget` — the mark and the blow read one selector and cannot disagree. |
-| Unspent pip + its bloom | `unactedHeroIds` (D-092) — read off the session timeline's own facts (Round, phase, `sourceId`, `succeeded`), gated by the same "could still act" predicates the skip warning uses. |
+| Unspent pip + its bloom | `unactedHeroIds` (D-093) — read off the session timeline's own facts (Round, phase, `sourceId`, `succeeded`), gated by the same "could still act" predicates the skip warning uses. |
 | Ally-card targeting pip | **Not wired yet.** Needs the fire-targeting gesture to offer frames as targets for `target_type: 'ally'` cards; today those cards target through the board. |
 | AI badge | **No engine backing.** No AI seats exist; deferred until one does. |
 | Enemy frames / dealt meter | Out of scope for the party column; the mock's enemy plates belong to the target-frame direction, not this one. |

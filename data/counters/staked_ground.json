@@ -1,0 +1,12 @@
+{
+  "id": "staked_ground",
+  "title": "Staked Ground",
+  "rules_text": "Whatever enters this hex takes 1 damage per Stake — friend and foe alike. The stakes weather away after two Rounds.",
+  "keywords": [],
+  "host": "hex",
+  "max": 2,
+  "duration_rounds": 2,
+  "readers": [
+    { "when": "host_entered", "event_keyword": "", "effect": "target_damage", "per": 1 }
+  ]
+}

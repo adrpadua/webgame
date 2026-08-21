@@ -19,7 +19,7 @@ import { GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, FOCUS_RING_CLASS, NUDGE_RING_CLASS
 // pays. Nothing else on screen moves, and no second interactive row ever
 // appears.
 //
-// The unacted nudge (D-092 — Total War's "a unit has not moved", read onto the
+// The unacted nudge (D-093 — Total War's "a unit has not moved", read onto the
 // frame rather than only onto the button): a seat that has not used the open
 // window and still could grows an unspent pip beside its name, wearing the
 // living-gold bloom until it acts, the window closes, or the player takes
