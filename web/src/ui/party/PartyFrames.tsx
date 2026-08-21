@@ -1,7 +1,7 @@
 import { useCatalog } from '@/content/CatalogContext'
 import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { captureFrameBoxes, useSwapFlip } from './controlSwap'
-import { partyFrames, type PartyFrameModel } from './partyFrames'
+import { partyFrames, type PartyFrameModel } from './partyFrameModel'
 import { nextNudge, unactedHeroIds } from './unacted'
 import { GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, FOCUS_RING_CLASS, NUDGE_RING_CLASS, healthBarScale } from '../common/theme'
 

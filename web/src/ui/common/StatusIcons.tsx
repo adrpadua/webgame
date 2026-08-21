@@ -11,7 +11,7 @@ import {
   type StatusGlyph,
   type StatusMark,
   type StatusMaterial,
-} from './statusIcons'
+} from './statusIconEntries'
 import { FOCUS_RING_CLASS } from './theme'
 
 // The Status Icon (D-088, party-frame direction 1A): a Counter as a raked square
