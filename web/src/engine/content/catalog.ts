@@ -504,13 +504,22 @@ export function buildCatalog(raw: RawContent): ContentCatalog {
         requireKeyword(catalog, reader.event_keyword, KEYWORD_REFERENCES.damageKeywords, `Counter ${counter.id}`, 'event_keyword')
       }
     }
-    // Every `when` in the Reader vocabulary names something that happens to a
-    // combatant — a Round's Armor grant, taking or dealing damage, firing a
-    // Slot. Ground and prepared cards do none of those, so a Counter hosted
-    // there is a pure marker: it is read by cards, and authoring a Reader on
-    // it would be authoring an effect that can never fire.
-    if (counter.host !== 'combatant' && counter.readers.length > 0) {
-      throw new Error(`Counter ${counter.id} is hosted on a ${counter.host} but declares readers, and every reader event is a combatant's`)
+    // A Reader's `when` has to name something that happens to its host.
+    // Combatant events — the Round's Armor grant, taking or dealing damage,
+    // firing a Slot — never happen to ground, and `host_entered` (D-086)
+    // never happens to a combatant: it is the one Reader a hex-hosted
+    // Counter may carry, and the ground's only one. A prepared Slot has no
+    // events at all, so a slot-hosted Counter stays a pure marker.
+    for (const reader of counter.readers) {
+      if (counter.host === 'hex' && reader.when !== 'host_entered') {
+        throw new Error(`Counter ${counter.id} is hosted on a hex but authors a ${reader.when} reader; ground hears only host_entered (D-086)`)
+      }
+      if (counter.host === 'combatant' && reader.when === 'host_entered') {
+        throw new Error(`Counter ${counter.id} is hosted on a combatant but authors a host_entered reader; a combatant is never entered (D-086)`)
+      }
+    }
+    if (counter.host === 'slot' && counter.readers.length > 0) {
+      throw new Error(`Counter ${counter.id} is hosted on a slot but declares readers, and a prepared Slot has no events`)
     }
     // The reachability half that can be enforced today: a Counter nothing
     // reads is an unreachable mechanic. The other half — a Counter nothing

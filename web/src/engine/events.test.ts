@@ -5,6 +5,7 @@ import {
   buildCatalog,
   combatantRef,
   createEncounterState,
+  hexCounterRef,
   readSubscriberMatches,
   resolve,
   type EncounterState,
@@ -251,5 +252,113 @@ describe('the paired reader (D-087)', () => {
     ])
     expect(readSubscriberMatches(undefined)).toEqual([])
     expect(readSubscriberMatches({})).toEqual([])
+  })
+})
+
+describe('the hex_entered raise (D-086)', () => {
+  // Ground's first Reader: a hex-hosted Counter answering the footstep. The
+  // path carries the honesty (D-074): a walker's path lists every hex it
+  // crosses, a jumper's only the one it lands on, so the raise inherits who
+  // pays for what without a rule of its own.
+  const fixture = buildCatalog({
+    cards: [{ id: 'probe_strike', title: 'Probe Strike', speed: 'quick', boss_damage: 1, range_tiles: 1, tags: ['tank'] }],
+    heroes: [{ id: 'warden', title: 'Warden', max_health: 20 }],
+    keywords: [
+      { id: 'tank', title: 'Tank', kind: 'role' },
+      { id: 'overflow', title: 'Overflow', kind: 'trait' },
+      { id: 'tank_hit', title: 'Tank Hit', kind: 'damage_type' },
+      { id: 'raid_hit', title: 'Raid Hit', kind: 'damage_type' },
+    ],
+    counters: [
+      {
+        id: 'caltrops',
+        title: 'Caltrops',
+        host: 'hex',
+        max: 2,
+        readers: [{ when: 'host_entered', effect: 'target_damage', per: 2 }],
+      },
+    ],
+    bosses: [{ id: 'probe_boss', title: 'Probe Boss', max_health: 40 }],
+    chargeModifiers: [],
+    hazards: [],
+    minions: [],
+    programs: [{ id: 'probe_program', title: 'Probe Program', instant_beats: [], incoming_beats: [] }],
+    encounters: [
+      {
+        id: 'probe_party',
+        title: 'Probe Party',
+        party: [{ hero: 'warden', start: { q: 0, r: 0 } }],
+        boss: 'probe_boss',
+        round_limit: 6,
+        board_radius: 2,
+        boss_start: { q: 1, r: 0 },
+        slot_count: 1,
+        hand_refill_target: 4,
+        player_deck: [{ card: 'probe_strike', copies: 4 }],
+        boss_programs: ['probe_program'],
+        random_seed: 7,
+      },
+    ],
+  })
+
+  function markedGround(): EncounterState {
+    let state = createEncounterState(fixture, 'probe_party')
+    for (const coords of [
+      { q: 1, r: -1 },
+      { q: 0, r: -1 },
+    ]) {
+      const placed = resolve(fixture, state, {
+        kind: 'place_counter',
+        sourceId: state.bossId,
+        hostRef: hexCounterRef(coords),
+        counterId: 'caltrops',
+        amount: 1,
+        reasonText: 'probe',
+      })
+      expect(placed.facts[0].succeeded).toBe(true)
+      state = placed.state
+    }
+    return state
+  }
+
+  it('a walker pays every marked hex it crosses, one damage action per Counter, matches appended on one fact', () => {
+    const state = markedGround()
+    const walked = resolve(fixture, state, {
+      kind: 'traverse_piece',
+      sourceId: state.bossId,
+      path: [
+        { q: 1, r: -1 },
+        { q: 0, r: -1 },
+      ],
+      traversal: 'walk',
+      reasonText: 'probe walk',
+    })
+    const damage = walked.facts.filter((fact) => fact.kind === 'damage' && fact.succeeded)
+    expect(damage.map((fact) => fact.detail)).toEqual([
+      expect.objectContaining({ targetId: state.bossId, amount: 2 }),
+      expect.objectContaining({ targetId: state.bossId, amount: 2 }),
+    ])
+    expect(walked.state.board.entities[state.bossId].health).toBe(36)
+    // Two raises on the one traverse fact — appended, never overwritten.
+    expect(readSubscriberMatches(walked.facts[0].detail)).toEqual([
+      { event: 'hex_entered', host: 'hex:1,-1', kind: 'reader', id: 'caltrops', when: 'host_entered', delta: 2 },
+      { event: 'hex_entered', host: 'hex:0,-1', kind: 'reader', id: 'caltrops', when: 'host_entered', delta: 2 },
+    ])
+  })
+
+  it('a jumper pays only where it lands', () => {
+    const state = markedGround()
+    const jumped = resolve(fixture, state, {
+      kind: 'traverse_piece',
+      sourceId: state.bossId,
+      path: [{ q: 0, r: -1 }],
+      traversal: 'jump',
+      reasonText: 'probe jump',
+    })
+    expect(jumped.facts.filter((fact) => fact.kind === 'damage' && fact.succeeded)).toHaveLength(1)
+    expect(jumped.state.board.entities[state.bossId].health).toBe(38)
+    expect(readSubscriberMatches(jumped.facts[0].detail)).toEqual([
+      { event: 'hex_entered', host: 'hex:0,-1', kind: 'reader', id: 'caltrops', when: 'host_entered', delta: 2 },
+    ])
   })
 })
