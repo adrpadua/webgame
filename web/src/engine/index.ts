@@ -3,7 +3,7 @@
 // plus the content catalog and the shared rules vocabulary types.
 
 export { createEncounterState } from './setup'
-export { resolve } from './resolve'
+export { resolve, checkResolution } from './resolve'
 export { advancePhase } from './advancePhase'
 export { escalationActionsForRoundEnd } from './escalation'
 export { legality } from './legality'
