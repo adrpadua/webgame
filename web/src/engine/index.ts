@@ -3,7 +3,11 @@
 // plus the content catalog and the shared rules vocabulary types.
 
 export { createEncounterState } from './setup'
-export { resolve, checkResolution } from './resolve'
+// `checkResolution` is deliberately not exported: it mutates authoritative
+// state without producing a fact, so public consumers cross `resolve()` or
+// `advancePhase()` instead (engine-hardening follow-up P4). Internal engine
+// callers import it from './resolve' directly.
+export { resolve } from './resolve'
 export { advancePhase } from './advancePhase'
 export { escalationActionsForRoundEnd } from './escalation'
 export { legality } from './legality'
