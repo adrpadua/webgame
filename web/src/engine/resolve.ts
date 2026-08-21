@@ -61,10 +61,12 @@ export function resolve(catalog: ContentCatalog, state: EncounterState, action: 
 //    `deferTerminalCheck` below.
 // 3. Everything else — a Boss Beat's batch, a traversal's ground damage, a
 //    detonation's blast — evaluates per node: the moment a consequence ends
-//    the Encounter, every remaining action in the tree or script is refused
-//    by `legality` with "The Encounter has already ended", recorded as a
-//    refused fact rather than silently skipped. The fact stream shows what
-//    the ending cut off.
+//    the Encounter, every remaining action already inside a submitted tree is
+//    refused by `legality` with "The Encounter has already ended", recorded
+//    as a refused fact rather than silently skipped. The fact stream shows
+//    what the ending cut off. A phase script that has not yet submitted an
+//    action simply stops instead — an unfired fuse leaves no fact, because
+//    nothing was ever asked (the terminal tests pin both edges).
 // 4. Ties inside one evaluation go to victory: `checkResolution` asks about
 //    the Boss before the Party, so a tree that puts both at zero is a win
 //    (D-096). The kill counts even when nobody is standing to see it.

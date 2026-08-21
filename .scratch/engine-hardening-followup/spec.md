@@ -14,7 +14,7 @@ Status: active
 ## Delivery sequence
 
 1. **Issue 01 — P0, exhaustive fire-target enumeration** (this session): every schema target family enumerated; the target-family contract matrix; the same exhaustiveness pushed into every `FireTargeting.mode` consumer.
-2. **Issue 02 — P4, direct resolver-level terminal tests** (open): real-tree mutual zero, detonation-mid-tree, phase-terminal-during-tree; then reconsider the `checkResolution` export, which exists only for the current mutual-zero unit test.
+2. **Issue 02 — P4, direct resolver-level terminal tests** (delivered, this session): real-tree mutual zero, detonation-mid-tree, phase-terminal-during-tree; then reconsider the `checkResolution` export, which exists only for the current mutual-zero unit test.
 3. **Issue 03 — P1, the payment-enumeration contract** (open): decide complete-vs-representative and write it down. The reviewer recommends full enumeration with UI grouping above the engine; the EDOPro research note predicts the future resumable-resolution seam subsumes payment choice — whichever way this lands, record it as revisitable at that seam's trigger.
 4. **Issue 04 — P2, the runtime trust boundary** (open, pre-multiplayer): a runtime-validated player-command entry point sharing the Scenario schema authority; raw system-action resolution stays on the internal seam.
 
