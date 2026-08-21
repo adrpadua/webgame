@@ -124,7 +124,7 @@ describe('dragging the Hero to a hex', () => {
   // them has something to say.
   it('opens the Tile Panel on ground that is carrying something, and closes it on plain ground', () => {
     const burning = firstLegalDestination()
-    store().submit({ kind: 'apply_hazard', sourceId: state().bossId, coords: burning, hazardId: 'scorched', fallbackDurationRounds: 1 })
+    store().submitSystemAction({ kind: 'apply_hazard', sourceId: state().bossId, coords: burning, hazardId: 'scorched', fallbackDurationRounds: 1 })
 
     store().hexClicked(burning)
     expect(store().inspectedHexKey).toBe(hexKey(burning))
@@ -135,7 +135,7 @@ describe('dragging the Hero to a hex', () => {
   })
 
   it('reads the ground under the Hero on a Hero tap, which still pulses the frame', () => {
-    store().submit({ kind: 'apply_hazard', sourceId: state().bossId, coords: heroCoords(), hazardId: 'scorched', fallbackDurationRounds: 1 })
+    store().submitSystemAction({ kind: 'apply_hazard', sourceId: state().bossId, coords: heroCoords(), hazardId: 'scorched', fallbackDurationRounds: 1 })
     const pulseBefore = store().heroFramePulse
 
     store().hexClicked(heroCoords())
@@ -148,7 +148,7 @@ describe('dragging the Hero to a hex', () => {
   })
 
   it('closes the Tile Panel on its own control, and on a session transition', () => {
-    store().submit({ kind: 'apply_hazard', sourceId: state().bossId, coords: heroCoords(), hazardId: 'scorched', fallbackDurationRounds: 1 })
+    store().submitSystemAction({ kind: 'apply_hazard', sourceId: state().bossId, coords: heroCoords(), hazardId: 'scorched', fallbackDurationRounds: 1 })
     store().hexClicked(heroCoords())
 
     store().dismissTile()

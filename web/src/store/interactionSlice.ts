@@ -8,7 +8,7 @@ import {
   isLegalMove,
   legality,
   type Axial,
-  type EncounterActionInput,
+  type PlayerCommandInput,
 } from '@/engine'
 import { catalog } from './catalog'
 import { selectPilotId, selectState } from './selectors'
@@ -152,7 +152,7 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
     if (targetingSlotIndex !== null) {
       const targeting = fireTargeting(catalog, state, selectPilotId(get()), targetingSlotIndex)
       if (targeting.mode === 'hex') {
-        const action: EncounterActionInput = {
+        const action: PlayerCommandInput = {
           kind: 'fire_slot',
           sourceId: selectPilotId(get()),
           slotIndex: targetingSlotIndex,
@@ -168,7 +168,7 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
         return
       }
       const targetId = getEntityIdAt(state.board, coords)
-      const action: EncounterActionInput = {
+      const action: PlayerCommandInput = {
         kind: 'fire_slot',
         sourceId: selectPilotId(get()),
         slotIndex: targetingSlotIndex,
