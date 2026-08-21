@@ -17,4 +17,4 @@ Scripts' bodies carried over verbatim, comments included. The one mutation ancho
 
 Typecheck, lint, and the full suite (660/660, sealed replays included) green before the gate; zero test-file edits.
 
-(gate results stamped below on completion)
+Gate history worth keeping: the first full-gate run died at the browser smoke's Beat Card readability assertion — the same check that had burned issue 01's gate — and the same-commit pass/fail pattern proved a sampling race (bounding boxes measured while the herald and phase word were still sliding in). The check was fixed at the source to measure at steady state (bounded 2.5s settle retry, contract unchanged), verified by three consecutive clean standalone smoke runs, then the full gate re-ran clean end to end: casing guard silent, log:ids clean, 660 tests, lint, build, **SMOKE PASSED** with replay fingerprint match, mutation audit **130/130 caught, 0 survived, 0 stale**, inner EXIT:0 (read from the gate's own exit line, not the wrapper's).
