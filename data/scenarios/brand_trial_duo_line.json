@@ -9,7 +9,7 @@
     {
       "action": {
         "kind": "load_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1,
         "cardInstanceId": "iron_guard_7"
       }
@@ -31,7 +31,7 @@
     {
       "action": {
         "kind": "charge_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1,
         "cardInstanceId": "sweeping_blow_13"
       }
@@ -39,7 +39,7 @@
     {
       "action": {
         "kind": "charge_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1,
         "cardInstanceId": "fortify_15"
       }
@@ -55,7 +55,7 @@
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1
       }
     },
@@ -71,7 +71,7 @@
     {
       "action": {
         "kind": "load_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0,
         "cardInstanceId": "steady_strike_3"
       }
@@ -85,7 +85,7 @@
     {
       "action": {
         "kind": "charge_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0,
         "cardInstanceId": "sweeping_blow_14"
       }
@@ -93,7 +93,7 @@
     {
       "action": {
         "kind": "charge_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0,
         "cardInstanceId": "drive_back_18"
       }
@@ -103,20 +103,20 @@
         "kind": "fire_slot",
         "sourceId": "maren",
         "slotIndex": 0,
-        "targetId": "guardian"
+        "targetId": "elian"
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1
       }
     },
@@ -138,21 +138,21 @@
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 2
       }
     },
@@ -176,20 +176,20 @@
         "kind": "fire_slot",
         "sourceId": "maren",
         "slotIndex": 0,
-        "targetId": "guardian"
+        "targetId": "elian"
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1
       }
     },
@@ -211,21 +211,21 @@
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 2
       }
     },
@@ -249,20 +249,20 @@
         "kind": "fire_slot",
         "sourceId": "maren",
         "slotIndex": 0,
-        "targetId": "guardian"
+        "targetId": "elian"
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1
       }
     },
@@ -286,27 +286,27 @@
         "kind": "fire_slot",
         "sourceId": "maren",
         "slotIndex": 0,
-        "targetId": "guardian"
+        "targetId": "elian"
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 2
       }
     },
@@ -328,21 +328,21 @@
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 2
       }
     },

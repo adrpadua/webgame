@@ -5,7 +5,7 @@ Copy-ready starting points for every authorable content type, stamped into
 
 ```bash
 cd web
-npm run scaffold -- hero kessa_varn "Kessa Varn"
+npm run scaffold -- hero kessa "Kessa"
 npm run scaffold -- card momentum_strike
 npm run scaffold -- --list        # every type
 ```

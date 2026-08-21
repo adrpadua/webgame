@@ -46,7 +46,7 @@ describe('starting an Encounter', () => {
     store().startEncounter('embermaw_attrition_trial')
     const state = selectState(store())
     expect(state.encounterId).toBe('embermaw_attrition_trial')
-    expect(state.partyHeroIds).toEqual(['guardian', 'maren'])
+    expect(state.partyHeroIds).toEqual(['elian', 'maren'])
     expect(store().seed).toBe(catalog.encounters.embermaw_attrition_trial.random_seed)
     expect(store().entries.length).toBe(1)
   })

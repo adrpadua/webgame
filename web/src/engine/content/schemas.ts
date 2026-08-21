@@ -261,7 +261,17 @@ export const cardSchema = z.object({
 // out. A copy here would be the one nothing checks.
 export const heroSchema = z.object({
   id: z.string().min(1),
+  // A Hero is addressed by first name everywhere the game speaks (D-095):
+  // `title` is what every readout prints — `Elian`, `Maren` — and the id is
+  // the same word lowercased, so a Scenario's `sourceId` reads as the person
+  // it names rather than as the job they hold.
   title: z.string().min(1),
+  // The name on the character sheet — `Captain Elian Voss`, `Registrar Maren
+  // Tallis`. Flavour, never a readout: rank and house are what a party learns
+  // about someone, not how they are called in the middle of a fight, and a
+  // frame 208px wide truncates them into nothing. Empty falls back to `title`
+  // wherever the full name is told.
+  full_name: z.string().default(''),
   rules_text: z.string().default(''),
   max_health: z.number().int().min(1),
   // The Signature printed on this Hero (D-064, ADR 0032): a `fixed: true`

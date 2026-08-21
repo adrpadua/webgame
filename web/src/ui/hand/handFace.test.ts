@@ -142,6 +142,6 @@ describe('paying keywords', () => {
   })
 
   it('stays quiet with no Top Card anywhere', () => {
-    expect(payingKeywords(catalog, opening('quick'), 'guardian').size).toBe(0)
+    expect(payingKeywords(catalog, opening('quick'), 'elian').size).toBe(0)
   })
 })

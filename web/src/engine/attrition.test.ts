@@ -184,11 +184,11 @@ describe("Maren's loop (D-080)", () => {
   it('converts overflow into Boss damage, capped at the printed healing', () => {
     const state = start()
     const bossBefore = state.board.entities[state.bossId].health
-    // The guardian is 1 short of full: Surplus of Care heals 3, so 1 lands
+    // Elian is 1 short of full: Surplus of Care heals 3, so 1 lands
     // and 2 convert.
-    state.heroes.guardian.health = state.heroes.guardian.maxHealth - 1
-    const after = marenFires(state, 'surplus_of_care', 'guardian')
-    expect(after.state.heroes.guardian.health).toBe(after.state.heroes.guardian.maxHealth)
+    state.heroes.elian.health = state.heroes.elian.maxHealth - 1
+    const after = marenFires(state, 'surplus_of_care', 'elian')
+    expect(after.state.heroes.elian.health).toBe(after.state.heroes.elian.maxHealth)
     expect(after.facts[0].detail.overflowConverted).toBe(2)
     expect(after.state.board.entities[state.bossId].health).toBe(bossBefore - 2)
   })
@@ -198,15 +198,15 @@ describe("Maren's loop (D-080)", () => {
     const bossBefore = state.board.entities[state.bossId].health
     // Braced Recovery heals 3 into a full Hero: everything is lost, nothing
     // converts — the conversion is the Keyword's, not healing's.
-    const after = marenFires(state, 'braced_recovery', 'guardian')
+    const after = marenFires(state, 'braced_recovery', 'elian')
     expect(after.facts[0].detail.overflowConverted).toBeUndefined()
     expect(after.state.board.entities[state.bossId].health).toBe(bossBefore)
   })
 
   it('charges the Signature from converted overflow, and only from a blow that landed', () => {
     const state = start()
-    state.heroes.guardian.health = state.heroes.guardian.maxHealth
-    const after = marenFires(state, 'surplus_of_care', 'guardian')
+    state.heroes.elian.health = state.heroes.elian.maxHealth
+    const after = marenFires(state, 'surplus_of_care', 'elian')
     // The whole heal converted (capped at 3), the Boss lost health, and the
     // host_deals_damage Grant read it: her Signature banks its first Charge.
     const signature = after.state.heroes.maren.actionBar.find((slot) => slot.fixed)
@@ -216,15 +216,15 @@ describe("Maren's loop (D-080)", () => {
 
   it('spreads a healing Burst over every party Hero inside it', () => {
     const state = start()
-    state.heroes.guardian.health = 10
+    state.heroes.elian.health = 10
     state.heroes.maren.health = 10
-    // Guardian at (0,0), Maren at (-1,1): the hex between them at (0, 0)...
+    // Elian at (0,0), Maren at (-1,1): the hex between them at (0, 0)...
     // Triage Line reaches 1 and covers radius 1, so aim it at Maren's own hex
-    // — the guardian sits adjacent at distance 1 and is covered too.
+    // — Elian sits adjacent at distance 1 and is covered too.
     const after = marenFires(state, 'triage_line', undefined, { q: -1, r: 1 })
     expect(after.facts[0].succeeded).toBe(true)
     expect(after.state.heroes.maren.health).toBe(12)
-    expect(after.state.heroes.guardian.health).toBe(12)
+    expect(after.state.heroes.elian.health).toBe(12)
   })
 
   it('spends the mark off the chosen ally, never off the caster (Q11)', () => {
@@ -234,29 +234,29 @@ describe("Maren's loop (D-080)", () => {
     state = resolve(catalog, state, { kind: 'resolve_boss', sourceId: state.bossId, beat: markBeat(), track: 'instant' }).state
     const placing = { kind: 'place_counter', sourceId: state.bossId, hostRef: combatantRef('maren'), counterId: MARK, amount: 1, reasonText: 'probe' }
     state = resolve(catalog, state, placing as never).state
-    expect(counterCount(state, combatantRef('guardian'), MARK)).toBe(1)
+    expect(counterCount(state, combatantRef('elian'), MARK)).toBe(1)
     expect(counterCount(state, combatantRef('maren'), MARK)).toBe(1)
-    const after = marenFires(state, 'strike_the_entry', 'guardian')
-    expect(counterCount(after.state, combatantRef('guardian'), MARK)).toBe(0)
+    const after = marenFires(state, 'strike_the_entry', 'elian')
+    expect(counterCount(after.state, combatantRef('elian'), MARK)).toBe(0)
     expect(counterCount(after.state, combatantRef('maren'), MARK)).toBe(1)
   })
 
   it('converts the covered ally\'s next blow into healing, spending the cover', () => {
     let state = start()
-    state.heroes.guardian.health = 10
-    state.heroes.guardian.armor = 3
-    const covering = { kind: 'place_counter', sourceId: 'maren', hostRef: combatantRef('guardian'), counterId: 'underwritten', amount: 1, reasonText: 'probe' }
+    state.heroes.elian.health = 10
+    state.heroes.elian.armor = 3
+    const covering = { kind: 'place_counter', sourceId: 'maren', hostRef: combatantRef('elian'), counterId: 'underwritten', amount: 1, reasonText: 'probe' }
     state = resolve(catalog, state, covering as never).state
-    const hit = resolve(catalog, state, { kind: 'damage', sourceId: state.bossId, targetId: 'guardian', amount: 4, reasonText: 'probe' })
+    const hit = resolve(catalog, state, { kind: 'damage', sourceId: state.bossId, targetId: 'elian', amount: 4, reasonText: 'probe' })
     const fact = hit.facts.find((entry) => entry.kind === 'damage')
     // The blow heals instead of landing, the Armor is untouched — a converted
     // blow was never mitigated — and the cover is spent by the one blow.
     expect(fact?.resolutionFact).toMatchObject({ health_loss: 0, converted_to_healing: 4 })
-    expect(hit.state.heroes.guardian.health).toBe(14)
-    expect(hit.state.heroes.guardian.armor).toBe(3)
-    expect(counterCount(hit.state, combatantRef('guardian'), 'underwritten')).toBe(0)
-    const second = resolve(catalog, hit.state, { kind: 'damage', sourceId: state.bossId, targetId: 'guardian', amount: 4, reasonText: 'probe' })
-    expect(second.state.heroes.guardian.health).toBe(13)
+    expect(hit.state.heroes.elian.health).toBe(14)
+    expect(hit.state.heroes.elian.armor).toBe(3)
+    expect(counterCount(hit.state, combatantRef('elian'), 'underwritten')).toBe(0)
+    const second = resolve(catalog, hit.state, { kind: 'damage', sourceId: state.bossId, targetId: 'elian', amount: 4, reasonText: 'probe' })
+    expect(second.state.heroes.elian.health).toBe(13)
   })
 
   it('fires the Signature at an ally, covering them — and Maren too at full bank', () => {
@@ -265,9 +265,9 @@ describe("Maren's loop (D-080)", () => {
     expect(signatureIndex).toBeGreaterThanOrEqual(0)
     state.phase = 'quick'
     state.heroes.maren.actionBar[signatureIndex].earnedCharges = 2
-    const after = resolve(catalog, state, { kind: 'fire_slot', sourceId: 'maren', slotIndex: signatureIndex, targetId: 'guardian' })
+    const after = resolve(catalog, state, { kind: 'fire_slot', sourceId: 'maren', slotIndex: signatureIndex, targetId: 'elian' })
     expect(after.facts[0].succeeded).toBe(true)
-    expect(counterCount(after.state, combatantRef('guardian'), 'underwritten')).toBe(1)
+    expect(counterCount(after.state, combatantRef('elian'), 'underwritten')).toBe(1)
     // The full-bank rider extends the cover to the one ally the gesture could
     // not choose: the firing Hero.
     expect(counterCount(after.state, combatantRef('maren'), 'underwritten')).toBe(1)
@@ -278,8 +278,8 @@ describe("Maren's loop (D-080)", () => {
     const signatureIndex = state.heroes.maren.actionBar.findIndex((slot) => slot.fixed)
     state.phase = 'quick'
     state.heroes.maren.actionBar[signatureIndex].earnedCharges = 1
-    const after = resolve(catalog, state, { kind: 'fire_slot', sourceId: 'maren', slotIndex: signatureIndex, targetId: 'guardian' })
-    expect(counterCount(after.state, combatantRef('guardian'), 'underwritten')).toBe(1)
+    const after = resolve(catalog, state, { kind: 'fire_slot', sourceId: 'maren', slotIndex: signatureIndex, targetId: 'elian' })
+    expect(counterCount(after.state, combatantRef('elian'), 'underwritten')).toBe(1)
     expect(counterCount(after.state, combatantRef('maren'), 'underwritten')).toBe(0)
   })
 })
@@ -375,18 +375,18 @@ describe('the played composition line', () => {
     // not a win. A duo that clears here means the Damage seats stopped being
     // load-bearing, which is the retune's whole claim.
     expect(finalState.outcome).toBe('defeat')
-    expect(finalState.heroes.guardian.status).toBe('living')
+    expect(finalState.heroes.elian.status).toBe('living')
     expect(finalState.heroes.maren.status).toBe('living')
     expect(finalState.board.entities[finalState.bossId]?.health ?? 0).toBeGreaterThan(0)
     // Attribution: the survival is hers — the line cleansed Sears and landed
-    // her heals. The control arm proves the guardian alone does not live to
+    // her heals. The control arm proves Elian alone does not live to
     // see this loss.
     const facts = replay.entries.flatMap((entry) => entry.facts)
     const cleansed = facts.some(
       (fact) => fact.succeeded && fact.kind === 'fire_slot' && (fact.detail.spentCounters as { counter_id?: string }[] | undefined)?.some((spent) => spent.counter_id === 'seared'),
     )
     expect(cleansed).toBe(true)
-    const preserved = facts.some((fact) => fact.succeeded && fact.detail.preservedAlly === 'guardian')
+    const preserved = facts.some((fact) => fact.succeeded && fact.detail.preservedAlly === 'elian')
     expect(preserved).toBe(true)
   })
 })

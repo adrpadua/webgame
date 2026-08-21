@@ -187,9 +187,13 @@ export function HeroFrame() {
   const resourceStat = signature === null ? [] : [{ label: signature.resourceTitle, value: `${signature.charges} / ${signature.cap}` }]
   // One hold for the whole frame: the numbers are all printed on it, so what
   // a hold still owes the player is the sentences behind them.
+  // The frame prints the first name; the hold is where the whole name is
+  // told (D-095). A hold is the surface this HUD keeps its words on, and
+  // "Captain Elian Voss" is a word about who the Hero is rather than a
+  // readout of what is happening to them.
   const hold = useHold({
     ...HERO_STAT_DETAILS.health,
-    title: state.board.entities[heroId]?.title ?? 'Hero',
+    title: catalog.heroes[heroId]?.full_name || state.board.entities[heroId]?.title || 'Hero',
     stats: [
       { label: 'Health', value: `${hero?.health ?? 0} / ${hero?.maxHealth ?? 0}` },
       { label: 'Armor now', value: String(hero?.armor ?? 0) },

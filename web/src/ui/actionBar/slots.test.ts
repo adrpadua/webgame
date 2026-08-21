@@ -121,7 +121,7 @@ describe('slot can fire', () => {
   }
 
   it('lights a charged Slot whose Top Card matches the window', () => {
-    expect(slotCanFire(catalog, armed('steady_strike'), 'guardian', 0)).toBe(true)
+    expect(slotCanFire(catalog, armed('steady_strike'), 'elian', 0)).toBe(true)
   })
 
   it('leaves it dark from outside the Top Card\'s reach (D-073)', () => {
@@ -141,11 +141,11 @@ describe('slot can fire', () => {
   it('leaves a Minion-seeking Slot dark while the board holds no Minion to hit', () => {
     // The other half of the same predicate, and the one that was always true:
     // Sweeping Blow needs a piece, and the opening board has none.
-    expect(slotCanFire(catalog, armed('sweeping_blow'), 'guardian', 0)).toBe(false)
+    expect(slotCanFire(catalog, armed('sweeping_blow'), 'elian', 0)).toBe(false)
   })
 
   it('leaves it dark out of window, uncharged, or already fired', () => {
-    expect(slotCanFire(catalog, armed('steady_strike', 'slow'), 'guardian', 0)).toBe(false)
+    expect(slotCanFire(catalog, armed('steady_strike', 'slow'), 'elian', 0)).toBe(false)
     const uncharged = armed('steady_strike')
     uncharged.heroes[uncharged.primaryHeroId].actionBar[0].charges = []
     expect(slotCanFire(catalog, uncharged, uncharged.primaryHeroId, 0)).toBe(false)
@@ -183,7 +183,7 @@ describe('slot state name', () => {
 
 describe('what an in-hand card would do to a Slot', () => {
   it('answers nothing when the player is holding nothing', () => {
-    expect(slotIncoming(catalog, opening('quick'), 'guardian', slotState({}), 0, null)).toBeNull()
+    expect(slotIncoming(catalog, opening('quick'), 'elian', slotState({}), 0, null)).toBeNull()
   })
 
   it('prepares into an empty Slot, and charges an occupied one in a player window', () => {
