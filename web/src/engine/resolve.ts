@@ -26,7 +26,7 @@ import {
   hexCounterRef,
   type CounterRef,
 } from './counters'
-import { raiseDamageIncoming, raiseDamageResolved, raiseRoundStart, raiseSlotFired, type SubscriberMatch } from './events'
+import { raiseDamageIncoming, raiseDamageResolved, raiseHexEntered, raiseRoundStart, raiseSlotFired, type SubscriberMatch } from './events'
 import { canBeDowned, goDowned, incapacitateHero, livingHeroIds, reviveHero } from './downed'
 import { cardChargeCap } from './content/catalog'
 import { OVERFLOW, RAID_HIT, TANK_HIT } from './keywords'
@@ -406,7 +406,7 @@ function resolveOne(
       moveEntity(draft.board, action.sourceId, action.destination)
       draft.board.entities[action.sourceId].facing = directionForAxialDelta(axialSubtract(action.destination, fromCoords))
       succeed(fact)
-      generated.push(...hazardEntryActions(draft, action.sourceId, action.destination))
+      generated.push(...hexEntryActions(draft, action.sourceId, action.destination, fact.detail))
       break
     }
     case 'displace_piece': {
@@ -834,7 +834,7 @@ function resolveDisplacement(
   }
   succeed(fact)
   for (const coords of entered) {
-    generated.push(...hazardEntryActions(draft, action.targetId, coords))
+    generated.push(...hexEntryActions(draft, action.targetId, coords, fact.detail))
   }
 }
 
@@ -882,8 +882,18 @@ function resolveTraversal(
   }
   succeed(fact)
   for (const coords of entered) {
-    generated.push(...hazardEntryActions(draft, action.sourceId, coords))
+    generated.push(...hexEntryActions(draft, action.sourceId, coords, fact.detail))
   }
+}
+
+// Everything a footstep costs: the hex's Hazards (engine terrain, D-042/D-074
+// immunity honored) and the hex_entered raise the ground's Counters answer
+// (D-086). One helper so a mover, a shove, and a walker cannot disagree about
+// what entering a hex means.
+function hexEntryActions(draft: EncounterState, targetId: string, coords: Axial, detail: Record<string, unknown>): EncounterActionInput[] {
+  const raise = raiseHexEntered(draft, targetId, coords)
+  recordSubscriberMatches(detail, raise.matches)
+  return [...hazardEntryActions(draft, targetId, coords), ...raise.generated]
 }
 
 function hazardEntryActions(draft: EncounterState, targetId: string, coords: Axial): EncounterActionInput[] {
@@ -1012,7 +1022,11 @@ function applyScaleReaders(
 // one matched; a raise nothing heard records nothing (ADR 0041).
 function recordSubscriberMatches(detail: Record<string, unknown>, matches: SubscriberMatch[]): void {
   if (matches.length > 0) {
-    detail.subscriber_matches = matches
+    // Append, never assign: one action can carry several raises — a traversal
+    // raises hex_entered once per hex it crosses (D-086) — and each records
+    // onto the same fact.
+    const existing = Array.isArray(detail.subscriber_matches) ? (detail.subscriber_matches as SubscriberMatch[]) : []
+    detail.subscriber_matches = [...existing, ...matches]
   }
 }
 

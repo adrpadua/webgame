@@ -1,10 +1,11 @@
-import { combatantRef, readerMatches } from './counters'
+import { combatantRef, hexCounterRef, readerMatches } from './counters'
 import { evaluateGrantsFor } from './signature'
 import type { ContentCatalog } from './content/catalog'
 import type { AuthoredWhen } from './content/schemas'
 import { AUTHORED_WHENS } from './content/schemas'
 import type { EncounterActionInput } from './actions'
 import type { EncounterState } from './types'
+import type { Axial } from './hex'
 
 // The event registry (ADR 0041): the one table naming, per event the engine
 // raises, the moment it fires, the payload keys a subscriber may read, and
@@ -98,6 +99,25 @@ export const EVENT_REGISTRY: Record<string, EventRow> = {
       grant('slot_fired', ['effect_landed'], false),
       reader('slot_fired', ['boss_damage'], false),
     ],
+  },
+  // A piece entered a hex (D-086) — the moment D-047 deleted rather than
+  // teach the rules to read, back as a registry row now that a row is all it
+  // costs. Raised once per hex a piece enters, at the same three movement
+  // sites where Hazard entry resolves: a walker raises it for every hex it
+  // crosses, a jumper only for the one it lands on, a shoved piece for each
+  // hex the shove drags it through — the path honesty D-074 authored. The
+  // subscriber is the *ground's* stance: `host_entered` is the first Reader a
+  // hex-hosted Counter can carry, dealing its `per`-per-Counter to whoever
+  // stepped on it, as a generated damage action on the funnel. Engine Hazards
+  // stay engine Hazards — this raise runs beside `hazardEntryActions`, never
+  // replacing it, and carries no team immunity: a Counter is a named marker,
+  // and whether ground spares its planter is a question for the first content
+  // that wants it. No damage Keywords ride a footstep, so `event_keyword`
+  // narrowing is refused here.
+  hex_entered: {
+    moment: 'wherever hazard entry resolves: voluntary move, each traversal hex, each displacement hex',
+    payload: ['entity_id', 'coords'],
+    hears: [reader('host_entered', ['target_damage'], false)],
   },
   // The Round boundary. The Reader pays out banked Armor before the Grant
   // evaluates, so a Grant reads the Round as it has settled, never mid-wipe.
@@ -297,4 +317,28 @@ export function raiseRoundStart(catalog: ContentCatalog, draft: EncounterState):
     }
   }
   return matches
+}
+
+export interface HexEnteredRaise {
+  generated: EncounterActionInput[]
+  matches: SubscriberMatch[]
+}
+
+// The hex-entered raise (D-086): the ground's Counters answer the footstep.
+// Each Counter's contribution is its own damage action against the entrant —
+// per Counter, not summed across them, so the fact log credits each mark by
+// name the way Hazard entry already credits each Hazard. The damage rides
+// sourceId '' deliberately: ground is nobody's blow, so no dealing-side
+// modifier reads it and no Hero is credited the number.
+export function raiseHexEntered(draft: EncounterState, entityId: string, coords: Axial): HexEnteredRaise {
+  const matches: SubscriberMatch[] = []
+  const generated: EncounterActionInput[] = []
+  const host = hexCounterRef(coords) as string
+  for (const match of readerMatches(draft, hexCounterRef(coords), 'host_entered', 'target_damage')) {
+    matches.push({ event: 'hex_entered', host, kind: 'reader', id: match.counterId, when: 'host_entered', delta: match.contribution })
+    if (match.contribution > 0) {
+      generated.push({ kind: 'damage', sourceId: '', targetId: entityId, amount: match.contribution, reasonText: match.counterId })
+    }
+  }
+  return { generated, matches }
 }

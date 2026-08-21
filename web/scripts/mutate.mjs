@@ -572,6 +572,13 @@ const MUTATIONS = [
     to: "    for (const outcome of (false ? evaluateGrantsFor(catalog, draft, heroId, 'round_start') : [])) {",
   },
   {
+    name: "ground's Counters never answer the footstep",
+    guards: 'D-086: hex_entered is raised beside Hazard entry, and the ground marks pay out',
+    file: 'engine/resolve.ts',
+    from: '  return [...hazardEntryActions(draft, targetId, coords), ...raise.generated]',
+    to: '  return hazardEntryActions(draft, targetId, coords)',
+  },
+  {
     name: 'the effect_landed gate always passes',
     guards: 'ADR 0037: an earn gated on effect_landed refuses a fire that did nothing',
     file: 'engine/signature.ts',
