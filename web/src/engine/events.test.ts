@@ -231,6 +231,63 @@ describe("the registry row's declared hears order", () => {
   })
 })
 
+describe('Stake the Line, the first authored hex_entered consumer (D-086)', () => {
+  // The shipped catalog end to end: the card plants the ground, the ground
+  // bites the walker. Friend and foe alike — no team immunity, per the D-086
+  // row's deliberate deferral.
+  function stakedState(): { state: EncounterState; hex: { q: number; r: number } } {
+    const state = createEncounterState(catalog, 'embermaw_prototype')
+    const hero = state.heroes[state.primaryHeroId]
+    const staked = { instanceId: 'stake-probe', cardId: 'stake_the_line' }
+    hero.actionBar[0] = { topCard: staked, charges: [{ instanceId: 'fuel', cardId: 'steady_strike' }], activatedWindow: null, placedThisLoadout: false, fixed: false, earnedCharges: 0 }
+    state.phase = 'slow'
+    const heroAt = state.board.entities[state.primaryHeroId].coords
+    const hex = { q: heroAt.q, r: heroAt.r - 1 }
+    const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetHex: hex })
+    expect(fired.facts[0].succeeded).toBe(true)
+    expect(fired.facts[0].detail).toMatchObject({ placedCounter: 'staked_ground', placedCounterAmount: 2 })
+    return { state: fired.state, hex }
+  }
+
+  it('plants 2 Stakes on reachable ground, and the ground kills the Whelp that walks in', () => {
+    const { state, hex } = stakedState()
+    const spawnAt = { q: hex.q, r: hex.r - 1 }
+    const spawned = resolve(catalog, state, {
+      kind: 'spawn_minion',
+      sourceId: state.bossId,
+      minionId: 'whelp_probe',
+      coords: spawnAt,
+      minionContentId: 'whelp',
+    })
+    expect(spawned.facts[0].succeeded).toBe(true)
+    const walked = resolve(catalog, spawned.state, {
+      kind: 'traverse_piece',
+      sourceId: 'whelp_probe',
+      path: [hex],
+      traversal: 'walk',
+      reasonText: 'creep',
+    })
+    const bitten = damageFact(walked.facts)
+    expect(bitten.detail).toMatchObject({ targetId: 'whelp_probe', amount: 2 })
+    // 2 Stakes against 2 health: the add died to ground, no Hero credited.
+    expect(bitten.resolutionFact).toMatchObject({ health_loss: 2, target_removed: true })
+    expect(walked.state.board.entities.whelp_probe).toBeUndefined()
+  })
+
+  it('bites friend and foe alike', () => {
+    const { state, hex } = stakedState()
+    const healthBefore = state.heroes[state.primaryHeroId].health
+    const stepped = resolve(catalog, state, {
+      kind: 'traverse_piece',
+      sourceId: state.primaryHeroId,
+      path: [hex],
+      traversal: 'walk',
+      reasonText: 'careless step',
+    })
+    expect(stepped.state.heroes[state.primaryHeroId].health).toBe(healthBefore - 2)
+  })
+})
+
 describe('the paired reader (D-087)', () => {
   it('reads Grant outcomes back off the record through readSubscriberMatches, and answers nothing with nothing', () => {
     // The reader is the one consumer-facing path — the sweep's sigGrant/

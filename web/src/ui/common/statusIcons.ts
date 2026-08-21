@@ -46,6 +46,10 @@ const MARKS: Record<string, StatusMark> = {
   // The Registry's cover on the next blow: lockwork gold, the cross the
   // healing marks are drawn with.
   underwritten: { glyph: 'cross', material: 'gold' },
+  // Ground that bites what steps on it (D-086): the spike, in ember — a
+  // wound waiting in the arena rather than a dulled weapon, which is what
+  // keeps it apart from Weakened's steel spike.
+  staked_ground: { glyph: 'spike', material: 'ember' },
 }
 
 export function statusMark(counterId: string): StatusMark {
