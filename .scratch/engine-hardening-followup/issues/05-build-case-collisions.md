@@ -16,4 +16,4 @@ Not adopted from the review: a clean-checkout build in the normal validation pat
 
 ## Evidence
 
-(gate results stamped below on completion)
+Isolated gate green end to end on `c29cbe9`, with the new casing guard running as the gate's second step: guard silent, log:ids clean, 651 tests passed, lint, build, and browser smoke clean, mutation audit **127/127 caught, 0 survived, 0 stale** — all seven re-pointed anchors killing through the renamed files and tests. EXIT:0. Red half recorded above: against the pre-fix tree the guard names exactly the four shipped pairs and exits 1.
