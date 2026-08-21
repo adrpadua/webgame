@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { loadCatalog } from '@/content'
 import { advancePhase, createEncounterState, type BossBeat, type EncounterState } from '@/engine'
-import { beatCardStats, findLiveBeat, standingDemand } from './beatCard'
+import { beatCardStats, findLiveBeat, standingDemand } from './beatCardModel'
 
 const catalog = loadCatalog()
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hazardMark, NEUTRAL_MARK, statusFigure, statusLabel, statusMark } from './statusIcons'
+import { hazardMark, NEUTRAL_MARK, statusFigure, statusLabel, statusMark } from './statusIconEntries'
 
 // Every authored Counter and Hazard has to reach the HUD as something the
 // player can tell apart from the mark beside it. The registry is

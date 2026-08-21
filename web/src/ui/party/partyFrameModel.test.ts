@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildCatalog, createEncounterState, resolve, type ContentCatalog, type EncounterState } from '@/engine'
-import { partyFrames, primaryHasThreat } from './partyFrames'
+import { partyFrames, primaryHasThreat } from './partyFrameModel'
 
 // The ally frame's state, proved against the same hand-built two-seat fixture
 // the engine's party tests use — the authored Encounters are solo, and a

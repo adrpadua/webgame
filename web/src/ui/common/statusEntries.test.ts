@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { loadCatalog } from '@/content'
 import { createEncounterState, hexKey, resolve, runScenario, type Axial, type EncounterState } from '@/engine'
-import { counterEntries, groundEntries } from './statusIcons'
+import { counterEntries, groundEntries } from './statusIconEntries'
 
 // What one tile hands the HUD. Run against the real catalog rather than a
 // fixture, for the reason `attrition.test.ts` gives: the claim is about what
