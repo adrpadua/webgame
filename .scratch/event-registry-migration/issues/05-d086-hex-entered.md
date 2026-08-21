@@ -16,3 +16,7 @@ Owner: User-routed follow-on; decided Adopted at user direction (D-086)
 - Sweep: 48 policies × 30 seeds vs the current-main baseline — 0 differences in any column (no content authors the vocabulary).
 - Sealed duo Record replays with `finalStateMatches: true` and matching fingerprint.
 - 575 tests green; `verify:local` green end to end; mutation audit **110/110 caught, 0 survived, 0 stale** — the new "ground's Counters never answer the footstep" mutant killed by the walker test.
+
+## First consumer (D-091, PR #138)
+
+Stake the Line / Staked Ground delivered as candidate content with the `aegis_staked_line` evaluation deck; the proving flushed and fixed the `fireTargeting` zero-burst hex gap. Clean full gate on the final content commit: 577 tests, `verify:local` green, mutation audit **110/110 caught, 0 survived, 0 stale**. (Two earlier gate runs discarded — they raced each other's mutation audits; the clean run is the recorded result.)
