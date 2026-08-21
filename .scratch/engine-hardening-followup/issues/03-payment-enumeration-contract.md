@@ -29,4 +29,4 @@ Full local gate. The sweep-rerun clause turned out to be moot: no sweep policy c
 
 ## Evidence
 
-(gate results stamped below on completion)
+Isolated gate green end to end on `130bac3`: casing guard silent, log:ids clean (D-107 assigned), 657 tests passed (the two new payment tests included), lint, build, and browser smoke clean, mutation audit **128/128 caught, 0 survived, 0 stale**, EXIT:0. Red half recorded above: exactly the two payment tests fail against the pre-fix enumeration.
