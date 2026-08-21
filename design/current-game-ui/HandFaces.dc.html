@@ -143,8 +143,12 @@ body{
 .sig-name{width:100%;text-align:center;font-size:10px;line-height:1;font-weight:900;letter-spacing:.025em;text-transform:uppercase;
           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sig-verb{font-size:9px;line-height:1;font-weight:700;letter-spacing:.025em;text-transform:uppercase;color:var(--gold-900)}
-/* Counters sit beside the frame, where an MMO puts its buffs. */
-.chip-counter{min-height:44px;min-width:44px;background:var(--gold-900);padding:0 6px;font-size:10px;font-weight:600;color:var(--gold-200);border:0;display:flex;align-items:center}
+/* The Status Icon tray sits beside the frame, where an MMO puts its buffs.
+   It replaced the Counter chip, which spelled its title across a 74px plate:
+   `SEARED` alone took the width two Counters need, and a third had nowhere to
+   go on a 390pt surface (D-088). */
+.stray{display:flex;flex-wrap:wrap;align-content:center;align-items:center;justify-content:flex-start;
+       gap:4px;min-height:44px;min-width:44px;padding:8px 0;border:0;background:transparent}
 
 .artboard{width:440px;background:var(--navy-950);padding:24px;overflow:hidden}
 .legend{font-size:11px;line-height:1.5;color:var(--steel-400)}

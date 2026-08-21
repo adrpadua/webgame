@@ -46,7 +46,7 @@ PALETTE = [
     (
         "Signal cloth",
         "cloth",
-        "The role channel. Per Hero — this ramp is Shield Wall's",
+        "The Role channel — one step per Role, not per Hero",
         {100: "#d5e3f0", 300: "#7ea3c6", 400: "#4f7ba6", 500: "#2f5680", 700: "#22405f",
          950: "#101c2c"},
         500,

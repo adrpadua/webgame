@@ -1,0 +1,223 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+:root {
+  --glass-100:#d6f4f9; --glass-200:#a6e6f0; --glass-300:#7fdbe9; --glass-400:#62d2e6;
+  --glass-500:#3fb9cf; --glass-600:#2a94a8; --glass-700:#1e6d7c; --glass-900:#0f3a44; --glass-950:#0a2730;
+  --gold-100:#f7ebc9; --gold-200:#ecd48f; --gold-300:#dcbd60; --gold-400:#c8a344;
+  --gold-500:#ad8b34; --gold-600:#8a6e26; --gold-700:#64501c; --gold-900:#3a2e12; --gold-950:#261e0c;
+  --cloth-100:#d5e3f0; --cloth-300:#7ea3c6; --cloth-400:#4f7ba6; --cloth-500:#2f5680;
+  --cloth-700:#22405f; --cloth-950:#101c2c;
+  --ceramic-100:#f7f9fb; --ceramic-200:#edf0f5; --ceramic-300:#e4e8ee; --ceramic-400:#c9d2e0;
+  --ceramic-500:#a9b7cc; --ceramic-950:#1a2230;
+  --ember-100:#f6c9be; --ember-300:#ec8b73; --ember-400:#e2603f; --ember-500:#d9482f;
+  --ember-600:#b53a24; --ember-950:#2c110c;
+  --coral-100:#f8d5c4; --coral-200:#f3b394; --coral-300:#ec9569; --coral-400:#e0703b;
+  --coral-500:#c4522a; --coral-700:#7e3519; --coral-900:#45200f; --coral-950:#2c150a;
+  --navy-950:#080d16;
+  --steel-400:#91a3bf; --steel-500:#7a8fb2; --steel-600:#415371; --steel-700:#37465f;
+  --steel-800:#24304a; --steel-900:#1b2434; --steel-950:#0f1622;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--navy-950); color:var(--ceramic-200);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue","Noto Sans",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+/* The gauge language, written once (web/src/ui/common/theme.ts): a dark track, a
+   fill measured from the left, the number overlaid with a shadow so it stays
+   crisp where it straddles the fill edge. */
+.gauge{position:relative;display:block;height:18px;overflow:hidden;border-radius:2px;background:var(--steel-950)}
+.gauge-fill{position:absolute;top:0;bottom:0;left:0}
+.gauge-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:4px;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+.row{display:flex;align-items:center}
+.col{display:flex;flex-direction:column}
+
+
+/* The plate geometry from docs/content/oathcraft-interface-direction.md: a
+   parallelogram raked 8deg from vertical, top-left corner notched out, the
+   leading edge carrying a 3px accent that runs the full cut. Drawn on ::before
+   and ::after so the element keeps its focus ring, shadow and border. */
+.plate{
+  position:relative; isolation:isolate; background:transparent; border:0;
+  --off:5px; --notch:3px; --gutter:8px; --inset:var(--off);
+  --face:var(--steel-900); --edge:var(--steel-700); --acc:var(--steel-700);
+  /* The one padding rule, derived and never re-declared: --inset is how deep
+     the cut reaches this plate's content, --gutter is the breathing room past
+     it — the only figure tuned by eye. */
+  padding-inline:calc(var(--inset) + var(--gutter));
+}
+.plate::before{
+  content:''; position:absolute; inset:0; z-index:-1; background:var(--face);
+  box-shadow:inset 0 0 0 1px var(--edge), inset 0 1px 0 rgb(255 255 255/.06), inset 0 -1px 0 rgb(0 0 0/.5);
+  clip-path:polygon(calc(var(--off) + var(--notch)) 0, 100% 0, calc(100% - var(--off)) 100%, 0 100%, var(--off) var(--notch));
+}
+.plate::after{
+  content:''; position:absolute; inset:0; z-index:-1; background:var(--acc);
+  clip-path:polygon(var(--off) var(--notch), calc(var(--off) + 3px) var(--notch), 3px 100%, 0 100%);
+}
+/* Sizes carry the rake and, where the plate is width-starved, a tighter
+   gutter. Offset = height x tan(8deg) at the class's nominal height. */
+.p-xs{--off:3px;--notch:2px}
+.p-sm{--off:5px;--notch:3px;--gutter:10px}
+.p-md{--off:7px;--notch:4px}
+.p-card{--off:7px;--notch:4px;--gutter:4px}
+.p-lg{--off:9px;--notch:4px}
+.p-slot{--off:9px;--notch:4px;--gutter:3px}
+.p-xl{--off:16px;--notch:6px;--gutter:12px}
+/* Content held to the plate's vertical middle meets each cut at half depth. */
+.p-centered{--inset:calc(var(--off) / 2)}
+/* A plate carrying a text column measures each side at the corner that side
+   is worst at, and adds the notch back on top. */
+.p-raked{
+  padding-inline:calc(var(--off) + 13px) calc(var(--off) + 10px);
+  padding-block:calc(var(--notch) + var(--gutter-block,8px)) var(--gutter-block,8px);
+}
+/* Faces and accents. The accent is the status channel: gold on the live
+   thing, ember on the irreversible one, glass on a player affordance. */
+.f-steel{--face:var(--steel-900);--edge:var(--steel-700)}
+.f-ceramic{--face:var(--ceramic-300);--edge:var(--ceramic-500)}
+.f-gold{--face:var(--gold-500);--edge:var(--gold-400)}
+.f-dim{--face:var(--steel-950);--edge:var(--steel-800)}
+.f-coral{--face:var(--coral-400);--edge:var(--coral-300)}
+.f-glass{--face:var(--glass-400);--edge:var(--glass-300)}
+.a-gold{--acc:var(--gold-400)}
+.a-glass{--acc:var(--glass-400)}
+.a-ember{--acc:var(--ember-500)}
+.a-cloth{--acc:var(--cloth-500)}
+.a-none{--acc:transparent}
+
+
+/* The Hero Frame (D-065, ADR 0033): the primary Hero's persistent readout,
+   floating over the board's bottom edge as the dock's floor, built to the
+   unit-frame anatomy an MMO player already reads. The whole frame is ONE hold
+   target — four interactive rows at 44px each would be 176px of chrome over a
+   board with 95px to spare. */
+.frame-row{position:absolute;left:0;right:0;bottom:0;z-index:30;display:flex;align-items:flex-end;gap:6px;padding:0 8px 4px}
+.frame{width:208px;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+       padding-top:2px;padding-bottom:2px;text-align:left;color:var(--ceramic-950)}
+.frame-name{display:flex;width:100%;align-items:center;gap:4px;font-size:11px;line-height:1;font-weight:600}
+.i14h{height:14px;width:14px;flex-shrink:0}
+.i12{height:12px;width:12px;flex-shrink:0}
+.frame-gauge{width:100%}
+.frame-gauge .gauge-label{font-size:10px;color:var(--ember-100)}
+/* The class resource, as a bar rather than a control: read, never pressed.
+   Segmented because the resource is counted rather than continuous, and
+   unlabelled because its position is the label — a second bar under the
+   health bar of a unit frame is the class resource. */
+.resource{display:flex;height:7px;width:100%;align-items:stretch;gap:2px;overflow:hidden;border-radius:2px;background:var(--steel-950);padding:1px}
+.seg{flex:1;border-radius:1px;background:var(--steel-700)}
+.seg.on{background:var(--gold-500)}
+.seg.ready{background:var(--gold-300)}
+.piles{display:flex;align-items:center;gap:10px;font-size:10px;line-height:1;font-weight:600;color:var(--ceramic-950)}
+.pile{display:flex;align-items:center;gap:4px}
+/* The Signature button: its own plate at the row's right end, mounted only
+   while the Signature can actually be fired — the button IS the offer. */
+.sig{margin-left:auto;display:flex;min-height:52px;width:84px;flex-shrink:0;flex-direction:column;align-items:center;
+     justify-content:center;gap:2px;padding-top:6px;padding-bottom:6px;color:var(--gold-950)}
+.sig-name{width:100%;text-align:center;font-size:10px;line-height:1;font-weight:900;letter-spacing:.025em;text-transform:uppercase;
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sig-verb{font-size:9px;line-height:1;font-weight:700;letter-spacing:.025em;text-transform:uppercase;color:var(--gold-900)}
+/* The Status Icon tray sits beside the frame, where an MMO puts its buffs.
+   It replaced the Counter chip, which spelled its title across a 74px plate:
+   `SEARED` alone took the width two Counters need, and a third had nowhere to
+   go on a 390pt surface (D-088). */
+.stray{display:flex;flex-wrap:wrap;align-content:center;align-items:center;justify-content:flex-start;
+       gap:4px;min-height:44px;min-width:44px;padding:8px 0;border:0;background:transparent}
+
+/* A 28px plate on a tighter gutter than wb-plate-xs was written for: the whole
+   content is one 16px glyph, so the gutter only has to clear the 3px cut. */
+.sicon{position:relative;display:flex;height:28px;width:28px;flex-shrink:0;align-items:center;justify-content:center;--gutter:3px}
+.sicon svg{height:16px;width:16px}
+/* The count rides the face's own bottom-right corner, which the rake cuts in
+   by exactly --off — so it sits on the plate rather than hanging off its cut
+   edge, and lifts clear of the clock when there is one. */
+.sicon-count{position:absolute;right:calc(var(--off) + 1px);bottom:1px;font-size:9px;line-height:1;font-weight:900;
+             color:var(--ceramic-100);text-shadow:0 0 3px var(--navy-950)}
+.sicon-count.over-clock{bottom:4px}
+.sicon-clock{position:absolute;bottom:0;left:0;right:var(--off);height:2px;background:var(--steel-950)}
+.sicon-clock span{position:absolute;top:0;bottom:0;left:0}
+
+/* The column: seats in authored order, growing downward toward the primary
+   frame so the whole party reads as one object anchored at the bottom-left.
+   Its floor is the Hero Frame's own top edge. */
+.party{position:absolute;bottom:64px;left:8px;z-index:30;display:flex;width:138px;flex-direction:column;gap:4px}
+/* A frame at rest owes no tap target, so the resting height is free to stay
+   under 44px: it is a readout, and a readout that swallows taps is chrome the
+   board paid for twice. */
+.ally{display:flex;width:100%;flex-direction:column;align-items:stretch;gap:2px;
+      padding-top:4px;padding-bottom:4px;text-align:left;border:0}
+.ally.out{opacity:.6}
+.ally-name{display:flex;min-width:0;align-items:center;gap:4px;line-height:1}
+.ally-name b{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+             font-size:11px;font-weight:600;color:var(--ceramic-300)}
+.i12r{height:12px;width:12px;flex-shrink:0}
+/* The Boss's attention: the Threat mark, in ember coral — it names the Boss's
+   plan, not the Hero's state. */
+.ally-threat{display:flex;flex-shrink:0;align-items:center;gap:2px}
+.ally-threat i{height:10px;width:10px;background:var(--coral-400);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.ally-threat u{height:10px;width:3px;background:var(--coral-500)}
+.ally-gauge{position:relative;display:block;height:12px;overflow:hidden;border-radius:2px;background:var(--steel-950)}
+/* A body on the floor reads as hatched ground rather than as an empty bar —
+   an empty bar is a Hero at 0 health, which is a different claim. */
+.ally-gauge.downed{background:repeating-linear-gradient(115deg,var(--ember-950) 0 4px,var(--steel-950) 4px 9px)}
+.ally-gauge .gauge-label{font-size:9px;color:var(--ember-100)}
+.ally-gauge.downed .gauge-label{color:var(--ember-300);letter-spacing:.1em}
+/* The ally's own Signature bank — every seat may field one (ADR 0035). Thinner
+   than the primary's resource bar because it is read from further away and
+   never operated. */
+.ally-sig{display:flex;height:5px;gap:2px}
+.ally-sig span{flex:1;border-radius:2px;background:var(--steel-700)}
+.ally-sig span.on{background:var(--gold-500)}
+.ally-sig span.ready{background:var(--gold-300)}
+
+.artboard{width:440px;background:var(--navy-950);padding:24px;overflow:hidden}
+.legend{font-size:11px;line-height:1.5;color:var(--steel-400)}
+.legend b{color:var(--ceramic-300);font-weight:600}
+.head{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ceramic-200)}
+.sub{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel-500);margin-top:2px}
+.rule{height:1px;background:var(--steel-800);margin:14px 0}
+.tile{background:rgba(15,22,34,.55);border:1px solid var(--steel-800);border-radius:4px;padding:12px}
+.tile-label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel-500);margin-bottom:8px}
+</style>
+</helmet>
+<section class="artboard">
+<div class="head">The party frames</div>
+<div class="sub">Layout direction 1A</div>
+<div class="legend" style="margin-top:12px;max-width:380px">
+A left-edge column of readouts growing upward from the primary Hero's frame, over board pixels the melee party
+is standing near anyway — so <b>the board keeps 100% of its width</b>. Every frame is the primary frame's anatomy
+with the console removed: <b>name</b>, <b>health with the Armor overlay</b>, <b>the Signature bank</b>. No piles,
+no controls.
+</div>
+<div class="rule"></div>
+<div style="margin-bottom:16px"><div class="tile-label">At rest — two allies, one carrying the Boss's attention</div><div style="position:relative;width:390px;height:150px;background:linear-gradient(180deg,#131c2b,#0b1220);overflow:hidden"><div class="party"><button class="plate p-sm ally" style="--face:var(--steel-950);--acc:var(--cloth-300)"><span class="ally-name"><span style="color:var(--cloth-300);display:flex"><svg viewBox="0 0 48 48" class="i12r" fill="currentColor" aria-hidden="true"><path d="M20 5h8v13h13v8H28v17h-8V26H7v-8h13V5Z"/></svg></span><b>Maren Tallis</b></span><span class="ally-gauge"><span class="gauge-fill" style="width:84.6%;background:rgba(217,72,47,.7)"></span><span class="gauge-fill" style="left:84.6%;width:0.0%;background:rgba(63,185,207,.7)"></span><span class="gauge-label">22/26</span></span><span class="ally-sig"><span class="on"></span><span></span></span></button><button class="plate p-sm ally" style="--face:var(--steel-950);--acc:var(--coral-500)"><span class="ally-name"><span style="color:var(--cloth-400);display:flex"><svg viewBox="0 0 48 48" class="i12r" fill="currentColor" aria-hidden="true"><path d="M24 3l7 15-7 7-7-7 7-15Z"/><path d="M17 27h14l-7 18-7-18Z"/></svg></span><b>Roan Kesh</b><span class="ally-threat" title="The Boss's attention"><i></i><u></u></span></span><span class="ally-gauge"><span class="gauge-fill" style="width:79.2%;background:rgba(217,72,47,.7)"></span><span class="gauge-fill" style="left:79.2%;width:12.5%;background:rgba(63,185,207,.7)"></span><span class="gauge-label">19+3/24</span></span></button></div><div class="frame-row"><button class="plate p-lg f-ceramic a-cloth frame"><span class="frame-name"><span style="color:var(--cloth-500)"><svg viewBox="0 0 48 48" class="i14h" fill="none" aria-hidden="true"><path d="M24 4 40 10v12c0 10-6 18-16 22C14 40 8 32 8 22V10L24 4Z" fill="currentColor"/><path d="M24 9 35 13v9c0 8-4.5 14-11 17.5C17.5 36 13 30 13 22v-9l11-4Z" fill="#09090b" opacity="0.55"/><path d="M24 14v22M16 24h16" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><span>Elian Voss</span></span><span class="gauge frame-gauge"><span class="gauge-fill" style="width:88.6%;background:rgba(217,72,47,.7)"></span><span class="gauge-fill" style="left:88.6%;width:11.4%;background:rgba(63,185,207,.7)"></span><span class="gauge-label"><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><path d="M10 17S3 12.5 3 7.6C3 5 5 3.2 7.2 3.2c1.2 0 2.2.5 2.8 1.4.6-.9 1.6-1.4 2.8-1.4C15 3.2 17 5 17 7.6c0 4.9-7 9.4-7 9.4Z"/></svg><span>31/34</span><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><path d="M10 2 17 4.5v5C17 14 14.2 17 10 18.5 5.8 17 3 14 3 9.5v-5L10 2Z"/></svg><span style="color:var(--glass-100)">4</span></span></span><span class="resource"><span class="seg on"></span><span class="seg"></span></span><span class="piles"><span class="pile"><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><rect x="3" y="5" width="9" height="12" rx="1.5" opacity="0.55"/><rect x="8" y="3" width="9" height="12" rx="1.5"/></svg>11</span><span class="pile"><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><path d="M9 2h2v5h2.6L10 11.6 6.4 7H9V2Z"/><rect x="3.5" y="13" width="13" height="4" rx="1.2" opacity="0.55"/></svg>5</span></span></button></div></div></div><div style="margin-bottom:16px"><div class="tile-label">Downed — the rescue is not legal from here</div><div style="position:relative;width:390px;height:150px;background:linear-gradient(180deg,#131c2b,#0b1220);overflow:hidden"><div class="party"><button class="plate p-sm ally" style="--face:var(--steel-950);--acc:var(--ember-500)"><span class="ally-name"><span style="color:var(--cloth-300);display:flex"><svg viewBox="0 0 48 48" class="i12r" fill="currentColor" aria-hidden="true"><path d="M20 5h8v13h13v8H28v17h-8V26H7v-8h13V5Z"/></svg></span><b>Maren Tallis</b></span><span class="ally-gauge downed"><span class="gauge-fill" style="width:0.0%;background:rgba(217,72,47,.7)"></span><span class="gauge-fill" style="left:0.0%;width:0.0%;background:rgba(63,185,207,.7)"></span><span class="gauge-label">DOWNED</span></span></button><button class="plate p-sm ally" style="--face:var(--steel-950);--acc:var(--cloth-400)"><span class="ally-name"><span style="color:var(--cloth-400);display:flex"><svg viewBox="0 0 48 48" class="i12r" fill="currentColor" aria-hidden="true"><path d="M24 3l7 15-7 7-7-7 7-15Z"/><path d="M17 27h14l-7 18-7-18Z"/></svg></span><b>Roan Kesh</b></span><span class="ally-gauge"><span class="gauge-fill" style="width:79.2%;background:rgba(217,72,47,.7)"></span><span class="gauge-fill" style="left:79.2%;width:12.5%;background:rgba(63,185,207,.7)"></span><span class="gauge-label">19+3/24</span></span></button></div><div class="frame-row"><button class="plate p-lg f-ceramic a-cloth frame"><span class="frame-name"><span style="color:var(--cloth-500)"><svg viewBox="0 0 48 48" class="i14h" fill="none" aria-hidden="true"><path d="M24 4 40 10v12c0 10-6 18-16 22C14 40 8 32 8 22V10L24 4Z" fill="currentColor"/><path d="M24 9 35 13v9c0 8-4.5 14-11 17.5C17.5 36 13 30 13 22v-9l11-4Z" fill="#09090b" opacity="0.55"/><path d="M24 14v22M16 24h16" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><span>Elian Voss</span></span><span class="gauge frame-gauge"><span class="gauge-fill" style="width:88.6%;background:rgba(217,72,47,.7)"></span><span class="gauge-fill" style="left:88.6%;width:11.4%;background:rgba(63,185,207,.7)"></span><span class="gauge-label"><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><path d="M10 17S3 12.5 3 7.6C3 5 5 3.2 7.2 3.2c1.2 0 2.2.5 2.8 1.4.6-.9 1.6-1.4 2.8-1.4C15 3.2 17 5 17 7.6c0 4.9-7 9.4-7 9.4Z"/></svg><span>31/34</span><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><path d="M10 2 17 4.5v5C17 14 14.2 17 10 18.5 5.8 17 3 14 3 9.5v-5L10 2Z"/></svg><span style="color:var(--glass-100)">4</span></span></span><span class="resource"><span class="seg on"></span><span class="seg"></span></span><span class="piles"><span class="pile"><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><rect x="3" y="5" width="9" height="12" rx="1.5" opacity="0.55"/><rect x="8" y="3" width="9" height="12" rx="1.5"/></svg>11</span><span class="pile"><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><path d="M9 2h2v5h2.6L10 11.6 6.4 7H9V2Z"/><rect x="3.5" y="13" width="13" height="4" rx="1.2" opacity="0.55"/></svg>5</span></span></button></div></div></div><div style="margin-bottom:16px"><div class="tile-label">Revivable — the frame IS the button, and says its price</div><div style="position:relative;width:390px;height:150px;background:linear-gradient(180deg,#131c2b,#0b1220);overflow:hidden"><div class="party"><button class="plate p-sm ally" style="--face:var(--steel-950);--acc:var(--gold-400)"><span class="ally-name"><span style="color:var(--cloth-300);display:flex"><svg viewBox="0 0 48 48" class="i12r" fill="currentColor" aria-hidden="true"><path d="M20 5h8v13h13v8H28v17h-8V26H7v-8h13V5Z"/></svg></span><b>Maren Tallis</b></span><span class="ally-gauge downed"><span class="gauge-fill" style="width:0.0%;background:rgba(217,72,47,.7)"></span><span class="gauge-fill" style="left:0.0%;width:0.0%;background:rgba(63,185,207,.7)"></span><span class="gauge-label">REVIVE · 1 CARD</span></span></button><button class="plate p-sm ally" style="--face:var(--steel-950);--acc:var(--cloth-400)"><span class="ally-name"><span style="color:var(--cloth-400);display:flex"><svg viewBox="0 0 48 48" class="i12r" fill="currentColor" aria-hidden="true"><path d="M24 3l7 15-7 7-7-7 7-15Z"/><path d="M17 27h14l-7 18-7-18Z"/></svg></span><b>Roan Kesh</b></span><span class="ally-gauge"><span class="gauge-fill" style="width:79.2%;background:rgba(217,72,47,.7)"></span><span class="gauge-fill" style="left:79.2%;width:12.5%;background:rgba(63,185,207,.7)"></span><span class="gauge-label">19+3/24</span></span></button></div><div class="frame-row"><button class="plate p-lg f-ceramic a-cloth frame"><span class="frame-name"><span style="color:var(--cloth-500)"><svg viewBox="0 0 48 48" class="i14h" fill="none" aria-hidden="true"><path d="M24 4 40 10v12c0 10-6 18-16 22C14 40 8 32 8 22V10L24 4Z" fill="currentColor"/><path d="M24 9 35 13v9c0 8-4.5 14-11 17.5C17.5 36 13 30 13 22v-9l11-4Z" fill="#09090b" opacity="0.55"/><path d="M24 14v22M16 24h16" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><span>Elian Voss</span></span><span class="gauge frame-gauge"><span class="gauge-fill" style="width:88.6%;background:rgba(217,72,47,.7)"></span><span class="gauge-fill" style="left:88.6%;width:11.4%;background:rgba(63,185,207,.7)"></span><span class="gauge-label"><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><path d="M10 17S3 12.5 3 7.6C3 5 5 3.2 7.2 3.2c1.2 0 2.2.5 2.8 1.4.6-.9 1.6-1.4 2.8-1.4C15 3.2 17 5 17 7.6c0 4.9-7 9.4-7 9.4Z"/></svg><span>31/34</span><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><path d="M10 2 17 4.5v5C17 14 14.2 17 10 18.5 5.8 17 3 14 3 9.5v-5L10 2Z"/></svg><span style="color:var(--glass-100)">4</span></span></span><span class="resource"><span class="seg on"></span><span class="seg"></span></span><span class="piles"><span class="pile"><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><rect x="3" y="5" width="9" height="12" rx="1.5" opacity="0.55"/><rect x="8" y="3" width="9" height="12" rx="1.5"/></svg>11</span><span class="pile"><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><path d="M9 2h2v5h2.6L10 11.6 6.4 7H9V2Z"/><rect x="3.5" y="13" width="13" height="4" rx="1.2" opacity="0.55"/></svg>5</span></span></button></div></div></div><div style="margin-bottom:16px"><div class="tile-label">Incapacitated — the rescue window closed</div><div style="position:relative;width:390px;height:150px;background:linear-gradient(180deg,#131c2b,#0b1220);overflow:hidden"><div class="party"><button class="plate p-sm ally out" style="--face:var(--steel-950);--acc:var(--ember-500)"><span class="ally-name"><span style="color:var(--cloth-300);display:flex"><svg viewBox="0 0 48 48" class="i12r" fill="currentColor" aria-hidden="true"><path d="M20 5h8v13h13v8H28v17h-8V26H7v-8h13V5Z"/></svg></span><b>Maren Tallis</b></span><span class="ally-gauge downed"><span class="gauge-fill" style="width:0.0%;background:rgba(217,72,47,.7)"></span><span class="gauge-fill" style="left:0.0%;width:0.0%;background:rgba(63,185,207,.7)"></span><span class="gauge-label">INCAPACITATED</span></span></button><button class="plate p-sm ally" style="--face:var(--steel-950);--acc:var(--coral-500)"><span class="ally-name"><span style="color:var(--cloth-400);display:flex"><svg viewBox="0 0 48 48" class="i12r" fill="currentColor" aria-hidden="true"><path d="M24 3l7 15-7 7-7-7 7-15Z"/><path d="M17 27h14l-7 18-7-18Z"/></svg></span><b>Roan Kesh</b><span class="ally-threat" title="The Boss's attention"><i></i><u></u></span></span><span class="ally-gauge"><span class="gauge-fill" style="width:45.8%;background:rgba(217,72,47,.7)"></span><span class="gauge-fill" style="left:45.8%;width:0.0%;background:rgba(63,185,207,.7)"></span><span class="gauge-label">11/24</span></span></button></div><div class="frame-row"><button class="plate p-lg f-ceramic a-cloth frame"><span class="frame-name"><span style="color:var(--cloth-500)"><svg viewBox="0 0 48 48" class="i14h" fill="none" aria-hidden="true"><path d="M24 4 40 10v12c0 10-6 18-16 22C14 40 8 32 8 22V10L24 4Z" fill="currentColor"/><path d="M24 9 35 13v9c0 8-4.5 14-11 17.5C17.5 36 13 30 13 22v-9l11-4Z" fill="#09090b" opacity="0.55"/><path d="M24 14v22M16 24h16" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><span>Elian Voss</span></span><span class="gauge frame-gauge"><span class="gauge-fill" style="width:88.6%;background:rgba(217,72,47,.7)"></span><span class="gauge-fill" style="left:88.6%;width:11.4%;background:rgba(63,185,207,.7)"></span><span class="gauge-label"><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><path d="M10 17S3 12.5 3 7.6C3 5 5 3.2 7.2 3.2c1.2 0 2.2.5 2.8 1.4.6-.9 1.6-1.4 2.8-1.4C15 3.2 17 5 17 7.6c0 4.9-7 9.4-7 9.4Z"/></svg><span>31/34</span><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><path d="M10 2 17 4.5v5C17 14 14.2 17 10 18.5 5.8 17 3 14 3 9.5v-5L10 2Z"/></svg><span style="color:var(--glass-100)">4</span></span></span><span class="resource"><span class="seg on"></span><span class="seg"></span></span><span class="piles"><span class="pile"><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><rect x="3" y="5" width="9" height="12" rx="1.5" opacity="0.55"/><rect x="8" y="3" width="9" height="12" rx="1.5"/></svg>11</span><span class="pile"><svg viewBox="0 0 20 20" class="i12" fill="currentColor" aria-hidden="true"><path d="M9 2h2v5h2.6L10 11.6 6.4 7H9V2Z"/><rect x="3.5" y="13" width="13" height="4" rx="1.2" opacity="0.55"/></svg>5</span></span></button></div></div></div>
+<div class="rule"></div>
+<div class="legend" style="max-width:380px">
+<b>A frame at rest owes no tap target</b>, so the resting height is free to stay under 44px — it is a readout, and a
+readout that swallows taps is chrome the board paid for twice. In the one moment a legal ally action exists — the
+primary Hero adjacent to a Downed ally with a card in hand — that frame alone becomes the button: its accent turns
+living gold, the bar names the price, and a tap parks the rescue the way a move parks, waiting on the Hand to name
+the card that pays. Nothing else on screen moves, and no second interactive row ever appears.
+<br><br>
+<b>Otherwise the frame is the switch.</b> One player pilots the Party, and a tap swaps the whole panel — shared board,
+no camera movement, the displaced Hero taking the tapped one's place in the column. The column shows whoever the
+console does not, so the swap is symmetric.
+<br><br>
+<b>Status outranks Role on the accent channel.</b> Role is the Signal cloth step — Tank 500, Healer 300, Damage 400 —
+and it is what a frame wears when it has nothing more urgent to say. Living gold overrides it for the one frame the
+player can operate, ember for a body on the floor, ember coral for the Boss's attention. A Downed frame's track is
+hatched rather than empty, because an empty bar is a Hero at 0 health, which is a different claim.
+</div>
+</section>
+</x-dc>
+</body>
+</html>

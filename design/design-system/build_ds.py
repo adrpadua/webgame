@@ -66,6 +66,8 @@ def stylesheet():
 {canvas.BAR_CSS}
 {canvas.HAND_CSS}
 {canvas.FRAME_CSS}
+{canvas.STATUS_CSS}
+{canvas.PARTY_CSS}
 {canvas.DOCK_CSS}
 
 /* --- Preview chrome ------------------------------------------------------
@@ -133,7 +135,7 @@ def write(rel, text):
 
 
 # --- Colour cards ----------------------------------------------------------
-def ramp_card(material, stem, carries, ramp, anchor, subtitle):
+def ramp_card(material, stem, carries, ramp, anchor, subtitle, extra=""):
     swatches = "".join(
         f'<div class="ds-swatch"><div class="ds-chipbox" style="background:{ramp[s]}'
         f'{";box-shadow:0 0 0 2px var(--gold-400)" if s == anchor else ""}"></div>'
@@ -147,6 +149,7 @@ def ramp_card(material, stem, carries, ramp, anchor, subtitle):
         f'<div class="ds-note">The gold-ringed step is the interface direction\'s own hex; the rest are what '
         f'that material looks like lit, dim, or as a dark ground. <b>A material picks its step from the '
         f'ground it sits on</b> — the ramp exists so it can, not so a designer can pick a nicer blue.</div>'
+        f'{extra}'
     )
     card(f"colors-{stem}.html", "Colors", material, subtitle, body)
 
@@ -165,8 +168,8 @@ def colour_cards():
         f'<table style="border-collapse:collapse;width:100%">{table}</table>'
         '<div class="ds-note"><b>Colour reads as role and material, never as decoration.</b> If a new colour is '
         'needed, the answer is almost always that the wrong material was chosen. Two entries have scope: '
-        '<b>signal cloth is a material, not a value</b> — every Hero role picks its own within it, and this ramp '
-        'is Shield Wall\'s. <b>Ember and ember coral are one family in two jobs</b> — ember is the interface\'s '
+        '<b>signal cloth is a material, not a value</b> — each Role takes one step within it, so a party column '
+        'reads as one channel rather than as three blues. <b>Ember and ember coral are one family in two jobs</b> — ember is the interface\'s '
         'warning, coral is Embermaw\'s own body, and they never appear in the same element.</div>'
     )
     card("colors-materials.html", "Colors", "Materials", "The locked table · 8 materials, what each carries", body, width=600)
@@ -178,11 +181,37 @@ def colour_cards():
         "coral": "#E0703B · the Boss's own body · 8 steps",
         "ember": "#D9482F · damage taken, irreversible · 6 steps",
         "ceramic": "#E4E8EE · read-outs and the console · 6 steps",
-        "cloth": "#2F5680 · the per-Hero role channel · 6 steps",
+        "cloth": "#2F5680 · one step per Role · 6 steps",
     }
+    # Cloth is the one ramp whose steps are assigned rather than picked: the
+    # party frames read a Role off the seat's deck and take its step.
+    roles = "".join(
+        f'<div style="display:flex;align-items:center;gap:10px">'
+        f'<span class="ds-chipbox" style="width:26px;height:16px;background:var(--cloth-{step})"></span>'
+        f'<span class="ds-mono" style="width:96px">--cloth-{step}</span>'
+        f'<span class="ds-name" style="width:70px">{role}</span>'
+        f'<span class="ds-note" style="flex:1">{note}</span></div>'
+        for step, role, note in [
+            (500, "Tank", "The deepest step — the Role that stands in front."),
+            (400, "Damage", "Two Damage seats share this step. They are one Role, and the channel names Roles."),
+            (300, "Healer", "The lit step, where the Role that answers damage is easiest to find in a column."),
+        ]
+    )
+    cloth_extra = (
+        '<div class="ds-lbl" style="margin-top:6px">The Role assignment</div>'
+        f'<div class="ds-stack">{roles}</div>'
+        '<div class="ds-note">This ramp used to be described as per-Hero, with these six steps standing in for '
+        'Shield Wall\'s. The party frames settled it the other way: <b>a frame wears its Role\'s step</b>, read off '
+        'the Keyword its seat\'s whole deck agrees on. Per-Hero could not survive a column — two Heroes of the same '
+        'Role in two different blues says they differ in something, and they do not.</div>'
+        '<div class="ds-note"><b>Role is the quietest thing a frame can say, and it yields.</b> Living gold takes the '
+        'accent for the one frame the player can operate, ember for a body on the floor, ember coral for the Boss\'s '
+        'attention — so cloth is what shows when nothing is happening to that Hero, which is most of the time.</div>'
+    )
     for material, stem, carries, ramp, anchor in T.PALETTE:
         if stem in subtitles:
-            ramp_card(material, stem, carries, ramp, anchor, subtitles[stem])
+            ramp_card(material, stem, carries, ramp, anchor, subtitles[stem],
+                      cloth_extra if stem == "cloth" else "")
 
     aliases = "".join(
         f'<tr><td style="padding:4px 14px 4px 0" class="ds-name">{name}</td>'
@@ -402,7 +431,9 @@ def component_cards():
         ("Unearned", canvas.hero_frame(health=34, armor=0, charges=0, cap=2, deck=16, discard=0)),
         ("Banked", canvas.hero_frame(health=31, armor=4, charges=1, cap=2, deck=13, discard=3)),
         ("Ready — the Signature button mounts", canvas.hero_frame(health=28, armor=4, charges=1, cap=2, deck=11, discard=5, ready=True)),
-        ("Full bank, with a Counter chip", canvas.hero_frame(health=24, armor=2, charges=2, cap=2, deck=9, discard=7, ready=True, counters=("Fortified",))),
+        ("Full bank, with the Status Icon tray", canvas.hero_frame(
+            health=24, armor=2, charges=2, cap=2, deck=9, discard=7, ready=True,
+            counters=(("fortified", 1, 0, 0), ("seared", 2, 1, 3)))),
     ]
     rows = "".join(
         f'<div><div class="ds-lbl" style="margin-bottom:6px">{label}</div>'
@@ -419,6 +450,9 @@ def component_cards():
         'a Charge is counted rather than continuous, and unlabelled because its position is the label. The '
         'Signature button exists only while the Signature can fire — safe precisely because the bar carries '
         'permanence, and refused before the bar existed.</div>'
+        '<div class="ds-note">The <b>Status Icon tray</b> beside the frame is the same 44pt rule answered a second '
+        'time, and it has its own card. It replaced a named Counter chip in D-088: <b>SEARED</b> alone took the '
+        'width two Counters need.</div>'
     )
     card("components-hero-frame.html", "Components", "Hero Frame", "Unearned · Banked · Ready · Full bank", body, width=440)
 
@@ -529,13 +563,12 @@ def component_cards():
         '<button class="plate p-lg p-centered f-gold a-gold rail" style="width:58px;color:var(--gold-950)">'
         + canvas.ICON["restart"]("i28") + '</button>'
         '<button class="plate p-sm f-gold a-gold sig" style="margin-left:0">'
-        '<span class="sig-name">Riposte</span><span class="sig-verb">Fire</span></button>'
-        '<button class="chip-counter">Fortified</button></div>'
+        '<span class="sig-name">Riposte</span><span class="sig-verb">Fire</span></button></div>'
     )
     body = (
         f'{rails}'
         '<div class="ds-note">Left to right: <b>undo armed</b>, <b>undo inert</b>, <b>next</b>, <b>continue</b>, '
-        '<b>restart</b>, the <b>Signature button</b>, a <b>Counter chip</b>. Undo is steel and the advance rail '
+        '<b>restart</b>, the <b>Signature button</b>. Undo is steel and the advance rail '
         'is gold: both are always present, and the eye has to tell the move that advances the fight from the one '
         'that walks it back without reading either.</div>'
         '<div class="ds-note">The two forward marks are deliberately different shapes. <b>A bare triangle plays</b> '
@@ -546,7 +579,105 @@ def component_cards():
         '2.2:1 and read as an empty plate, which makes the bar look like it lost a control rather than like this '
         'one is waiting.</div>'
     )
-    card("components-rails.html", "Components", "Rails & buttons", "Undo · next · continue · Signature · chips", body, width=440)
+    card("components-rails.html", "Components", "Rails & buttons", "Undo · next · continue · Signature", body, width=440)
+
+
+def party_cards():
+    states = [
+        ("At rest — Role on the accent, one ally carrying the Boss's attention", [
+            dict(name="Maren Tallis", role="healer", health=22, max_health=26, charges=1, cap=2),
+            dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3, threat=True),
+        ]),
+        ("Downed — hatched track, ember accent, the bank gone", [
+            dict(name="Maren Tallis", role="healer", health=0, max_health=26, status="downed"),
+            dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3),
+        ]),
+        ("Revivable — the frame is the button, and prints its price", [
+            dict(name="Maren Tallis", role="healer", health=0, max_health=26, status="downed", revivable=True),
+            dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3),
+        ]),
+        ("Incapacitated — the rescue window closed", [
+            dict(name="Maren Tallis", role="healer", health=0, max_health=26, status="incapacitated"),
+            dict(name="Roan Kesh", role="damage", health=11, max_health=24, threat=True),
+        ]),
+    ]
+    rows = "".join(
+        f'<div><div class="ds-lbl" style="margin-bottom:6px">{label}</div>'
+        f'<div class="ds-demo" style="position:relative;width:390px;height:168px;overflow:hidden;padding:0">'
+        f'{canvas.party_frames(frames)}'
+        f'{canvas.hero_frame(health=31, armor=4, charges=1, cap=2, deck=11, discard=5)}</div></div>'
+        for label, frames in states
+    )
+    body = (
+        f'<div class="ds-stack">{rows}</div>'
+        '<div class="ds-note">A left-edge column of readouts growing upward from the primary Hero\'s frame, over '
+        'board pixels the melee party is standing near anyway — so <b>the board keeps 100% of its width</b>. Every '
+        'frame is the primary frame\'s anatomy with the console removed: name, health with the Armor overlay, the '
+        'Signature bank. No piles, no controls.</div>'
+        '<div class="ds-note"><b>A frame at rest owes no tap target</b>, so the resting height is free to stay under '
+        '44px. In the one moment a legal ally action exists — the primary Hero adjacent to a Downed ally with a card '
+        'in hand — that frame alone becomes the button: its accent turns living gold, the bar names the price, and a '
+        'tap parks the rescue the way a move parks. Otherwise the frame is <b>the switch</b>: one player pilots the '
+        'Party, and a tap swaps the whole panel over a shared board with no camera movement. The column shows '
+        'whoever the console does not, so the swap is symmetric.</div>'
+        '<div class="ds-note"><b>Status outranks Role on the accent channel.</b> Role is the Signal cloth step and is '
+        'what a frame wears with nothing more urgent to say; living gold overrides it for the one frame the player '
+        'can operate, ember for a body on the floor, ember coral for the Boss\'s attention. <b>A Downed track is '
+        'hatched, not empty</b> — an empty bar is a Hero at 0 health, which is a different claim.</div>'
+    )
+    card("components-party-frames.html", "Components", "Party frames",
+         "At rest · Downed · Revivable · Incapacitated", body, width=440)
+
+
+def status_card():
+    marks = "".join(
+        f'<div class="ds-swatch" style="align-items:center;width:84px">{canvas.status_icon(cid)}'
+        f'<div class="ds-name">{cid}</div>'
+        f'<div class="ds-mono">{canvas.STATUS_MARKS[cid][1]}</div></div>'
+        for cid in ("seared", "heat", "sundered", "weakened", "fortified", "underwritten")
+    )
+    # A Counter id the mark table has never heard of, which is the point: it
+    # falls back to the hollow steel rhombus rather than failing to draw.
+    marks += (
+        f'<div class="ds-swatch" style="align-items:center;width:84px">{canvas.status_icon("a-rule-authored-today")}'
+        f'<div class="ds-name">unmarked</div><div class="ds-mono">steel</div></div>'
+    )
+    riders = "".join(
+        f'<div class="ds-swatch" style="align-items:center;width:104px">{icon}'
+        f'<div class="ds-note" style="max-width:104px;text-align:center">{note}</div></div>'
+        for icon, note in [
+            (canvas.status_icon("fortified"), "Single and permanent — <b>quiet</b>"),
+            (canvas.status_icon("seared", 3), "Three held — the <b>count</b>, bottom-right"),
+            (canvas.status_icon("sundered", 1, 1, 3), "One Round left — the <b>clock</b> across the foot"),
+            (canvas.status_icon("heat", 2, 2, 3), "Both, and the count lifts clear"),
+        ]
+    )
+    body = (
+        '<div class="ds-lbl">The marks</div>'
+        f'<div class="ds-grid">{marks}</div>'
+        '<div class="ds-lbl" style="margin-top:6px">What rides the square</div>'
+        f'<div class="ds-grid">{riders}</div>'
+        '<div class="ds-lbl" style="margin-top:6px">The tray</div>'
+        f'<div class="ds-demo" style="display:flex">{canvas.status_tray((("seared", 2, 1, 3), "fortified", ("underwritten", 1, 0, 0), "weakened"))}</div>'
+        '<div class="ds-note">A Counter as a <b>raked square rather than a word</b> (D-088). The chip it replaced '
+        'spelled its title across a 74px plate — <b>SEARED</b> beside the Hero Frame took the width two Counters '
+        'need, and a third had nowhere to go on a 390pt surface. A square the size of a glyph is what an MMO\'s buff '
+        'tray is, and it works for the same reason: the player learns one mark per rule and then reads the row at a '
+        'glance, where a row of words has to be read left to right.</div>'
+        '<div class="ds-note">The square is a <b>plate like every other surface</b>, so the rake and the leading-edge '
+        'accent are not re-derived: <b>the accent band is the material channel</b>, and the glyph is cut in the same '
+        'material. The glyphs are filled where the Compact Card\'s Keyword marks are open strokes, so the two are '
+        'never confused at 16 pixels.</div>'
+        '<div class="ds-note"><b>The name is not lost — it is one hold away</b>, with the authored rules text, the '
+        'count and the rounds. And a Counter this table has never heard of still reads as one: it falls back to the '
+        'hollow steel rhombus, which claims nothing else, so a freshly authored rule is visible on the frame the day '
+        'it lands.</div>'
+        '<div class="ds-note"><b>One control, not one per Counter.</b> Four Counters as four targets is 176px of '
+        'chrome beside a 208px frame; the squares pack at the density they were drawn at and the tray as a whole '
+        'takes the press, so the block padding is what buys the 44pt target.</div>'
+    )
+    card("components-status-icons.html", "Components", "Status Icons",
+         "6 marks + the fallback · count · round clock · the tray", body, width=560)
 
 
 def motion_card():
@@ -612,6 +743,8 @@ def build(namespace="OathcraftDesignSystem"):
     spacing_cards()
     plate_cards()
     component_cards()
+    party_cards()
+    status_card()
     motion_card()
     write("colors_and_type.css", stylesheet())
     write("_ds_manifest.json", json.dumps(manifest(namespace), indent=2) + "\n")

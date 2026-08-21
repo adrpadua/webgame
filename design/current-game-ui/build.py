@@ -440,6 +440,120 @@ def stamina_face(title, paying, width):
 
 
 # --- The Hero Frame --------------------------------------------------------
+# --- The Status Icon -------------------------------------------------------
+# A Counter as a raked square rather than a word (D-088, party-frame direction
+# 1A), ported from web/src/ui/common/StatusIcons.tsx and statusIcons.ts. The
+# square is a plate like every other surface, so it wears the 8deg rake and its
+# leading-edge accent without re-deriving either: the accent band IS the
+# material channel, and the glyph is cut in the same material.
+
+STATUS_CSS = """
+/* A 28px plate on a tighter gutter than wb-plate-xs was written for: the whole
+   content is one 16px glyph, so the gutter only has to clear the 3px cut. */
+.sicon{position:relative;display:flex;height:28px;width:28px;flex-shrink:0;align-items:center;justify-content:center;--gutter:3px}
+.sicon svg{height:16px;width:16px}
+/* The count rides the face's own bottom-right corner, which the rake cuts in
+   by exactly --off — so it sits on the plate rather than hanging off its cut
+   edge, and lifts clear of the clock when there is one. */
+.sicon-count{position:absolute;right:calc(var(--off) + 1px);bottom:1px;font-size:9px;line-height:1;font-weight:900;
+             color:var(--ceramic-100);text-shadow:0 0 3px var(--navy-950)}
+.sicon-count.over-clock{bottom:4px}
+.sicon-clock{position:absolute;bottom:0;left:0;right:var(--off);height:2px;background:var(--steel-950)}
+.sicon-clock span{position:absolute;top:0;bottom:0;left:0}
+"""
+
+# The material channel, not decoration (statusIcons.ts): ember is damage taken,
+# coral the Boss's own body, glass Armor and the player's affordances, gold
+# lockwork, steel a blunted edge and anything unmarked.
+STATUS_MATERIAL = {
+    "ember": "var(--ember-300)",
+    "coral": "var(--coral-300)",
+    "glass": "var(--glass-300)",
+    "gold": "var(--gold-300)",
+    "cloth": "var(--cloth-300)",
+    "steel": "var(--steel-400)",
+}
+
+# Filled rather than line art: the Keyword glyphs on a Compact Card are open
+# strokes, so a filled glyph on a dark square is never mistaken for one at 16px.
+STATUS_GLYPH = {
+    # Fire, as one tongue.
+    "flame": '<path d="M12 2c3 5 6 6.5 6 10.5A6 6 0 0 1 6 12.5C6 8.5 9 7 12 2Z"/>',
+    # A fault line: something that was whole and now takes more.
+    "crack": '<path d="M13 1 8 10h5l-4 13 3-11H7l6-11Z"/><path d="M17 3l4 5-4 4 2-9Z" opacity="0.6"/>',
+    # The gate panel, doubled: cover held over cover.
+    "shield": ('<path d="M12 3l8 3.2v6.3c0 5-3.2 8.4-8 9.5-4.8-1.1-8-4.5-8-9.5V6.2L12 3Z"/>'
+               '<path d="M12 7.5l4.5 1.8v3.6c0 2.8-1.8 4.8-4.5 5.5-2.7-.7-4.5-2.7-4.5-5.5V9.3L12 7.5Z" '
+               'fill="var(--steel-800)" opacity="0.7"/>'),
+    # Rubble: ground that costs something to cross.
+    "blocks": '<path d="M3 15h7v6H3v-6Zm8-6h6v12h-6V9Zm7 4h3v8h-3v-8Z"/>',
+    # The healing cross, which is also the Registry's stamp.
+    "cross": '<path d="M10 2h4v7h7v4h-7v9h-4v-9H3V9h7V2Z"/>',
+    # A spearhead over its haft: what a blow is made of.
+    "spike": '<path d="M12 1l4 9-4 3-4-3 4-9Z"/><path d="M8 15h8l-4 8-4-8Z"/>',
+    # Two links: held in place.
+    "chain": ('<g fill="none" stroke="currentColor" stroke-width="3">'
+              '<rect x="3" y="4" width="8" height="7" rx="3"/><rect x="13" y="13" width="8" height="7" rx="3"/>'
+              '<path d="M9 11l6 3"/></g>'),
+    # The unmarked Counter: a rhombus, hollowed so it reads as a frame around
+    # nothing rather than as a solid mark that means something.
+    "mark": '<path d="M12 2l7 10-7 10-7-10 7-10Zm0 4.6L7.7 12 12 17.4 16.3 12 12 6.6Z"/>',
+}
+
+# Keyed by Counter id, the way keywordIcons keys a Hero's Keyword marks: what a
+# Counter *does* is authored in data/counters/, what it *looks like* is the
+# direction's material language, which no content file should spell in hex.
+STATUS_MARKS = {
+    "seared": ("flame", "ember"),        # burning: the Hero takes more from every blow
+    "heat": ("flame", "coral"),          # the same fire, held by the thing that set it
+    "sundered": ("crack", "ember"),      # armour split open
+    "weakened": ("spike", "steel"),      # a dulled edge: the weapon changed, not the wound
+    "fortified": ("shield", "glass"),    # banked Armor, in the Armor overlay's own runeglass
+    "underwritten": ("cross", "gold"),   # the Registry's cover on the next blow
+}
+NEUTRAL_MARK = ("mark", "steel")
+
+
+def status_icon(counter_id, count=1, remaining=0, duration=0):
+    """One Status Icon. Three things ride the square, and each is a number the
+    player would otherwise have to open the popup to learn: the count when more
+    than one is held, a round clock draining left to right on a Counter with an
+    authored duration, and nothing at all on one that is single and permanent —
+    which is the common case and should stay quiet."""
+    glyph, material = STATUS_MARKS.get(counter_id, NEUTRAL_MARK)
+    colour = STATUS_MATERIAL[material]
+    clock = duration > 0 and remaining > 0
+    count_html = (
+        f'<span class="sicon-count{" over-clock" if clock else ""}">{count}</span>' if count > 1 else ""
+    )
+    clock_html = ""
+    if clock:
+        pct = min(100, remaining / duration * 100)
+        clock_html = f'<span class="sicon-clock"><span style="width:{pct:.0f}%;background:{colour}"></span></span>'
+    return (
+        f'<span class="plate p-xs sicon" style="--face:var(--steel-800);--edge:var(--steel-500);--acc:{colour}">'
+        f'<svg viewBox="0 0 24 24" style="color:{colour}" fill="currentColor" aria-hidden="true">{STATUS_GLYPH[glyph]}</svg>'
+        f'{count_html}{clock_html}</span>'
+    )
+
+
+def status_tray(counters=()):
+    """Every live Counter a piece is holding, in ONE control. That is the Hero
+    Frame's own answer to the 44pt rule applied a second time: four Counters as
+    four targets is 176px of chrome beside a 208px frame on a 390pt surface, so
+    the squares pack at the density they were drawn at and the tray as a whole
+    takes the press. The block padding is what buys the tap target.
+
+    Accepts bare ids — `("seared",)` — or full tuples
+    `(id, count, remaining, duration)`."""
+    if not counters:
+        return ""
+    squares = "".join(
+        status_icon(c) if isinstance(c, str) else status_icon(*c) for c in counters
+    )
+    return f'<button class="stray">{squares}</button>'
+
+
 FRAME_CSS = """
 /* The Hero Frame (D-065, ADR 0033): the primary Hero's persistent readout,
    floating over the board's bottom edge as the dock's floor, built to the
@@ -471,15 +585,23 @@ FRAME_CSS = """
 .sig-name{width:100%;text-align:center;font-size:10px;line-height:1;font-weight:900;letter-spacing:.025em;text-transform:uppercase;
           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sig-verb{font-size:9px;line-height:1;font-weight:700;letter-spacing:.025em;text-transform:uppercase;color:var(--gold-900)}
-/* Counters sit beside the frame, where an MMO puts its buffs. */
-.chip-counter{min-height:44px;min-width:44px;background:var(--gold-900);padding:0 6px;font-size:10px;font-weight:600;color:var(--gold-200);border:0;display:flex;align-items:center}
+/* The Status Icon tray sits beside the frame, where an MMO puts its buffs.
+   It replaced the Counter chip, which spelled its title across a 74px plate:
+   `SEARED` alone took the width two Counters need, and a third had nowhere to
+   go on a 390pt surface (D-088). */
+.stray{display:flex;flex-wrap:wrap;align-content:center;align-items:center;justify-content:flex-start;
+       gap:4px;min-height:44px;min-width:44px;padding:8px 0;border:0;background:transparent}
 """
 
 
 def hero_frame(name="Elian Voss", health=34, max_health=34, armor=0, charges=0, cap=2,
                deck=16, discard=0, ready=False, counters=()):
     """Left-justified vertical stack: name, health with the Armor overlay, the
-    class resource where an MMO puts mana, then the deck and discard counts."""
+    class resource where an MMO puts mana, then the deck and discard counts.
+
+    `counters` is the Status Icon tray beside it — bare Counter ids, or full
+    `(id, count, remaining, duration)` tuples. It took the Counter chip's place
+    in D-088."""
     scale = max(max_health, health + armor, 1)
     hf = max(0, health) / scale * 100
     af = max(0, armor) / scale * 100
@@ -491,7 +613,7 @@ def hero_frame(name="Elian Voss", health=34, max_health=34, armor=0, charges=0, 
         for i in range(cap)
     )
     resource = f'<span class="resource">{segs}</span>' if cap else ""
-    chips = "".join(f'<button class="chip-counter">{c}</button>' for c in counters)
+    chips = status_tray(counters)
     sig = (
         '<button class="plate p-sm f-gold a-gold sig">'
         '<span class="sig-name">Riposte</span><span class="sig-verb">Fire</span></button>'
@@ -511,6 +633,132 @@ def hero_frame(name="Elian Voss", health=34, max_health=34, armor=0, charges=0, 
         f'<span class="pile">{ICON["discard"]("i12")}{discard}</span></span></button>'
         f'{chips}{sig}</div>'
     )
+
+
+# --- The party frames ------------------------------------------------------
+# The ally frames (party-frame layout direction 1A), ported from
+# web/src/ui/party/PartyFrames.tsx: a left-edge column of readouts growing
+# upward from the primary Hero's frame, over board pixels the melee party is
+# standing near anyway — so the board keeps 100% of its width.
+#
+# Every frame is the primary frame's anatomy with the console removed: name,
+# then health with the Armor overlay, then the Signature bank. No piles, no
+# controls.
+
+PARTY_CSS = """
+/* The column: seats in authored order, growing downward toward the primary
+   frame so the whole party reads as one object anchored at the bottom-left.
+   Its floor is the Hero Frame's own top edge. */
+.party{position:absolute;bottom:64px;left:8px;z-index:30;display:flex;width:138px;flex-direction:column;gap:4px}
+/* A frame at rest owes no tap target, so the resting height is free to stay
+   under 44px: it is a readout, and a readout that swallows taps is chrome the
+   board paid for twice. */
+.ally{display:flex;width:100%;flex-direction:column;align-items:stretch;gap:2px;
+      padding-top:4px;padding-bottom:4px;text-align:left;border:0}
+.ally.out{opacity:.6}
+.ally-name{display:flex;min-width:0;align-items:center;gap:4px;line-height:1}
+.ally-name b{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+             font-size:11px;font-weight:600;color:var(--ceramic-300)}
+.i12r{height:12px;width:12px;flex-shrink:0}
+/* The Boss's attention: the Threat mark, in ember coral — it names the Boss's
+   plan, not the Hero's state. */
+.ally-threat{display:flex;flex-shrink:0;align-items:center;gap:2px}
+.ally-threat i{height:10px;width:10px;background:var(--coral-400);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.ally-threat u{height:10px;width:3px;background:var(--coral-500)}
+.ally-gauge{position:relative;display:block;height:12px;overflow:hidden;border-radius:2px;background:var(--steel-950)}
+/* A body on the floor reads as hatched ground rather than as an empty bar —
+   an empty bar is a Hero at 0 health, which is a different claim. */
+.ally-gauge.downed{background:repeating-linear-gradient(115deg,var(--ember-950) 0 4px,var(--steel-950) 4px 9px)}
+.ally-gauge .gauge-label{font-size:9px;color:var(--ember-100)}
+.ally-gauge.downed .gauge-label{color:var(--ember-300);letter-spacing:.1em}
+/* The ally's own Signature bank — every seat may field one (ADR 0035). Thinner
+   than the primary's resource bar because it is read from further away and
+   never operated. */
+.ally-sig{display:flex;height:5px;gap:2px}
+.ally-sig span{flex:1;border-radius:2px;background:var(--steel-700)}
+.ally-sig span.on{background:var(--gold-500)}
+.ally-sig span.ready{background:var(--gold-300)}
+"""
+
+# The Role glyphs (PartyFrames.tsx). Filled, at 12px, because the name beside
+# them is 11px: a line-art mark at this size is a smudge.
+ROLE_GLYPH = {
+    "tank": '<path d="M24 4 40 10v12c0 10-6 18-16 22C14 40 8 32 8 22V10L24 4Z"/>',
+    "healer": '<path d="M20 5h8v13h13v8H28v17h-8V26H7v-8h13V5Z"/>',
+    "damage": '<path d="M24 3l7 15-7 7-7-7 7-15Z"/><path d="M17 27h14l-7 18-7-18Z"/>',
+}
+
+
+def role_accent(role):
+    """The Signal cloth channel, one step per Role. Two Damage seats share a
+    step deliberately: they are one Role, and the channel names Roles."""
+    return {"tank": "var(--cloth-500)", "healer": "var(--cloth-300)"}.get(role, "var(--cloth-400)")
+
+
+def frame_accent(role, status="living", threat=False, revivable=False):
+    """Status outranks Role on the accent channel: living gold for the one
+    frame the player can operate, ember for a body on the floor, ember coral
+    for the Boss's attention."""
+    if revivable:
+        return "var(--gold-400)"
+    if status != "living":
+        return "var(--ember-500)"
+    if threat:
+        return "var(--coral-500)"
+    return role_accent(role)
+
+
+def ally_frame(name="Maren Tallis", role="healer", health=22, max_health=26, armor=0,
+               status="living", threat=False, revivable=False, charges=0, cap=0):
+    """One ally's readout. In the one moment a legal ally action exists — the
+    primary Hero adjacent to a Downed ally with a card in hand — that frame
+    alone becomes the button: its accent turns living gold and a tap parks the
+    rescue the way a move parks. Otherwise the frame is the switch, the way a
+    portrait click is in a party RPG. Nothing else on screen moves, and no
+    second interactive row ever appears."""
+    down = status != "living"
+    scale = max(max_health, health + armor, 1)
+    hf = 0.0 if down else max(0, health) / scale * 100
+    af = 0.0 if down else max(0, armor) / scale * 100
+    if status == "incapacitated":
+        label = "INCAPACITATED"
+    elif status == "downed":
+        label = "REVIVE · 1 CARD" if revivable else "DOWNED"
+    elif armor > 0:
+        label = f"{health}+{armor}/{max_health}"
+    else:
+        label = f"{health}/{max_health}"
+    threat_html = (
+        '<span class="ally-threat" title="The Boss\'s attention"><i></i><u></u></span>'
+        if threat and not down else ""
+    )
+    bank = ""
+    if cap > 0 and status == "living":
+        segs = "".join(
+            f'<span class="{"ready" if charges >= cap else "on"}"></span>' if i < charges else "<span></span>"
+            for i in range(cap)
+        )
+        bank = f'<span class="ally-sig">{segs}</span>'
+    return (
+        f'<button class="plate p-sm ally{" out" if status == "incapacitated" else ""}" '
+        f'style="--face:var(--steel-950);--acc:{frame_accent(role, status, threat, revivable)}">'
+        f'<span class="ally-name"><span style="color:{role_accent(role)};display:flex">'
+        f'<svg viewBox="0 0 48 48" class="i12r" fill="currentColor" aria-hidden="true">{ROLE_GLYPH.get(role, ROLE_GLYPH["damage"])}</svg>'
+        f'</span><b>{name}</b>{threat_html}</span>'
+        f'<span class="ally-gauge{" downed" if down else ""}">'
+        f'<span class="gauge-fill" style="width:{hf:.1f}%;background:rgba(217,72,47,.7)"></span>'
+        f'<span class="gauge-fill" style="left:{hf:.1f}%;width:{af:.1f}%;background:rgba(63,185,207,.7)"></span>'
+        f'<span class="gauge-label">{label}</span></span>'
+        f'{bank}</button>'
+    )
+
+
+def party_frames(frames):
+    """The column. Renders nothing for a solo Encounter — the seam costs the
+    teaching slice zero pixels."""
+    if not frames:
+        return ""
+    return '<div class="party">' + "".join(ally_frame(**f) for f in frames) + "</div>"
 
 
 # --- The dock --------------------------------------------------------------
@@ -597,11 +845,16 @@ def build():
         keyword_face("Fortify", ["guard", "growth"], {"guard"}, hand_w),
         keyword_face("Quench", ["tempo", "support"], set(), hand_w),
     ])
+    quick_party = party_frames([
+        dict(name="Maren Tallis", role="healer", health=22, max_health=26, charges=1, cap=2),
+        dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3, threat=True),
+    ])
     main_body = f"""<div class="surface">
   {phase_band("quick", 3, 2, 0.0)}
   <div class="board">
     <img src="board.jpg" alt="The Embermaw board: Elian Voss holding the Guarded Front, the Boss above, a telegraphed cone below.">
-    {hero_frame(health=31, armor=4, charges=1, cap=2, deck=11, discard=5, ready=True)}
+    {quick_party}
+    {hero_frame(health=31, armor=4, charges=1, cap=2, deck=11, discard=5, ready=True, counters=("fortified",))}
   </div>
   {action_bar(quick_slots)}
   <div class="hand">{quick_hand}</div>
@@ -630,7 +883,7 @@ def build():
   <div class="hand">{loadout_hand}</div>
 </div>"""
 
-    surface_css = SURFACE_CSS + TRACK_CSS + BAR_CSS + HAND_CSS + FRAME_CSS + DOCK_CSS
+    surface_css = SURFACE_CSS + TRACK_CSS + BAR_CSS + HAND_CSS + FRAME_CSS + STATUS_CSS + PARTY_CSS + DOCK_CSS
 
     write("Main.dc.html", artboard("Quick Window", main_body, 390, surface_css, "var(--steel-950)"))
     write("Loadout.dc.html", artboard("Loadout", loadout_body, 390, surface_css, "var(--steel-950)"))
@@ -792,7 +1045,9 @@ charging, and when the last one seats the gaps close and they read as one contin
         ("Unearned — the meter says how many there are to fill", hero_frame(health=34, armor=0, charges=0, cap=2, deck=16, discard=0)),
         ("Banked — a Charge earned, the window not open", hero_frame(health=31, armor=4, charges=1, cap=2, deck=13, discard=3)),
         ("Ready — the button arrives, and it is always pressable", hero_frame(health=28, armor=4, charges=1, cap=2, deck=11, discard=5, ready=True)),
-        ("Full bank + a Counter chip beside it", hero_frame(health=24, armor=2, charges=2, cap=2, deck=9, discard=7, ready=True, counters=("Fortified",))),
+        ("Full bank + the Status Icon tray beside it", hero_frame(
+            health=24, armor=2, charges=2, cap=2, deck=9, discard=7, ready=True,
+            counters=(("fortified", 1, 0, 0), ("seared", 2, 1, 3), ("underwritten", 1, 0, 0)))),
     ]
     frame_rows = "".join(
         f'<div style="margin-bottom:16px"><div class="tile-label">{label}</div>{frame_on_board(f)}</div>'
@@ -822,7 +1077,66 @@ press. That division is what makes appear-when-usable honest: without a permanen
 the whole mechanic, which is why the same shape was refused before the bar existed.
 </div>
 """
-    write("HeroFrame.dc.html", artboard("Hero Frame", frame_body, 440, FRAME_CSS, pad=24))
+    write("HeroFrame.dc.html", artboard("Hero Frame", frame_body, 440, FRAME_CSS + STATUS_CSS, pad=24))
+
+    # ---------------- PartyFrames.dc.html ----------------------------------
+    def party_on_board(inner, h=150):
+        return (f'<div style="position:relative;width:390px;height:{h}px;background:'
+                f'linear-gradient(180deg,#131c2b,#0b1220);overflow:hidden">{inner}</div>')
+
+    party_states = [
+        ("At rest — two allies, one carrying the Boss's attention", [
+            dict(name="Maren Tallis", role="healer", health=22, max_health=26, charges=1, cap=2),
+            dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3, threat=True),
+        ]),
+        ("Downed — the rescue is not legal from here", [
+            dict(name="Maren Tallis", role="healer", health=0, max_health=26, status="downed"),
+            dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3),
+        ]),
+        ("Revivable — the frame IS the button, and says its price", [
+            dict(name="Maren Tallis", role="healer", health=0, max_health=26, status="downed", revivable=True),
+            dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3),
+        ]),
+        ("Incapacitated — the rescue window closed", [
+            dict(name="Maren Tallis", role="healer", health=0, max_health=26, status="incapacitated"),
+            dict(name="Roan Kesh", role="damage", health=11, max_health=24, threat=True),
+        ]),
+    ]
+    party_rows = "".join(
+        f'<div style="margin-bottom:16px"><div class="tile-label">{label}</div>'
+        f'{party_on_board(party_frames(frames) + hero_frame(health=31, armor=4, charges=1, cap=2, deck=11, discard=5))}</div>'
+        for label, frames in party_states
+    )
+    party_body = f"""
+<div class="head">The party frames</div>
+<div class="sub">Layout direction 1A</div>
+<div class="legend" style="margin-top:12px;max-width:380px">
+A left-edge column of readouts growing upward from the primary Hero's frame, over board pixels the melee party
+is standing near anyway — so <b>the board keeps 100% of its width</b>. Every frame is the primary frame's anatomy
+with the console removed: <b>name</b>, <b>health with the Armor overlay</b>, <b>the Signature bank</b>. No piles,
+no controls.
+</div>
+<div class="rule"></div>
+{party_rows}
+<div class="rule"></div>
+<div class="legend" style="max-width:380px">
+<b>A frame at rest owes no tap target</b>, so the resting height is free to stay under 44px — it is a readout, and a
+readout that swallows taps is chrome the board paid for twice. In the one moment a legal ally action exists — the
+primary Hero adjacent to a Downed ally with a card in hand — that frame alone becomes the button: its accent turns
+living gold, the bar names the price, and a tap parks the rescue the way a move parks, waiting on the Hand to name
+the card that pays. Nothing else on screen moves, and no second interactive row ever appears.
+<br><br>
+<b>Otherwise the frame is the switch.</b> One player pilots the Party, and a tap swaps the whole panel — shared board,
+no camera movement, the displaced Hero taking the tapped one's place in the column. The column shows whoever the
+console does not, so the swap is symmetric.
+<br><br>
+<b>Status outranks Role on the accent channel.</b> Role is the Signal cloth step — Tank 500, Healer 300, Damage 400 —
+and it is what a frame wears when it has nothing more urgent to say. Living gold overrides it for the one frame the
+player can operate, ember for a body on the floor, ember coral for the Boss's attention. A Downed frame's track is
+hatched rather than empty, because an empty bar is a Hero at 0 health, which is a different claim.
+</div>
+"""
+    write("PartyFrames.dc.html", artboard("Party frames", party_body, 440, FRAME_CSS + STATUS_CSS + PARTY_CSS, pad=24))
 
     # ---------------- HandFaces.dc.html ------------------------------------
     w = "90.5px"
@@ -926,10 +1240,11 @@ straight through a card carrying a Beat's rules text, and no contrast check catc
             {"file": "ActionBar.dc.html", "x": 1400, "y": 760, "w": 440, "h": 860, "title": "Action Bar states"},
             {"file": "HeroFrame.dc.html", "x": 0, "y": 910, "w": 440, "h": 780, "title": "Hero Frame & Signature"},
             {"file": "HandFaces.dc.html", "x": 460, "y": 910, "w": 440, "h": 700, "title": "Hand faces"},
+            {"file": "PartyFrames.dc.html", "x": 1900, "y": 860, "w": 440, "h": 900, "title": "Party frames"},
         ],
         "annotations": [
             {"id": "read-me", "x": -430, "y": 0, "w": 380,
-             "text": "The current Game UI of Raid Card Tactics, reproduced from the shipped source rather than sketched: the palette and plate geometry from web/src/index.css, the gauge language from web/src/ui/common/theme.ts, the markup from the components, and every box size measured off the running app at 390x844. The board art in the two screen boards is the game's own render.\n\nTwo screens on the left, six component boards to the right."},
+             "text": "The current Game UI of Raid Card Tactics, reproduced from the shipped source rather than sketched: the palette and plate geometry from web/src/index.css, the gauge language from web/src/ui/common/theme.ts, the markup from the components, and every box size measured off the running app at 390x844. The board art in the two screen boards is the game's own render.\n\nTwo screens on the left, seven component boards to the right."},
             {"id": "surface", "x": -430, "y": 300, "w": 380,
              "text": "The play surface is 390x844 — a phone in portrait, edge to edge. It is a fixed column: phase band, board, Action Bar, Hand. The board sizes to the space the HUD leaves and must never resize mid-Encounter, which is why every floating surface is absolutely positioned over it and why the Hand keeps its row height as it empties."},
             {"id": "signature", "x": 0, "y": 1730, "w": 400,
@@ -938,7 +1253,7 @@ straight through a card carrying a Beat's rules text, and no contrast check catc
         "launch": {"view": "canvas"},
     }
     write("canvas.json", json.dumps(canvas, indent=2) + "\n")
-    print("wrote 8 artboards + canvas.json")
+    print("wrote 9 artboards + canvas.json")
 
 
 def write(name, text):
