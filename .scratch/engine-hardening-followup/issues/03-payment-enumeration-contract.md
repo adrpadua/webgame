@@ -1,6 +1,12 @@
 # 03 — The payment-enumeration contract (P1)
 
-Status: open
+Status: delivered (this session, D-107)
+
+## Delivered
+
+The contract is **complete enumeration** (D-107): `move_hero`, `discard_for_stamina`, and `revive_ally` now offer one action per hand card that could pay — the same completeness `load_slot` and `charge_slot` always had — and the `legalActions` header states it, replacing the representative-`hand[0]` convention that contradicted the API's own completeness claim. No grouping helper was built: the consumer survey found nothing outside the engine and its tests reads `legalActions` (the UI acts through `legality`/`fireTargeting`, sweep policies likewise), so there is no affordance to compress and no sweep, replay, or UI behavior that can shift. The projection is the first UI consumer's to build above the API. The whole contract is recorded as revisitable at the resumable-resolution seam, whose incremental questions would subsume payment choice.
+
+Tests: two new `commandSpace.test.ts` cases with multi-card hands — movement offers the whole hand per destination, the bare discard offers the whole hand, the rescue offers the whole hand aimed at the one Downed ally — with the existing battery asserting every enumerated action passes `legality()`. Red proven: against the pre-fix enumeration exactly these two tests fail; the rest of the suite is indifferent.
 
 ## Scope
 
@@ -19,4 +25,8 @@ Choose and document one contract. The reviewer recommends full enumeration of ev
 
 ## Validation
 
-Full local gate. If enumeration output changes, sweep policies that consume `legalActions()` re-run to establish whether policy behavior shifts, with any change explained rather than blindly re-recorded.
+Full local gate. The sweep-rerun clause turned out to be moot: no sweep policy consumes `legalActions()`, so enumeration width cannot shift recorded outputs.
+
+## Evidence
+
+(gate results stamped below on completion)
