@@ -323,14 +323,55 @@ describe('board effects', () => {
     state = advance(state).state
     state = advance(state).state
     const hero = state.heroes[state.primaryHeroId]
+    const fired = catalog.cards[state.heroes[hero.id].actionBar[0].topCard!.cardId]
     state = apply(state, { kind: 'charge_slot', sourceId: hero.id, slotIndex: 0, cardInstanceId: hero.hand[0].instanceId }).state
     const { effects } = apply(state, { kind: 'fire_slot', sourceId: hero.id, slotIndex: 0 })
-    expect(effects.map((effect) => effect.kind)).toEqual(['strike', 'hit'])
-    expect(effects[0].entityId).toBe(state.primaryHeroId)
-    expect(effects[0].toward).toEqual(state.board.entities[state.bossId].coords)
-    expect(effects[1].entityId).toBe(state.bossId)
-    expect(effects[1].tone).toBe('hero')
-    expect(effects[1].label).toBe('-3')
+    expect(effects.map((effect) => effect.kind)).toEqual(['cast', 'strike', 'hit'])
+    // The card names itself over the Hero who fired it, the way a Beat names
+    // itself over the Boss.
+    expect(effects[0]).toMatchObject({
+      entityId: state.primaryHeroId,
+      at: state.board.entities[state.primaryHeroId].coords,
+      label: fired.title,
+      tone: 'hero',
+    })
+    expect(effects[1].entityId).toBe(state.primaryHeroId)
+    expect(effects[1].toward).toEqual(state.board.entities[state.bossId].coords)
+    expect(effects[2].entityId).toBe(state.bossId)
+    expect(effects[2].tone).toBe('hero')
+    expect(effects[2].label).toBe('-3')
+  })
+
+  it('names every fired card over its Hero, whatever the card does', () => {
+    // The Boss names each Beat unconditionally; a Hero naming only the cards
+    // that happen to deal damage would leave the guards and the steps-and-draws
+    // silent, which is the gap this closes.
+    const variant = structuredClone(catalog)
+    variant.cards.quiet_test = {
+      ...variant.cards.iron_guard,
+      id: 'quiet_test',
+      title: 'Quiet Test',
+      armor_delta: 0,
+      draw_count: 0,
+      charge_modifiers: [],
+    }
+    const state = createEncounterState(variant, FIRST_TURN_ENCOUNTER_ID)
+    state.phase = 'quick'
+    state.heroes[state.primaryHeroId].actionBar[0] = {
+      topCard: { instanceId: 'quiet', cardId: 'quiet_test' },
+      charges: [{ instanceId: 'charge', cardId: 'iron_guard' }],
+      activatedWindow: null,
+      placedThisLoadout: false,
+      fixed: false,
+      earnedCharges: 0,
+    }
+    const result = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0 })
+    const effects = deriveBoardEffects(variant, state, result.state, result.facts)
+    // Exactly one pulse: a card that granted nothing has nothing to float
+    // above its name, and a second unlabelled cast would only redraw the ring.
+    expect(effects).toEqual([
+      { kind: 'cast', entityId: state.primaryHeroId, at: state.board.entities[state.primaryHeroId].coords, label: 'Quiet Test', tone: 'hero' },
+    ])
   })
 
   it('turns a fired burst into a Hero blast plus the existing per-Enemy hits', () => {
@@ -370,14 +411,15 @@ describe('board effects', () => {
     })
     const effects = deriveBoardEffects(variant, state, result.state, result.facts)
 
-    expect(effects[0]).toMatchObject({ kind: 'strike', entityId: state.primaryHeroId, toward: center, tone: 'hero' })
-    expect(effects[1]).toMatchObject({ kind: 'blast', entityId: state.primaryHeroId, at: center, tone: 'hero' })
+    expect(effects[0]).toMatchObject({ kind: 'cast', entityId: state.primaryHeroId, label: 'Burst Test', tone: 'hero' })
+    expect(effects[1]).toMatchObject({ kind: 'strike', entityId: state.primaryHeroId, toward: center, tone: 'hero' })
+    expect(effects[2]).toMatchObject({ kind: 'blast', entityId: state.primaryHeroId, at: center, tone: 'hero' })
     const factHexes = result.facts[0].detail.burstHexes
     expect(Array.isArray(factHexes)).toBe(true)
-    expect(effects[1].hexes?.map((hex) => `${hex.q},${hex.r}`)).toEqual(
+    expect(effects[2].hexes?.map((hex) => `${hex.q},${hex.r}`)).toEqual(
       (factHexes as { q: number; r: number }[]).map((hex) => `${hex.q},${hex.r}`),
     )
-    expect(effects.slice(2).some((effect) => effect.kind === 'hit' && effect.entityId === 'burst_whelp')).toBe(true)
+    expect(effects.slice(3).some((effect) => effect.kind === 'hit' && effect.entityId === 'burst_whelp')).toBe(true)
   })
 
   it('labels a pure-draw cast with the number of cards actually drawn', () => {
@@ -404,6 +446,7 @@ describe('board effects', () => {
     const effects = deriveBoardEffects(variant, state, result.state, result.facts)
 
     expect(effects).toEqual([
+      { kind: 'cast', entityId: state.primaryHeroId, at: state.board.entities[state.primaryHeroId].coords, label: 'Draw Test', tone: 'hero' },
       { kind: 'cast', entityId: state.primaryHeroId, at: state.board.entities[state.primaryHeroId].coords, label: '+2 cards', tone: 'guard' },
     ])
   })
@@ -503,8 +546,9 @@ describe('board effects', () => {
     state = apply(state, { kind: 'charge_slot', sourceId: hero.id, slotIndex: 0, cardInstanceId: charge.instanceId }).state
     const before = state.heroes[hero.id].armor
     const { state: after, effects } = apply(state, { kind: 'fire_slot', sourceId: hero.id, slotIndex: 0 })
-    const cast = effects.find((effect) => effect.kind === 'cast')
-    expect(cast?.tone).toBe('guard')
+    // The card's own name goes out first; the grant floats above it.
+    expect(effects[0]).toMatchObject({ kind: 'cast', entityId: hero.id, label: catalog.cards[guard.cardId].title, tone: 'hero' })
+    const cast = effects.find((effect) => effect.kind === 'cast' && effect.tone === 'guard')
     expect(cast?.label).toBe(`+${after.heroes[hero.id].armor - before}`)
   })
 
