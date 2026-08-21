@@ -511,5 +511,5 @@ The browser surface for playing and inspecting Encounters during design iteratio
 _Avoid_: Sandbox, playtest rig, game client, testing framework
 
 **Scenario**:
-A named, versioned sequence of Encounter actions replayed from a seeded initial state to reach a specific mid-Encounter situation. A Scenario is always rules-legal because the Encounter Engine resolves every step of the replay.
+A named, versioned sequence of Encounter actions replayed from a seeded initial state to reach a specific mid-Encounter situation. A Scenario is always rules-legal because the Encounter Engine resolves every step of the replay. That is also what makes it the seam for a check that needs a situation ordinary play reaches rarely or late: the line is recorded once from authored content and loaded by id, so the check drives one control instead of playing a fight, and what it reads is a state the rules actually produced rather than a state a test hand-built.
 _Avoid_: Save file, state snapshot, fixture blob
