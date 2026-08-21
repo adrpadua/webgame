@@ -18,4 +18,4 @@ The Fired Card — the engine's deepest concept — was smeared over four files:
 
 Behavior-preserving by construction and by gate: zero test-file edits, full suite 657/657 green, typecheck and lint clean before the gate.
 
-(gate results stamped below on completion)
+Gate on `9a7fa12`, all stages green: casing guard silent, log:ids clean, 657 tests, lint, build. The first gate run died at the browser smoke on a paint-timing readability flake ("every row of the Beat Card is readable in the teaching slice") — an isolated re-run passed the full smoke including that assertion, with the sealed-replay fingerprint byte-identical (`60f041e5…`). The mutation audit, run in isolation, finished **128/128 caught, 0 survived, 0 stale, EXIT:0** — every re-pointed anchor killing through `firedCard.ts`. One process note for future gates: the gate wrapper's trailing `echo` masked the smoke failure as exit 0; the inner `EXIT:` line is the truth and is what this evidence reads.
