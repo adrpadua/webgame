@@ -23,10 +23,17 @@ interface direction describes cloth as a per-Hero accent with `#2F5680` standing
 Shield Wall's, which was the honest reading while a Party was one Hero. A column of ally
 frames cannot hold it: two Heroes of the same Role in two different blues says they differ
 in something, and they do not. The steps are now assigned — Tank 500, Healer 300, Damage 400
-— and two Damage seats deliberately share one, because the channel names Roles.
-`docs/content/oathcraft-interface-direction.md` still carries the older per-Hero phrasing
-and is the thing to correct next; the material's own rule, that it is allowed to grow within
-the ramp, survived the narrowing intact.
+— and two Damage seats deliberately share one, because the channel names Roles. The material's
+own rule, that it is allowed to grow within the ramp, survived the narrowing intact;
+`docs/content/oathcraft-interface-direction.md` now states the assignment in those terms.
+
+Correcting it turned up one thing the cards do not yet say. **The Tank step fails on the
+ally frames' own ground.** Role assigns the steps, but this system's other rule assigns them
+by ground contrast — and on a party frame's `steel-950` face `cloth-500` scores 2.39:1,
+missing 1.4.11, where Damage (4.07:1) and Healer (6.86:1) clear it. The interface direction
+carries it as an open defect with the two candidate fixes stated, because choosing between
+them is a design decision rather than a transcription. Nothing in the ramp is wrong; the
+assignment has not been reconciled with the ground rule.
 
 ## What is canon, and what is not
 

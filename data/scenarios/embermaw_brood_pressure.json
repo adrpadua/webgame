@@ -9,7 +9,7 @@
     {
       "action": {
         "kind": "load_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0,
         "cardInstanceId": "steady_strike_4"
       }
@@ -23,7 +23,7 @@
     {
       "action": {
         "kind": "move_hero",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "destination": {
           "q": 1,
           "r": 0
@@ -34,7 +34,7 @@
     {
       "action": {
         "kind": "charge_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0,
         "cardInstanceId": "quench_20"
       }
@@ -42,7 +42,7 @@
     {
       "action": {
         "kind": "charge_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0,
         "cardInstanceId": "iron_guard_7"
       }
@@ -50,7 +50,7 @@
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0
       }
     },
@@ -66,7 +66,7 @@
     {
       "action": {
         "kind": "load_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1,
         "cardInstanceId": "steady_strike_3"
       }
@@ -80,7 +80,7 @@
     {
       "action": {
         "kind": "charge_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0,
         "cardInstanceId": "sweeping_blow_14"
       }
@@ -88,7 +88,7 @@
     {
       "action": {
         "kind": "charge_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1,
         "cardInstanceId": "iron_guard_10"
       }
@@ -96,14 +96,14 @@
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0
       }
     },
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 1
       }
     },

@@ -701,6 +701,17 @@ try {
   // The teaching slice fields no Signature, so its frame carries no control.
   assert((await page.locator('[data-testid="signature-control"]').count()) === 0, 'the teaching slice shows no Signature button')
   assert((await page.locator('[data-testid="signature-resource"]').count()) === 0, 'a Hero with no Signature gets no resource bar')
+  // The frame prints the Hero's first name and nothing else (D-095) — the
+  // name row truncates, and "Captain Elian Voss" reaches the player as
+  // "Captain Elian…". The whole name is a hold away, where the words live.
+  const frameText = (await page.locator('[data-testid="hero-frame"]').textContent()) ?? ''
+  assert(frameText.includes('Elian') && !frameText.includes('Voss'), `the Hero Frame names the Hero by first name (${frameText.trim()})`)
+  await page.locator('[data-testid="hero-frame"]').hover()
+  await page.waitForSelector('[data-testid="hold-popover"]')
+  const framePopover = (await page.locator('[data-testid="hold-popover"]').textContent()) ?? ''
+  assert(framePopover.includes('Captain Elian Voss'), `the frame's hold tells the whole name (${framePopover.slice(0, 40)})`)
+  await page.locator('[data-testid="hand"]').hover()
+  await page.waitForSelector('[data-testid="hold-popover"]', { state: 'detached' })
   await assertContrast(page, 'with the Hero Frame up')
   await shot(page, 'hero-frame')
   await next()
@@ -1613,15 +1624,15 @@ try {
     'the rail becomes the nudge and names the seat it would hand the console to',
   )
   await shot(party, 'party-unacted-nudge')
-  // Press one: the console swaps to Maren, and the displaced guardian — also
+  // Press one: the console swaps to Maren, and the displaced Elian — also
   // unacted — is who the rail points at next.
   await partyRail().click()
   await party.waitForTimeout(250)
   assert(
-    (await allyFrame().getAttribute('data-hero-id')) === 'guardian',
+    (await allyFrame().getAttribute('data-hero-id')) === 'elian',
     'the nudge press takes control of the waiting seat: the displaced Hero joins the column',
   )
-  assert((await partyRail().getAttribute('data-nudge-hero')) === 'guardian', 'the rail walks on to the next seat that has not acted')
+  assert((await partyRail().getAttribute('data-nudge-hero')) === 'elian', 'the rail walks on to the next seat that has not acted')
   // Press two: both seats have now been offered once. Neither has acted, so
   // both frames still nudge — but the rail lets go, which is what keeps the
   // window closable.
@@ -1631,8 +1642,8 @@ try {
     (await partyRail().getAttribute('data-rail')) === 'next' && (await party.locator('[data-testid="ally-frame"][data-unacted]').count()) === 1,
     'the rail offers each seat once and then becomes Next again, while the frame keeps nudging',
   )
-  // Acting is what clears a nudge. The guardian is the pilot again, so his
-  // Loadout press lands on his own bar; Maren has still done nothing.
+  // Acting is what clears a nudge. Elian is the pilot again, so their
+  // Loadout press lands on their own bar; Maren has still done nothing.
   await party.locator('[data-testid="hand-card"]').first().click()
   await party.locator('[data-testid="slot-0"]').click()
   await party.waitForTimeout(300)

@@ -1,6 +1,7 @@
 {
-  "id": "guardian",
-  "title": "Elian Voss",
+  "id": "elian",
+  "title": "Elian",
+  "full_name": "Captain Elian Voss",
   "rules_text": "The Warden tank: hold the Guarded Front, size mitigation to the incoming blow, and cash perfect blocks out through the Riposte.",
   "max_health": 34,
   "signature_card": "elian_riposte"

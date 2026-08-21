@@ -61,14 +61,21 @@ unblocked, which is usually the deck.
 
 ```bash
 cd web
-npm run scaffold -- hero kessa_varn "Kessa Varn"
+npm run scaffold -- hero kessa "Kessa"
 ```
 
-That writes `data/heroes/kessa_varn.json` from the
-[template](templates/README.md): `id`, `title`, `rules_text` (one sentence
-naming the raid job), `max_health`, and an empty `signature_card`. The id is
-stable forever — the display title can change, the id cannot, and the filename
-matches it.
+That writes `data/heroes/kessa.json` from the
+[template](templates/README.md): `id`, `title`, `full_name`, `rules_text` (one
+sentence naming the raid job), `max_health`, and an empty `signature_card`. The
+id is stable forever — the filename matches it, and nothing renames it because
+a name would read better.
+
+**A Hero is addressed by first name.** `title` is the first name and nothing
+else — `Elian`, `Maren`, `Kessa` — because it is the string every readout
+prints: the Hero Frame, the ally frames, every aria-label. The id is that same
+word lowercased, so a Scenario step reads as the person it names. The name on
+the character sheet goes in `full_name` — `Captain Elian Voss` — where it is
+flavour a hold can tell rather than a label a 208px frame has to truncate.
 
 The Hero deliberately carries no Role field: every card in their deck will
 carry the Role Keyword, and `heroRole` reads it back out of the deck. The Hero

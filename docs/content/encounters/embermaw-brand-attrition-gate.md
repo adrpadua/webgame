@@ -67,13 +67,13 @@ Tests 6 and 7 are the ones that will start failing when the Restorative's cleans
 
 ## The Played Line
 
-The composition measurement has been run twice (`npm run probe:attrition`, `web/scripts/attritionLine.ts`): both arms over the same 30 seeds, the same guardian sword-and-shield plan in each, with Maren's authored loop — clear, cover, bank — piloting the second seat in the duo arm only. The control arm is `embermaw_attrition_solo_probe`, an evaluation-only Encounter that is the trial with her seat removed.
+The composition measurement has been run twice (`npm run probe:attrition`, `web/scripts/attritionLine.ts`): both arms over the same 30 seeds, the same Elian sword-and-shield plan in each, with Maren's authored loop — clear, cover, bank — piloting the second seat in the duo arm only. The control arm is `embermaw_attrition_solo_probe`, an evaluation-only Encounter that is the trial with her seat removed.
 
 The first run, against the shipped 48-health Embermaw, found the duo clearing 5 of 30 — a Tank and a Healer ending the fight with no Damage seat at the table. That is a composition failure, not a success: the Role Contract fields 1–2 Damage Heroes because ending the fight is *their* job. The trial now fields **`embermaw_branded`**, the same drake at two-seat scale (72 health) — the party-scaling rule applied as authored content: the walls rise with the Party, the Tank's numbers stay constant.
 
 Against the wall, over the same 30 seeds:
 
-| Arm | Clears | Loss shape | Avg guardian health at end | Avg boss health left | Cleanses / run |
+| Arm | Clears | Loss shape | Avg Elian health at end | Avg boss health left | Cleanses / run |
 | --- | --- | --- | --- | --- | --- |
 | Solo — no Healer | **0 / 30** | Dead to attrition at avg Round 7.1, before the Clock | 0.1 | 49.0 of 72 | 0 |
 | Duo — Maren playing | **0 / 30** | The Enrage Clock, both Heroes alive, Boss holding half its pool | 15.8 | 37.9 of 72 | 1.8 |

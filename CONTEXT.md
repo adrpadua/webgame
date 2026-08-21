@@ -408,8 +408,8 @@ The known final encounter of a Raid Run. Its phase outline and signature mechani
 _Avoid_: End boss, surprise boss
 
 **Hero**:
-A collectible party member with a distinct identity, visuals, deck, and raid-scoped evolution. A Hero is first-class authored content in `data/heroes/` — identity, `max_health`, and the printed Signature in one definition — and an Encounter fields one by id, so the same Hero can stand in many fights without being restated in each (ADR 0034). What the fight decides stays on the Encounter: start hex, deck list, Slot count, and whether the Signature is fielded at all.
-_Avoid_: Character, class
+A collectible party member with a distinct identity, visuals, deck, and raid-scoped evolution. A Hero is first-class authored content in `data/heroes/` — identity, `max_health`, and the printed Signature in one definition — and an Encounter fields one by id, so the same Hero can stand in many fights without being restated in each (ADR 0034). What the fight decides stays on the Encounter: start hex, deck list, Slot count, and whether the Signature is fielded at all. **A Hero is called by their first name** (D-095): `title` is that name and nothing else — `Elian`, `Maren` — and it is the only string the play surface prints, while the id is the same word lowercased, so `elian` names the person rather than the job they hold. The name on the character sheet lives in `full_name` — `Captain Elian Voss`, `Registrar Maren Tallis` — which is flavour a hold tells and a design doc uses, never a label a frame prints.
+_Avoid_: Character, class, naming a Hero by their Role
 
 **Starting Deck**:
 The fixed twenty-card deck a player builds from their Player Hero's unlocked cards before entering a Raid Run. Raid rewards may evolve it only for that Run.
