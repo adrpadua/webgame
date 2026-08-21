@@ -433,7 +433,8 @@ function resolveOne(
           effects.armor > 0 ||
           effects.healing > 0 ||
           effects.armorNextRound > 0 ||
-          card.places_counter !== '',
+          card.places_counter !== '' ||
+          spentAll.length > 0,
       })
       recordSubscriberMatches(fact.detail, slotRaise.matches)
       generated.push(...slotRaise.generated)
