@@ -27,7 +27,7 @@ Healthy · Hurt-with-Armor · Holding Threat · Downed · Downed-nearly-gone · 
 | Signal cloth | The Role channel: Tank 500, Healer 300, Damage 400 (two Damage share a step; they are one Role). Holds the glyph always and the accent only at rest — the accent is the status channel, and **status outranks Role**. |
 | Ember | Health, because health is what damage eats. And the revive clock. |
 | Runeglass | Armor riding the health bar, and a valid card target. |
-| Living gold | The class resource; Revive, the one thing the player operates here; and the unacted pip's bloom — all three are "there is a press here for you". |
+| Living gold | The class resource; Revive, the one thing the player operates here; and the **next-up** pip — all three are "there is a press here for you", which is why gold marks the one seat the rail is pointing at and never the others. |
 | Ember coral | The Threat mark. It names the Boss's attention, not the Hero. |
 | Oathsteel | The ally plate face, dim where the primary's is lit ceramic. |
 
@@ -43,7 +43,7 @@ Multi-character play added a failure the solo slice could not have: a seat you a
 
 | Face | What it does |
 | --- | --- |
-| The frame | A seat that has taken no player action in the open window, and still could, grows a hollow **unspent pip** beside its name, wearing the living-gold bloom (`wb-glow-ring`). |
+| The frame | A seat that has taken no player action in the open window, and still could, grows a hollow **unspent pip** beside its name — in **living gold with the rail's bloom** on the one seat the next press hands over to, and in **quiet oathsteel** on every other seat that owes the window an action. |
 | The rail | While such a seat exists the Action Bar's forward rail draws the unacted mark instead of Next; a press hands the console to that Hero and does **not** close the window. |
 | The warning | The pilot is never the rail's target — their console is the bottom half of the screen — so their own unused window stays the skip warning's job. Both read the same two predicates. |
 
@@ -61,7 +61,9 @@ One press per seat when the party is being played, `N+1` when it is not, against
 
 **One offer per seat per window.** This is the deliberate departure from Total War, which nags until every unit has actually moved. A Hero here can be legally able to act with nothing worth doing — cards in hand, no Slot in reach — and a rail that refused to become Next until they acted would trap the window. So the rail lets go after offering a seat once; the frame keeps nudging, because the state has not changed, only the rail's claim on the player's next press. The memory lives exactly one window: every phase advance clears it.
 
-**Motion, on the pip and nowhere else.** Not the face: the frame carries a name, a health number and a bank, and `wb-face-pulse` dips all three under their contrast floor. Not the accent band either — that is already the status channel, where Role, the Boss's attention and a body on the floor all speak, and a fourth meaning that *moves* would make the other three ambiguous. A pip has nothing written on it and no other job, and it wears the same living-gold bloom the rail wears, so the frame and the button say one thing in one mark. It loops, which the interface direction otherwise reserves for ambient motion, on the same grounds the revive offer and the scripted turn's ring already loop: it is bounded by the player's own next press, never by a Round. The mark is legible with the bloom removed, so a `prefers-reduced-motion` player — who gets no animation — loses nothing but the animation.
+**Two pips, because the rail's press goes to exactly one frame.** Gold means "the button at your thumb comes here"; steel means "owed, but not yet". Two seats never needed the distinction — the only waiting ally was always the next one — and three made it necessary: three identical gold marks said the same thing three times and left the player to guess which the rail meant. When the rail runs out of offers and becomes Next, no frame is gold: the pips stay, because the seats still owe the window an action, but nothing claims the press.
+
+**Motion, on the pip and nowhere else.** Not the face: the frame carries a name, a health number and a bank, and `wb-face-pulse` dips all three under their contrast floor. Not the accent band either — that is already the status channel, where Role, the Boss's attention and a body on the floor all speak, and a fourth meaning that *moves* would make the other three ambiguous. A pip has nothing written on it and no other job, and it wears the same living-gold bloom the rail wears, so the frame and the button say one thing in one mark. It loops, which the interface direction otherwise reserves for ambient motion, on the same grounds the revive offer and the scripted turn's ring already loop: it is bounded by the player's own next press, never by a Round. Exactly one mark loops however many seats are waiting, which is that rule holding at four seats as well as at two. And gold-vs-steel is the whole distinction with the bloom removed, so a `prefers-reduced-motion` player — who gets no animation — still sees both which seats are waiting and which one is next.
 
 **Silent by construction** in the Boss's own rows, on an ended Encounter, for a Downed Hero (who cannot act at all, so their frame carries the rescue offer and never the pip — the same precedence the tap already has, where the rescue outranks the switch), and through the scripted first turn.
 
@@ -75,7 +77,8 @@ One press per seat when the party is being played, `N+1` when it is not, against
 | REVIVE · 1 CARD | `legality({kind:'revive_ally'})` — the frame lights only when the engine's own predicate would accept the rescue (ADR 0014's one-predicate discipline). Tap parks `pendingRevive`; the Hand pays, reusing the move-payment idiom. |
 | Class resource segments | The seat's own Signature bank (`earnedCharges` / cap) — every seat may field one (ADR 0035). |
 | Threat mark | Derived, not stored: the Hero the current program's first Role-selecting Beat resolves to, via `selectBeatTarget` — the mark and the blow read one selector and cannot disagree. |
-| Unspent pip + its bloom | `unactedHeroIds` (D-093) — read off the session timeline's own facts (Round, phase, `sourceId`, `succeeded`), gated by the same "could still act" predicates the skip warning uses. |
+| Unspent pip (steel) | `unactedHeroIds` (D-093) — read off the session timeline's own facts (Round, phase, `sourceId`, `succeeded`), gated by the same "could still act" predicates the skip warning uses. |
+| Next-up pip (gold + bloom) | `nextNudge` — the same call the rail makes, with the same per-window offer memory, so the pip and the button can never name different seats. |
 | Ally-card targeting pip | **Not wired yet.** Needs the fire-targeting gesture to offer frames as targets for `target_type: 'ally'` cards; today those cards target through the board. |
 | AI badge | **No engine backing.** No AI seats exist; deferred until one does. |
 | Enemy frames / dealt meter | Out of scope for the party column; the mock's enemy plates belong to the target-frame direction, not this one. |

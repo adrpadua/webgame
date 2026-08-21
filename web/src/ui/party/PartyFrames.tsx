@@ -1,7 +1,7 @@
 import { useCatalog } from '@/content/CatalogContext'
 import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { partyFrames, type PartyFrameModel } from './partyFrames'
-import { unactedHeroIds } from './unacted'
+import { nextNudge, unactedHeroIds } from './unacted'
 import { GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, FOCUS_RING_CLASS, NUDGE_RING_CLASS, healthBarScale } from '../common/theme'
 
 // The ally frames (party-frame layout direction 1A): a left-edge column of
@@ -21,10 +21,15 @@ import { GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, FOCUS_RING_CLASS, NUDGE_RING_CLASS
 //
 // The unacted nudge (D-093 — Total War's "a unit has not moved", read onto the
 // frame rather than only onto the button): a seat that has not used the open
-// window and still could grows an unspent pip beside its name, wearing the
-// living-gold bloom until it acts, the window closes, or the player takes
-// control of it. The rail wears the same bloom for the same state, so the
-// frame and the button say one thing in one mark.
+// window and still could grows an unspent pip beside its name, until it acts,
+// the window closes, or the player takes control of it.
+//
+// The pip says two things, not one, because the rail's press goes to exactly
+// one frame. In living gold, wearing the rail's own bloom: this is the seat the
+// next press hands over to. In quiet oathsteel: this seat owes the window an
+// action, but the button at your thumb is not pointing here yet. Two seats
+// never needed the distinction — the only waiting ally was always the next one
+// — and three made it necessary, which is what the seat-count playtest found.
 //
 // The motion is on the pip and nowhere else. Not the face — the frame carries
 // a name, a health number and a bank, and `wb-face-pulse` dips all three under
@@ -36,9 +41,11 @@ import { GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, FOCUS_RING_CLASS, NUDGE_RING_CLASS
 // It loops, which the interface direction otherwise reserves for ambient
 // motion, because it is the same "waiting on you" state the revive offer and
 // the scripted turn's ring already loop for: bounded by the player's own next
-// press, never by a Round. And the mark is legible with the bloom removed, so
-// a `prefers-reduced-motion` player — who gets no animation at all — still
-// sees which seat is waiting.
+// press, never by a Round. Now exactly one mark loops however many seats are
+// waiting, which is that rule holding at four seats as well as at two. And the
+// materials carry the whole distinction on their own, so a
+// `prefers-reduced-motion` player — who gets no animation at all — still sees
+// both which seats are waiting and which one is next.
 
 // Role accent: the Signal cloth channel, one step per Role — Tank 500,
 // Healer 300, Damage 400 (two Damage share a step; they are one Role).
@@ -103,11 +110,12 @@ function AllyFrame({ frame }: { frame: PartyFrameModel }) {
       data-revivable={frame.revivable || undefined}
       data-threat={frame.threat || undefined}
       data-unacted={frame.unacted || undefined}
+      data-next-up={frame.nextUp || undefined}
       aria-label={
         frame.revivable
           ? `${frame.name}, Downed. Tap to revive for one card.`
           : `${frame.name}, ${down ? frame.status : `${frame.health} of ${frame.maxHealth} health`}.${
-              frame.unacted ? ' Has not acted this window.' : ''
+              frame.nextUp ? ' Has not acted this window, and is next on the forward rail.' : frame.unacted ? ' Has not acted this window.' : ''
             } Tap to take control.`
       }
       // The 44pt rule: at rest the frame is a 40px readout that swallows no
@@ -133,15 +141,29 @@ function AllyFrame({ frame }: { frame: PartyFrameModel }) {
         </span>
         <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-ceramic-300">{frame.name}</span>
         {/* The unacted mark: an unspent pip, hollow because nothing has been
-            spent yet, wearing the living-gold bloom the rail wears for the
-            same state. The ring is the motion and the pip is the state, which
-            is what makes the cue survive `prefers-reduced-motion` — the bloom
-            stops, the mark stays. */}
+            spent yet — in living gold with the rail's own bloom on the one seat
+            the rail's next press hands over to, and in quiet oathsteel on every
+            other seat that owes the window an action.
+
+            Gold is the material for "there is a press here for you", and only
+            one seat has one: the rail goes to exactly one frame per press. Gold
+            on all of them said the same thing three times and left the player
+            to guess which the button meant. Steel is the direction's blunted
+            edge — owed, but not the press at your thumb.
+
+            It also puts exactly one looping mark on screen whatever the party
+            size, which is the ambient-motion rule holding at four seats as well
+            as at two. And the two channels are independent: gold-vs-steel is
+            the whole distinction with the bloom removed, so a
+            `prefers-reduced-motion` player can still see which frame is next. */}
         {frame.unacted && (
           <span
             data-testid="ally-unacted"
-            className={`h-2.5 w-2.5 shrink-0 rounded-full border-[1.5px] border-gold-400 ${NUDGE_RING_CLASS}`}
-            title="Has not acted this window"
+            data-next-up={frame.nextUp || undefined}
+            className={`h-2.5 w-2.5 shrink-0 rounded-full border-[1.5px] ${
+              frame.nextUp ? `border-gold-400 ${NUDGE_RING_CLASS}` : 'border-steel-500'
+            }`}
+            title={frame.nextUp ? 'Has not acted this window — the forward rail hands over here next' : 'Has not acted this window'}
           />
         )}
         {frame.threat && !down && (
@@ -206,7 +228,18 @@ export function PartyFrames() {
   // subscription cadence the frame already has through `selectState`.
   const entries = useWorkbench((store) => store.entries)
   const index = useWorkbench((store) => store.index)
-  const frames = partyFrames(catalog, state, pilotId, unactedHeroIds(catalog, { entries, index }))
+  // Which seat the rail is pointing at is asked of `nextNudge` — the same
+  // function the rail itself calls, with the same offer memory — rather than
+  // guessed from the head of the unacted list. The two are not the same seat:
+  // the walk starts after the pilot and skips whoever has already been offered
+  // this window, so a pip that took the first unacted seat would light the
+  // wrong frame from the second press onward.
+  const nudged = useWorkbench((store) => store.nudgedHeroIds)
+  const position = { entries, index }
+  const frames = partyFrames(catalog, state, pilotId, {
+    unacted: unactedHeroIds(catalog, position),
+    nextUp: nextNudge(catalog, position, pilotId, nudged),
+  })
   if (frames.length === 0) {
     return null
   }

@@ -1573,8 +1573,9 @@ try {
   const allyFrame = () => party.locator('[data-testid="ally-frame"]').first()
   assert(
     (await party.locator('[data-testid="ally-frame"][data-unacted]').count()) === 1 &&
-      (await party.locator('[data-testid="ally-unacted"]').count()) === 1,
-    'the seat that has not acted nudges: the frame carries the state and the unspent pip',
+      (await party.locator('[data-testid="ally-unacted"]').count()) === 1 &&
+      (await party.locator('[data-testid="ally-frame"][data-next-up]').count()) === 1,
+    'the seat that has not acted nudges: the frame carries the state, the unspent pip, and the rail is pointing at it',
   )
   assert(
     ((await party.locator('[data-testid="ally-unacted"]').getAttribute('class')) ?? '').includes('wb-glow-ring') &&
@@ -1603,6 +1604,13 @@ try {
   assert(
     (await partyRail().getAttribute('data-rail')) === 'next' && (await party.locator('[data-testid="ally-frame"][data-unacted]').count()) === 1,
     'the rail offers each seat once and then becomes Next again, while the frame keeps nudging',
+  )
+  // ...and the pip lets go with it. The seat still owes the window an action,
+  // so the mark stays; nothing is next, so nothing wears the bloom.
+  assert(
+    (await party.locator('[data-testid="ally-frame"][data-next-up]').count()) === 0 &&
+      !((await party.locator('[data-testid="ally-unacted"]').getAttribute('class')) ?? '').includes('wb-glow-ring'),
+    'a waiting seat the rail is no longer pointing at keeps its pip and drops the bloom',
   )
   // Acting is what clears a nudge. Elian is the pilot again, so their
   // Loadout press lands on their own bar; Maren has still done nothing.

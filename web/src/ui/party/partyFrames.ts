@@ -48,12 +48,28 @@ export interface PartyFrameModel {
   // `revive_ally` would be accepted.
   revivable: boolean
   // This seat has not acted in the open window and still could: the frame
-  // breathes its accent until the Hero acts, the window closes, or the player
-  // takes control. Passed in rather than derived here because the answer is a
-  // reading of the session timeline (`unacted.ts`) and a frame model is a
+  // carries the unspent pip until the Hero acts, the window closes, or the
+  // player takes control. Passed in rather than derived here because the answer
+  // is a reading of the session timeline (`unacted.ts`) and a frame model is a
   // reading of one Encounter state — the frame renders the answer, it does not
   // own it.
   unacted: boolean
+  // ...and this is the seat the forward rail's next press hands over to: one
+  // frame at most, and always one that is also `unacted`. The distinction is
+  // the difference between "this seat owes the window an action" and "the
+  // button at your thumb goes here", which at three seats are no longer the
+  // same claim about three identical marks.
+  nextUp: boolean
+}
+
+// What the nudge rule says about the open window, as the column needs it: who
+// owes an action, and which one the rail is pointing at. One argument rather
+// than two lists, because they are one reading taken at one moment — passing
+// them separately invites a caller to compute them from different positions on
+// the timeline, and then the pip and the rail would disagree about who is next.
+export interface NudgeReading {
+  unacted: readonly string[]
+  nextUp: string | null
 }
 
 // Who the Boss's current program is aimed at, by the same selection the Beats
@@ -95,7 +111,7 @@ export function partyFrames(
   catalog: ContentCatalog,
   state: EncounterState,
   pilotId: string = state.primaryHeroId,
-  unacted: readonly string[] = [],
+  nudge: NudgeReading = { unacted: [], nextUp: null },
 ): PartyFrameModel[] {
   const aimedAt = threatHeroId(catalog, state)
   // Every seat but the pilot's: the column shows whoever the console does
@@ -121,7 +137,8 @@ export function partyFrames(
         signatureCap: signatureCard ? cardChargeCap(signatureCard) : 0,
         threat: heroId === aimedAt,
         revivable: hero.status === 'downed' && reviveIsLegal(catalog, state, heroId),
-        unacted: unacted.includes(heroId),
+        unacted: nudge.unacted.includes(heroId),
+        nextUp: nudge.nextUp === heroId,
       }
     })
 }
