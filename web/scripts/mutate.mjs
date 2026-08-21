@@ -754,6 +754,13 @@ const MUTATIONS = [
     to: '  const walk = seats',
   },
   {
+    name: 'every waiting seat claims to be the one the rail is pointing at',
+    guards: 'The pip separates "owes this window an action" from "the next press comes here"; only one frame is next',
+    file: 'ui/party/partyFrames.ts',
+    from: '        nextUp: nudge.nextUp === heroId,',
+    to: '        nextUp: nudge.unacted.includes(heroId),',
+  },
+  {
     name: 'the rail scans from seat 0 instead of walking on from the pilot',
     guards: 'The unacted walk goes forward through the roster: at three seats a scan bounces back to the seat just left',
     file: 'ui/party/unacted.ts',

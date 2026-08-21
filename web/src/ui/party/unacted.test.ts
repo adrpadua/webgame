@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { advancePhase, buildCatalog, createEncounterState, type ContentCatalog, type EncounterState } from '@/engine'
 import { catalog, selectPilotId, selectState, useWorkbench } from '@/store/workbench'
+import { partyFrames } from './partyFrames'
 import { heroActed, heroCanAct, nextNudge, unactedHeroIds } from './unacted'
 
 // The unacted nudge (Total War's "a unit has not moved", on a Party rather
@@ -221,5 +222,48 @@ describe('the walk order at three seats', () => {
   it('is the same sequence at two seats, which is why the bounce shipped', () => {
     const seated = seatedCatalog(['alpha', 'bravo'])
     expect(pressUntilNext(seated, quickWindow(seated))).toEqual(['bravo', 'alpha'])
+  })
+})
+
+// The pip and the rail name the same seat.
+//
+// Two seats could not tell these apart either: the only waiting ally was
+// always the one the rail was pointing at, so "unacted" and "next" were one
+// mark. At three they separate, and the frame model has to carry both — a pip
+// that lit the first unacted seat would light the wrong frame from the second
+// press onward, because the walk starts after the pilot and skips whoever has
+// already been offered.
+describe('which frame is next', () => {
+  beforeEach(() => {
+    openTrialQuickWindow()
+    useWorkbench.setState({ controlledHeroId: null, nudgedHeroIds: [] })
+  })
+
+  function frameMarks(): [string, boolean, boolean][] {
+    return partyFrames(catalog, state(), selectPilotId(store()), { unacted: unacted(), nextUp: railTarget() }).map((frame) => [
+      frame.heroId,
+      frame.unacted,
+      frame.nextUp,
+    ])
+  }
+
+  it('marks the seat the rail would hand over to, and only that one', () => {
+    expect(frameMarks()).toEqual([['maren', true, true]])
+  })
+
+  it('drops the mark once the rail has let go, leaving the seat still waiting', () => {
+    // Maren is offered and takes control without acting, then Elian takes it
+    // back the same way. Both still owe the window an action — both pips stay —
+    // but the rail has run out of offers, so no frame is next.
+    store().nudgeToUnacted('maren')
+    store().nudgeToUnacted('elian')
+    expect(railTarget()).toBeNull()
+    expect(frameMarks()).toEqual([['maren', true, false]])
+  })
+
+  it('never marks a seat that has already acted', () => {
+    store().nudgeToUnacted('maren')
+    actAsPilot()
+    expect(frameMarks()).toEqual([['elian', true, true]])
   })
 })
