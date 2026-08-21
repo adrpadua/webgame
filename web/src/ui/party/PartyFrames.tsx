@@ -1,5 +1,6 @@
 import { useCatalog } from '@/content/CatalogContext'
 import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
+import { captureFrameBoxes, useSwapFlip } from './controlSwap'
 import { partyFrames, type PartyFrameModel } from './partyFrames'
 import { unactedHeroIds } from './unacted'
 import { GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, FOCUS_RING_CLASS, NUDGE_RING_CLASS, healthBarScale } from '../common/theme'
@@ -85,10 +86,15 @@ function RoleGlyph({ role }: { role: string }) {
   )
 }
 
-function AllyFrame({ frame }: { frame: PartyFrameModel }) {
+function AllyFrame({ frame, pilotId }: { frame: PartyFrameModel; pilotId: string }) {
   const reviveTapped = useWorkbench((store) => store.reviveTapped)
   const switchControl = useWorkbench((store) => store.switchControl)
   const offering = useWorkbench((store) => store.pendingRevive?.targetId === frame.heroId)
+  // The demoted half of a control swap, and the shifted one: the displaced
+  // Hero's plate flies down from the primary frame's box and shrinks into this
+  // slot, and in a party bigger than two an untouched ally whose slot index
+  // moved travels the difference (`controlSwap.ts`).
+  const plate = useSwapFlip<HTMLButtonElement>(frame.heroId, pilotId)
   const down = frame.status !== 'living'
   const scale = healthBarScale(frame.health, frame.maxHealth, frame.armor)
   const healthFraction = down ? 0 : Math.max(0, frame.health) / scale
@@ -97,6 +103,7 @@ function AllyFrame({ frame }: { frame: PartyFrameModel }) {
   return (
     <button
       type="button"
+      ref={plate}
       data-testid="ally-frame"
       data-hero-id={frame.heroId}
       data-status={frame.status}
@@ -124,6 +131,10 @@ function AllyFrame({ frame }: { frame: PartyFrameModel }) {
           reviveTapped(frame.heroId)
           return
         }
+        // FLIP's First, and it has to happen here: React batches the store
+        // write below, so this is the last moment the old layout is still on
+        // screen to be measured. The frames animate the handover from it.
+        captureFrameBoxes()
         switchControl(frame.heroId)
       }}
     >
@@ -213,7 +224,7 @@ export function PartyFrames() {
   return (
     <div className="pointer-events-none absolute bottom-[64px] left-2 z-30 flex w-[138px] flex-col gap-1" data-testid="party-frames">
       {frames.map((frame) => (
-        <AllyFrame key={frame.heroId} frame={frame} />
+        <AllyFrame key={frame.heroId} frame={frame} pilotId={pilotId} />
       ))}
     </div>
   )

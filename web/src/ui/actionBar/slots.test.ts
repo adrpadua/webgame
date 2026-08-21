@@ -138,6 +138,13 @@ describe('slot can fire', () => {
     expect(slotCanFire(catalog, state, state.primaryHeroId, 0)).toBe(false)
   })
 
+  it('lights an ally-covering Slot: a solo Party is its own legal target', () => {
+    // The ally targeting mode once fell through to the untargeted question
+    // here, which legality refuses — so Maren's whole kit sat dark however
+    // legal the shot was (engine-hardening follow-up P0).
+    expect(slotCanFire(catalog, armed('braced_escort'), 'elian', 0)).toBe(true)
+  })
+
   it('leaves a Minion-seeking Slot dark while the board holds no Minion to hit', () => {
     // The other half of the same predicate, and the one that was always true:
     // Sweeping Blow needs a piece, and the opening board has none.

@@ -46,7 +46,7 @@ geometry: an 8° rake with the offset derived as `height × tan(8°)`, a notched
 corner, a 3px accent running the full cut, and one padding rule
 (`--wb-inset + --wb-gutter`) that a browser check enforces on every visible plate. The six
 faces and five accents. The Slot state vocabulary. The twelve-unit Action Bar ladder. The
-three notification zones. The motion rule that state fires once and only ambient motion
+four notification zones. The motion rule that state fires once and only ambient motion
 loops.
 
 Typography and spacing joined that list on 2026-08-19 (D-067). Type is ratified at seven

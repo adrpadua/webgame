@@ -625,6 +625,39 @@ try {
     assert(problems.length === 0, `the notification zones stay out of each other's way ${label} (${problems.join(' | ') || shown.join(', ') || 'none live'})`)
     return shown
   }
+  // The whole Beat Card, or it is not a printed Beat. Since the program strip
+  // was removed the card is the only place a Beat is named and priced, so
+  // every row of it has to reach the player. It docked above the Action Bar
+  // until the ally column grew into the same lane and started covering its
+  // last rows — the failure the herald zone exists to end — so this measures
+  // the card against the chrome rather than trusting the zone table. The
+  // party column is the one that actually collided and is why this is a
+  // separate check: `notificationLayout` compares notifications with each
+  // other and with the bands, and the ally frames are neither.
+  const assertBeatCardReadable = async (view, label) => {
+    const covered = await view.evaluate(() => {
+      const card = document.querySelector('[data-testid="playout-continue"]')
+      if (card === null) {
+        return ['no Beat Card is up']
+      }
+      const box = card.getBoundingClientRect()
+      if (box.height < 1) {
+        return ['the Beat Card has no height']
+      }
+      return ['party-frames', 'hero-frame', 'action-bar', 'hand', 'phase-band']
+        .map((id) => document.querySelector(`[data-testid="${id}"]`))
+        .filter((node) => node !== null)
+        .filter((node) => {
+          const other = node.getBoundingClientRect()
+          return (
+            Math.min(box.right, other.right) - Math.max(box.left, other.left) > 1 &&
+            Math.min(box.bottom, other.bottom) - Math.max(box.top, other.top) > 1
+          )
+        })
+        .map((node) => node.dataset.testid)
+    })
+    assert(covered.length === 0, `every row of the Beat Card is readable ${label} (${covered.join(', ')})`)
+  }
   // The card the scripted turn is pointing at is the only live card in Hand.
   const scriptedCard = () => page.locator('[data-testid="hand-card"][data-scripted="true"]')
   // Which face the Hand is wearing: the card as itself, its Keywords, or
@@ -967,8 +1000,9 @@ try {
     'the advance rail turns to Continue while a Boss row is paced',
   )
   const pacedLive = await assertNotificationLayout(page, 'while a Boss row is paced')
-  assert(pacedLive.includes('beat-card'), `the Beat Card docks above the Action Bar during a Boss row (${pacedLive.join(', ')})`)
-  assert(pacedLive.includes('phase-banner'), `the phase word takes the stage while the dock is occupied (${pacedLive.join(', ')})`)
+  assert(pacedLive.includes('beat-card'), `the Beat Card is heralded at the board's top edge during a Boss row (${pacedLive.join(', ')})`)
+  assert(pacedLive.includes('phase-banner'), `the phase word takes the stage while the herald is occupied (${pacedLive.join(', ')})`)
+  await assertBeatCardReadable(page, 'in the teaching slice')
   await assertContrast(page, 'during a paced Boss row')
   await shot(page, 'boss-row-paced')
   // The Row lands announced, not already swinging: the rail names no beat yet.
@@ -1663,7 +1697,184 @@ try {
       (await party.locator('[data-testid="ally-frame"][data-unacted]').count()) === 0,
     'the Boss row nudges nobody: the window that closed is the one the nudge belonged to',
   )
+  // The state the herald zone was moved for, and the only place the suite can
+  // see it: a Boss row pacing while the ally column stands in the lane the
+  // Beat Card used to dock in. The teaching slice is solo, so it has no column
+  // to be covered by — this was the screenshot nobody's test could take.
+  await party.waitForSelector('[data-testid="playout-continue"]')
+  await assertBeatCardReadable(party, 'with the ally column up')
+  await assertNotificationLayout(party, 'while a Boss row paces beside the ally column')
+  await shot(party, 'party-beat-card')
   await party.close()
+
+  // The console changing hands, as motion. The arithmetic is unit-tested; what
+  // only a browser can answer is whether the plates actually fly — whether the
+  // measurement really happened before the DOM moved, and whether the two
+  // frames are mid-travel at the instant the press lands rather than already
+  // sitting in their new boxes.
+  //
+  // The reading is taken with no wait after the click on purpose: React
+  // commits a discrete event synchronously, so by the time this evaluate runs
+  // the layout effect has started both flights and neither has got anywhere.
+  // A primary frame still measuring near the 138pt column width is the whole
+  // claim — it is standing where the ally frame stood.
+  const swapPage = async (options = {}) => {
+    const page = await browser.newPage({ viewport: { width: 390, height: 900 }, ...options })
+    await page.addInitScript(() => {
+      localStorage.setItem('workbench.firstTurnDone', 'true')
+      localStorage.setItem('workbench.guideSeen', 'true')
+    })
+    await page.goto(BASE_URL)
+    await page.waitForSelector('[data-testid="hero-frame"]')
+    await page.locator('[data-testid="encounter-picker-button"]').click()
+    await page.locator('[data-testid="encounter-choice"][data-encounter-id="embermaw_attrition_trial"]').click()
+    await page.waitForSelector('[data-testid="party-frames"]')
+    await page.waitForTimeout(400)
+    return page
+  }
+  const readFrames = (page) =>
+    page.evaluate(() => {
+      const read = (selector) => {
+        const element = document.querySelector(selector)
+        if (element === null) {
+          return { hero: '', width: 0, flying: false }
+        }
+        return {
+          hero: element.dataset.heroId ?? '',
+          // Transform included: this is where the plate is on screen, not
+          // where the layout put it.
+          width: Math.round(element.getBoundingClientRect().width),
+          flying: element.getAnimations().some((animation) => animation.playState === 'running'),
+        }
+      }
+      return { primary: read('[data-testid="hero-frame"]'), ally: read('[data-testid="ally-frame"]') }
+    })
+  // The console's half. A finite animation on a plate is a deal; an infinite
+  // one is the interface's own looping vocabulary — the rail's nudge bloom,
+  // a Slot's face pulse — which has nothing to do with a handover and must be
+  // filtered out rather than counted as movement.
+  //
+  // The stagger is read as rendered opacity across the row rather than as
+  // animation bookkeeping: a plate inside its delay is held at the first
+  // keyframe, so at any instant mid-deal the leftmost plate is further along
+  // than the rightmost. That is the cascade, measured on what the player
+  // actually sees.
+  const readConsole = (page) =>
+    page.evaluate(() => {
+      const row = (selector) => {
+        const plates = [...document.querySelectorAll(selector)]
+        const deals = plates.map((plate) =>
+          plate.getAnimations().filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity),
+        )
+        return {
+          plates: plates.length,
+          dealing: deals.filter((list) => list.some((animation) => animation.playState === 'running')).length,
+          opacities: plates.map((plate) => Number(getComputedStyle(plate).opacity)),
+        }
+      }
+      const rails = ['undo', 'next-phase', 'restart']
+        .map((id) => document.querySelector(`[data-testid="${id}"]`))
+        .filter((element) => element !== null)
+        .flatMap((element) => element.getAnimations())
+        .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+        .filter((animation) => animation.playState === 'running').length
+      return { slots: row('[data-testid^="slot-"]'), hand: row('[data-testid="hand-card"]'), rails }
+    })
+
+  const swap = await swapPage()
+  const atRest = await readFrames(swap)
+  assert(
+    atRest.primary.hero === 'elian' && atRest.primary.width === 208 && atRest.ally.hero === 'maren' && atRest.ally.width === 138,
+    `both frames start in their own boxes (${atRest.primary.hero}@${atRest.primary.width}, ${atRest.ally.hero}@${atRest.ally.width})`,
+  )
+  await swap.locator('[data-testid="ally-frame"]').first().click()
+  const inFlight = await readFrames(swap)
+  assert(
+    inFlight.primary.hero === 'maren' && inFlight.ally.hero === 'elian',
+    'the press swaps what the two frames are showing at once — the store never waits on the animation',
+  )
+  assert(
+    inFlight.primary.flying && inFlight.primary.width < 208,
+    `the promoted frame starts in the column's slot and grows (${inFlight.primary.width}px of 208)`,
+  )
+  assert(
+    inFlight.ally.flying && inFlight.ally.width > 138,
+    `the displaced frame starts in the primary box and shrinks (${inFlight.ally.width}px of 138)`,
+  )
+  // The console is re-dealt behind the frames. Sampled a little way into the
+  // cascade rather than at the instant of the press: at t=0 every plate is
+  // still on its first keyframe, and it is a moment later that the leftmost
+  // has travelled and the rightmost has not yet begun.
+  await swap.waitForTimeout(110)
+  const dealing = await readConsole(swap)
+  assert(
+    dealing.slots.plates > 0 && dealing.slots.dealing === dealing.slots.plates,
+    `every Slot is re-dealt on the handover (${dealing.slots.dealing} of ${dealing.slots.plates})`,
+  )
+  assert(
+    dealing.hand.plates > 0 && dealing.hand.dealing === dealing.hand.plates,
+    `every Hand card is re-dealt on the handover (${dealing.hand.dealing} of ${dealing.hand.plates})`,
+  )
+  assert(
+    dealing.hand.opacities[0] > dealing.hand.opacities[dealing.hand.opacities.length - 1],
+    `the Hand deals left to right rather than blinking as one row (${dealing.hand.opacities.join(' > ')})`,
+  )
+  assert(
+    Math.min(...dealing.hand.opacities) > 0,
+    `no card is ever invisible, so the row never shows a hole mid-deal (faintest ${Math.min(...dealing.hand.opacities)})`,
+  )
+  // The rails are not the pilot's: Undo and the forward rail belong to the
+  // session, nothing about them changed hands, and a row where everything
+  // moves says nothing about what actually did. Their own looping bloom is
+  // filtered out above — that is the nudge, not the handover.
+  assert(dealing.rails === 0, `the rails sit still through the handover (${dealing.rails} animating)`)
+  await swap.waitForTimeout(700)
+  const settled = await readFrames(swap)
+  assert(
+    !settled.primary.flying && settled.primary.width === 208 && !settled.ally.flying && settled.ally.width === 138,
+    `both frames land in their new boxes and stop (${settled.primary.width}, ${settled.ally.width})`,
+  )
+  const dealt = await readConsole(swap)
+  assert(
+    dealt.slots.dealing === 0 && dealt.hand.dealing === 0 && dealt.hand.opacities.every((opacity) => opacity === 1),
+    `the console finishes its deal and stops at full strength (${dealt.slots.dealing} Slots, ${dealt.hand.dealing} cards still moving)`,
+  )
+  await shot(swap, 'party-control-swap')
+  await swap.close()
+
+  // The frozen half. `prefers-reduced-motion` is honoured in JavaScript here
+  // rather than by index.css's freeze block, which can only reach CSS
+  // animations and transitions — a Web Animations flight would sail straight
+  // through it. So the browser is the only place this can be proved.
+  const stillSwap = await swapPage({ reducedMotion: 'reduce' })
+  await stillSwap.locator('[data-testid="ally-frame"]').first().click()
+  const cut = await readFrames(stillSwap)
+  assert(
+    cut.primary.hero === 'maren' && cut.primary.width === 208 && !cut.primary.flying,
+    `reduced motion cuts to the swapped layout with nothing in flight (${cut.primary.width}px, flying=${cut.primary.flying})`,
+  )
+  assert(cut.ally.hero === 'elian' && cut.ally.width === 138 && !cut.ally.flying, 'the displaced frame is simply in the column')
+  const cutConsole = await readConsole(stillSwap)
+  assert(
+    cutConsole.slots.dealing === 0 && cutConsole.hand.dealing === 0 && cutConsole.hand.opacities.every((opacity) => opacity === 1),
+    `reduced motion hands the console over without dealing it (${cutConsole.slots.dealing} Slots, ${cutConsole.hand.dealing} cards moving)`,
+  )
+  await stillSwap.close()
+
+  // A refill is not a handover. The Hand mounts fresh cards every Round, and
+  // the deal is bound to the row rather than to the card precisely so those
+  // arrivals do not replay it — a claim only the browser can check, since it
+  // is about which element the animation is attached to.
+  const refill = await swapPage()
+  await refill.locator('[data-testid="hand-card"]').first().click()
+  await refill.locator('[data-testid="slot-0"]').click()
+  await refill.waitForTimeout(500)
+  const afterPlay = await readConsole(refill)
+  assert(
+    afterPlay.hand.dealing === 0 && afterPlay.slots.dealing === 0,
+    `playing a card leaves the console still — only a handover deals it (${afterPlay.hand.dealing} cards, ${afterPlay.slots.dealing} Slots moving)`,
+  )
+  await refill.close()
 
   // The Slot row's worst case, measured on purpose rather than hoped for.
   // The scripted turn above prepares Steady Strike — two Charges, no want mark

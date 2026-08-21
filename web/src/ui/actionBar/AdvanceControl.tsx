@@ -6,6 +6,7 @@ import { selectPilotId, selectState, useWorkbench, type WorkbenchStore } from '@
 import { blocksTarget } from '../onboarding/firstTurnScript'
 import { AdvanceIcon, PlayIcon, RestartIcon, UnactedIcon } from '../common/icons'
 import { Modal } from '../common/Modal'
+import { captureFrameBoxes } from '../party/controlSwap'
 import { heroActed, heroCanAct, nextNudge } from '../party/unacted'
 import { slotCanFire } from './slots'
 import { useFirstTurnStep } from '../onboarding/useFirstTurn'
@@ -21,9 +22,14 @@ import { FOCUS_RING_CLASS, GATED_CLASS, NUDGE_RING_CLASS, SPOTLIGHT_CLASS } from
 //
 // The three states were always here; only the second was hidden inside the
 // handler. Playing the next beat of a Boss Row and closing the window are
-// different moves — that distinction is why the docked prompt says "Up next"
+// different moves — that distinction is why the Beat Card says "Up next"
 // rather than "Next" — so the rail draws them as different shapes rather
 // than relying on the player to know which press they are making.
+//
+// The Continue state carries more weight since the Beat Card moved to the
+// board's top edge (D-098): the rail is now the press within the thumb's
+// reach for a Boss Row, while the card is where the Beat is read. Both still
+// resolve the same beat, and this handler is the one that does it.
 //
 // A fourth state arrived with the Party. Total War's campaign map turns its
 // end-turn button into "a unit has not moved" and hands each press to one of
@@ -141,6 +147,10 @@ export function AdvanceControl() {
     // and do not close the window. The offer is recorded by the same action,
     // so pressing again walks to the next one and then to Next itself.
     if (nudgeHeroId !== null) {
+      // The console changes hands here too, so the frames trade places here
+      // too — measured before the store is written, exactly as a tap on the
+      // frame itself does it (`ui/party/controlSwap.ts`).
+      captureFrameBoxes()
       nudgeToUnacted(nudgeHeroId)
       return
     }
