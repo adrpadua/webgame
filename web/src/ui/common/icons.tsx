@@ -215,6 +215,22 @@ export function AdvanceIcon({ className }: IconProps) {
   )
 }
 
+// A party member has not acted: the rail's third forward state, and the one
+// press that does not move the fight on. Deliberately not a triangle — it is
+// not a forward move at all, it hands the console to somebody who is still
+// waiting — so it draws the somebody: a bust, and beside it the mark that has
+// meant "this one needs you" on a unit roster since Total War put it there.
+export function UnactedIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} aria-hidden="true" fill="currentColor">
+      <path d="M7.6 2.4a3.1 3.1 0 1 1 0 6.2 3.1 3.1 0 0 1 0-6.2Z" />
+      <path d="M1.8 17.6c0-3.2 2.6-5.8 5.8-5.8s5.8 2.6 5.8 5.8H1.8Z" />
+      <path d="M15.8 2.6h2.4l-0.4 8.4h-1.6l-0.4-8.4Z" />
+      <path d="M15.9 13.2h2.2v2.4h-2.2z" />
+    </svg>
+  )
+}
+
 // Undo: take back the action you just took, in the window you took it in.
 export function UndoIcon({ className }: IconProps) {
   return (

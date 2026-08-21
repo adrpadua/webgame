@@ -47,6 +47,13 @@ export interface PartyFrameModel {
   // Downed ally. True only when the engine's own legality predicate says a
   // `revive_ally` would be accepted.
   revivable: boolean
+  // This seat has not acted in the open window and still could: the frame
+  // breathes its accent until the Hero acts, the window closes, or the player
+  // takes control. Passed in rather than derived here because the answer is a
+  // reading of the session timeline (`unacted.ts`) and a frame model is a
+  // reading of one Encounter state — the frame renders the answer, it does not
+  // own it.
+  unacted: boolean
 }
 
 // Who the Boss's current program is aimed at, by the same selection the Beats
@@ -84,7 +91,12 @@ function reviveIsLegal(catalog: ContentCatalog, state: EncounterState, targetId:
 // Every seat but the primary, in authored order — the column reads seats the
 // way the Encounter authored them, so two sessions of the same Encounter show
 // the same stack.
-export function partyFrames(catalog: ContentCatalog, state: EncounterState, pilotId: string = state.primaryHeroId): PartyFrameModel[] {
+export function partyFrames(
+  catalog: ContentCatalog,
+  state: EncounterState,
+  pilotId: string = state.primaryHeroId,
+  unacted: readonly string[] = [],
+): PartyFrameModel[] {
   const aimedAt = threatHeroId(catalog, state)
   // Every seat but the pilot's: the column shows whoever the console does
   // not, so switching control swaps a Hero out of the column and the
@@ -109,6 +121,7 @@ export function partyFrames(catalog: ContentCatalog, state: EncounterState, pilo
         signatureCap: signatureCard ? cardChargeCap(signatureCard) : 0,
         threat: heroId === aimedAt,
         revivable: hero.status === 'downed' && reviveIsLegal(catalog, state, heroId),
+        unacted: unacted.includes(heroId),
       }
     })
 }
