@@ -46,6 +46,7 @@ export type NotificationId =
   | 'standing-demand'
   | 'rejection'
   | 'stat-panel'
+  | 'tile-panel'
 
 export interface NotificationRule {
   zone: NotificationZone
@@ -55,10 +56,10 @@ export interface NotificationRule {
   rank: number
 }
 
-// Two dock members are not notifications. The stat panel and the standing
+// Three dock members are not notifications. The two panels and the standing
 // demand are listed anyway because they float in the same lane, and a lane
-// with two owners is how the overlap came back last time: both have to yield
-// to a prompt rather than sit under one.
+// with two owners is how the overlap came back last time: all of them have to
+// yield to a prompt rather than sit under one.
 export const NOTIFICATION_RULES: Record<NotificationId, NotificationRule> = {
   // Guidance, anchored to the board's top edge: teaching the player may
   // ignore. The scripted turn outranks ambient coaching, and while it runs the
@@ -84,6 +85,11 @@ export const NOTIFICATION_RULES: Record<NotificationId, NotificationRule> = {
   'standing-demand': { zone: 'dock', rank: 4 },
   rejection: { zone: 'dock', rank: 5 },
   'stat-panel': { zone: 'dock', rank: 6 },
+  // Ground reads outside the piece standing on it. One tap can open both —
+  // an Enemy on burning floor is two subjects — and of everything in the lane
+  // the ground is the least urgent, so it is the first to yield when the dock
+  // fills and it never pushes the piece's gauge away from the controls.
+  'tile-panel': { zone: 'dock', rank: 7 },
 }
 
 // How many members of a zone may speak at once. Past the cap the far-from-the

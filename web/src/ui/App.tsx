@@ -18,6 +18,7 @@ import { PhaseControl } from './chrome/PhaseControl'
 import { RejectionToast } from './overlays/RejectionToast'
 import { ReplaceConfirmModal } from './actionBar/ReplaceConfirmModal'
 import { TargetingBanner } from './overlays/TargetingBanner'
+import { TilePanel } from './overlays/TilePanel'
 import { FRAME_HEIGHT_CLASS } from './common/theme'
 
 // The play surface, and nothing but its composition: which components exist,
@@ -85,6 +86,7 @@ export default function App() {
               <MovePaymentCue />
               <RejectionToast />
               <EntityInspect />
+              <TilePanel />
             </NotificationZone>
           </NotificationLayer>
           {/* The Hero Frame (D-065): the primary Hero's persistent readout

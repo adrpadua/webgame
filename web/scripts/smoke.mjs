@@ -1043,6 +1043,30 @@ try {
   assert((await page.locator('[data-testid="hand-card"][data-selected="true"]').count()) === 1, 'a Hand card can be selected once the window opens')
   await page.locator('[data-testid="hand-card"]').first().click()
 
+  // Ground is the tile's other subject: a bare tap on burnt ground opens the
+  // Tile Panel, which carries the Hazard as the same Status Icon a Counter
+  // wears on a piece. Which hex is burning depends on the Program the seed
+  // dealt, so the check asks the board rather than naming a coordinate.
+  const burntKeys = await page.evaluate(() => window.__workbench.hazardKeys())
+  assert(burntKeys.length > 0, `the Boss has burnt ground to read by the second Round (${burntKeys.join(', ') || 'none'})`)
+  const burntRect = await page.evaluate((key) => window.__workbench.hexRects().find((hex) => hex.key === key), burntKeys[0])
+  await page.mouse.click((burntRect.left + burntRect.right) / 2, (burntRect.top + burntRect.bottom) / 2)
+  await page.waitForSelector('[data-testid="tile-panel"]')
+  assert(
+    (await page.locator('[data-testid="tile-panel"] [data-testid="status-icon"]').count()) > 0,
+    'tapping burnt ground opens its Tile Panel wearing the ground’s own mark',
+  )
+  await page.locator('[data-testid="ground-tray"]').hover()
+  await page.waitForSelector('[data-testid="hold-popover"]')
+  assert(
+    ((await page.locator('[data-testid="hold-popover"]').getAttribute('data-hold-id')) ?? '').startsWith('ground:'),
+    'holding the tray reads what the ground is carrying, not what the piece on it is',
+  )
+  await page.mouse.move(0, 0)
+  await page.waitForSelector('[data-testid="hold-popover"]', { state: 'detached' })
+  await page.locator('[data-testid="tile-dismiss"]').click()
+  assert((await page.locator('[data-testid="tile-panel"]').count()) === 0, 'the Tile Panel closes from its own control')
+
   // Skipping a window that still holds phase-appropriate actions warns
   // first: nothing has been fired or charged this Quick Window.
   await next()
