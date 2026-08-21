@@ -1669,6 +1669,37 @@ try {
       }
       return { primary: read('[data-testid="hero-frame"]'), ally: read('[data-testid="ally-frame"]') }
     })
+  // The console's half. A finite animation on a plate is a deal; an infinite
+  // one is the interface's own looping vocabulary — the rail's nudge bloom,
+  // a Slot's face pulse — which has nothing to do with a handover and must be
+  // filtered out rather than counted as movement.
+  //
+  // The stagger is read as rendered opacity across the row rather than as
+  // animation bookkeeping: a plate inside its delay is held at the first
+  // keyframe, so at any instant mid-deal the leftmost plate is further along
+  // than the rightmost. That is the cascade, measured on what the player
+  // actually sees.
+  const readConsole = (page) =>
+    page.evaluate(() => {
+      const row = (selector) => {
+        const plates = [...document.querySelectorAll(selector)]
+        const deals = plates.map((plate) =>
+          plate.getAnimations().filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity),
+        )
+        return {
+          plates: plates.length,
+          dealing: deals.filter((list) => list.some((animation) => animation.playState === 'running')).length,
+          opacities: plates.map((plate) => Number(getComputedStyle(plate).opacity)),
+        }
+      }
+      const rails = ['undo', 'next-phase', 'restart']
+        .map((id) => document.querySelector(`[data-testid="${id}"]`))
+        .filter((element) => element !== null)
+        .flatMap((element) => element.getAnimations())
+        .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+        .filter((animation) => animation.playState === 'running').length
+      return { slots: row('[data-testid^="slot-"]'), hand: row('[data-testid="hand-card"]'), rails }
+    })
 
   const swap = await swapPage()
   const atRest = await readFrames(swap)
@@ -1690,11 +1721,43 @@ try {
     inFlight.ally.flying && inFlight.ally.width > 138,
     `the displaced frame starts in the primary box and shrinks (${inFlight.ally.width}px of 138)`,
   )
-  await swap.waitForTimeout(600)
+  // The console is re-dealt behind the frames. Sampled a little way into the
+  // cascade rather than at the instant of the press: at t=0 every plate is
+  // still on its first keyframe, and it is a moment later that the leftmost
+  // has travelled and the rightmost has not yet begun.
+  await swap.waitForTimeout(110)
+  const dealing = await readConsole(swap)
+  assert(
+    dealing.slots.plates > 0 && dealing.slots.dealing === dealing.slots.plates,
+    `every Slot is re-dealt on the handover (${dealing.slots.dealing} of ${dealing.slots.plates})`,
+  )
+  assert(
+    dealing.hand.plates > 0 && dealing.hand.dealing === dealing.hand.plates,
+    `every Hand card is re-dealt on the handover (${dealing.hand.dealing} of ${dealing.hand.plates})`,
+  )
+  assert(
+    dealing.hand.opacities[0] > dealing.hand.opacities[dealing.hand.opacities.length - 1],
+    `the Hand deals left to right rather than blinking as one row (${dealing.hand.opacities.join(' > ')})`,
+  )
+  assert(
+    Math.min(...dealing.hand.opacities) > 0,
+    `no card is ever invisible, so the row never shows a hole mid-deal (faintest ${Math.min(...dealing.hand.opacities)})`,
+  )
+  // The rails are not the pilot's: Undo and the forward rail belong to the
+  // session, nothing about them changed hands, and a row where everything
+  // moves says nothing about what actually did. Their own looping bloom is
+  // filtered out above — that is the nudge, not the handover.
+  assert(dealing.rails === 0, `the rails sit still through the handover (${dealing.rails} animating)`)
+  await swap.waitForTimeout(700)
   const settled = await readFrames(swap)
   assert(
     !settled.primary.flying && settled.primary.width === 208 && !settled.ally.flying && settled.ally.width === 138,
     `both frames land in their new boxes and stop (${settled.primary.width}, ${settled.ally.width})`,
+  )
+  const dealt = await readConsole(swap)
+  assert(
+    dealt.slots.dealing === 0 && dealt.hand.dealing === 0 && dealt.hand.opacities.every((opacity) => opacity === 1),
+    `the console finishes its deal and stops at full strength (${dealt.slots.dealing} Slots, ${dealt.hand.dealing} cards still moving)`,
   )
   await shot(swap, 'party-control-swap')
   await swap.close()
@@ -1711,7 +1774,27 @@ try {
     `reduced motion cuts to the swapped layout with nothing in flight (${cut.primary.width}px, flying=${cut.primary.flying})`,
   )
   assert(cut.ally.hero === 'elian' && cut.ally.width === 138 && !cut.ally.flying, 'the displaced frame is simply in the column')
+  const cutConsole = await readConsole(stillSwap)
+  assert(
+    cutConsole.slots.dealing === 0 && cutConsole.hand.dealing === 0 && cutConsole.hand.opacities.every((opacity) => opacity === 1),
+    `reduced motion hands the console over without dealing it (${cutConsole.slots.dealing} Slots, ${cutConsole.hand.dealing} cards moving)`,
+  )
   await stillSwap.close()
+
+  // A refill is not a handover. The Hand mounts fresh cards every Round, and
+  // the deal is bound to the row rather than to the card precisely so those
+  // arrivals do not replay it — a claim only the browser can check, since it
+  // is about which element the animation is attached to.
+  const refill = await swapPage()
+  await refill.locator('[data-testid="hand-card"]').first().click()
+  await refill.locator('[data-testid="slot-0"]').click()
+  await refill.waitForTimeout(500)
+  const afterPlay = await readConsole(refill)
+  assert(
+    afterPlay.hand.dealing === 0 && afterPlay.slots.dealing === 0,
+    `playing a card leaves the console still — only a handover deals it (${afterPlay.hand.dealing} cards, ${afterPlay.slots.dealing} Slots moving)`,
+  )
+  await refill.close()
 
   // The Slot row's worst case, measured on purpose rather than hoped for.
   // The scripted turn above prepares Steady Strike — two Charges, no want mark

@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
 
-// The console changing hands, as motion (D-097).
+// The console changing hands, as motion (D-099).
 //
 // Switching control rewrites two frames at once: the ally the player tapped
 // becomes the 208pt primary frame at the bottom edge, and the Hero who was
@@ -187,4 +187,89 @@ export function useSwapFlip<T extends HTMLElement>(heroId: string, pilotId: stri
     }
   }, [heroId, pilotId])
   return element
+}
+
+// --- The console's half ----------------------------------------------------
+// The frames can travel because they are the same two plates before and after.
+// The Action Bar and the Hand cannot: the arriving Hero's Slots hold different
+// Top Cards and their Hand is a different set of cards, so there is nothing to
+// fly *from*. Cutting them was the same defect the frames had, though — the
+// row below the frames simply held somebody else's cards now.
+//
+// So the console is re-dealt. Every plate whose owner the press changed
+// arrives in turn: the Action Bar first and the Hand behind it, down the
+// console and left to right, which is the reading order the Hand's own offer
+// already uses. The frames say *who* has the console and the deal says *what
+// they brought*, and the two run as one cascade rather than two announcements.
+//
+// The rails are deliberately not in it. Undo and the forward rail belong to
+// the session rather than to any Hero — nothing about them changed hands — and
+// a row where everything moves says nothing about what actually changed.
+
+export const CONSOLE_DEAL_MS = 200
+// The Action Bar leads because it sits above the Hand: the cascade runs the
+// way the eye already travels down the console from the frames.
+export const SLOT_DEAL_LEAD_MS = 0
+export const SLOT_DEAL_STEP_MS = 45
+export const HAND_DEAL_LEAD_MS = 60
+export const HAND_DEAL_STEP_MS = 28
+// No plate starts later than this, however many the row holds. A Hand is
+// normally five cards and the stagger fits inside the cap with room to spare;
+// the cap is what stops a row that grows later from turning a handover into a
+// wait, at the price of the last few plates sharing a start.
+export const CONSOLE_DEAL_LAST_START_MS = 200
+
+export function dealDelay(index: number, lead: number, step: number): number {
+  return Math.min(lead + index * step, CONSOLE_DEAL_LAST_START_MS)
+}
+
+// Faint rather than absent at the start: a plate held at zero opacity through
+// its delay leaves a hole in a row whose whole job is to be read at a glance,
+// and the Hand's band would show through it.
+const DEAL_FRAMES: Keyframe[] = [
+  { opacity: 0.15, transform: 'translateY(5px) scale(0.96)' },
+  { opacity: 1, transform: 'translateY(0px) scale(1)' },
+]
+
+// Bound to the row, not to the plate, and that is the whole design. A plate
+// cannot tell a handover from its own arrival — a Compact Card mounts when the
+// Hero draws one, and an effect on the card would deal the row every refill —
+// but the row outlives both Heroes, so it is the one element that can hold the
+// question "did the pilot change?" and answer it. Reading the plates back off
+// the DOM is also what keeps `CompactCard` and `Slot` unaware they are in an
+// animation at all.
+export function useConsoleDeal<T extends HTMLElement>(pilotId: string, plateSelector: string, lead: number, step: number) {
+  const row = useRef<T | null>(null)
+  const pilotSeen = useRef(pilotId)
+  const deals = useRef<Animation[]>([])
+  useLayoutEffect(() => {
+    const container = row.current
+    const handover = pilotSeen.current !== pilotId
+    pilotSeen.current = pilotId
+    // Not on first mount: an Encounter opening is not a handover, and the
+    // console has never belonged to anybody else at that point.
+    if (container === null || !handover || prefersReducedMotion()) {
+      return
+    }
+    deals.current = Array.from(container.querySelectorAll(plateSelector))
+      .filter((plate): plate is HTMLElement => plate instanceof HTMLElement && typeof plate.animate === 'function')
+      .map((plate, index) =>
+        plate.animate(DEAL_FRAMES, {
+          duration: CONSOLE_DEAL_MS,
+          delay: dealDelay(index, lead, step),
+          easing: SWAP_EASING,
+          // The plate has to hold the first keyframe through its delay, or it
+          // sits at full strength and then dips, which reads as a flicker
+          // rather than as its turn arriving.
+          fill: 'backwards',
+        }),
+      )
+    return () => {
+      for (const deal of deals.current) {
+        deal.cancel()
+      }
+      deals.current = []
+    }
+  }, [pilotId, plateSelector, lead, step])
+  return row
 }

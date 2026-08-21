@@ -37,11 +37,13 @@ Single-player control arrived after the mockups and completes the frame's gestur
 
 The pattern is BG3's portrait click on Spirit Island's structure, per the [party-switching research note](research/2026-08-21-single-player-party-switching-bg3-spirit-island.md): switching drops in-flight gestures and keeps commitments, and the cursor survives undo because the window — not the character — is the commit boundary.
 
-### The swap is a move, not a cut (D-097)
+### The swap is a move, not a cut (D-099)
 
-The first pass swapped the two frames' contents in one video frame. Both readouts were correct the instant the store wrote them, and that was the problem: the 208pt plate and the 138pt plate were simply holding different Heroes now, and nothing said the object the player had been reading had *moved*. On a portrait-click switch that sentence is the whole confirmation of the gesture.
+The first pass swapped the whole console's contents in one video frame. Every readout was correct the instant the store wrote it, and that was the problem: the 208pt plate and the 138pt plate were simply holding different Heroes now, and nothing said the object the player had been reading had *moved*. On a portrait-click switch that sentence is the whole confirmation of the gesture.
 
-So the frames travel. **The tapped frame flies from its slot in the column into the primary box and grows 138 → 208; the displaced Hero's frame flies the other way and shrinks into the column.** It is the layout's own claim — the ragged right edge *is* the hierarchy — said in the one channel a still frame cannot use.
+The handover is therefore drawn in two motions, because the two halves of the console are different kinds of thing.
+
+**The frames travel.** The tapped frame flies from its slot in the column into the primary box and grows 138 → 208; the displaced Hero's frame flies the other way and shrinks into the column. It is the layout's own claim — the ragged right edge *is* the hierarchy — said in the one channel a still frame cannot use.
 
 | The mechanism | |
 | --- | --- |
@@ -51,9 +53,18 @@ So the frames travel. **The tapped frame flies from its slot in the column into 
 | Curve | 300ms on `cubic-bezier(0.4, 0, 0.2, 1)`, the standard position-and-size curve. Deliberately **not** `wb-beat-deal`'s, the only other motion that moves a whole plate: that one spends 45% of its travel in the first 11% of its duration because a dealt card is an arrival, whereas here the travel *is* the message. |
 | Crossing | The Hero Frame's layer sits one step above the column (`z-31`) so the plate the player tapped stays visible where the two pass through each other. At rest the two never share a pixel, so the step costs nothing anywhere else. |
 
-Motion that carries state, fired once — the house rule, and this is as bounded as motion gets: it ends when the frames arrive.
+**The console is re-dealt.** The Action Bar and the Hand cannot travel: the arriving Hero's Slots hold different Top Cards and their Hand is a different set of cards, so there is nothing to fly *from*. Every plate whose owner the press changed therefore arrives in turn instead — the Action Bar first and the Hand behind it, down the console and left to right, the reading order the Hand's own offer already uses. The frames say **who** has the console; the deal says **what they brought**, and the two run as one cascade rather than as two announcements.
 
-**`prefers-reduced-motion` is honoured in JavaScript here**, which is the one place on the surface that is true. `index.css`'s freeze block reaches CSS animations and transitions; a Web Animations flight is neither, and would sail straight through it. The flight is skipped outright rather than shortened, and the swap is then exactly what it was before this pass — instant, correct, and readable.
+| The mechanism | |
+| --- | --- |
+| Where it lives | The same module's `useConsoleDeal`, bound once per row — by `ActionBar` and by `Hand`, never by a Slot or a Compact Card. |
+| Why the row, not the plate | A plate cannot tell a handover from its own arrival: a Compact Card mounts every time the Hero draws one, so an effect on the card would re-deal the Hand at every refill. The row outlives both Heroes, so it is the one element that can hold the question *did the pilot change?* and answer it. The plates are read back off the DOM, which also keeps `CompactCard` and `Slot` unaware they are in an animation at all. |
+| Shape | 200ms per plate on the same curve; Slots at 0 and 45ms, cards from 60ms at 28ms apiece, and **no plate starts later than 200ms** however many the row grows to hold. A plate waits at 15% opacity rather than at zero — a row held invisible through its delay shows a hole, and a hole is the one thing a row read at a glance cannot afford. |
+| Not the rails | Undo and the forward rail belong to the session rather than to any Hero. Nothing about them changed hands, and a row where everything moves says nothing about what actually did. |
+
+Motion that carries state, fired once — the house rule, and this is as bounded as motion gets: it ends when the console has arrived.
+
+**`prefers-reduced-motion` is honoured in JavaScript here**, which is the one place on the surface that is true. `index.css`'s freeze block reaches CSS animations and transitions; a Web Animations flight is neither, and would sail straight through it. Both motions are skipped outright rather than shortened, and the swap is then exactly what it was before this pass — instant, correct, and readable.
 
 ## The unacted nudge (D-093)
 

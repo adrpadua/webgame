@@ -1,11 +1,17 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   claimFrameBox,
+  dealDelay,
   forgetFrameBoxes,
   frameScale,
   invertTransform,
   recordFrameBoxes,
   standingStill,
+  CONSOLE_DEAL_LAST_START_MS,
+  HAND_DEAL_LEAD_MS,
+  HAND_DEAL_STEP_MS,
+  SLOT_DEAL_LEAD_MS,
+  SLOT_DEAL_STEP_MS,
   type FrameBox,
 } from './controlSwap'
 
@@ -58,6 +64,34 @@ describe('the swap transform', () => {
 
   it('survives a frame measured at zero width rather than dividing by it', () => {
     expect(frameScale(SLOT_ONE, { left: 0, top: 0, width: 0 })).toBe(1)
+  })
+})
+
+describe('the console deal', () => {
+  const slot = (index: number) => dealDelay(index, SLOT_DEAL_LEAD_MS, SLOT_DEAL_STEP_MS)
+  const card = (index: number) => dealDelay(index, HAND_DEAL_LEAD_MS, HAND_DEAL_STEP_MS)
+
+  it('runs down the console: the Action Bar first, the Hand behind it', () => {
+    // The two rows are one cascade, not two announcements. Every Slot has
+    // started before the first card does, which is what makes the handover
+    // read in the direction the eye already travels from the frames.
+    expect(slot(0)).toBe(0)
+    expect(slot(1)).toBe(45)
+    expect(card(0)).toBeGreaterThan(slot(1))
+  })
+
+  it('deals each row left to right', () => {
+    expect([slot(0), slot(1)]).toEqual([0, 45])
+    expect([card(0), card(1), card(2), card(3), card(4)]).toEqual([60, 88, 116, 144, 172])
+  })
+
+  it('caps the last start, so a row that grows never turns a handover into a wait', () => {
+    // A five-card Hand fits inside the cap with room to spare; the cap is for
+    // the row nobody has authored yet.
+    expect(card(4)).toBeLessThan(CONSOLE_DEAL_LAST_START_MS)
+    expect(card(9)).toBe(CONSOLE_DEAL_LAST_START_MS)
+    expect(card(40)).toBe(CONSOLE_DEAL_LAST_START_MS)
+    expect(slot(99)).toBe(CONSOLE_DEAL_LAST_START_MS)
   })
 })
 

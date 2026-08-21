@@ -789,6 +789,20 @@ const MUTATIONS = [
     to: '    Math.abs(from.top - to.top) < 0 &&',
   },
   {
+    name: 'the console deals all at once instead of left to right',
+    guards: 'The handover cascades down the console: the Action Bar leads, the Hand follows, each row read in order',
+    file: 'ui/party/controlSwap.ts',
+    from: '  return Math.min(lead + index * step, CONSOLE_DEAL_LAST_START_MS)',
+    to: '  return Math.min(lead, CONSOLE_DEAL_LAST_START_MS)',
+  },
+  {
+    name: 'the last plate in a row can start arbitrarily late',
+    guards: 'A row that grows later must not turn a handover into a wait — every plate starts inside the cap',
+    file: 'ui/party/controlSwap.ts',
+    from: '  return Math.min(lead + index * step, CONSOLE_DEAL_LAST_START_MS)',
+    to: '  return lead + index * step',
+  },
+  {
     name: 'a Boss Beat marks the wrong side',
     guards: 'D-051: `counter_target` decides whether the Boss marks itself or the Party',
     file: 'engine/timeline.ts',
