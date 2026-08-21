@@ -114,6 +114,48 @@ describe('the complete player action space', () => {
     expect([...seen].sort()).toEqual([...PLAYER_COMMAND_KINDS].sort())
   })
 
+  it('card-consuming commands enumerate every payment alternative, never a representative', () => {
+    // The payment dimension of completeness (engine-hardening follow-up P1):
+    // discarding card A and discarding card B leave different hands, so both
+    // are moves. Every payment-taking command must offer the whole hand, and
+    // movement must offer it per destination.
+    const state = duo()
+    state.phase = 'quick'
+    const heroId = state.primaryHeroId
+    const handIds = state.heroes[heroId].hand.map((card) => card.instanceId).sort()
+    expect(handIds.length).toBeGreaterThan(1)
+    const actions = legalActions(catalog, state, heroId)
+
+    const discards = actions.filter((action) => action.kind === 'discard_for_stamina').map((action) => action.cardInstanceId)
+    expect(discards.sort()).toEqual(handIds)
+
+    const paymentsByDestination = new Map<string, string[]>()
+    for (const action of actions) {
+      if (action.kind !== 'move_hero') {
+        continue
+      }
+      const key = `${action.destination.q},${action.destination.r}`
+      paymentsByDestination.set(key, [...(paymentsByDestination.get(key) ?? []), action.cardInstanceId])
+    }
+    expect(paymentsByDestination.size).toBeGreaterThan(0)
+    for (const [destination, payments] of paymentsByDestination) {
+      expect(payments.sort(), `destination ${destination}`).toEqual(handIds)
+    }
+  })
+
+  it('the rescue offers every card in hand as its payment', () => {
+    const rescue = duo()
+    const [rescuerId, fallenId] = rescue.partyHeroIds
+    rescue.heroes[fallenId].status = 'downed'
+    rescue.heroes[fallenId].downedRound = rescue.round
+    rescue.board.entities[fallenId].coords = { ...rescue.board.entities[rescuerId].coords, r: rescue.board.entities[rescuerId].coords.r + 1 }
+    const handIds = rescue.heroes[rescuerId].hand.map((card) => card.instanceId).sort()
+    expect(handIds.length).toBeGreaterThan(1)
+    const revives = legalActions(catalog, rescue, rescuerId).filter((action) => action.kind === 'revive_ally')
+    expect(revives.map((action) => action.cardInstanceId).sort()).toEqual(handIds)
+    expect(new Set(revives.map((action) => action.targetId))).toEqual(new Set([fallenId]))
+  })
+
   it('commands disappear when their conditions do', () => {
     // No Downed ally: no rescue. Living hero: no diminished vocabulary.
     // Loadout: no movement. An ended Encounter: nothing at all.
