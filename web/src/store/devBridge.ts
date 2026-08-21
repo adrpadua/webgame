@@ -14,6 +14,7 @@ declare global {
       exportScenario: () => string
       heroFramePulse: () => number
       bossHealth: () => number
+      hazardKeys: () => string[]
       hexRects: () => { key: string; left: number; right: number; top: number; bottom: number }[]
     }
   }
@@ -35,6 +36,16 @@ export function installDevBridge(store: typeof useWorkbench): void {
     bossHealth: () => {
       const live = selectState(store.getState())
       return live.board.entities[live.bossId]?.health ?? 0
+    },
+    // Which hexes are carrying ground the rules can see. The Tile Panel opens
+    // on a tap, and a browser check has to know which hex to tap: burnt ground
+    // is laid by whichever Program the seed dealt, so no fixed coordinate is
+    // the burning one twice running.
+    hazardKeys: () => {
+      const live = selectState(store.getState())
+      return Object.entries(live.board.hazards)
+        .filter(([, hazards]) => hazards.length > 0)
+        .map(([key]) => key)
     },
     // Every hex's on-screen bounding box, so a browser check can ask whether
     // an overlay covers a hex rather than whether it overlaps the canvas —

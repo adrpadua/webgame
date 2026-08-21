@@ -119,6 +119,47 @@ describe('dragging the Hero to a hex', () => {
     expect(store().inspectedEntityId).toBe(state().bossId)
   })
 
+  // Ground is the tile's other subject (D-048): the piece standing on a hex
+  // and the hex itself are two readouts, and one bare tap opens whichever of
+  // them has something to say.
+  it('opens the Tile Panel on ground that is carrying something, and closes it on plain ground', () => {
+    const burning = firstLegalDestination()
+    store().submit({ kind: 'apply_hazard', sourceId: state().bossId, coords: burning, hazardId: 'scorched', fallbackDurationRounds: 1 })
+
+    store().hexClicked(burning)
+    expect(store().inspectedHexKey).toBe(hexKey(burning))
+
+    const plain = neighbors(state().board.hexes, heroCoords()).find((candidate) => hexKey(candidate) !== hexKey(burning))
+    store().hexClicked(plain!)
+    expect(store().inspectedHexKey).toBeNull()
+  })
+
+  it('reads the ground under the Hero on a Hero tap, which still pulses the frame', () => {
+    store().submit({ kind: 'apply_hazard', sourceId: state().bossId, coords: heroCoords(), hazardId: 'scorched', fallbackDurationRounds: 1 })
+    const pulseBefore = store().heroFramePulse
+
+    store().hexClicked(heroCoords())
+
+    // Whether the Hero is standing in fire is exactly what a tap on their own
+    // tile asks, so the pulse and the Tile Panel are not alternatives.
+    expect(store().heroFramePulse).toBe(pulseBefore + 1)
+    expect(store().inspectedHexKey).toBe(hexKey(heroCoords()))
+    expect(store().inspectedEntityId).toBeNull()
+  })
+
+  it('closes the Tile Panel on its own control, and on a session transition', () => {
+    store().submit({ kind: 'apply_hazard', sourceId: state().bossId, coords: heroCoords(), hazardId: 'scorched', fallbackDurationRounds: 1 })
+    store().hexClicked(heroCoords())
+
+    store().dismissTile()
+    expect(store().inspectedHexKey).toBeNull()
+
+    store().hexClicked(heroCoords())
+    expect(store().inspectedHexKey).not.toBeNull()
+    store().timeTravelTo(0)
+    expect(store().inspectedHexKey).toBeNull()
+  })
+
   it('takes the offer down when the board is touched again', () => {
     const origin = heroCoords()
     store().heroDraggedToHex(firstLegalDestination())

@@ -1,8 +1,17 @@
 import { useCatalog } from '@/content/CatalogContext'
-import { combatantRef, getCounters, type CounterInstance } from '@/engine'
+import { type HexKey } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { useHold, type HoldDetail } from './HoldPopover'
-import { statusFigure, statusLabel, statusMark, type StatusGlyph, type StatusMark, type StatusMaterial } from './statusIcons'
+import {
+  counterEntries,
+  groundEntries,
+  statusFigure,
+  statusLabel,
+  type StatusEntry,
+  type StatusGlyph,
+  type StatusMark,
+  type StatusMaterial,
+} from './statusIcons'
 import { FOCUS_RING_CLASS } from './theme'
 
 // The Status Icon (D-088, party-frame direction 1A): a Counter as a raked square
@@ -149,39 +158,28 @@ export function StatusIcon({
   )
 }
 
-interface StatusEntry {
-  counter: CounterInstance
-  rulesText: string
-  durationRounds: number
-}
-
-// The tray's Detail Popup. One Counter reads exactly as it always has — the
-// title, its numbers, its authored text. Several read as a list, one row per
-// Counter, each row led by the same square that is standing in the tray: the
-// mark is what the player has to learn, so the popup teaches it beside the
-// name rather than restating the name alone.
+// The tray's Detail Popup. One condition reads exactly as it always has —
+// the title, its numbers, its authored text. Several read as a list, one row
+// per condition, each row led by the same square that is standing in the
+// tray: the mark is what the player has to learn, so the popup teaches it
+// beside the name rather than restating the name alone.
 //
 // The list rides `diagram` rather than `stats` because a stat row is a label
-// and a number, and what a Counter owes here is a sentence attributed to a
-// mark. Attribution is the whole job: three Counters' rules texts run
-// together in one paragraph say nothing about which rule belongs to which
-// square.
-function statusDetail(entries: StatusEntry[]): HoldDetail | null {
+// and a number, and what a condition owes here is a sentence attributed to a
+// mark. Attribution is the whole job: three rules texts run together in one
+// paragraph say nothing about which rule belongs to which square.
+function statusDetail(id: string, entries: StatusEntry[]): HoldDetail | null {
   if (entries.length === 0) {
     return null
   }
   if (entries.length === 1) {
     const [entry] = entries
-    const stats = [{ label: 'Held', value: String(entry.counter.count) }]
-    if (entry.counter.remainingRounds > 0) {
-      stats.push({ label: 'Rounds left', value: String(entry.counter.remainingRounds) })
-    }
     return {
-      id: `counter:${entry.counter.id}`,
-      title: entry.counter.title,
-      badge: 'Counter',
+      id: `${id}:${entry.id}`,
+      title: entry.title,
+      badge: entry.badge,
       tone: 'guard',
-      stats,
+      stats: entry.stats,
       text: entry.rulesText,
     }
   }
@@ -192,26 +190,21 @@ function statusDetail(entries: StatusEntry[]): HoldDetail | null {
   // roll call of eight still fits; eight paragraphs never would.
   const roll = entries.length > 3
   return {
-    // Keyed by the whole set, so gaining or losing one Counter mid-hold
+    // Keyed by the whole set, so gaining or losing one condition mid-hold
     // replaces the popup rather than leaving a stale row on screen.
-    id: `counters:${entries.map((entry) => entry.counter.id).join('+')}`,
+    id: `${id}:${entries.map((entry) => entry.id).join('+')}`,
     title: 'Conditions',
     badge: `×${entries.length}`,
     tone: 'guard',
     diagram: (
       <div className={`flex flex-col ${roll ? 'gap-1' : 'gap-2'}`}>
         {entries.map((entry) => (
-          <div key={entry.counter.id} className="flex items-start gap-2">
-            <StatusIcon
-              mark={statusMark(entry.counter.id)}
-              count={entry.counter.count}
-              remainingRounds={entry.counter.remainingRounds}
-              durationRounds={entry.durationRounds}
-            />
+          <div key={entry.id} className="flex items-start gap-2">
+            <StatusIcon mark={entry.mark} count={entry.count} remainingRounds={entry.remainingRounds} durationRounds={entry.durationRounds} />
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-[11px] font-semibold text-ceramic-200">{entry.counter.title}</span>
-                <span className="shrink-0 text-[10px] font-semibold text-steel-400">{statusFigure(entry.counter.count, entry.counter.remainingRounds)}</span>
+                <span className="text-[11px] font-semibold text-ceramic-200">{entry.title}</span>
+                <span className="shrink-0 text-[10px] font-semibold text-steel-400">{statusFigure(entry.count, entry.remainingRounds)}</span>
               </div>
               {!roll && <p className="text-[10px] leading-relaxed text-ceramic-300">{entry.rulesText}</p>}
             </div>
@@ -222,31 +215,24 @@ function statusDetail(entries: StatusEntry[]): HoldDetail | null {
   }
 }
 
-// The tray: every live Counter a piece is holding, in one control, on
-// whichever readout that piece owns. Shared by the Hero Frame and the
-// (Enemy-only) Stat Panel — the mechanism is two-sided (D-032), so one
-// component renders a piece's Counters wherever its readout lives.
+// The tray: every condition one host is carrying, in one control, on whichever
+// readout that host owns — a piece's Counters on the Hero Frame or the
+// (Enemy-only) Stat Panel, ground's Hazards on the Tile Panel. The mechanism
+// is two-sided (D-032) and ground outlives whoever stands on it (D-048), so
+// one component draws all three rather than each readout growing its own.
 //
-// One control rather than one per Counter, which is the Hero Frame's own
-// resolution to the 44pt rule applied a second time: a tray of four Counters
-// as four targets is 176px of chrome beside a 208px frame on a 390pt surface,
-// so the squares pack at the density they were drawn at and the tray as a
-// whole takes the press. The popup then has to carry every Counter's rules
-// text rather than one, which is what `statusDetail` is for.
+// One control rather than one per condition, which is the Hero Frame's own
+// resolution to the 44pt rule applied a second time: a tray of four as four
+// targets is 176px of chrome beside a 208px frame on a 390pt surface, so the
+// squares pack at the density they were drawn at and the tray as a whole
+// takes the press. The popup then has to carry every condition's rules text
+// rather than one, which is what `statusDetail` is for.
 //
-// The rows wrap upward when the row runs out of width, because this sits in
-// an `items-end` row above the Action Bar: a fourth Counter grows the tray
-// into the board's spare height instead of pushing the Signature button off
-// the surface.
-export function StatusIcons({ entityId }: { entityId: string }) {
-  const state = useWorkbench(selectState)
-  const catalog = useCatalog()
-  const entries: StatusEntry[] = getCounters(state, combatantRef(entityId)).map((counter) => ({
-    counter,
-    rulesText: catalog.counters[counter.id]?.rules_text ?? counter.triggerReason,
-    durationRounds: catalog.counters[counter.id]?.duration_rounds ?? counter.remainingRounds,
-  }))
-  const hold = useHold(statusDetail(entries))
+// The rows wrap when the row runs out of width. Beside the Hero Frame that is
+// upward, into the board's spare height, rather than pushing the Signature
+// button off the surface.
+export function StatusTray({ entries, id, testId }: { entries: StatusEntry[]; id: string; testId: string }) {
+  const hold = useHold(statusDetail(id, entries))
   if (entries.length === 0) {
     return null
   }
@@ -254,11 +240,11 @@ export function StatusIcons({ entityId }: { entityId: string }) {
     <button
       type="button"
       {...hold.holdProps}
-      data-testid="status-tray"
+      data-testid={testId}
       data-counters={entries.length}
       // No `title`: this control already answers a hover with the Detail
       // Popup, and a native tooltip racing it is two readouts for one gesture.
-      aria-label={entries.map((entry) => statusLabel(entry.counter.title, entry.counter.count, entry.counter.remainingRounds)).join(', ')}
+      aria-label={entries.map((entry) => statusLabel(entry.title, entry.count, entry.remainingRounds)).join(', ')}
       // The squares are 28px and the target is 44px: the block padding is what
       // buys the tap target, so the tray keeps the density it was drawn at
       // while the finger gets its 44pt. Pointer events are opted back in
@@ -267,14 +253,28 @@ export function StatusIcons({ entityId }: { entityId: string }) {
     >
       {entries.map((entry) => (
         <StatusIcon
-          key={entry.counter.id}
-          counterId={entry.counter.id}
-          mark={statusMark(entry.counter.id)}
-          count={entry.counter.count}
-          remainingRounds={entry.counter.remainingRounds}
+          key={entry.id}
+          counterId={entry.id}
+          mark={entry.mark}
+          count={entry.count}
+          remainingRounds={entry.remainingRounds}
           durationRounds={entry.durationRounds}
         />
       ))}
     </button>
   )
+}
+
+// The Counters one piece is holding, on that piece's own readout.
+export function StatusIcons({ entityId }: { entityId: string }) {
+  const state = useWorkbench(selectState)
+  const catalog = useCatalog()
+  return <StatusTray entries={counterEntries(catalog, state, entityId)} id="counter" testId="status-tray" />
+}
+
+// Everything one hex is carrying, on the Tile Panel.
+export function GroundStatusIcons({ hexKey }: { hexKey: HexKey }) {
+  const state = useWorkbench(selectState)
+  const catalog = useCatalog()
+  return <StatusTray entries={groundEntries(catalog, state, hexKey)} id="ground" testId="ground-tray" />
 }
