@@ -24,7 +24,7 @@
     {
       "path": "preview/colors-cloth.html",
       "group": "Colors",
-      "subtitle": "#2F5680 \u00b7 the per-Hero role channel \u00b7 6 steps",
+      "subtitle": "#2F5680 \u00b7 one step per Role \u00b7 6 steps",
       "name": "Signal cloth"
     },
     {
@@ -150,8 +150,20 @@
     {
       "path": "preview/components-rails.html",
       "group": "Components",
-      "subtitle": "Undo \u00b7 next \u00b7 continue \u00b7 Signature \u00b7 chips",
+      "subtitle": "Undo \u00b7 next \u00b7 continue \u00b7 Signature",
       "name": "Rails & buttons"
+    },
+    {
+      "path": "preview/components-party-frames.html",
+      "group": "Components",
+      "subtitle": "At rest \u00b7 Downed \u00b7 Revivable \u00b7 Incapacitated",
+      "name": "Party frames"
+    },
+    {
+      "path": "preview/components-status-icons.html",
+      "group": "Components",
+      "subtitle": "6 marks + the fallback \u00b7 count \u00b7 round clock \u00b7 the tray",
+      "name": "Status Icons"
     },
     {
       "path": "preview/motion-set.html",

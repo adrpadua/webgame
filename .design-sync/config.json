@@ -1,0 +1,12 @@
+{
+  "projectId": "18ee2c44-b52e-4e74-8200-740520bda415",
+  "projectName": "Oathcraft Design System",
+  "shape": "custom",
+  "localDir": "design/design-system",
+  "namespace": "OathcraftDesignSystem_18ee2c",
+  "build": "python3 design/design-system/build_ds.py OathcraftDesignSystem_18ee2c",
+  "preserveRemote": [
+    "_ds_bundle.js",
+    "_adherence.oxlintrc.json"
+  ]
+}

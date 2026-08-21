@@ -16,7 +16,17 @@ the shape Claude Design reads.
 Eight materials, each with one job. Runeglass is projected information. Living gold is
 lockwork — anything the player operates. Ember is damage taken; ember coral is the Boss's
 own body, and damage dealt to it. Oathsteel is panels. Aether ceramic is read-outs. Signal
-cloth is the per-Hero role channel. Void navy is the ground.
+cloth is the Role channel — one step per Role, not per Hero. Void navy is the ground.
+
+That last one narrowed on 2026-08-21, and the party frames are what narrowed it. The
+interface direction describes cloth as a per-Hero accent with `#2F5680` standing in for
+Shield Wall's, which was the honest reading while a Party was one Hero. A column of ally
+frames cannot hold it: two Heroes of the same Role in two different blues says they differ
+in something, and they do not. The steps are now assigned — Tank 500, Healer 300, Damage 400
+— and two Damage seats deliberately share one, because the channel names Roles.
+`docs/content/oathcraft-interface-direction.md` still carries the older per-Hero phrasing
+and is the thing to correct next; the material's own rule, that it is allowed to grow within
+the ramp, survived the narrowing intact.
 
 ## What is canon, and what is not
 
@@ -39,9 +49,17 @@ them. Spacing went the other way on purpose: Tailwind's default scale is adopted
 only the arbitrary escape hatch is refused, because spacing showed no defect behind it and
 a rule without one is ceremony.
 
-**Still open.** Status-effect iconography, and motion beyond the documented set. Both stay
-open deliberately: there are no status-effect icons because no authored status effect needs
-one yet, so deciding now would be inventing rather than describing.
+**Status-effect iconography closed on 2026-08-21 (D-088), and it closed the way this
+system's questions are supposed to.** It was left open here because no authored Counter
+needed a mark yet, and deciding early would have been inventing rather than describing.
+What forced it was width, not taste: the named Counter chip spelled its title across a 74px
+plate, so `SEARED` beside the Hero Frame took the room two Counters need and a third had
+nowhere to go on a 390pt surface. The answer is a Status Icon — a Counter as a raked square
+in the material channel, with the name one hold away — and it is now a card. A Counter the
+mark table has never heard of still draws, as a hollow steel rhombus, so a rule authored
+today is visible on the frame the day it lands.
+
+**Still open.** Motion beyond the documented set.
 
 **In, as of D-068.** The board. It renders in Phaser under different constraints, but
 `web/src/board/palette.ts` reads the same token table as the chrome and reasons in material
@@ -52,7 +70,7 @@ paragraph in the interface direction, and the code had already resolved it.
 ## Layout
 
     colors_and_type.css     the system: tokens, plate classes, component classes
-    preview/*.html          26 cards — Colors, Typography, Spacing, Plates, Components, Motion
+    preview/*.html          28 cards — Colors, Typography, Spacing, Plates, Components, Motion
     _ds_manifest.json       the card index and token table
 
 No prose is carried here by copy. An earlier version shipped three canon docs as verbatim
@@ -68,12 +86,21 @@ on the "Action Bar Slot" card is built from the same code path as a Slot in the 
 ## Regenerating
 
     python3 design/design-system/build_ds.py OathcraftDesignSystem_18ee2c
+    python3 tools/check_ds_cards.py
 
 Tokens live in `design/oathcraft_tokens.py`; component renderers and plate CSS are imported
 from `design/current-game-ui/build.py`, which is the canvas builder. Nothing is authored
 twice, so a value that moves in `index.css` moves here once and both surfaces follow.
 
+The second command is the gate, and it is not optional. `build_ds.py` emits strings and
+cannot see what they render as; a card that renders wrong here renders wrong in every design
+built with it. The check loads all 28 cards in Chromium and fails on an unstyled card, an
+empty one, a plate padding inside its own cut, or a row overrunning its box — the last two
+being the app's own checks from `web/scripts/smoke.mjs`, re-pointed at the canvas builder's
+class names.
+
 Do not hand-edit the generated files. Re-run the builder and push with the DesignSync flow.
+The project and the sync's standing corrections are recorded in `.design-sync/`.
 
 ## Two defects this project found, and the guards that now hold them
 
