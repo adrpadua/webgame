@@ -18,4 +18,4 @@ Five mutation-audit anchors re-pointed onto the new bodies (three follow the clu
 
 ## Evidence
 
-611 tests green with zero test-file edits; typecheck clean; gate result stamped on the delivery commit.
+611 tests green with zero test-file edits; typecheck clean; isolated gate green end to end — lint, build, browser smoke, and the mutation audit at **115/115 caught, 0 survived, 0 stale**, all five re-anchored legality mutants killing through the new file layout.
