@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { PLAYER_COMMAND_KINDS } from '../actions'
+import { DIMINISHED_ACTIONS } from '../downed'
 
 // Zod schemas are the single definition of every content shape (ADR 0020).
 // The JSON payloads under data/ are validated at load; TypeScript types are
@@ -616,8 +618,13 @@ export const evaluationDeckSchema = z.object({
   player_deck: z.array(deckEntrySchema).min(1),
 })
 
-// The player-submitted action subset a Scenario may carry. Generated actions
-// (boss beats, damage, hazards, bookkeeping) are re-derived by the replay.
+// The player-submitted command subset a Scenario may carry — the external
+// command seam (Priority 1 of the engine-hardening handoff). Generated
+// actions (boss beats, damage, hazards, bookkeeping) are re-derived by the
+// replay, so a System Action here would be a client authoring consequences;
+// the schema structurally refuses it, and the guard below keeps this list
+// equal to `PLAYER_COMMAND_KINDS` so a new command cannot be added to one
+// surface and forgotten on the other.
 export const scenarioActionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('load_slot'), sourceId: z.string(), slotIndex: z.number().int().min(0), cardInstanceId: z.string() }),
   z.object({ kind: z.literal('charge_slot'), sourceId: z.string(), slotIndex: z.number().int().min(0), cardInstanceId: z.string() }),
@@ -627,10 +634,36 @@ export const scenarioActionSchema = z.discriminatedUnion('kind', [
     slotIndex: z.number().int().min(0),
     targetId: z.string().optional(),
     targetHex: axialSchema.optional(),
+    targetSlotIndex: z.number().int().min(0).optional(),
   }),
   z.object({ kind: z.literal('move_hero'), sourceId: z.string(), destination: axialSchema, cardInstanceId: z.string() }),
   z.object({ kind: z.literal('discard_for_stamina'), sourceId: z.string(), cardInstanceId: z.string() }),
+  z.object({ kind: z.literal('revive_ally'), sourceId: z.string(), targetId: z.string(), cardInstanceId: z.string() }),
+  z.object({
+    kind: z.literal('diminished_action'),
+    sourceId: z.string(),
+    action: z.enum(DIMINISHED_ACTIONS),
+    targetId: z.string().optional(),
+  }),
 ])
+
+// The seam and the vocabulary must agree, at module load, the same way the
+// event registry refuses an unheard `when`: a Player Command the Scenario
+// schema cannot carry is a command no committed Scenario or sealed Record
+// could replay.
+{
+  const carried = new Set(scenarioActionSchema.options.map((option) => option.shape.kind.value as string))
+  for (const kind of PLAYER_COMMAND_KINDS) {
+    if (!carried.has(kind)) {
+      throw new Error(`scenarioActionSchema cannot carry player command ${kind}; add its entry or remove the command`)
+    }
+  }
+  for (const kind of carried) {
+    if (!(PLAYER_COMMAND_KINDS as readonly string[]).includes(kind)) {
+      throw new Error(`scenarioActionSchema carries ${kind}, which is not a player command; a replay re-derives system actions`)
+    }
+  }
+}
 
 export const scenarioStepSchema = z.union([
   z.object({ advance: z.literal(true) }),

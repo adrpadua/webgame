@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand'
 import { DEFAULT_ENCOUNTER_ID, FIRST_TURN_ENCOUNTER_ID } from '@/content'
-import { advancePhase, createEncounterState, resolve, runScenario, type EncounterActionInput, type EncounterState, type ResolvedActionFact, type ScenarioStep } from '@/engine'
+import { advancePhase, createEncounterState, resolve, runScenario, type EncounterState, type PlayerCommandInput,
+  type SystemActionInput, type ResolvedActionFact, type ScenarioStep } from '@/engine'
 import { catalog } from './catalog'
 import { buildRecordExport, buildScenarioExport } from './exports'
 import { CLEARED_INTERACTION } from './interactionSlice'
@@ -26,7 +27,11 @@ export interface SessionSlice {
   index: number
   activeScenarioId: string | null
   sessionStartedAt: string
-  submit: (action: EncounterActionInput) => void
+  // The UI's half of the external command seam (engine-hardening P1): only a
+  // Player Command crosses it, typed at the boundary rather than filtered
+  // after the fact.
+  submit: (action: PlayerCommandInput) => void
+  submitSystemAction: (action: SystemActionInput) => void
   advance: () => void
   // Replays the Encounter this session opened, with the same seed or a new
   // one. Which Encounter that is stays fixed for the session.
@@ -43,7 +48,6 @@ export interface SessionSlice {
 
 // Which action kinds are worth replaying. A Scenario is an action prefix, so
 // only the actions that move the Encounter belong in one.
-const SCENARIO_STEP_KINDS = new Set(['load_slot', 'charge_slot', 'fire_slot', 'move_hero', 'discard_for_stamina'])
 
 function initialEntry(encounterId: string, seed: number): HistoryEntry {
   return { label: 'Encounter start', step: null, state: createEncounterState(catalog, encounterId, seed), facts: [] }
@@ -77,8 +81,21 @@ export const createSessionSlice: StateCreator<WorkbenchStore, [], [], SessionSli
       const state = selectState(get())
       const result = resolve(catalog, state, action)
       const submitted = result.facts[0]
-      const step = SCENARIO_STEP_KINDS.has(action.kind) ? ({ action } as ScenarioStep) : null
-      pushEntry(submitted?.title ?? action.kind, step, result.state, result.facts)
+      pushEntry(submitted?.title ?? action.kind, { action } as ScenarioStep, result.state, result.facts)
+      set({ lastRejection: submitted && !submitted.succeeded ? submitted.reason : null })
+    },
+
+    // The debug injection seam, deliberately not `submit`: a System Action is
+    // the engine's to generate, so pushing one from outside is a Workbench
+    // debug affordance rather than play. It records NO scenario step — a
+    // replay re-derives system actions from commands and the seed, so an
+    // injected one is invisible to time travel and exports by design, the
+    // hole `submit` used to hide behind a silent null step.
+    submitSystemAction: (action) => {
+      const state = selectState(get())
+      const result = resolve(catalog, state, action)
+      const submitted = result.facts[0]
+      pushEntry(submitted?.title ?? action.kind, null, result.state, result.facts)
       set({ lastRejection: submitted && !submitted.succeeded ? submitted.reason : null })
     },
 
