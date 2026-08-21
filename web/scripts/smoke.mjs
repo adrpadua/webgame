@@ -684,8 +684,25 @@ try {
   // party column is the one that actually collided and is why this is a
   // separate check: `notificationLayout` compares notifications with each
   // other and with the bands, and the ally frames are neither.
+  // Measured until it settles: the herald and the phase word both slide in,
+  // and a bounding box sampled mid-flight overlaps chrome it will have
+  // cleared a frame later — which failed two clean gates in a row on trees
+  // whose fact streams were byte-identical. The contract is steady-state
+  // readability, so a transient overlap is retried for up to two and a half
+  // seconds; a genuine covering persists and fails with the same message.
   const assertBeatCardReadable = async (view, label) => {
-    const covered = await view.evaluate(() => {
+    let covered = []
+    for (let attempt = 0; attempt < 25; attempt += 1) {
+      covered = await measureBeatCardCoverage(view)
+      if (covered.length === 0) {
+        break
+      }
+      await view.waitForTimeout(100)
+    }
+    assert(covered.length === 0, `every row of the Beat Card is readable ${label} (${covered.join(', ')})`)
+  }
+  const measureBeatCardCoverage = async (view) => {
+    return await view.evaluate(() => {
       const card = document.querySelector('[data-testid="playout-continue"]')
       if (card === null) {
         return ['no Beat Card is up']
@@ -706,7 +723,6 @@ try {
         })
         .map((node) => node.dataset.testid)
     })
-    assert(covered.length === 0, `every row of the Beat Card is readable ${label} (${covered.join(', ')})`)
   }
   // The card the scripted turn is pointing at is the only live card in Hand.
   const scriptedCard = () => page.locator('[data-testid="hand-card"][data-scripted="true"]')

@@ -7,7 +7,7 @@ Status: active
 An `/improve-codebase-architecture` review of `web/src/engine` (2026-08-21, main at `a86fd91`), built on a sub-agent friction survey plus co-change history. The full report with before/after diagrams is [architecture-review-20260821.html](architecture-review-20260821.html). Six candidates, in the report's order:
 
 1. **Deepen the Fired Card into one module** (Strong) — issue 01, this session.
-2. **Give the Round one seam** (Strong) — open. Directly serves the recorded intent to fold Loadout's job into Quick and Slow; `advancePhase.ts` has never committed without `resolve.ts` (13/13).
+2. **Give the Round one seam** (Strong) — delivered, issue 02, this session. Directly serves the recorded intent to fold Loadout's job into Quick and Slow; `advancePhase.ts` has never committed without `resolve.ts` (13/13).
 3. **State each content concept once** (Worth exploring) — open. `schemas.ts` shape vs `buildCatalog`'s 596-line/87-throw procedure; 31/39 co-change.
 4. **Let the board own the board** (Worth exploring) — open. 107 direct `.board.*` accesses; no `removeEntity`; the host-liveness invariant implemented three times. First slice: `removeEntity`.
 5. **One owner for the Beat kind vocabulary** (Worth exploring) — open. Includes a live hazard worth taking alone: `escalation.ts` types Beat kinds as bare strings, so a renamed kind silently stops charging demands.
