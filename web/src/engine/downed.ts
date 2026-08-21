@@ -136,3 +136,14 @@ export function expiredRescues(state: EncounterState): string[] {
 // universal set — either way it rides a title, not the id.
 export const DIMINISHED_ACTIONS = ['grant_ally_armor', 'ally_draws_card', 'reduce_escalation'] as const
 export type DiminishedAction = (typeof DIMINISHED_ACTIONS)[number]
+
+// The body mirrors the sheet: whenever a rule changes a Hero's health, their
+// board entity repeats it, so board reads and hero reads never disagree.
+// Lives here with the rest of the zero-health lifecycle because the entity's
+// health is exactly what `goDowned` and `reviveHero` already keep honest.
+export function syncHeroEntity(state: EncounterState, heroId: string): void {
+  const entity = state.board.entities[heroId]
+  if (entity) {
+    entity.health = state.heroes[heroId].health
+  }
+}
