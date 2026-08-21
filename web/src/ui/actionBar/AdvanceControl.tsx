@@ -159,6 +159,9 @@ export function AdvanceControl() {
   }
 
   const ended = !state.active && !outcomeHeld
+  // An ended Encounter never nudges without this line either — `heroCanAct`
+  // refuses an inactive state — but Restart outranks every other reading of
+  // the rail, and saying so here is cheaper than trusting a chain of two.
   const nudging = !ended && nudgeHeroId !== null
   const Icon = ended ? RestartIcon : awaitingContinue ? PlayIcon : nudging ? UnactedIcon : AdvanceIcon
   const label = ended
@@ -175,7 +178,7 @@ export function AdvanceControl() {
         type="button"
         data-testid={ended ? 'restart' : 'next-phase'}
         data-rail={ended ? 'restart' : awaitingContinue ? 'continue' : nudging ? 'unacted' : 'next'}
-        data-nudge-hero={nudging ? (nudgeHeroId as string) : undefined}
+        data-nudge-hero={nudging && nudgeHeroId !== null ? nudgeHeroId : undefined}
         data-playing-beat={activeBeatId ?? undefined}
         aria-label={label}
         onClick={ended ? () => restart() : onPress}

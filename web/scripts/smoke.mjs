@@ -1544,8 +1544,9 @@ try {
     'the seat that has not acted nudges: the frame carries the state and the unspent pip',
   )
   assert(
-    ((await allyFrame().getAttribute('class')) ?? '').includes('wb-accent-pulse'),
-    'the nudge breathes the accent band alone, so the name and the health number never dip',
+    ((await party.locator('[data-testid="ally-unacted"]').getAttribute('class')) ?? '').includes('wb-glow-ring') &&
+      !((await allyFrame().getAttribute('class')) ?? '').includes('wb-face-pulse'),
+    'the bloom is on the pip, not the frame: the name and the health number never dip under their contrast floor',
   )
   assert(
     (await partyRail().getAttribute('data-rail')) === 'unacted' && (await partyRail().getAttribute('data-nudge-hero')) === 'maren',

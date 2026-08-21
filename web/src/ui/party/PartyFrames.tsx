@@ -2,7 +2,7 @@ import { useCatalog } from '@/content/CatalogContext'
 import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { partyFrames, type PartyFrameModel } from './partyFrames'
 import { unactedHeroIds } from './unacted'
-import { GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, FOCUS_RING_CLASS, healthBarScale } from '../common/theme'
+import { GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, FOCUS_RING_CLASS, NUDGE_RING_CLASS, healthBarScale } from '../common/theme'
 
 // The ally frames (party-frame layout direction 1A): a left-edge column of
 // readouts growing upward from the primary Hero's frame, over board pixels
@@ -20,19 +20,25 @@ import { GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, FOCUS_RING_CLASS, healthBarScale }
 // appears.
 //
 // The unacted nudge (D-092 — Total War's "a unit has not moved", read onto the
-// frame rather than only onto the button): a seat that has not used the window
-// and still could breathes its accent band until it acts, the window closes,
-// or the player takes control of it. Only the accent breathes — the frame
-// carries a name, a health number and a bank, and `wb-face-pulse` would dip
-// all three under their contrast floor; `wb-accent-pulse` exists for exactly
-// this and moves a 3px band with nothing written on it.
+// frame rather than only onto the button): a seat that has not used the open
+// window and still could grows an unspent pip beside its name, wearing the
+// living-gold bloom until it acts, the window closes, or the player takes
+// control of it. The rail wears the same bloom for the same state, so the
+// frame and the button say one thing in one mark.
+//
+// The motion is on the pip and nowhere else. Not the face — the frame carries
+// a name, a health number and a bank, and `wb-face-pulse` dips all three under
+// their contrast floor. Not the accent band either, which is already the
+// status channel: Role, the Boss's attention, and a body on the floor all
+// speak through it, and a fourth meaning that *moves* would make the other
+// three ambiguous. A pip has nothing written on it and no other job.
 //
 // It loops, which the interface direction otherwise reserves for ambient
 // motion, because it is the same "waiting on you" state the revive offer and
 // the scripted turn's ring already loop for: bounded by the player's own next
-// press, never by a Round. The static mark beside the name carries the same
-// state without motion, so a `prefers-reduced-motion` player — who gets no
-// animation at all — still sees which seat is waiting.
+// press, never by a Round. And the mark is legible with the bloom removed, so
+// a `prefers-reduced-motion` player — who gets no animation at all — still
+// sees which seat is waiting.
 
 // Role accent: the Signal cloth channel, one step per Role — Tank 500,
 // Healer 300, Damage 400 (two Damage share a step; they are one Role).
@@ -107,11 +113,7 @@ function AllyFrame({ frame }: { frame: PartyFrameModel }) {
       // The 44pt rule: at rest the frame is a 40px readout that swallows no
       // taps; while a rescue is legal the same frame grows its hit box
       // outward with padding into the gap it already owns.
-      // The rescue offer outranks the nudge on the motion channel the same way
-      // it outranks the switch on the tap: one frame, one thing being asked.
-      className={`wb-plate wb-plate-sm pointer-events-auto flex w-full flex-col items-stretch gap-0.5 py-1 text-left ${FOCUS_RING_CLASS} cursor-pointer ${
-        offering ? 'wb-face-pulse' : frame.unacted ? 'wb-accent-pulse' : ''
-      } ${frame.status === 'incapacitated' ? 'opacity-60' : ''}`}
+      className={`wb-plate wb-plate-sm pointer-events-auto flex w-full flex-col items-stretch gap-0.5 py-1 text-left ${FOCUS_RING_CLASS} cursor-pointer ${offering ? 'wb-face-pulse' : ''} ${frame.status === 'incapacitated' ? 'opacity-60' : ''}`}
       style={{ '--wb-face': 'var(--color-steel-950)', '--wb-acc': accent } as React.CSSProperties}
       // The one legal ally action keeps the frame (direction 1A's rule);
       // otherwise the frame is the switch — BG3's portrait click, arrived at
@@ -131,13 +133,14 @@ function AllyFrame({ frame }: { frame: PartyFrameModel }) {
         </span>
         <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-ceramic-300">{frame.name}</span>
         {/* The unacted mark: an unspent pip, hollow because nothing has been
-            spent yet. It is the nudge's motion-free half — the accent breathes
-            for the eye, this reads under prefers-reduced-motion and in a still
-            screenshot. */}
+            spent yet, wearing the living-gold bloom the rail wears for the
+            same state. The ring is the motion and the pip is the state, which
+            is what makes the cue survive `prefers-reduced-motion` — the bloom
+            stops, the mark stays. */}
         {frame.unacted && (
           <span
             data-testid="ally-unacted"
-            className="h-2.5 w-2.5 shrink-0 rounded-full border-[1.5px] border-gold-400"
+            className={`h-2.5 w-2.5 shrink-0 rounded-full border-[1.5px] border-gold-400 ${NUDGE_RING_CLASS}`}
             title="Has not acted this window"
           />
         )}
