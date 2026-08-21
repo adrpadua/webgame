@@ -6,6 +6,7 @@ import { selectPilotId, selectState, useWorkbench, type WorkbenchStore } from '@
 import { blocksTarget } from '../onboarding/firstTurnScript'
 import { AdvanceIcon, PlayIcon, RestartIcon, UnactedIcon } from '../common/icons'
 import { Modal } from '../common/Modal'
+import { captureFrameBoxes } from '../party/controlSwap'
 import { heroActed, heroCanAct, nextNudge } from '../party/unacted'
 import { slotCanFire } from './slots'
 import { useFirstTurnStep } from '../onboarding/useFirstTurn'
@@ -141,6 +142,10 @@ export function AdvanceControl() {
     // and do not close the window. The offer is recorded by the same action,
     // so pressing again walks to the next one and then to Next itself.
     if (nudgeHeroId !== null) {
+      // The console changes hands here too, so the frames trade places here
+      // too — measured before the store is written, exactly as a tap on the
+      // frame itself does it (`ui/party/controlSwap.ts`).
+      captureFrameBoxes()
       nudgeToUnacted(nudgeHeroId)
       return
     }

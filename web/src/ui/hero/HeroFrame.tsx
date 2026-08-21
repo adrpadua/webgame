@@ -3,6 +3,7 @@ import { type HeroState } from '@/engine'
 import { usePlayout } from '@/store/playout'
 import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { signatureControl, type SignatureControl as SignatureControlState } from './heroFrame'
+import { useSwapFlip } from '../party/controlSwap'
 import { useDamageFlash } from '../common/useDamageFlash'
 import { HeartIcon, HeroEmblem, ShieldIcon } from '../common/icons'
 import { HERO_STAT_DETAILS, slotDetail } from '../common/holdDetails'
@@ -183,6 +184,13 @@ export function HeroFrame() {
   // A hit must be visible even while the player's eyes are on the board: the
   // number flashes per beat, when the blow's playout moment arrives.
   const { flashing, flashKey } = useDamageFlash(shownHealth)
+  // The promoted half of a control swap: this plate has just taken over from
+  // the one the player tapped in the column, so it flies up from that Hero's
+  // old slot and grows into full size (`ui/party/controlSwap.ts`). Both
+  // arguments are the pilot here — the primary frame changes Hero exactly when
+  // the cursor does — and the hook is bound before the early return below, the
+  // way every hook in this component is.
+  const plate = useSwapFlip<HTMLButtonElement>(heroId, heroId)
   const signature = hero === undefined ? null : signatureControl(catalog, state, heroId)
   const resourceStat = signature === null ? [] : [{ label: signature.resourceTitle, value: `${signature.charges} / ${signature.cap}` }]
   // One hold for the whole frame: the numbers are all printed on it, so what
@@ -210,11 +218,21 @@ export function HeroFrame() {
   const title = state.board.entities[heroId]?.title ?? heroId
   const resourceLabel = signature === null ? '' : `, ${signature.resourceTitle} ${signature.charges} of ${signature.cap}`
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end gap-1.5 px-2 pb-1">
+    // z-31, one step over the ally column, and only one moment needs it: mid
+    // swap the two plates cross, and the one the player tapped is the one
+    // that has to stay visible through the crossing — it is the answer to
+    // their press. At rest the column and this row never share a pixel, so
+    // the step costs nothing anywhere else.
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-31 flex items-end gap-1.5 px-2 pb-1">
       <button
         type="button"
         {...hold.holdProps}
+        ref={plate}
         data-testid="hero-frame"
+        // Who this frame is showing, in the one place both frame kinds agree
+        // on: the swap's measuring pass reads the layout off these attributes
+        // rather than re-deriving which plate holds which Hero.
+        data-hero-id={heroId}
         // Keyed on the pulse counter: tapping the Hero's tile replays the
         // pop, pointing the tap at the chrome that answers it.
         key={pulse}

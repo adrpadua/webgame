@@ -1627,6 +1627,92 @@ try {
   )
   await party.close()
 
+  // The console changing hands, as motion. The arithmetic is unit-tested; what
+  // only a browser can answer is whether the plates actually fly — whether the
+  // measurement really happened before the DOM moved, and whether the two
+  // frames are mid-travel at the instant the press lands rather than already
+  // sitting in their new boxes.
+  //
+  // The reading is taken with no wait after the click on purpose: React
+  // commits a discrete event synchronously, so by the time this evaluate runs
+  // the layout effect has started both flights and neither has got anywhere.
+  // A primary frame still measuring near the 138pt column width is the whole
+  // claim — it is standing where the ally frame stood.
+  const swapPage = async (options = {}) => {
+    const page = await browser.newPage({ viewport: { width: 390, height: 900 }, ...options })
+    await page.addInitScript(() => {
+      localStorage.setItem('workbench.firstTurnDone', 'true')
+      localStorage.setItem('workbench.guideSeen', 'true')
+    })
+    await page.goto(BASE_URL)
+    await page.waitForSelector('[data-testid="hero-frame"]')
+    await page.locator('[data-testid="encounter-picker-button"]').click()
+    await page.locator('[data-testid="encounter-choice"][data-encounter-id="embermaw_attrition_trial"]').click()
+    await page.waitForSelector('[data-testid="party-frames"]')
+    await page.waitForTimeout(400)
+    return page
+  }
+  const readFrames = (page) =>
+    page.evaluate(() => {
+      const read = (selector) => {
+        const element = document.querySelector(selector)
+        if (element === null) {
+          return { hero: '', width: 0, flying: false }
+        }
+        return {
+          hero: element.dataset.heroId ?? '',
+          // Transform included: this is where the plate is on screen, not
+          // where the layout put it.
+          width: Math.round(element.getBoundingClientRect().width),
+          flying: element.getAnimations().some((animation) => animation.playState === 'running'),
+        }
+      }
+      return { primary: read('[data-testid="hero-frame"]'), ally: read('[data-testid="ally-frame"]') }
+    })
+
+  const swap = await swapPage()
+  const atRest = await readFrames(swap)
+  assert(
+    atRest.primary.hero === 'elian' && atRest.primary.width === 208 && atRest.ally.hero === 'maren' && atRest.ally.width === 138,
+    `both frames start in their own boxes (${atRest.primary.hero}@${atRest.primary.width}, ${atRest.ally.hero}@${atRest.ally.width})`,
+  )
+  await swap.locator('[data-testid="ally-frame"]').first().click()
+  const inFlight = await readFrames(swap)
+  assert(
+    inFlight.primary.hero === 'maren' && inFlight.ally.hero === 'elian',
+    'the press swaps what the two frames are showing at once — the store never waits on the animation',
+  )
+  assert(
+    inFlight.primary.flying && inFlight.primary.width < 208,
+    `the promoted frame starts in the column's slot and grows (${inFlight.primary.width}px of 208)`,
+  )
+  assert(
+    inFlight.ally.flying && inFlight.ally.width > 138,
+    `the displaced frame starts in the primary box and shrinks (${inFlight.ally.width}px of 138)`,
+  )
+  await swap.waitForTimeout(600)
+  const settled = await readFrames(swap)
+  assert(
+    !settled.primary.flying && settled.primary.width === 208 && !settled.ally.flying && settled.ally.width === 138,
+    `both frames land in their new boxes and stop (${settled.primary.width}, ${settled.ally.width})`,
+  )
+  await shot(swap, 'party-control-swap')
+  await swap.close()
+
+  // The frozen half. `prefers-reduced-motion` is honoured in JavaScript here
+  // rather than by index.css's freeze block, which can only reach CSS
+  // animations and transitions — a Web Animations flight would sail straight
+  // through it. So the browser is the only place this can be proved.
+  const stillSwap = await swapPage({ reducedMotion: 'reduce' })
+  await stillSwap.locator('[data-testid="ally-frame"]').first().click()
+  const cut = await readFrames(stillSwap)
+  assert(
+    cut.primary.hero === 'maren' && cut.primary.width === 208 && !cut.primary.flying,
+    `reduced motion cuts to the swapped layout with nothing in flight (${cut.primary.width}px, flying=${cut.primary.flying})`,
+  )
+  assert(cut.ally.hero === 'elian' && cut.ally.width === 138 && !cut.ally.flying, 'the displaced frame is simply in the column')
+  await stillSwap.close()
+
   // The Slot row's worst case, measured on purpose rather than hoped for.
   // The scripted turn above prepares Steady Strike — two Charges, no want mark
   // — which fits at exactly 97/97, and that is why this defect shipped

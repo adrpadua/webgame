@@ -37,6 +37,24 @@ Single-player control arrived after the mockups and completes the frame's gestur
 
 The pattern is BG3's portrait click on Spirit Island's structure, per the [party-switching research note](research/2026-08-21-single-player-party-switching-bg3-spirit-island.md): switching drops in-flight gestures and keeps commitments, and the cursor survives undo because the window — not the character — is the commit boundary.
 
+### The swap is a move, not a cut (D-097)
+
+The first pass swapped the two frames' contents in one video frame. Both readouts were correct the instant the store wrote them, and that was the problem: the 208pt plate and the 138pt plate were simply holding different Heroes now, and nothing said the object the player had been reading had *moved*. On a portrait-click switch that sentence is the whole confirmation of the gesture.
+
+So the frames travel. **The tapped frame flies from its slot in the column into the primary box and grows 138 → 208; the displaced Hero's frame flies the other way and shrinks into the column.** It is the layout's own claim — the ragged right edge *is* the hierarchy — said in the one channel a still frame cannot use.
+
+| The mechanism | |
+| --- | --- |
+| Where it lives | `web/src/ui/party/controlSwap.ts`, bound by both frame kinds through one `useSwapFlip` hook. |
+| Measure | FLIP's First runs in the **press handler**, not the effect: React batches the store write, so that is the last moment the old layout is still on screen. Both call sites that change the pilot — the frame tap and the rail's unacted press — measure the same way. |
+| Claim | Each frame asks *where was I standing before this press?* **by Hero id, never by seat.** That one question serves the promoted frame, the demoted frame, and — in a party of more than two — an untouched ally whose slot index shifted because the column dropped a different name. A box is handed out once and then gone, so no later render can animate from pixels that no longer exist. |
+| Curve | 300ms on `cubic-bezier(0.4, 0, 0.2, 1)`, the standard position-and-size curve. Deliberately **not** `wb-beat-deal`'s, the only other motion that moves a whole plate: that one spends 45% of its travel in the first 11% of its duration because a dealt card is an arrival, whereas here the travel *is* the message. |
+| Crossing | The Hero Frame's layer sits one step above the column (`z-31`) so the plate the player tapped stays visible where the two pass through each other. At rest the two never share a pixel, so the step costs nothing anywhere else. |
+
+Motion that carries state, fired once — the house rule, and this is as bounded as motion gets: it ends when the frames arrive.
+
+**`prefers-reduced-motion` is honoured in JavaScript here**, which is the one place on the surface that is true. `index.css`'s freeze block reaches CSS animations and transitions; a Web Animations flight is neither, and would sail straight through it. The flight is skipped outright rather than shortened, and the swap is then exactly what it was before this pass — instant, correct, and readable.
+
 ## The unacted nudge (D-093)
 
 Multi-character play added a failure the solo slice could not have: a seat you are not piloting can sit out a whole window in silence. Total War's campaign map is the tested answer — the end-turn button becomes "a unit has not moved", each press jumps to one, and it reverts to end-turn once none are left — and it lands here as **three faces of one rule** (`web/src/ui/party/unacted.ts`), so the frame that nudges and the rail that offers can never disagree about who is waiting.
