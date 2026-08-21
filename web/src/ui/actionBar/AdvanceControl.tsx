@@ -26,7 +26,7 @@ import { FOCUS_RING_CLASS, GATED_CLASS, NUDGE_RING_CLASS, SPOTLIGHT_CLASS } from
 // than relying on the player to know which press they are making.
 //
 // The Continue state carries more weight since the Beat Card moved to the
-// board's top edge (D-097): the rail is now the press within the thumb's
+// board's top edge (D-098): the rail is now the press within the thumb's
 // reach for a Boss Row, while the card is where the Beat is read. Both still
 // resolve the same beat, and this handler is the one that does it.
 //

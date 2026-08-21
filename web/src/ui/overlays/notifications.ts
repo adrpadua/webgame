@@ -33,7 +33,7 @@
 //     three and a half seconds; at the far end it displaces nothing.
 //
 // The Beat Card is the one surface those two rules could not place, and the
-// `herald` zone is where it went (D-097). It is a control, so the first rule
+// `herald` zone is where it went (D-098). It is a control, so the first rule
 // wanted it docked — but the bottom of the play surface is the crowded end:
 // the Hero Frame is the dock's floor and the ally column stands in the same
 // lane, so a card carrying four rows of a Beat's rules text reached the player

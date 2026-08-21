@@ -46,7 +46,7 @@ export function BeatCard() {
   const found =
     nextBeatId === null ? null : findLiveBeat(catalog, state, nextBeatId);
   const stats = found ? beatCardStats(found.beat) : [];
-  // The herald (D-097): the board's top edge, alone in its zone. This card
+  // The herald (D-098): the board's top edge, alone in its zone. This card
   // docked against the Action Bar while it was one short title, on the rule
   // that a control belongs beside the control it names — and then it became a
   // card with stats, rules text and a line of answers, and the bottom of the

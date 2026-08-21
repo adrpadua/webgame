@@ -47,6 +47,18 @@ Multi-character play added a failure the solo slice could not have: a seat you a
 | The rail | While such a seat exists the Action Bar's forward rail draws the unacted mark instead of Next; a press hands the console to that Hero and does **not** close the window. |
 | The warning | The pilot is never the rail's target — their console is the bottom half of the screen — so their own unused window stays the skip warning's job. Both read the same two predicates. |
 
+**The walk order is a round-robin from the pilot's seat**, not a scan from seat 0. Two seats cannot tell the two rules apart — which is how the scan shipped — and three can: from seat 0, a scan offers seat 1, then seat 0 back (the pilot has moved, and seat 0 is still first in authored order), and only then seat 2. Walking forward visits each seat once in roster order and returns to the starting seat last.
+
+**What a window costs**, measured on temporary three- and four-seat fixtures driven through the UI (then removed — no authored Encounter seats more than two):
+
+| Seats | Player acts with each seat offered | Player ignores every offer |
+| --- | --- | --- |
+| 2 | 2 presses | 3 presses |
+| 3 | 3 presses | 4 presses |
+| 4 | 4 presses | 5 presses |
+
+One press per seat when the party is being played, `N+1` when it is not, against a baseline of one press to close a window. That is the price of the cap, and at four seats it is the number to watch.
+
 **One offer per seat per window.** This is the deliberate departure from Total War, which nags until every unit has actually moved. A Hero here can be legally able to act with nothing worth doing — cards in hand, no Slot in reach — and a rail that refused to become Next until they acted would trap the window. So the rail lets go after offering a seat once; the frame keeps nudging, because the state has not changed, only the rail's claim on the player's next press. The memory lives exactly one window: every phase advance clears it.
 
 **Motion, on the pip and nowhere else.** Not the face: the frame carries a name, a health number and a bank, and `wb-face-pulse` dips all three under their contrast floor. Not the accent band either — that is already the status channel, where Role, the Boss's attention and a body on the floor all speak, and a fourth meaning that *moves* would make the other three ambiguous. A pip has nothing written on it and no other job, and it wears the same living-gold bloom the rail wears, so the frame and the button say one thing in one mark. It loops, which the interface direction otherwise reserves for ambient motion, on the same grounds the revive offer and the scripted turn's ring already loop: it is bounded by the player's own next press, never by a Round. The mark is legible with the bloom removed, so a `prefers-reduced-motion` player — who gets no animation — loses nothing but the animation.
@@ -72,7 +84,7 @@ Multi-character play added a failure the solo slice could not have: a seat you a
 
 - ~~No authored Encounter fields a second seat yet~~ — superseded: **Embermaw: The Brand** (`embermaw_attrition_trial`) seats Elian and Maren and is reachable from the Encounter Picker, so the column draws there. The solo Encounters still render nothing, and the seam still costs the teaching slice zero pixels (ADR 0035).
 - The primary Hero Frame does not yet carry the Threat mark (`primaryHasThreat` is exported and tested, unconsumed).
-- **The column is not in the notification-zone table, and the overlap 1A accepted turned out to be wider than board pixels.** Growing upward from the primary frame puts the column in the dock's lane — the same strip the floating prompts stack in — and the zone geometry cannot see it, because the frames are persistent chrome with no rank to claim. The first casualty was the Beat Card, which reached the player with its rules text behind an ally frame; that was answered by moving the card to its own top-edge zone (D-097), not by modelling the column. Until it is modelled, a dock member has to be short enough to read in the strip beside the frames.
+- **The column is not in the notification-zone table, and the overlap 1A accepted turned out to be wider than board pixels.** Growing upward from the primary frame puts the column in the dock's lane — the same strip the floating prompts stack in — and the zone geometry cannot see it, because the frames are persistent chrome with no rank to claim. The first casualty was the Beat Card, which reached the player with its rules text behind an ally frame; that was answered by moving the card to its own top-edge zone (D-098), not by modelling the column. Until it is modelled, a dock member has to be short enough to read in the strip beside the frames.
 - The Status icon strip (canvas `StatusIcon`, Counters on the frame) stays with the existing Counter chips beside the Hero Frame; migrating them onto ally frames is a later pass.
 
 ## Source

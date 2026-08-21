@@ -224,16 +224,16 @@ const MUTATIONS = [
   {
     name: 'Boss damage resolves from anywhere on the board',
     guards: 'D-073: reach is a property of every ability, the Boss included',
-    file: 'engine/legality.ts',
+    file: 'engine/fireLegality.ts',
     from: "bossVerdict = rangeVerdict(state, action.sourceId, state.bossId, card.range_tiles, \"The Boss is outside the Top Card's range.\")",
     to: "bossVerdict = rangeVerdict(state, action.sourceId, state.bossId, 99, \"The Boss is outside the Top Card's range.\")",
   },
   {
     name: 'the Boss keeps its old exemption from a piece-targeting card\'s reach',
     guards: 'D-073: marking the Boss costs the same footwork as marking a Whelp',
-    file: 'engine/legality.ts',
-    from: '        if (targetVerdict === undefined) {\n          targetVerdict = rangeVerdict(state, action.sourceId, targetId, card.range_tiles, "The chosen Enemy is outside the Top Card\'s range.")',
-    to: '        if (targetVerdict === undefined && target.kind !== \'boss\') {\n          targetVerdict = rangeVerdict(state, action.sourceId, targetId, card.range_tiles, "The chosen Enemy is outside the Top Card\'s range.")',
+    file: 'engine/fireLegality.ts',
+    from: '    if (targetVerdict === undefined) {\n      targetVerdict = rangeVerdict(state, action.sourceId, targetId, card.range_tiles, "The chosen Enemy is outside the Top Card\'s range.")',
+    to: '    if (targetVerdict === undefined && target.kind !== \'boss\') {\n      targetVerdict = rangeVerdict(state, action.sourceId, targetId, card.range_tiles, "The chosen Enemy is outside the Top Card\'s range.")',
   },
   {
     name: 'a card may reach past its Hero without authoring how far',
@@ -539,9 +539,9 @@ const MUTATIONS = [
   {
     name: 'a gate stops gating',
     guards: 'D-047: every `gate` a Card declares has to pass before it may fire',
-    file: 'engine/legality.ts',
-    from: '      if (!cardGatesPass(catalog, state, card, action)) {',
-    to: '      if (false) {',
+    file: 'engine/fireLegality.ts',
+    from: '  if (!cardGatesPass(catalog, state, card, action)) {',
+    to: '  if (false) {',
   },
   {
     name: 'ground that burns for good keeps its Counters',
@@ -743,15 +743,22 @@ const MUTATIONS = [
     name: 'the rail nags forever — an offered seat is offered again',
     guards: 'The unacted cycle is finite: one offer per seat per window, so the window can always be closed',
     file: 'ui/party/unacted.ts',
-    from: '.find((heroId) => heroId !== pilotId && !offered.includes(heroId)) ?? null',
-    to: '.find((heroId) => heroId !== pilotId) ?? null',
+    from: '.find((heroId) => !offered.includes(heroId) && unacted.includes(heroId)) ?? null',
+    to: '.find((heroId) => unacted.includes(heroId)) ?? null',
   },
   {
     name: 'the rail nudges toward the pilot, whose console is already on screen',
     guards: 'The nudge points at the seats the player is not looking at; the pilot has the skip warning',
     file: 'ui/party/unacted.ts',
-    from: '.find((heroId) => heroId !== pilotId && !offered.includes(heroId)) ?? null',
-    to: '.find((heroId) => !offered.includes(heroId)) ?? null',
+    from: '  const walk = pivot < 0 ? seats : [...seats.slice(pivot + 1), ...seats.slice(0, pivot)]',
+    to: '  const walk = seats',
+  },
+  {
+    name: 'the rail scans from seat 0 instead of walking on from the pilot',
+    guards: 'The unacted walk goes forward through the roster: at three seats a scan bounces back to the seat just left',
+    file: 'ui/party/unacted.ts',
+    from: '  const walk = pivot < 0 ? seats : [...seats.slice(pivot + 1), ...seats.slice(0, pivot)]',
+    to: '  const walk = seats.filter((heroId) => heroId !== pilotId)',
   },
   {
     name: 'the nudge offer is recorded without the switch landing',
@@ -806,7 +813,7 @@ const MUTATIONS = [
     name: 'the Signature takes hand charges',
     guards: 'D-064 / ADR 0032: earned, never bought — hand cards cannot reach the Signature',
     file: 'engine/legality.ts',
-    from: "      if (slot.fixed) {\n        return illegal('The Signature Slot charges only through its standing clause.')\n      }",
+    from: "  if (slot.fixed) {\n    return illegal('The Signature Slot charges only through its standing clause.')\n  }",
     to: '',
   },
   {
@@ -838,7 +845,7 @@ const MUTATIONS = [
     name: 'a hand card can be prepared onto the Signature',
     guards: 'D-064 / ADR 0032: the Signature Slot is never replaceable and never takes a prepared card',
     file: 'engine/legality.ts',
-    from: "      if (hero.actionBar[action.slotIndex].fixed) {\n        return illegal('The Signature Slot never takes a prepared card.')\n      }",
+    from: "  if (hero.actionBar[action.slotIndex].fixed) {\n    return illegal('The Signature Slot never takes a prepared card.')\n  }",
     to: '',
   },
 ]

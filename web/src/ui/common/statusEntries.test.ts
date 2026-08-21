@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { loadCatalog } from '@/content'
-import { createEncounterState, hexKey, resolve, type Axial, type EncounterState } from '@/engine'
+import { createEncounterState, hexKey, resolve, runScenario, type Axial, type EncounterState } from '@/engine'
 import { counterEntries, groundEntries } from './statusIcons'
 
 // What one tile hands the HUD. Run against the real catalog rather than a
@@ -85,5 +85,31 @@ describe('groundEntries', () => {
     const key = hexKey(state.board.entities[state.primaryHeroId].coords)
     expect(groundEntries(catalog, burnt, key)).toHaveLength(1)
     expect(counterEntries(catalog, burnt, state.primaryHeroId)).toEqual([])
+  })
+})
+
+// The two-mark fixture. A tray of one mark reads the same whichever square a
+// pointer names, so the browser check that proves per-mark reading needs a
+// host carrying two at once — and no shipped line otherwise reaches one.
+// `brand_trial_two_marks` is that line, recorded from authored content: the
+// Boss's Sear and the guardian's own banked Armor, held together in the Brand
+// trial's second Slow Window.
+//
+// Asserted here rather than left to the browser, because the failure this
+// guards is silent: a retune that ends the line one mark short would leave
+// the smoke hovering a single square, passing, and proving nothing.
+describe('the two-mark fixture', () => {
+  const scenario = catalog.scenarios.brand_trial_two_marks
+  const replay = runScenario(catalog, scenario)
+  const final = replay.entries[replay.entries.length - 1].state
+
+  it('leaves one host carrying two distinct conditions', () => {
+    const entries = counterEntries(catalog, final, final.primaryHeroId)
+    expect(entries.map((entry) => entry.id).sort()).toEqual(['fortified', 'seared'])
+  })
+
+  it('draws them as two different marks, which is the whole point of the fixture', () => {
+    const [first, second] = counterEntries(catalog, final, final.primaryHeroId)
+    expect(first.mark).not.toEqual(second.mark)
   })
 })
