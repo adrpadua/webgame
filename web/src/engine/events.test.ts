@@ -56,13 +56,13 @@ describe('subscriber ordering on the Elian + Maren duo (ADR 0041)', () => {
     // blow is answered by three Readers across both raises' stances — and both
     // Signatures' Grants read the resolved half of the same blow.
     let state = startDuo()
-    state = mark(state, 'guardian', 'sundered')
-    state = mark(state, 'guardian', 'seared')
+    state = mark(state, 'elian', 'sundered')
+    state = mark(state, 'elian', 'seared')
     state = mark(state, 'maren', 'heat')
     const hit = resolve(catalog, state, {
       kind: 'damage',
       sourceId: 'maren',
-      targetId: 'guardian',
+      targetId: 'elian',
       amount: 2,
       reasonText: 'probe',
       factContext: { damage_keywords: ['tank_hit'] },
@@ -70,17 +70,17 @@ describe('subscriber ordering on the Elian + Maren duo (ADR 0041)', () => {
     const fact = damageFact(hit.facts)
     expect(fact.detail.subscriber_matches).toEqual([
       // The damage_incoming raise fires first (raise order), hosts in Party
-      // seat order — guardian holds seat 0, maren seat 1 — and guardian's two
-      // Counters answer in the order they sit on him (authored index within a
+      // seat order — elian holds seat 0, maren seat 1 — and Elian's two
+      // Counters answer in the order they sit on them (authored index within a
       // host: sundered landed before seared).
-      { event: 'damage_incoming', host: 'guardian', kind: 'reader', id: 'sundered', when: 'host_damage_incoming', delta: 1 },
-      { event: 'damage_incoming', host: 'guardian', kind: 'reader', id: 'seared', when: 'host_damage_incoming', delta: 1 },
+      { event: 'damage_incoming', host: 'elian', kind: 'reader', id: 'sundered', when: 'host_damage_incoming', delta: 1 },
+      { event: 'damage_incoming', host: 'elian', kind: 'reader', id: 'seared', when: 'host_damage_incoming', delta: 1 },
       { event: 'damage_incoming', host: 'maren', kind: 'reader', id: 'heat', when: 'host_deals_damage', delta: 1 },
       // The damage_resolved raise fires second, the same seat order: Elian's
       // Riposte reads the blow he took (and refuses — health was lost), then
       // Maren's Underwriting reads the blow she landed and banks the earn.
       // D-087: the grant entry carries why and the stack after — the read-back the old singular signature_event could not give the dealing side.
-      { event: 'damage_resolved', host: 'guardian', kind: 'grant', id: 'elian_riposte', when: 'host_takes_damage', outcome: 'not_granted', reason: 'health_lost', charges: 0 },
+      { event: 'damage_resolved', host: 'elian', kind: 'grant', id: 'elian_riposte', when: 'host_takes_damage', outcome: 'not_granted', reason: 'health_lost', charges: 0 },
       { event: 'damage_resolved', host: 'maren', kind: 'grant', id: 'marens_underwriting', when: 'host_deals_damage', outcome: 'charge_granted', reason: 'standing_clause', charges: 1 },
     ])
     // The recorded deltas are the ones that moved the number: 2 requested + 3.
@@ -94,10 +94,10 @@ describe('subscriber ordering on the Elian + Maren duo (ADR 0041)', () => {
     // order says the *source* answers first here, because he holds seat 0.
     let state = startDuo()
     state = mark(state, 'maren', 'seared')
-    state = mark(state, 'guardian', 'heat')
-    const hit = resolve(catalog, state, { kind: 'damage', sourceId: 'guardian', targetId: 'maren', amount: 1, reasonText: 'probe' })
+    state = mark(state, 'elian', 'heat')
+    const hit = resolve(catalog, state, { kind: 'damage', sourceId: 'elian', targetId: 'maren', amount: 1, reasonText: 'probe' })
     expect(damageFact(hit.facts).detail.subscriber_matches).toEqual([
-      { event: 'damage_incoming', host: 'guardian', kind: 'reader', id: 'heat', when: 'host_deals_damage', delta: 1 },
+      { event: 'damage_incoming', host: 'elian', kind: 'reader', id: 'heat', when: 'host_deals_damage', delta: 1 },
       { event: 'damage_incoming', host: 'maren', kind: 'reader', id: 'seared', when: 'host_damage_incoming', delta: 1 },
     ])
   })
@@ -108,10 +108,10 @@ describe('subscriber ordering on the Elian + Maren duo (ADR 0041)', () => {
     // answers before any board-entity host does.
     let state = startDuo()
     state = mark(state, state.bossId, 'sundered')
-    state = mark(state, 'guardian', 'heat')
-    const hit = resolve(catalog, state, { kind: 'damage', sourceId: 'guardian', targetId: state.bossId, amount: 1, reasonText: 'probe' })
+    state = mark(state, 'elian', 'heat')
+    const hit = resolve(catalog, state, { kind: 'damage', sourceId: 'elian', targetId: state.bossId, amount: 1, reasonText: 'probe' })
     expect(damageFact(hit.facts).detail.subscriber_matches).toEqual([
-      { event: 'damage_incoming', host: 'guardian', kind: 'reader', id: 'heat', when: 'host_deals_damage', delta: 1 },
+      { event: 'damage_incoming', host: 'elian', kind: 'reader', id: 'heat', when: 'host_deals_damage', delta: 1 },
       { event: 'damage_incoming', host: 'embermaw_branded', kind: 'reader', id: 'sundered', when: 'host_damage_incoming', delta: 1 },
     ])
   })

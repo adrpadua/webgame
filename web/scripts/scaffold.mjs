@@ -11,7 +11,7 @@
 // program id) fail the build by name, which is the loader teaching the next
 // step rather than this script guessing at it.
 //
-//   npm run scaffold -- hero kessa_varn "Kessa Varn"
+//   npm run scaffold -- hero kessa "Kessa"
 //   npm run scaffold -- card momentum_strike
 //   npm run scaffold -- --list
 //
@@ -45,6 +45,7 @@ const TYPES = {
 // because the person running this may not have the handoff doc open.
 const NEXT_STEPS = {
   hero: [
+    'title is the Hero\'s first name — the id capitalised — because that is what every readout prints; rank and house go in full_name.',
     'Fill max_health, and set signature_card once the Signature card exists (scaffold it as a card with "fixed": true).',
     'Field the Hero from an Encounter by id ("hero": "<id>").',
     'Design contract: docs/rules/character-design-bible.md; walkthrough: docs/content/authoring-a-new-hero.md.',

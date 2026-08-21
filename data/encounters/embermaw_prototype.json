@@ -5,7 +5,7 @@
   "rules_text": "Defeat Embermaw before the Encounter Clock expires while managing Scorched hexes and Whelp spawns.",
   "party": [
     {
-      "hero": "guardian",
+      "hero": "elian",
       "start": {
         "q": 0,
         "r": 0

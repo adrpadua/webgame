@@ -4,7 +4,7 @@
   "rules_text": "An evaluation Encounter, not a fight anybody plays. It is the Ashen Trial with one axis changed — how Embermaw crosses the board — so the sweep can measure jump, teleport and impassable ground before any of them is promoted into shipped content. Same board, same Hero, same deck, same clock, same thresholds. Its acceptance bar is the standing three plus one: the `far` policy must not improve, because a Boss that pursues a camper is only pressure if it does not simply deliver them a target.",
   "party": [
     {
-      "hero": "guardian",
+      "hero": "elian",
       "start": {
         "q": 0,
         "r": 0

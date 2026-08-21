@@ -3,14 +3,14 @@ import { loadCatalog } from '@/content'
 import { buildCatalog, checkResolution, createEncounterState, getEntityIdAt, hexCounterRef, neighbors, resolve, type EncounterState } from '@/engine'
 
 // Terminal-state evaluation as a stated, tested rule (engine-hardening P5,
-// D-095) rather than the incidental shape of the resolution recursion. Four
+// D-096) rather than the incidental shape of the resolution recursion. Four
 // clauses, one test each: node-boundary evaluation, the fired card's atomic
 // batch, refusal-with-a-fact after the ending, and victory winning mutual
 // zero.
 
 const shipped = loadCatalog()
 
-describe('terminal-state evaluation (D-095)', () => {
+describe('terminal-state evaluation (D-096)', () => {
   it('a fired card is one atomic batch: the lethal hit does not suppress the draw it rode in with', () => {
     // A card that kills the Boss AND draws. Under per-node evaluation the
     // victory would land before the draw and refuse it; the fired-card

@@ -48,7 +48,7 @@ export function resolve(catalog: ContentCatalog, state: EncounterState, action: 
 // record it, then resolve everything it generated, then check resolution.
 //
 // Terminal-state evaluation is a rule, not an accident of this recursion
-// (engine-hardening P5, D-095):
+// (engine-hardening P5, D-096):
 //
 // 1. Terminal state is evaluated at consequence-tree node boundaries, in
 //    post-order — after a node's whole subtree — and never mid-node. No
@@ -67,7 +67,7 @@ export function resolve(catalog: ContentCatalog, state: EncounterState, action: 
 //    the ending cut off.
 // 4. Ties inside one evaluation go to victory: `checkResolution` asks about
 //    the Boss before the Party, so a tree that puts both at zero is a win
-//    (D-095). The kill counts even when nobody is standing to see it.
+//    (D-096). The kill counts even when nobody is standing to see it.
 export function applyAction(
   catalog: ContentCatalog,
   draft: EncounterState,
@@ -105,7 +105,7 @@ export function applyAction(
   }
 }
 
-// The one terminal evaluation. Order is the simultaneity rule (D-095):
+// The one terminal evaluation. Order is the simultaneity rule (D-096):
 // the Boss's fall is asked first, so mutual zero resolves as victory.
 export function checkResolution(draft: EncounterState): void {
   if (!draft.active) {

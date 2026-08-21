@@ -19,7 +19,7 @@ function advance(): HistoryEntry {
 function action(succeeded = true): HistoryEntry {
   return {
     label: 'Fire Slot',
-    step: { action: { kind: 'fire_slot', sourceId: 'guardian', slotIndex: 0 } },
+    step: { action: { kind: 'fire_slot', sourceId: 'elian', slotIndex: 0 } },
     state: STATE,
     facts: [{ id: 1, succeeded } as HistoryEntry['facts'][number]],
   }

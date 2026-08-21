@@ -585,19 +585,19 @@ def component_cards():
 def party_cards():
     states = [
         ("At rest — Role on the accent, one ally carrying the Boss's attention", [
-            dict(name="Maren Tallis", role="healer", health=22, max_health=26, charges=1, cap=2),
+            dict(name="Maren", role="healer", health=22, max_health=26, charges=1, cap=2),
             dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3, threat=True),
         ]),
         ("Downed — hatched track, ember accent, the bank gone", [
-            dict(name="Maren Tallis", role="healer", health=0, max_health=26, status="downed"),
+            dict(name="Maren", role="healer", health=0, max_health=26, status="downed"),
             dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3),
         ]),
         ("Revivable — the frame is the button, and prints its price", [
-            dict(name="Maren Tallis", role="healer", health=0, max_health=26, status="downed", revivable=True),
+            dict(name="Maren", role="healer", health=0, max_health=26, status="downed", revivable=True),
             dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3),
         ]),
         ("Incapacitated — the rescue window closed", [
-            dict(name="Maren Tallis", role="healer", health=0, max_health=26, status="incapacitated"),
+            dict(name="Maren", role="healer", health=0, max_health=26, status="incapacitated"),
             dict(name="Roan Kesh", role="damage", health=11, max_health=24, threat=True),
         ]),
     ]

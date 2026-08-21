@@ -594,7 +594,7 @@ FRAME_CSS = """
 """
 
 
-def hero_frame(name="Elian Voss", health=34, max_health=34, armor=0, charges=0, cap=2,
+def hero_frame(name="Elian", health=34, max_health=34, armor=0, charges=0, cap=2,
                deck=16, discard=0, ready=False, counters=()):
     """Left-justified vertical stack: name, health with the Armor overlay, the
     class resource where an MMO puts mana, then the deck and discard counts.
@@ -708,7 +708,7 @@ def frame_accent(role, status="living", threat=False, revivable=False):
     return role_accent(role)
 
 
-def ally_frame(name="Maren Tallis", role="healer", health=22, max_health=26, armor=0,
+def ally_frame(name="Maren", role="healer", health=22, max_health=26, armor=0,
                status="living", threat=False, revivable=False, charges=0, cap=0):
     """One ally's readout. In the one moment a legal ally action exists — the
     primary Hero adjacent to a Downed ally with a card in hand — that frame
@@ -846,7 +846,7 @@ def build():
         keyword_face("Quench", ["tempo", "support"], set(), hand_w),
     ])
     quick_party = party_frames([
-        dict(name="Maren Tallis", role="healer", health=22, max_health=26, charges=1, cap=2),
+        dict(name="Maren", role="healer", health=22, max_health=26, charges=1, cap=2),
         dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3, threat=True),
     ])
     main_body = f"""<div class="surface">
@@ -1086,19 +1086,19 @@ the whole mechanic, which is why the same shape was refused before the bar exist
 
     party_states = [
         ("At rest — two allies, one carrying the Boss's attention", [
-            dict(name="Maren Tallis", role="healer", health=22, max_health=26, charges=1, cap=2),
+            dict(name="Maren", role="healer", health=22, max_health=26, charges=1, cap=2),
             dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3, threat=True),
         ]),
         ("Downed — the rescue is not legal from here", [
-            dict(name="Maren Tallis", role="healer", health=0, max_health=26, status="downed"),
+            dict(name="Maren", role="healer", health=0, max_health=26, status="downed"),
             dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3),
         ]),
         ("Revivable — the frame IS the button, and says its price", [
-            dict(name="Maren Tallis", role="healer", health=0, max_health=26, status="downed", revivable=True),
+            dict(name="Maren", role="healer", health=0, max_health=26, status="downed", revivable=True),
             dict(name="Roan Kesh", role="damage", health=19, max_health=24, armor=3),
         ]),
         ("Incapacitated — the rescue window closed", [
-            dict(name="Maren Tallis", role="healer", health=0, max_health=26, status="incapacitated"),
+            dict(name="Maren", role="healer", health=0, max_health=26, status="incapacitated"),
             dict(name="Roan Kesh", role="damage", health=11, max_health=24, threat=True),
         ]),
     ]

@@ -41,9 +41,9 @@ describe('the declared command vocabulary', () => {
     // The carry half is a module-load guard in schemas.ts; the refusal half
     // is what "a client cannot author consequences" means at the seam.
     for (const kind of PLAYER_COMMAND_KINDS) {
-      expect(() => scenarioStepSchema.parse({ action: { kind, sourceId: 'guardian' } })).not.toThrow(/Invalid discriminator/)
+      expect(() => scenarioStepSchema.parse({ action: { kind, sourceId: 'elian' } })).not.toThrow(/Invalid discriminator/)
     }
-    const forged = { action: { kind: 'damage', sourceId: 'guardian', targetId: 'embermaw', amount: 99, reasonText: 'forged' } }
+    const forged = { action: { kind: 'damage', sourceId: 'elian', targetId: 'embermaw', amount: 99, reasonText: 'forged' } }
     expect(() => scenarioStepSchema.parse(forged)).toThrow()
     expect(isPlayerCommand(forged.action as never)).toBe(false)
   })
