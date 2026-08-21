@@ -231,6 +231,46 @@ function statusDetail(id: string, entries: StatusEntry[]): HoldDetail | null {
 // The rows wrap when the row runs out of width. Beside the Hero Frame that is
 // upward, into the board's spare height, rather than pushing the Signature
 // button off the surface.
+//
+// One target, two readings. A finger has the whole tray and gets the whole
+// list, because a 28px square is not a touch target and pretending otherwise
+// is what the 44pt rule refuses. A pointer is precise enough to name one
+// square, so it gets that square's own condition — the tip the party-frame
+// direction drew, where hovering a mark answers *that* mark. Neither is a
+// mode: the same popup surface answers both, and which reading arrives is
+// decided by how exactly the input can point.
+function TrayIcon({ entry, id }: { entry: StatusEntry; id: string }) {
+  // The one-condition reading, which is the same detail a tray holding only
+  // this condition opens — one definition, so the tip and the list can never
+  // say different things about the same mark.
+  const hold = useHold(statusDetail(id, [entry]))
+  return (
+    <span
+      // Hover alone. `onPointerEnter` already ignores touch, and the press
+      // handlers are deliberately left off: a pointerdown here would bubble
+      // to the tray and race its timer, so the square answers the pointer and
+      // the tray answers the finger.
+      onPointerEnter={hold.holdProps.onPointerEnter}
+      onPointerLeave={hold.holdProps.onPointerLeave}
+      onPointerCancel={hold.holdProps.onPointerCancel}
+      // The pointed-at square lifts. It is the only thing on screen that says
+      // which mark the popup is about, and it is a shape change rather than a
+      // colour one, so it cannot be confused with the material channel the
+      // square is already spending its colour on.
+      className="flex shrink-0 transition-transform hover:-translate-y-0.5"
+      data-tip={`${id}:${entry.id}`}
+    >
+      <StatusIcon
+        counterId={entry.id}
+        mark={entry.mark}
+        count={entry.count}
+        remainingRounds={entry.remainingRounds}
+        durationRounds={entry.durationRounds}
+      />
+    </span>
+  )
+}
+
 export function StatusTray({ entries, id, testId }: { entries: StatusEntry[]; id: string; testId: string }) {
   const hold = useHold(statusDetail(id, entries))
   if (entries.length === 0) {
@@ -252,14 +292,7 @@ export function StatusTray({ entries, id, testId }: { entries: StatusEntry[]; id
       className={`pointer-events-auto flex min-h-11 min-w-11 flex-wrap content-center items-center justify-start gap-1 py-2 ${FOCUS_RING_CLASS}`}
     >
       {entries.map((entry) => (
-        <StatusIcon
-          key={entry.id}
-          counterId={entry.id}
-          mark={entry.mark}
-          count={entry.count}
-          remainingRounds={entry.remainingRounds}
-          durationRounds={entry.durationRounds}
-        />
+        <TrayIcon key={entry.id} entry={entry} id={id} />
       ))}
     </button>
   )
