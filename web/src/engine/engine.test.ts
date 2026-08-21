@@ -675,15 +675,30 @@ describe('content catalog', () => {
       )
     })
 
-    it('rejects Readers on a Counter that is not hosted on a combatant', () => {
-      // Every `when` names a combatant's event. Ground never takes damage and
-      // never starts a Round holding Armor, so a Reader there could not fire.
-      const bad = {
+    it('pairs Reader whens to hosts: ground hears only host_entered, a combatant never does (D-086)', () => {
+      // A Reader's `when` names something that happens to its host. Ground
+      // never takes damage; a combatant is never entered; a prepared Slot has
+      // no events at all.
+      const groundBlow = {
         source: 'data/counters/ground.json',
         payload: { id: 'ground_counter', title: 'Ground', host: 'hex', readers: [{ when: 'host_damage_incoming', effect: 'target_damage', per: 1 }] },
       }
-      expect(() => buildCatalog({ ...empty, counters: [bad] })).toThrow(
-        'is hosted on a hex but declares readers, and every reader event is a combatant\'s',
+      expect(() => buildCatalog({ ...empty, counters: [groundBlow] })).toThrow(
+        'is hosted on a hex but authors a host_damage_incoming reader; ground hears only host_entered',
+      )
+      const walkingCombatant = {
+        source: 'data/counters/odd.json',
+        payload: { id: 'odd', title: 'Odd', readers: [{ when: 'host_entered', effect: 'target_damage', per: 1 }] },
+      }
+      expect(() => buildCatalog({ ...empty, counters: [walkingCombatant] })).toThrow(
+        'is hosted on a combatant but authors a host_entered reader; a combatant is never entered',
+      )
+      const slotted = {
+        source: 'data/counters/slotted.json',
+        payload: { id: 'slotted', title: 'Slotted', host: 'slot', readers: [{ when: 'host_entered', effect: 'target_damage', per: 1 }] },
+      }
+      expect(() => buildCatalog({ ...empty, counters: [slotted] })).toThrow(
+        'is hosted on a slot but declares readers, and a prepared Slot has no events',
       )
     })
 

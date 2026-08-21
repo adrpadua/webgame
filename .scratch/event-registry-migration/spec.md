@@ -1,6 +1,6 @@
 # Event Registry Migration
 
-Status: resolved (issues 01–03 merged: PRs #128, #129, #130; D-087 implemented — issue 04)
+Status: resolved (issues 01–03 merged: PRs #128, #129, #130; D-087 implemented — issue 04; D-086 implemented — issue 05)
 
 ## Triggering decision
 
