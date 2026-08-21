@@ -47,3 +47,10 @@ export const GATED_CLASS = 'pointer-events-none opacity-30 saturate-50'
 
 // ...and the control it did name wears the pulsing ring.
 export const SPOTLIGHT_CLASS = 'wb-glow-ring'
+
+// The same living-gold ring, worn by the rail while a party member still owes
+// this window an action. One spelling, two callers: the ring means "the press
+// this interface is waiting for is here", and a second gold bloom for the same
+// sentence would only teach the player that gold rings mean nothing in
+// particular. The two never overlap — the scripted first turn is solo.
+export const NUDGE_RING_CLASS = 'wb-glow-ring'

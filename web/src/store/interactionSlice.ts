@@ -21,6 +21,13 @@ export interface InteractionSlice {
   // is the commit boundary (Spirit Island's model), so undo and time travel
   // keep the cursor where the player left it. A fresh store starts at seat 0.
   controlledHeroId: string | null
+  // Which party members the rail has already offered in this window (the
+  // unacted nudge). It is the rail's memory, not the Hero's state: a Hero
+  // stays unacted — and their frame keeps breathing — after being offered
+  // once, but the rail lets go so the window can always be closed. Cleared by
+  // CLEARED_INTERACTION, which every phase advance runs, so the memory lives
+  // exactly one window.
+  nudgedHeroIds: readonly string[]
   targetingSlotIndex: number | null
   draggingCardId: string | null
   // Tap path (accessibility contract): a selected Compact Card acts on the
@@ -64,6 +71,7 @@ export interface InteractionSlice {
   payForMove: (cardInstanceId: string) => void
   cancelMove: () => void
   switchControl: (heroId: string) => void
+  nudgeToUnacted: (heroId: string) => void
   reviveTapped: (targetId: string) => void
   payForRevive: (cardInstanceId: string) => void
   cancelRevive: () => void
@@ -84,6 +92,7 @@ export interface InteractionSlice {
 // is a value rather than an action: a restart and a time travel must not be
 // able to disagree about what "no gesture in flight" means.
 export const CLEARED_INTERACTION = {
+  nudgedHeroIds: [],
   targetingSlotIndex: null,
   selectedCardId: null,
   draggingCardId: null,
@@ -314,6 +323,22 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
       targetId: pendingRevive.targetId,
       cardInstanceId,
     })
+  },
+
+  // The rail's half of the unacted nudge: take control of the Hero it is
+  // pointing at, and remember that it offered them. One action rather than a
+  // switch plus a note, because the two must land together — a switch whose
+  // offer went unrecorded would put the rail straight back on the same Hero,
+  // and the window could never be closed.
+  nudgeToUnacted: (heroId) => {
+    const state = selectState(get())
+    if (!state.partyHeroIds.includes(heroId)) {
+      return
+    }
+    get().switchControl(heroId)
+    set((store) => ({
+      nudgedHeroIds: store.nudgedHeroIds.includes(heroId) ? store.nudgedHeroIds : [...store.nudgedHeroIds, heroId],
+    }))
   },
 
   cancelRevive: () => set({ pendingRevive: null }),

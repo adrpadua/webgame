@@ -1495,6 +1495,80 @@ try {
   await shot(sig, 'signature-fired')
   await sig.close()
 
+  // The unacted nudge, driven the way a player reaches it: the Encounter
+  // Picker into the two-seat Brand trial, where the party column first draws.
+  // Three things a unit test cannot see are checked here — that the frame
+  // actually wears the breathing accent, that the rail changes shape and hands
+  // the console over, and that the cycle is finite in the browser rather than
+  // only in the store.
+  const party = await browser.newPage({ viewport: { width: 390, height: 900 } })
+  await party.addInitScript(() => {
+    localStorage.setItem('workbench.firstTurnDone', 'true')
+    localStorage.setItem('workbench.guideSeen', 'true')
+  })
+  await party.goto(BASE_URL)
+  await party.waitForSelector('[data-testid="hero-frame"]')
+  await party.locator('[data-testid="encounter-picker-button"]').click()
+  await party.locator('[data-testid="encounter-choice"][data-encounter-id="embermaw_attrition_trial"]').click()
+  await party.waitForSelector('[data-testid="party-frames"]')
+  await party.waitForTimeout(300)
+  const partyRail = () => party.locator('[data-testid="next-phase"]')
+  const allyFrame = () => party.locator('[data-testid="ally-frame"]').first()
+  assert(
+    (await party.locator('[data-testid="ally-frame"][data-unacted]').count()) === 1 &&
+      (await party.locator('[data-testid="ally-unacted"]').count()) === 1,
+    'the seat that has not acted nudges: the frame carries the state and the unspent pip',
+  )
+  assert(
+    ((await allyFrame().getAttribute('class')) ?? '').includes('wb-accent-pulse'),
+    'the nudge breathes the accent band alone, so the name and the health number never dip',
+  )
+  assert(
+    (await partyRail().getAttribute('data-rail')) === 'unacted' && (await partyRail().getAttribute('data-nudge-hero')) === 'maren',
+    'the rail becomes the nudge and names the seat it would hand the console to',
+  )
+  await shot(party, 'party-unacted-nudge')
+  // Press one: the console swaps to Maren, and the displaced guardian — also
+  // unacted — is who the rail points at next.
+  await partyRail().click()
+  await party.waitForTimeout(250)
+  assert(
+    (await allyFrame().getAttribute('data-hero-id')) === 'guardian',
+    'the nudge press takes control of the waiting seat: the displaced Hero joins the column',
+  )
+  assert((await partyRail().getAttribute('data-nudge-hero')) === 'guardian', 'the rail walks on to the next seat that has not acted')
+  // Press two: both seats have now been offered once. Neither has acted, so
+  // both frames still nudge — but the rail lets go, which is what keeps the
+  // window closable.
+  await partyRail().click()
+  await party.waitForTimeout(250)
+  assert(
+    (await partyRail().getAttribute('data-rail')) === 'next' && (await party.locator('[data-testid="ally-frame"][data-unacted]').count()) === 1,
+    'the rail offers each seat once and then becomes Next again, while the frame keeps nudging',
+  )
+  // Acting is what clears a nudge. The guardian is the pilot again, so his
+  // Loadout press lands on his own bar; Maren has still done nothing.
+  await party.locator('[data-testid="hand-card"]').first().click()
+  await party.locator('[data-testid="slot-0"]').click()
+  await party.waitForTimeout(300)
+  assert(
+    (await party.locator('[data-testid="ally-frame"][data-unacted]').count()) === 1,
+    'one seat acting does not clear another seat’s nudge',
+  )
+  // The Boss's own row asks nobody for anything, so nothing nudges in it.
+  await partyRail().click()
+  await party.waitForTimeout(250)
+  if ((await party.locator('[data-testid="confirm-skip"]').count()) > 0) {
+    await party.locator('[data-testid="confirm-skip"]').click()
+    await party.waitForTimeout(400)
+  }
+  assert(
+    (await party.locator('[data-phase]').getAttribute('data-phase')) === 'instant' &&
+      (await party.locator('[data-testid="ally-frame"][data-unacted]').count()) === 0,
+    'the Boss row nudges nobody: the window that closed is the one the nudge belonged to',
+  )
+  await party.close()
+
   // The Slot row's worst case, measured on purpose rather than hoped for.
   // The scripted turn above prepares Steady Strike — two Charges, no want mark
   // — which fits at exactly 97/97, and that is why this defect shipped

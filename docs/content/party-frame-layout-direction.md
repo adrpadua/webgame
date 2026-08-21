@@ -37,6 +37,22 @@ Single-player control arrived after the mockups and completes the frame's gestur
 
 The pattern is BG3's portrait click on Spirit Island's structure, per the [party-switching research note](research/2026-08-21-single-player-party-switching-bg3-spirit-island.md): switching drops in-flight gestures and keeps commitments, and the cursor survives undo because the window — not the character — is the commit boundary.
 
+## The unacted nudge (D-092)
+
+Multi-character play added a failure the solo slice could not have: a seat you are not piloting can sit out a whole window in silence. Total War's campaign map is the tested answer — the end-turn button becomes "a unit has not moved", each press jumps to one, and it reverts to end-turn once none are left — and it lands here as **three faces of one rule** (`web/src/ui/party/unacted.ts`), so the frame that breathes and the rail that offers can never disagree about who is waiting.
+
+| Face | What it does |
+| --- | --- |
+| The frame | A seat that has taken no player action in the open window, and still could, breathes its accent band (`wb-accent-pulse`) and carries a hollow **unspent pip** beside the name. |
+| The rail | While such a seat exists the Action Bar's forward rail draws the unacted mark instead of Next; a press hands the console to that Hero and does **not** close the window. |
+| The warning | The pilot is never the rail's target — their console is the bottom half of the screen — so their own unused window stays the skip warning's job. Both read the same two predicates. |
+
+**One offer per seat per window.** This is the deliberate departure from Total War, which nags until every unit has actually moved. A Hero here can be legally able to act with nothing worth doing — cards in hand, no Slot in reach — and a rail that refused to become Next until they acted would trap the window. So the rail lets go after offering a seat once; the frame keeps nudging, because the state has not changed, only the rail's claim on the player's next press. The memory lives exactly one window: every phase advance clears it.
+
+**Motion.** The accent alone, never the face: the frame carries a name, a health number and a bank, and `wb-face-pulse` dips all three under their contrast floor — the reason `wb-accent-pulse` exists. It loops, which the interface direction otherwise reserves for ambient motion, on the same grounds the revive offer and the scripted turn's ring already loop: it is bounded by the player's own next press, never by a Round. The pip carries the same state with no motion at all, so a `prefers-reduced-motion` player — who gets no animation — loses nothing but the animation.
+
+**Silent by construction** in the Boss's own rows, on an ended Encounter, for a Downed Hero (whose frame already carries the rescue offer, which outranks the nudge on the motion channel exactly as it outranks the switch on the tap), and through the scripted first turn.
+
 ## Engine mapping (first pass, `web/src/ui/party/partyFrames.ts`)
 
 | Mock element | Engine backing |
@@ -47,13 +63,14 @@ The pattern is BG3's portrait click on Spirit Island's structure, per the [party
 | REVIVE · 1 CARD | `legality({kind:'revive_ally'})` — the frame lights only when the engine's own predicate would accept the rescue (ADR 0014's one-predicate discipline). Tap parks `pendingRevive`; the Hand pays, reusing the move-payment idiom. |
 | Class resource segments | The seat's own Signature bank (`earnedCharges` / cap) — every seat may field one (ADR 0035). |
 | Threat mark | Derived, not stored: the Hero the current program's first Role-selecting Beat resolves to, via `selectBeatTarget` — the mark and the blow read one selector and cannot disagree. |
+| Unspent pip + breathing accent | `unactedHeroIds` (D-092) — read off the session timeline's own facts (Round, phase, `sourceId`, `succeeded`), gated by the same "could still act" predicates the skip warning uses. |
 | Ally-card targeting pip | **Not wired yet.** Needs the fire-targeting gesture to offer frames as targets for `target_type: 'ally'` cards; today those cards target through the board. |
 | AI badge | **No engine backing.** No AI seats exist; deferred until one does. |
 | Enemy frames / dealt meter | Out of scope for the party column; the mock's enemy plates belong to the target-frame direction, not this one. |
 
 ## What this pass does not do
 
-- No authored Encounter fields a second seat yet, so the column renders nothing in every shipped Encounter — the seam costs the teaching slice zero pixels, exactly like the party seams before it (ADR 0035). It first draws pixels when the Restorative's Encounter seats two.
+- ~~No authored Encounter fields a second seat yet~~ — superseded: **Embermaw: The Brand** (`embermaw_attrition_trial`) seats the guardian and Maren Tallis and is reachable from the Encounter Picker, so the column draws there. The solo Encounters still render nothing, and the seam still costs the teaching slice zero pixels (ADR 0035).
 - The primary Hero Frame does not yet carry the Threat mark (`primaryHasThreat` is exported and tested, unconsumed).
 - The Status icon strip (canvas `StatusIcon`, Counters on the frame) stays with the existing Counter chips beside the Hero Frame; migrating them onto ally frames is a later pass.
 
