@@ -14,6 +14,8 @@ The ally frame is the primary Hero's frame with the console removed: same vertic
 
 Every frame is **40pt tall in every state**, because a readout owes no tap target. In the moment a legal ally action exists, that frame's **hit box alone grows to 44pt and the frame is the button** — no row appears, nothing on screen moves. At most one action is legal per frame at a time, so the four-interactive-rows problem never arises.
 
+The 40pt floor is now stated in the layout (`min-h-10`) rather than left to whatever rows a state happens to render. It had already drifted: a Downed frame drops the Signature bank and stood at 34pt, and the tuck — which drops the bank on every frame — would have made that the normal case. A column whose plates change height when it narrows reads as a different object rather than the same one holding less.
+
 Two doors, one action: the **hex** stays the target of record for anything spatial; the **frame** is the target of record for anything personal — this ally, wherever they are. The frame door is safe because a hex holds one body, so the frame can never be ambiguous about who is meant.
 
 ## State vocabulary (canvas 1c)
@@ -36,6 +38,30 @@ Healthy · Hurt-with-Armor · Holding Threat · Downed · Downed-nearly-gone · 
 Single-player control arrived after the mockups and completes the frame's gesture story: **a tap on a resting ally frame takes control of that Hero** — the whole console (Hand, Action Bar, Hero Frame, board drag) swaps to the pilot, the displaced Hero joins the column, and the camera stays put. The revivable frame keeps its rescue tap: the one legal ally action still outranks the switch, which preserves the 40/44 rule's promise that a frame's grown state means exactly one thing.
 
 The pattern is BG3's portrait click on Spirit Island's structure, per the [party-switching research note](research/2026-08-21-single-player-party-switching-bg3-spirit-island.md): switching drops in-flight gestures and keeps commitments, and the cursor survives undo because the window — not the character — is the commit boundary.
+
+### The tuck (D-107)
+
+The mockup drew a **tab above the column** and the first implementation pass dropped it — not deferred with a reason, simply gone, and absent from this document's own "not wired yet" list as well as from the code. This restores it.
+
+A press on the tab **narrows the column from 138pt to 66pt** over 220ms, and the tab narrows with it from 72pt to 30pt, taking its own `PARTY` label along so the whole object gets out of the way together rather than leaving a labelled stub. The chevron turns 180°. The board gets the pixels back; the party stays on screen.
+
+**What a tucked frame keeps** is everything it can say without words: the Role glyph, the health and Armor bar, the Downed track, and the accent. **What it drops** is everything the accent is already saying at that width — the Threat wedge, because the accent is coral for the Boss's attention whether or not the wedge is drawn — or that needs room to be read: the name, the health number, the Signature bank.
+
+| The mechanism | |
+| --- | --- |
+| Where it lives | `partyTucked` on the interaction slice, beside the control cursor and for the same reason: it is the player saying how much board they want back, not a gesture they are partway through. Deliberately **not** in `CLEARED_INTERACTION` — a phase advance runs that clear several times a Round, and a column that re-opened itself each time would be arguing with the player. |
+| The tap rule | One function, `allyTap` — **expand, then revive, then switch**. |
+| The tab's target | The plate is 20pt tall, which no tap rule would allow, so it carries an invisible 52×44 extension upward into board pixels. That is the 40/44 rule's own escape: grow the hit box, never the drawn plate. |
+| Motion | 220ms `cubic-bezier(0.2, 0.7, 0.3, 1)`, and not the swap's 300ms — a tuck answers a press on the thing that moves, so it owes the immediacy of direct manipulation rather than the legibility of a handover the player did not touch. A CSS transition rather than a Web Animations flight, which is why this is the one motion here that `index.css`'s freeze block reaches on its own. |
+
+**A tucked column swallows the rescue tap**, which is the part worth arguing about. It looks wrong beside the 40/44 rule — the rescue is meant to be the one thing a grown frame can mean — until you look at what a tucked frame is showing: 66pt of Role glyph, a striped track and an ember accent, with `REVIVE · 1 CARD` among the things the tuck dropped. A press that spent the player's card on a rescue they were never offered would be the interface acting on information it had just hidden. The first press gives the words back and the second spends the card: one extra tap, on a state the player themselves asked to stop looking at.
+
+**Two deliberate departures from the mockup.**
+
+- **The unacted pip survives the tuck**, which the mockup did not draw because the pip postdates it. The mockup's rule for dropping a glyph is that the accent still carries it; the accent carries no unacted channel at all, so dropping the pip would not compress that state, it would delete it — and re-open the silence D-093 exists to close, in the one arrangement where the player has explicitly stopped watching the column.
+- **The label is 9pt, not the mockup's 8.** The type ramp has seven steps (D-067) and 8 is not one of them. The ramp outranks the mockup on a value the mockup had no reason to pick deliberately.
+
+**The compression is visual only.** Every frame's `aria-label` says the same sentence tucked or open — same Hero, same health, same window owed — and only its last clause changes, because what the press does is the one thing the tuck really altered. A tuck is the player buying board pixels back, and a screen reader is not spending any.
 
 ### The swap is a move, not a cut (D-099)
 

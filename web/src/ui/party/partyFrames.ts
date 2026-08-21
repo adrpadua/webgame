@@ -149,3 +149,29 @@ export function partyFrames(
 export function primaryHasThreat(catalog: ContentCatalog, state: EncounterState): boolean {
   return threatHeroId(catalog, state) === state.primaryHeroId
 }
+
+// What one tap on an ally frame does (D-107). Three things can want the same press, so
+// the order they are asked in is the rule, written here rather than inside a
+// click handler where it would be three ifs nobody can test.
+//
+//   expand — the column is tucked, so the press opens it and does nothing else
+//   revive — the one legal ally action (direction 1A: the frame is the button)
+//   switch — the resting frame, which is the control cursor's portrait click
+//
+// **A tucked column swallows the rescue tap**, which is the whole reason the
+// order is written down. It looks wrong beside the 40/44 rule — the rescue is
+// meant to be the one thing a grown frame can mean — until you look at what a
+// tucked frame is showing: 66pt of Role glyph, a striped track and an ember
+// accent, with `REVIVE · 1 CARD` among the things the tuck dropped. A press
+// that spent the player's card on a rescue they were never offered would be
+// the interface acting on information it had just hidden. So the first press
+// gives the words back and the second spends the card, which is one extra tap
+// on a state the player themselves asked to stop looking at.
+export type AllyTap = 'expand' | 'revive' | 'switch'
+
+export function allyTap(frame: PartyFrameModel, tucked: boolean): AllyTap {
+  if (tucked) {
+    return 'expand'
+  }
+  return frame.revivable ? 'revive' : 'switch'
+}
