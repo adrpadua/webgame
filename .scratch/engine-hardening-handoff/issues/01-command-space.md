@@ -16,4 +16,4 @@ No rules change. Two test expectations were corrected during authoring, not the 
 
 ## Evidence
 
-597 tests green (592 + 5 contract tests); typecheck clean; `verify:local` result recorded below on completion.
+597 tests green (592 + 5 contract tests); typecheck clean; `verify:local` green end to end; mutation audit **110/110 caught, 0 survived, 0 stale** — no anchors touched the command-space changes, and every existing mutant still dies through the retyped seams.
