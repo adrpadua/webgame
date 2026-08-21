@@ -66,11 +66,15 @@ export default function App() {
               not by the order they are written here; pointer-events pass
               through the empty space so the hexes stay tappable.
 
-              Guidance floats over the top hexes: teaching the player may
-              ignore. The stage takes the middle for one announcement at a
-              time. The dock hugs the Action Bar with everything that asks for
-              a tap on the controls just below it. */}
+              The herald takes the board's top edge for the Boss's own card,
+              where a Beat can be read whole. Guidance floats under it:
+              teaching the player may ignore. The stage takes the middle for
+              one announcement at a time. The dock hugs the Action Bar with
+              everything that asks for a tap on the controls just below it. */}
           <NotificationLayer clearanceClass={HERO_FRAME_CLEARANCE_CLASS}>
+            <NotificationZone zone="herald">
+              <BeatCard />
+            </NotificationZone>
             <NotificationZone zone="guidance">
               <FirstTurnCue />
               <CoachMark />
@@ -80,7 +84,6 @@ export default function App() {
               <OutcomeBanner />
             </NotificationZone>
             <NotificationZone zone="dock">
-              <BeatCard />
               <StandingDemand />
               <TargetingBanner />
               <MovePaymentCue />

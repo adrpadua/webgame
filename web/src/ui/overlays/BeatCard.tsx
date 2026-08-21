@@ -46,8 +46,16 @@ export function BeatCard() {
   const found =
     nextBeatId === null ? null : findLiveBeat(catalog, state, nextBeatId);
   const stats = found ? beatCardStats(found.beat) : [];
-  // The dock's anchor rank: the one control a Boss Row asks for over and
-  // over, so it sits against the Action Bar where the thumb already is.
+  // The herald (D-097): the board's top edge, alone in its zone. This card
+  // docked against the Action Bar while it was one short title, on the rule
+  // that a control belongs beside the control it names — and then it became a
+  // card with stats, rules text and a line of answers, and the bottom of the
+  // surface is where the Hero Frame and the ally column already stand. A Beat
+  // whose last two rows arrive behind an ally frame is a Beat the player never
+  // read, which is the one thing a printed card may not do. The press did not
+  // have to move with the reading: the Action Bar's forward rail is Continue
+  // for exactly this moment, so the thumb keeps a control at the bottom while
+  // the card is read at the top.
   return (
     <Notify id="beat-card">
       <button
@@ -141,7 +149,10 @@ export function StandingDemand() {
   }
   const { beat, answered } = demand;
   // Docked above the prompts and below the readouts. "So it docks" is this
-  // component's own word for it; the lane is where that happens.
+  // component's own word for it; the lane is where that happens. It stays in
+  // the dock now that the Beat Card has gone to the herald: one row of text is
+  // legible in the strip the frames leave, and a demand the player is meant to
+  // answer belongs beside the controls that answer it.
   return (
     <Notify id="standing-demand">
       <div
@@ -150,9 +161,10 @@ export function StandingDemand() {
         // Same gutter as the Beat Card, for the same reason: "Standing" is
         // pinned to the leading edge under the accent band, and a flat `px-3`
         // left it 6px clear there against 10px on the trailing side. One row
-        // rather than four, so the wedge is smaller — but this bar docks
-        // directly above the card, and two plates disagreeing about where
-        // their text starts is the pair of them looking crooked.
+        // rather than four, so the wedge is smaller — but the two are the
+        // Boss's two plates and are read against each other across the board,
+        // and two plates disagreeing about where their text starts is the pair
+        // of them looking crooked.
         // The block gutter stays at the thin bar's 6px; only the Beat Card
         // wants a card's 8px.
         className={`wb-slide-up pointer-events-none wb-plate wb-plate-sm wb-gutter-raked [--wb-gutter-block:6px] wb-face-steel flex w-full items-center justify-between gap-2 shadow-lg ${

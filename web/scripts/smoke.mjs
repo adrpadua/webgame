@@ -625,6 +625,39 @@ try {
     assert(problems.length === 0, `the notification zones stay out of each other's way ${label} (${problems.join(' | ') || shown.join(', ') || 'none live'})`)
     return shown
   }
+  // The whole Beat Card, or it is not a printed Beat. Since the program strip
+  // was removed the card is the only place a Beat is named and priced, so
+  // every row of it has to reach the player. It docked above the Action Bar
+  // until the ally column grew into the same lane and started covering its
+  // last rows — the failure the herald zone exists to end — so this measures
+  // the card against the chrome rather than trusting the zone table. The
+  // party column is the one that actually collided and is why this is a
+  // separate check: `notificationLayout` compares notifications with each
+  // other and with the bands, and the ally frames are neither.
+  const assertBeatCardReadable = async (view, label) => {
+    const covered = await view.evaluate(() => {
+      const card = document.querySelector('[data-testid="playout-continue"]')
+      if (card === null) {
+        return ['no Beat Card is up']
+      }
+      const box = card.getBoundingClientRect()
+      if (box.height < 1) {
+        return ['the Beat Card has no height']
+      }
+      return ['party-frames', 'hero-frame', 'action-bar', 'hand', 'phase-band']
+        .map((id) => document.querySelector(`[data-testid="${id}"]`))
+        .filter((node) => node !== null)
+        .filter((node) => {
+          const other = node.getBoundingClientRect()
+          return (
+            Math.min(box.right, other.right) - Math.max(box.left, other.left) > 1 &&
+            Math.min(box.bottom, other.bottom) - Math.max(box.top, other.top) > 1
+          )
+        })
+        .map((node) => node.dataset.testid)
+    })
+    assert(covered.length === 0, `every row of the Beat Card is readable ${label} (${covered.join(', ')})`)
+  }
   // The card the scripted turn is pointing at is the only live card in Hand.
   const scriptedCard = () => page.locator('[data-testid="hand-card"][data-scripted="true"]')
   // Which face the Hand is wearing: the card as itself, its Keywords, or
@@ -967,8 +1000,9 @@ try {
     'the advance rail turns to Continue while a Boss row is paced',
   )
   const pacedLive = await assertNotificationLayout(page, 'while a Boss row is paced')
-  assert(pacedLive.includes('beat-card'), `the Beat Card docks above the Action Bar during a Boss row (${pacedLive.join(', ')})`)
-  assert(pacedLive.includes('phase-banner'), `the phase word takes the stage while the dock is occupied (${pacedLive.join(', ')})`)
+  assert(pacedLive.includes('beat-card'), `the Beat Card is heralded at the board's top edge during a Boss row (${pacedLive.join(', ')})`)
+  assert(pacedLive.includes('phase-banner'), `the phase word takes the stage while the herald is occupied (${pacedLive.join(', ')})`)
+  await assertBeatCardReadable(page, 'in the teaching slice')
   await assertContrast(page, 'during a paced Boss row')
   await shot(page, 'boss-row-paced')
   // The Row lands announced, not already swinging: the rail names no beat yet.
@@ -1625,6 +1659,14 @@ try {
       (await party.locator('[data-testid="ally-frame"][data-unacted]').count()) === 0,
     'the Boss row nudges nobody: the window that closed is the one the nudge belonged to',
   )
+  // The state the herald zone was moved for, and the only place the suite can
+  // see it: a Boss row pacing while the ally column stands in the lane the
+  // Beat Card used to dock in. The teaching slice is solo, so it has no column
+  // to be covered by — this was the screenshot nobody's test could take.
+  await party.waitForSelector('[data-testid="playout-continue"]')
+  await assertBeatCardReadable(party, 'with the ally column up')
+  await assertNotificationLayout(party, 'while a Boss row paces beside the ally column')
+  await shot(party, 'party-beat-card')
   await party.close()
 
   // The Slot row's worst case, measured on purpose rather than hoped for.
