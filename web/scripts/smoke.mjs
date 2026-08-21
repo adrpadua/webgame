@@ -1139,6 +1139,44 @@ try {
   const roundAtStart = await page.locator('[data-testid="round-display"]').textContent()
   assert(roundAtStart?.trim() === 'R1', `step 0 is Round 1 (${roundAtStart?.trim()})`)
 
+  // The two-mark fixture (D-094): a tray of one square reads the same whichever
+  // square a pointer names, so proving the per-mark tip needs a host carrying
+  // two at once — which no shipped line reaches on its own. This Scenario is
+  // that line, recorded from authored content: the Boss's Sear and the
+  // guardian's own banked Armor, held together in the Brand trial's second
+  // Slow Window. `statusEntries.test.ts` holds it to two marks so this check
+  // cannot quietly go back to proving nothing.
+  await page.selectOption('[data-testid="scenario-select"]', 'brand_trial_two_marks')
+  await page.locator('[data-testid="load-scenario"]').click()
+  await page.waitForSelector('[data-testid="status-tray"] [data-testid="status-icon"]')
+  const trayMarks = await page
+    .locator('[data-testid="status-tray"] [data-testid="status-icon"]')
+    .evaluateAll((nodes) => nodes.map((node) => node.dataset.counter))
+  assert(trayMarks.length === 2, `the fixture's Hero Frame carries two marks at once (${trayMarks.join(', ') || 'none'})`)
+  const readings = []
+  for (const mark of trayMarks) {
+    await page.locator(`[data-testid="status-icon"][data-counter="${mark}"]`).hover()
+    await page.waitForSelector('[data-testid="hold-popover"]')
+    readings.push(await page.locator('[data-testid="hold-popover"]').getAttribute('data-hold-id'))
+    await page.mouse.move(0, 0)
+    await page.waitForSelector('[data-testid="hold-popover"]', { state: 'detached' })
+  }
+  assert(
+    readings.length === 2 && readings[0] !== readings[1] && readings.every((id, index) => id === `counter:${trayMarks[index]}`),
+    `each square answers as its own mark rather than as the tray (${readings.join(' then ')})`,
+  )
+  // And the tray itself still answers with both, which is what a finger gets.
+  const trayBox = await page.locator('[data-testid="status-tray"]').boundingBox()
+  await page.mouse.move(trayBox.x + trayBox.width / 2, trayBox.y + 2)
+  await page.waitForSelector('[data-testid="hold-popover"]')
+  const trayReading = await page.locator('[data-testid="hold-popover"]').getAttribute('data-hold-id')
+  assert(
+    trayReading === `counter:${trayMarks.join('+')}`,
+    `the tray as a whole still reads every mark in it (${trayReading})`,
+  )
+  await page.mouse.move(0, 0)
+  await page.waitForSelector('[data-testid="hold-popover"]', { state: 'detached' })
+
   await page.screenshot({ path: process.env.SMOKE_SHOT ?? 'smoke.png', fullPage: false })
 
   // Accessibility contract, checked on the canonical portrait canvas: the
