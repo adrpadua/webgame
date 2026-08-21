@@ -24,7 +24,13 @@ export function fireTargeting(
   if (!card) {
     return { mode: 'none', legalTargetIds: [], legalHexes: [], previewHexes: [] }
   }
-  if (card.burst_radius > 0) {
+  // Hex mode belongs to every hex-targeting card, not only Bursts: since
+  // D-048 a card may put a Counter on the ground, and D-086's first consumer
+  // is exactly that — a zero-burst zone card. Keyed off burst_radius alone,
+  // such a card fell to mode 'none', offered an untargeted fire, and was
+  // refused by the legality that demands the hex — a card the catalog loads
+  // and nothing can play.
+  if (card.burst_radius > 0 || card.target_type === 'hex') {
     const legalHexes = Object.keys(state.board.hexes)
       .map(parseHexKey)
       .filter((targetHex) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetHex }).legal)

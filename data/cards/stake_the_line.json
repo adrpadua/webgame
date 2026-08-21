@@ -1,0 +1,12 @@
+{
+  "id": "stake_the_line",
+  "title": "Stake the Line",
+  "rules_text": "Plant 2 Stakes on ground within reach. Whatever enters that hex takes 1 damage per Stake — friend and foe alike. The stakes weather away after two Rounds.",
+  "speed": "slow",
+  "max_charge": 2,
+  "target_type": "hex",
+  "range_tiles": 1,
+  "tags": ["tank", "board"],
+  "places_counter": "staked_ground",
+  "counter_amount": 2
+}

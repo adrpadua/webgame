@@ -1,0 +1,14 @@
+{
+  "id": "aegis_staked_line",
+  "title": "Elian Staked-Line Candidate Deck",
+  "rules_text": "Evaluation-only candidate: the live starter list with two Sweeping Blow traded for two Stake the Line, to measure whether ground-based add control (D-086) pays for the swing it displaces. Not the default starter deck.",
+  "encounter": "embermaw_prototype",
+  "player_deck": [
+    { "card": "steady_strike", "copies": 4 },
+    { "card": "iron_guard", "copies": 8 },
+    { "card": "stake_the_line", "copies": 2 },
+    { "card": "fortify", "copies": 2 },
+    { "card": "drive_back", "copies": 2 },
+    { "card": "quench", "copies": 2 }
+  ]
+}
