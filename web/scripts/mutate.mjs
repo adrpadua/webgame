@@ -852,6 +852,20 @@ const MUTATIONS = [
     to: '  return lead + index * step',
   },
   {
+    name: 'a tucked frame spends the card on a rescue it is not showing',
+    guards: 'The tuck swallows every press: a tucked frame has hidden REVIVE · 1 CARD, so a press may not act on it',
+    file: 'ui/party/partyFrameModel.ts',
+    from: "  if (tucked) {\n    return 'expand'\n  }\n",
+    to: '',
+  },
+  {
+    name: 'a resting ally frame offers the rescue and the switch in the wrong order',
+    guards: 'Direction 1A: the one legal ally action keeps the frame, so revive outranks the control switch',
+    file: 'ui/party/partyFrameModel.ts',
+    from: "  return frame.revivable ? 'revive' : 'switch'",
+    to: "  return 'switch'",
+  },
+  {
     name: 'a Boss Beat marks the wrong side',
     guards: 'D-051: `counter_target` decides whether the Boss marks itself or the Party',
     file: 'engine/timeline.ts',

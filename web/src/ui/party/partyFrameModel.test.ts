@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildCatalog, createEncounterState, resolve, type ContentCatalog, type EncounterState } from '@/engine'
-import { partyFrames, primaryHasThreat } from './partyFrameModel'
+import { allyTap, partyFrames, primaryHasThreat } from './partyFrameModel'
 
 // The ally frame's state, proved against the same hand-built two-seat fixture
 // the engine's party tests use — the authored Encounters are solo, and a
@@ -91,6 +91,32 @@ function downTheMender(catalog: ContentCatalog, state: EncounterState): Encounte
     kind: 'damage', sourceId: 'probe_boss', targetId: 'mender', amount: 5, reasonText: 'probe',
   }).state
 }
+
+describe('what one tap on an ally frame does', () => {
+  it('switches control on a resting frame, and revives on the one that can be', () => {
+    const catalog = fixture()
+    const state = createEncounterState(catalog, 'probe_party')
+    expect(allyTap(partyFrames(catalog, state)[0], false)).toBe('switch')
+    const downed = partyFrames(catalog, downTheMender(catalog, state))[0]
+    expect(downed.revivable).toBe(true)
+    expect(allyTap(downed, false)).toBe('revive')
+  })
+
+  it('lets a tucked column swallow every press, the rescue included', () => {
+    const catalog = fixture()
+    const state = createEncounterState(catalog, 'probe_party')
+    // The rule the tuck exists to make safe: a tucked frame has dropped
+    // `REVIVE · 1 CARD` along with the name and the number, so a press that
+    // spent the card would be acting on an offer the interface just hid. The
+    // first press gives the words back; the second spends the card.
+    const resting = partyFrames(catalog, state)[0]
+    expect(allyTap(resting, true)).toBe('expand')
+    const downed = partyFrames(catalog, downTheMender(catalog, state))[0]
+    expect(allyTap(downed, true)).toBe('expand')
+    // ...and the offer is still there once the column is open again.
+    expect(allyTap(downed, false)).toBe('revive')
+  })
+})
 
 describe('the ally frames (party-frame direction 1A)', () => {
   it('lists every seat but the primary, in authored order, with Role and health', () => {

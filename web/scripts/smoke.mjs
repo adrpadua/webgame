@@ -1934,6 +1934,100 @@ try {
   )
   await refill.close()
 
+  // The tuck (party-frame direction 1A's tab). Three things only a browser can
+  // answer: that the column and its plates actually resize, that the tucked
+  // frame stops drawing the words it is not wide enough for while its label
+  // keeps saying them, and — the rule this was built to — that a press on a
+  // tucked frame opens the column instead of taking control of that Hero.
+  const tuck = await swapPage()
+  const readColumn = (page) =>
+    page.evaluate(() => {
+      const box = (selector) => {
+        const element = document.querySelector(selector)
+        if (element === null) {
+          return { w: 0, h: 0, text: '', label: '' }
+        }
+        const rect = element.getBoundingClientRect()
+        return {
+          w: Math.round(rect.width),
+          h: Math.round(rect.height),
+          text: (element.textContent ?? '').trim(),
+          label: element.getAttribute('aria-label') ?? '',
+        }
+      }
+      const tab = document.querySelector('[data-testid="party-tuck"]')
+      const extension = tab?.querySelector('span[aria-hidden="true"]')?.getBoundingClientRect()
+      return {
+        column: box('[data-testid="party-frames"]'),
+        tab: box('[data-testid="party-tuck"]'),
+        frame: box('[data-testid="ally-frame"]'),
+        expanded: tab?.getAttribute('aria-expanded') ?? '',
+        hit: extension ? Math.round(extension.height) : 0,
+        pips: document.querySelectorAll('[data-testid="ally-unacted"]').length,
+        pilot: document.querySelector('[data-testid="hero-frame"]')?.dataset.heroId ?? '',
+      }
+    })
+
+  const open = await readColumn(tuck)
+  assert(
+    open.column.w === 138 && open.tab.w === 72 && open.tab.text === 'Party' && open.expanded === 'true',
+    `the column opens at 138pt behind a labelled tab (${open.column.w}pt column, ${open.tab.w}pt tab "${open.tab.text}")`,
+  )
+  assert(open.hit === 44, `the 20px tab carries a 44px hit box, which is the 40/44 rule's own escape (${open.hit}px)`)
+
+  await tuck.locator('[data-testid="party-tuck"]').click()
+  await tuck.waitForTimeout(400)
+  const tucked = await readColumn(tuck)
+  assert(
+    tucked.column.w === 66 && tucked.tab.w === 30 && tucked.tab.text === '' && tucked.expanded === 'false',
+    `the tab tucks the column to 66pt and takes its own label with it (${tucked.column.w}pt column, ${tucked.tab.w}pt tab)`,
+  )
+  assert(
+    tucked.frame.w === 66 && tucked.frame.text === '',
+    `a tucked frame draws no words at all — no name, no health number (${tucked.frame.w}pt, "${tucked.frame.text}")`,
+  )
+  assert(
+    tucked.frame.label === open.frame.label.replace('Tap to take control.', 'Tap to show the party column.'),
+    `the label never tucks: same Hero, same health, same window owed, only the press changed\n    ${tucked.frame.label}`,
+  )
+  assert(
+    tucked.pips === open.pips && open.pips > 0,
+    `the unacted pip survives the tuck — the accent carries no such channel, so dropping it would delete the state (${tucked.pips} of ${open.pips})`,
+  )
+  assert(
+    tucked.frame.h === 40 && open.frame.h >= 40,
+    `every frame holds the 40pt floor tucked and open (${tucked.frame.h} tucked, ${open.frame.h} open)`,
+  )
+
+  // The rule. A tucked frame has hidden `REVIVE · 1 CARD` along with everything
+  // else, so its press may not spend a card — and by the same argument may not
+  // hand the console over either. It gives the words back and nothing else.
+  await tuck.locator('[data-testid="ally-frame"]').first().click()
+  await tuck.waitForTimeout(400)
+  const reopened = await readColumn(tuck)
+  assert(
+    reopened.column.w === 138 && reopened.expanded === 'true',
+    `a press on a tucked frame opens the column (${reopened.column.w}pt)`,
+  )
+  assert(
+    reopened.pilot === open.pilot,
+    `...and takes control of nobody: the tuck swallows the press whole (pilot still ${reopened.pilot})`,
+  )
+  await shot(tuck, 'party-tuck')
+  await tuck.close()
+
+  // Reduced motion reaches this one for free, because the tuck is a CSS
+  // transition rather than a Web Animations flight: index.css's freeze block
+  // covers it, and a tuck that lands instantly is still a tuck.
+  const stillTuck = await swapPage({ reducedMotion: 'reduce' })
+  await stillTuck.locator('[data-testid="party-tuck"]').click()
+  const cutTuck = await readColumn(stillTuck)
+  assert(
+    cutTuck.column.w === 66 && cutTuck.frame.w === 66,
+    `reduced motion tucks the column with no travel at all (${cutTuck.column.w}pt, read with no wait)`,
+  )
+  await stillTuck.close()
+
   // The Slot row's worst case, measured on purpose rather than hoped for.
   // The scripted turn above prepares Steady Strike — two Charges, no want mark
   // — which fits at exactly 97/97, and that is why this defect shipped
