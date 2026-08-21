@@ -145,6 +145,14 @@ export function deriveBoardEffects(
         if (!card || !from) {
           break
         }
+        // The card announces itself, exactly as a Boss Beat does below: the
+        // Hero pulses and the card's name floats up over them. Before this,
+        // only the Boss said what it was doing — a party firing four cards a
+        // Round showed four unlabelled lunges, and the damage numbers said
+        // how much while nothing on the board said what. The name goes out
+        // first so it takes the lowest floater lane, with whatever the card
+        // produced rising above it.
+        add({ kind: 'cast', entityId: fact.sourceId, at: from, label: card.title, tone: 'hero' })
         if (card.boss_damage > 0 || card.damage > 0 || card.push_tiles > 0 || card.pull_tiles > 0) {
           const targetId = detailString(fact, 'targetId')
           const burstCenter = detailAxial(fact, 'burstCenter')
@@ -156,8 +164,10 @@ export function deriveBoardEffects(
           }
           break
         }
-        // A guard or a heal has no target to lunge at: it reads as a pulse
-        // on the Hero, labelled with what the Encounter actually granted.
+        // A guard or a heal has no target to lunge at: what it granted floats
+        // over the Hero in the tone of the grant, above the card's own name.
+        // With nothing granted there is nothing to float, and a second
+        // unlabelled pulse would only redraw the ring the name already drew.
         const armorGained = (after.heroes[fact.sourceId]?.armor ?? 0) - (before.heroes[fact.sourceId]?.armor ?? 0)
         const healed = (after.heroes[fact.sourceId]?.health ?? 0) - (before.heroes[fact.sourceId]?.health ?? 0)
         const cardsDrawn = facts.filter(
@@ -172,7 +182,9 @@ export function deriveBoardEffects(
               : card.draw_count > 0
                 ? `+${cardsDrawn} ${cardsDrawn === 1 ? 'card' : 'cards'}`
                 : undefined
-        add({ kind: 'cast', entityId: fact.sourceId, at: from, label, tone })
+        if (label !== undefined) {
+          add({ kind: 'cast', entityId: fact.sourceId, at: from, label, tone })
+        }
         break
       }
 

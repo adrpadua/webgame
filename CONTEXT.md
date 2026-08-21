@@ -332,7 +332,7 @@ The guided Round a first-time player meets: it walks prepare, charge, fire in th
 _Avoid_: Tutorial mode, onboarding wizard, scripted encounter
 
 **Board Feedback**:
-The transient motion the board plays for a resolved batch of actions: a lunge toward what was struck, a flash and floating number on what was hit, a pulse on a Hero who guarded, a glide for a step taken, a flare over a resolved telegraph, a hex catching fire under a Hazard and charring to ash, that ground cooling back to bare oathsteel when the Hazard expires, a marked hex breaking open to give up a Minion, the Boss venting its light and going out when it falls. Every beat of it is derived from Resolution Facts, so the board can never show a blow the Encounter did not resolve.
+The transient motion the board plays for a resolved batch of actions: a lunge toward what was struck, a flash and floating number on what was hit, a pulse on a Hero who guarded, a glide for a step taken, a flare over a resolved telegraph, a hex catching fire under a Hazard and charring to ash, that ground cooling back to bare oathsteel when the Hazard expires, a marked hex breaking open to give up a Minion, the Boss venting its light and going out when it falls. Whatever was fired names itself over the piece that fired it — a Beat's title over the Boss, a card's title over the Hero — so every moment of feedback is tied to the thing that caused it, and the party's turn reads as legibly as the Boss's. Every beat of it is derived from Resolution Facts, so the board can never show a blow the Encounter did not resolve.
 _Avoid_: Animation state, VFX layer, Board Ambience
 
 **Board Ambience**:
@@ -511,5 +511,5 @@ The browser surface for playing and inspecting Encounters during design iteratio
 _Avoid_: Sandbox, playtest rig, game client, testing framework
 
 **Scenario**:
-A named, versioned sequence of Encounter actions replayed from a seeded initial state to reach a specific mid-Encounter situation. A Scenario is always rules-legal because the Encounter Engine resolves every step of the replay.
+A named, versioned sequence of Encounter actions replayed from a seeded initial state to reach a specific mid-Encounter situation. A Scenario is always rules-legal because the Encounter Engine resolves every step of the replay. That is also what makes it the seam for a check that needs a situation ordinary play reaches rarely or late: the line is recorded once from authored content and loaded by id, so the check drives one control instead of playing a fight, and what it reads is a state the rules actually produced rather than a state a test hand-built.
 _Avoid_: Save file, state snapshot, fixture blob
