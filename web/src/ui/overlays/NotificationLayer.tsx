@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { NOTIFICATION_RULES, resolveZone, stackOrder, type NotificationId, type NotificationZone } from './notifications'
 
 // The geometry behind `notifications.ts`. One column over the board, split
-// into three zones that are flex siblings — so "these two never overlap" is
+// into four zones that are flex siblings — so "these two never overlap" is
 // enforced by the layout engine rather than by a pair of offsets that happen
 // to disagree. The board itself never resizes when a zone fills or empties:
 // the whole column floats, which is the overlay contract the interface
@@ -12,10 +12,20 @@ import { NOTIFICATION_RULES, resolveZone, stackOrder, type NotificationId, type 
 // dock hugs the Action Bar, and a prompt about the controls one row down
 // should sit against them rather than float above them.
 
+// `empty:hidden` on the two top zones: the column gaps its children, and a
+// zone with nothing in it still earns one, so a silent herald would push the
+// guidance row 6px down the board for the whole Encounter. Display-none takes
+// it out of the flex flow instead. Only the top pair carries it — `stage` is
+// the flex-1 that holds the column open, and hiding it when no banner is up
+// would leave `justify-between` a single child to align, which it puts at the
+// top: the dock would jump off the Action Bar.
 const ZONE_CLASS: Record<NotificationZone, string> = {
-  // Top down from the board's top edge.
-  guidance: 'flex shrink-0 flex-col gap-1.5',
-  // Whatever height the other two leave, with the announcement centred in it.
+  // The board's top edge, above everything: the Boss's card is dealt here, and
+  // nothing the player may ignore gets to push it down the screen.
+  herald: 'flex shrink-0 flex-col gap-1.5 empty:hidden',
+  // Top down, under the herald.
+  guidance: 'flex shrink-0 flex-col gap-1.5 empty:hidden',
+  // Whatever height the others leave, with the announcement centred in it.
   stage: 'flex min-h-0 flex-1 flex-col justify-center gap-1.5',
   // Bottom up from the Action Bar. `flex-col-reverse` is what makes rank 1
   // the member hugging the bar.

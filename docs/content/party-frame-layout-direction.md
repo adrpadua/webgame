@@ -84,6 +84,7 @@ One press per seat when the party is being played, `N+1` when it is not, against
 
 - ~~No authored Encounter fields a second seat yet~~ — superseded: **Embermaw: The Brand** (`embermaw_attrition_trial`) seats Elian and Maren and is reachable from the Encounter Picker, so the column draws there. The solo Encounters still render nothing, and the seam still costs the teaching slice zero pixels (ADR 0035).
 - The primary Hero Frame does not yet carry the Threat mark (`primaryHasThreat` is exported and tested, unconsumed).
+- **The column is not in the notification-zone table, and the overlap 1A accepted turned out to be wider than board pixels.** Growing upward from the primary frame puts the column in the dock's lane — the same strip the floating prompts stack in — and the zone geometry cannot see it, because the frames are persistent chrome with no rank to claim. The first casualty was the Beat Card, which reached the player with its rules text behind an ally frame; that was answered by moving the card to its own top-edge zone (D-098), not by modelling the column. Until it is modelled, a dock member has to be short enough to read in the strip beside the frames.
 - The Status icon strip (canvas `StatusIcon`, Counters on the frame) stays with the existing Counter chips beside the Hero Frame; migrating them onto ally frames is a later pass.
 
 ## Source

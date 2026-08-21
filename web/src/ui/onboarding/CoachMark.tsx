@@ -150,7 +150,8 @@ export function CoachMark() {
   const Icon = visibleTip.icon
   // The guidance zone's second rank, and in practice its only occupant: the
   // scripted cue above it suppresses tips outright rather than stacking with
-  // them, so the zone speaks once at a time.
+  // them, so the zone speaks once at a time. The Boss's Beat Card sits above
+  // the whole zone in the herald (D-098) and is not one of its voices.
   return (
     <Notify id="coach-tip">
       <div data-testid="coach-mark" data-tip={visibleTip.id}>

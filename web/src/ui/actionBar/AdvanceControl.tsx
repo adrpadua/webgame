@@ -21,9 +21,14 @@ import { FOCUS_RING_CLASS, GATED_CLASS, NUDGE_RING_CLASS, SPOTLIGHT_CLASS } from
 //
 // The three states were always here; only the second was hidden inside the
 // handler. Playing the next beat of a Boss Row and closing the window are
-// different moves — that distinction is why the docked prompt says "Up next"
+// different moves — that distinction is why the Beat Card says "Up next"
 // rather than "Next" — so the rail draws them as different shapes rather
 // than relying on the player to know which press they are making.
+//
+// The Continue state carries more weight since the Beat Card moved to the
+// board's top edge (D-098): the rail is now the press within the thumb's
+// reach for a Boss Row, while the card is where the Beat is read. Both still
+// resolve the same beat, and this handler is the one that does it.
 //
 // A fourth state arrived with the Party. Total War's campaign map turns its
 // end-turn button into "a unit has not moved" and hands each press to one of
