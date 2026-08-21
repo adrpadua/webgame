@@ -2,11 +2,12 @@ import { useCatalog } from '@/content/CatalogContext'
 import { useEffect, useRef } from 'react'
 import { cardChargeCap, type EncounterState } from '@/engine'
 import { useOnboarding } from '@/store/onboarding'
-import { selectState, useWorkbench, type WorkbenchCatalog } from '@/store/workbench'
-import { BootIcon, HexIcon, ShieldIcon, SwordIcon } from '../common/icons'
+import { selectPilotId, selectState, useWorkbench, type WorkbenchCatalog } from '@/store/workbench'
+import { BootIcon, HexIcon, ShieldIcon, SwordIcon, UnactedIcon } from '../common/icons'
 import { useHold, type HoldDetail } from '../common/HoldPopover'
 import { Notify } from '../overlays/NotificationLayer'
 import { slotCanFire } from '../actionBar/slots'
+import { nextNudge } from '../party/unacted'
 import { FOCUS_RING_CLASS } from '../common/theme'
 
 // Non-blocking coaching for a player past the scripted first turn: one
@@ -26,16 +27,24 @@ function tip(id: string, icon: typeof SwordIcon, tone: string, cue: string, titl
   return { id, icon, tone, cue, detail: { id: `tip:${id}`, title, tone: 'neutral', text } }
 }
 
-function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | null {
+// `pilotId` is the Hero the consoles operate (D-090), not seat 0: coaching
+// that read the primary Hero would describe a Hand and a bar the player is
+// not looking at the moment they switch.
+//
+// `railNudging` is whether the forward rail is currently the unacted nudge
+// rather than Next. It only ever suppresses a cue that names the wrong button
+// — the tips are one at a time, and a prompt saying "press Next" beside a rail
+// that hands over the console is worse than no prompt at all.
+function currentTip(catalog: WorkbenchCatalog, state: EncounterState, pilotId: string, railNudging: boolean): Tip | null {
   if (!state.active) {
     return null
   }
-  const hero = state.heroes[state.primaryHeroId]
+  const hero = state.heroes[pilotId]
   if (!hero) {
     return null
   }
   const loadedSlots = hero.actionBar.filter((slot) => slot.topCard !== null)
-  const fireable = hero.actionBar.some((_slot, slotIndex) => slotCanFire(catalog, state, state.primaryHeroId, slotIndex))
+  const fireable = hero.actionBar.some((_slot, slotIndex) => slotCanFire(catalog, state, pilotId, slotIndex))
   const chargeable = hero.actionBar.some(
     (slot) => slot.topCard !== null && slot.activatedWindow === null && slot.charges.length < cardChargeCap(catalog.cards[slot.topCard.cardId]),
   )
@@ -48,6 +57,16 @@ function currentTip(catalog: WorkbenchCatalog, state: EncounterState): Tip | nul
       'Fill a Slot',
       'Prepare a Slot',
       'Drag a card from your Hand onto an empty Slot, or tap the card and then the Slot.',
+    )
+  }
+  if (state.phase === 'loadout' && loadedSlots.length > 0 && railNudging) {
+    return tip(
+      'unacted',
+      UnactedIcon,
+      'border-gold-700 bg-gold-950/80 text-gold-100',
+      'A seat is still waiting',
+      'Someone has not acted',
+      'A party member has not used this window — their frame is breathing at the left edge. The forward rail hands you their console; once every seat has been offered, the same rail closes the window.',
     )
   }
   if (state.phase === 'loadout' && loadedSlots.length > 0) {
@@ -102,7 +121,10 @@ export function CoachMark() {
   // The scripted first turn owns this row while it runs.
   const firstTurnActive = useOnboarding((store) => store.firstTurnActive)
 
-  const tipNow = currentTip(catalog, state)
+  const pilotId = useWorkbench(selectPilotId)
+  const railNudging = useWorkbench((store) => nextNudge(catalog, store, selectPilotId(store), store.nudgedHeroIds) !== null)
+
+  const tipNow = currentTip(catalog, state, pilotId, railNudging)
   const visibleTip = tipNow !== null && !dismissedTips.includes(tipNow.id) ? tipNow : null
   const hold = useHold(visibleTip?.detail ?? null)
 
