@@ -50,7 +50,7 @@ describe('who still owes this window an action', () => {
   })
 
   it('names every seat that has not acted, and drops one the moment it does', () => {
-    expect(unacted()).toEqual(['guardian', 'maren'])
+    expect(unacted()).toEqual(['elian', 'maren'])
     actAsPilot()
     expect(unacted()).toEqual(['maren'])
   })
@@ -61,7 +61,7 @@ describe('who still owes this window an action', () => {
     // player is not looking at.
     expect(railTarget()).toBe('maren')
     store().switchControl('maren')
-    expect(railTarget()).toBe('guardian')
+    expect(railTarget()).toBe('elian')
   })
 
   it('hands the console over on the press, and remembers the offer', () => {
@@ -71,12 +71,12 @@ describe('who still owes this window an action', () => {
   })
 
   it('offers each seat once, then becomes Next — the window can always be closed', () => {
-    // Maren is offered and takes control without acting; the guardian is
+    // Maren is offered and takes control without acting; Elian is
     // offered and takes control back. Both are still unacted — their frames
     // keep breathing — but the rail has let go, so the next press advances.
     store().nudgeToUnacted('maren')
-    store().nudgeToUnacted('guardian')
-    expect(unacted()).toEqual(['guardian', 'maren'])
+    store().nudgeToUnacted('elian')
+    expect(unacted()).toEqual(['elian', 'maren'])
     expect(railTarget()).toBeNull()
   })
 

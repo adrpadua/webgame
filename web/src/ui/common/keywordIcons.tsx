@@ -30,7 +30,7 @@ function glyph(path: React.ReactNode): KeywordIcon {
 
 // Elian Voss, Shield Wall: the folding Gate Rig. Every mark is a part of that
 // object doing its job — the panel, the buttress, the plug, the brace.
-const GUARDIAN_KEYWORDS: Record<string, KeywordIcon> = {
+const ELIAN_KEYWORDS: Record<string, KeywordIcon> = {
   // The gate panel itself, ribbed down the middle.
   guard: glyph(
     <>
@@ -106,7 +106,7 @@ const NEUTRAL_KEYWORDS: Record<string, KeywordIcon> = {
 }
 
 const HERO_KEYWORDS: Record<string, Record<string, KeywordIcon>> = {
-  guardian: GUARDIAN_KEYWORDS,
+  elian: ELIAN_KEYWORDS,
 }
 
 export function keywordIcon(heroId: string, keywordId: string): KeywordIcon {

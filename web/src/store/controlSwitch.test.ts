@@ -33,7 +33,7 @@ describe('the control cursor', () => {
   })
 
   it('defaults to seat 0 and switches only to a fielded party member', () => {
-    expect(selectPilotId(store())).toBe('guardian')
+    expect(selectPilotId(store())).toBe('elian')
     store().switchControl('maren')
     expect(selectPilotId(store())).toBe('maren')
     store().switchControl('embermaw')
@@ -47,13 +47,13 @@ describe('the control cursor', () => {
     const hand = state().heroes.maren.hand
     const card = hand[0]
     store().cardDroppedOnSlot(card.instanceId, 0)
-    // The load landed on Maren's bar, not the guardian's.
+    // The load landed on Maren's bar, not Elian's.
     expect(state().heroes.maren.actionBar[0].topCard?.instanceId).toBe(card.instanceId)
-    expect(state().heroes.guardian.actionBar[0].topCard?.instanceId).not.toBe(card.instanceId)
+    expect(state().heroes.elian.actionBar[0].topCard?.instanceId).not.toBe(card.instanceId)
   })
 
   it('drops in-flight gestures on switch, and keeps commitments', () => {
-    const card = state().heroes.guardian.hand[0]
+    const card = state().heroes.elian.hand[0]
     store().cardDroppedOnSlot(card.instanceId, 0)
     useWorkbench.setState({ targetingSlotIndex: 0, selectedCardId: 'anything' })
     store().switchControl('maren')
@@ -62,7 +62,7 @@ describe('the control cursor', () => {
     expect(store().targetingSlotIndex).toBeNull()
     expect(store().selectedCardId).toBeNull()
     // ...but the committed load stays: Slots and Charges are engine state.
-    expect(state().heroes.guardian.actionBar[0].topCard?.instanceId).toBe(card.instanceId)
+    expect(state().heroes.elian.actionBar[0].topCard?.instanceId).toBe(card.instanceId)
   })
 
   it('survives undo — the window, not the character, is the commit boundary', () => {
@@ -78,6 +78,6 @@ describe('the control cursor', () => {
     // The solo prototype has no maren seat: the cursor still names her, but
     // the pilot the consoles read is the seat the Encounter actually fields.
     store().loadScenario('embermaw_solo_ceiling')
-    expect(selectPilotId(store())).toBe('guardian')
+    expect(selectPilotId(store())).toBe('elian')
   })
 })

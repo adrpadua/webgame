@@ -199,9 +199,9 @@ describe('content catalog', () => {
     // The Signature rides the Hero, not the deck (D-064) — and the Hero is
     // authored content of their own (ADR 0034), so the printed card lives on
     // the Hero definition and the teaching slice opts out of fielding it.
-    expect(catalog.encounters.embermaw_prototype.party.map((seat) => seat.hero)).toEqual(['guardian'])
-    expect(catalog.heroes.guardian.signature_card).toBe('elian_riposte')
-    expect(catalog.heroes.guardian.max_health).toBe(34)
+    expect(catalog.encounters.embermaw_prototype.party.map((seat) => seat.hero)).toEqual(['elian'])
+    expect(catalog.heroes.elian.signature_card).toBe('elian_riposte')
+    expect(catalog.heroes.elian.max_health).toBe(34)
     expect(catalog.encounters.embermaw_prototype.party[0].fields_signature).toBe(true)
     expect(catalog.encounters.embermaw_first_turn.party[0].fields_signature).toBe(false)
     expect(catalog.cards.elian_riposte.fixed).toBe(true)
@@ -223,6 +223,23 @@ describe('content catalog', () => {
       cards: { ...catalog.cards, steady_strike: { ...catalog.cards.steady_strike, tags: ['attack'] } },
     }
     expect(heroRole(mixed, 'embermaw_prototype')).toBe('')
+  })
+
+  // Every Hero is addressed by first name, and the readouts have no second
+  // string to choose from: `title` is the only name a frame, an aria-label or
+  // a Beat Card can print, so the rule is kept where it is authored. The full
+  // name is checked against it rather than left free — `full_name` is the same
+  // person's name with rank and house restored, and one that did not contain
+  // the first name would be a different character on the same Hero.
+  it('names every Hero by their first name, with the full name as flavour', () => {
+    for (const hero of Object.values(catalog.heroes)) {
+      expect(hero.title, `${hero.id} prints more than a first name`).not.toContain(' ')
+      expect(hero.id).toBe(hero.title.toLowerCase())
+      expect(hero.full_name, `${hero.id} has no full name authored`).not.toBe('')
+      expect(hero.full_name.split(' '), `${hero.full_name} does not contain ${hero.title}`).toContain(hero.title)
+    }
+    expect(catalog.heroes.elian.full_name).toBe('Captain Elian Voss')
+    expect(catalog.heroes.maren.full_name).toBe('Registrar Maren Tallis')
   })
 
   // ADR 0022 removed Presence. The schema strips keys it does not declare

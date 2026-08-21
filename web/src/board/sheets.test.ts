@@ -86,7 +86,7 @@ describe('hero sheets', () => {
     expect(SHEETS[heroSheetKey('maren')]).toBeDefined()
     // The fallback is the shared hero sheet, never a missing key: a new seat
     // renders as somebody on the day it is authored.
-    expect(heroSheetKey('guardian')).toBe('hero')
+    expect(heroSheetKey('elian')).toBe('hero')
     expect(heroSheetKey('someone_unauthored')).toBe('hero')
   })
 })
