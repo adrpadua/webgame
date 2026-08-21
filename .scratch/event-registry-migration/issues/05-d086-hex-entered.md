@@ -15,4 +15,4 @@ Owner: User-routed follow-on; decided Adopted at user direction (D-086)
 - Engine tests: a walker pays every marked hex it crosses (one damage action per Counter, matches appended in path order on one fact); a jumper pays only its landing; all three host/when refusals asserted by message.
 - Sweep: 48 policies × 30 seeds vs the current-main baseline — 0 differences in any column (no content authors the vocabulary).
 - Sealed duo Record replays with `finalStateMatches: true` and matching fingerprint.
-- 575 tests green; `verify:local` green; mutation audit 104 entries with the new "ground's Counters never answer the footstep" mutant caught by the walker test.
+- 575 tests green; `verify:local` green end to end; mutation audit **110/110 caught, 0 survived, 0 stale** — the new "ground's Counters never answer the footstep" mutant killed by the walker test.
