@@ -435,6 +435,12 @@ export class BoardScene extends Phaser.Scene {
       return NO_MOTION
     }
     const motion: Motion = { ...NO_MOTION }
+    // Casts take the strongest pulse in flight rather than compounding, and
+    // that is the one place accumulation is wrong: a Hero firing a guard now
+    // gets two casts at once — the card's name and what it granted — and they
+    // describe a single act. Multiplied together they read as a lurch twice
+    // the size of the same card's pulse when it grants nothing.
+    let castPulse = 0
     for (const effect of this.active) {
       if (effect.entityId !== entityId || effect.elapsed < 0) {
         continue
@@ -469,7 +475,7 @@ export class BoardScene extends Phaser.Scene {
         }
         case 'cast': {
           if (!this.reducedMotion) {
-            motion.scale *= 1 + 0.2 * Math.sin(Math.PI * t)
+            castPulse = Math.max(castPulse, 0.2 * Math.sin(Math.PI * t))
           }
           break
         }
@@ -499,6 +505,7 @@ export class BoardScene extends Phaser.Scene {
           break
       }
     }
+    motion.scale *= 1 + castPulse
     return motion
   }
 
