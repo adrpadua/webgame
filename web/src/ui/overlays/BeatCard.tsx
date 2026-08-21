@@ -2,7 +2,7 @@ import { useCatalog } from '@/content/CatalogContext'
 import { keywordTitle } from "@/engine";
 import { usePlayout } from "@/store/playout";
 import { selectState, useWorkbench } from "@/store/workbench";
-import { beatCardStats, findLiveBeat, standingDemand } from "./beatCard";
+import { beatCardStats, findLiveBeat, standingDemand } from "./beatCardModel";
 import { Notify } from "./NotificationLayer";
 import { FOCUS_RING_CLASS } from "../common/theme";
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { FIRST_TURN_ENCOUNTER_ID, loadCatalog } from '@/content'
 import { createEncounterState, resolve, type EncounterState } from '@/engine'
-import { signatureControl } from './heroFrame'
+import { signatureControl } from './heroFrameModel'
 
 // The Signature control's face (D-065): one closed state machine shared by
 // the Hero Frame and these tests, the way `slots.ts` predicates are shared

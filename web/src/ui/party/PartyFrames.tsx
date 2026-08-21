@@ -1,7 +1,7 @@
 import { useCatalog } from '@/content/CatalogContext'
 import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { captureFrameBoxes, useSwapFlip } from './controlSwap'
-import { allyTap, partyFrames, type PartyFrameModel } from './partyFrames'
+import { allyTap, partyFrames, type PartyFrameModel } from './partyFrameModel'
 import { nextNudge, unactedHeroIds } from './unacted'
 import { GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, FOCUS_RING_CLASS, NUDGE_RING_CLASS, healthBarScale } from '../common/theme'
 
@@ -136,7 +136,7 @@ function AllyFrame({ frame, pilotId, tucked }: { frame: PartyFrameModel; pilotId
   const armorFraction = down ? 0 : Math.max(0, frame.armor) / scale
   const accent = frameAccent(frame)
   // Which of the three things a press means here, in precedence order and in
-  // one place (`partyFrames.ts`) rather than as three ifs in the handler.
+  // one place (`partyFrameModel.ts`) rather than as three ifs in the handler.
   const tap = allyTap(frame, tucked)
   return (
     <button
