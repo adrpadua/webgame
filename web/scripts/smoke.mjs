@@ -1484,6 +1484,28 @@ try {
   await sig.locator('[data-testid="slot-1"]').click()
   await sig.waitForTimeout(700)
   assert((await sig.locator('[data-testid="slot-1"]').getAttribute('data-slot-state')) === 'fired', 'Fortify commits its Armor in the Slow Window')
+  // The Status Icon tray, now that the Hero is carrying something: a pointer
+  // is precise enough to name one square, so the square answers with its own
+  // condition rather than with the tray's whole list (the direction's per-mark
+  // tip). Each square carries the id it answers with, which is what makes a
+  // tray of several readable one mark at a time — a case this walk cannot
+  // reach, because nothing in the Ashen Trial puts two conditions on one host.
+  await sig.waitForSelector('[data-testid="status-tray"] [data-testid="status-icon"][data-counter="fortified"]', { timeout: 4000 })
+  const tipIds = await sig
+    .locator('[data-testid="status-tray"] [data-tip]')
+    .evaluateAll((nodes) => nodes.map((node) => node.dataset.tip))
+  assert(
+    tipIds.length > 0 && tipIds.every((id) => id?.startsWith('counter:')),
+    `every square in the tray answers as its own condition (${tipIds.join(', ') || 'no squares'})`,
+  )
+  await sig.locator('[data-testid="status-icon"][data-counter="fortified"]').hover()
+  await sig.waitForSelector('[data-testid="hold-popover"]', { timeout: 4000 })
+  assert(
+    (await sig.locator('[data-testid="hold-popover"]').getAttribute('data-hold-id')) === 'counter:fortified',
+    'hovering a Status Icon opens that mark’s own reading',
+  )
+  await sig.mouse.move(0, 0)
+  await sig.waitForSelector('[data-testid="hold-popover"]', { state: 'detached', timeout: 4000 })
   assert(await sigAdvanceTo('instant'), 'the next Round opens on the Boss Instant row')
   await sig.waitForTimeout(1500)
   // The Claw landed on banked Armor for zero Health loss: the standing clause
