@@ -33,7 +33,7 @@ describe('notification zones', () => {
   it('orders a zone anchor-first', () => {
     expect(zoneMembers('guidance')).toEqual(['first-turn', 'coach-tip'])
     expect(zoneMembers('stage')).toEqual(['outcome', 'phase-banner'])
-    expect(zoneMembers('dock')).toEqual(['beat-card', 'targeting', 'move-payment', 'standing-demand', 'rejection', 'stat-panel'])
+    expect(zoneMembers('dock')).toEqual(['beat-card', 'targeting', 'move-payment', 'standing-demand', 'rejection', 'stat-panel', 'tile-panel'])
   })
 
   // The dock's anchor is the Action Bar's top edge, so its first rank is the

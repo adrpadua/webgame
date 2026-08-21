@@ -1,21 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { NEUTRAL_MARK, statusFigure, statusLabel, statusMark } from './statusIcons'
+import { hazardMark, NEUTRAL_MARK, statusFigure, statusLabel, statusMark } from './statusIcons'
 
-// Every authored Counter has to reach the HUD as something the player can
-// tell apart from the Counter beside it. The registry is presentation, so an
-// unmarked Counter is not a load error — but it is a silent one, and this is
-// where it stops being silent: a new file in `data/counters/` fails here
-// until it has a mark, rather than shipping as an anonymous steel rhombus
-// nobody notices is anonymous.
+// Every authored Counter and Hazard has to reach the HUD as something the
+// player can tell apart from the mark beside it. The registry is
+// presentation, so an unmarked one is not a load error — but it is a silent
+// one, and this is where it stops being silent: a new file in
+// `data/counters/` or `data/hazards/` fails here until it has a mark, rather
+// than shipping as an anonymous steel rhombus nobody notices is anonymous.
 
 // Read through Vite's glob rather than `node:fs`, the same way the content
 // loader and the other content-facing tests reach `data/`.
-const AUTHORED = Object.values(
-  import.meta.glob('../../../../data/counters/*.json', { eager: true, import: 'default' }) as Record<string, { id: string }>,
-)
+const ids = (modules: Record<string, unknown>): string[] => Object.values(modules).map((entry) => (entry as { id: string }).id)
+
+const AUTHORED_COUNTERS = ids(import.meta.glob('../../../../data/counters/*.json', { eager: true, import: 'default' }))
+const AUTHORED_HAZARDS = ids(import.meta.glob('../../../../data/hazards/*.json', { eager: true, import: 'default' }))
 
 function authoredCounterIds(): string[] {
-  return AUTHORED.map((counter) => counter.id)
+  return AUTHORED_COUNTERS
 }
 
 describe('statusMark', () => {
@@ -31,6 +32,30 @@ describe('statusMark', () => {
 
   it('falls back to the neutral mark for a Counter it has never heard of', () => {
     expect(statusMark('a_counter_authored_after_this_file')).toEqual(NEUTRAL_MARK)
+  })
+})
+
+describe('hazardMark', () => {
+  it('marks every authored Hazard', () => {
+    const unmarked = AUTHORED_HAZARDS.filter((id) => hazardMark(id) === NEUTRAL_MARK)
+    expect(unmarked).toEqual([])
+  })
+
+  it('draws no two authored Hazards the same way', () => {
+    const marks = AUTHORED_HAZARDS.map((id) => `${hazardMark(id).glyph}:${hazardMark(id).material}`)
+    expect(new Set(marks).size).toBe(marks.length)
+  })
+
+  // The two namespaces are separate on purpose: a Hazard must not inherit a
+  // Counter's mark by sharing its id, and it must not lose its own by not
+  // sharing one.
+  it('keeps ground marks out of the Counter table and back', () => {
+    expect(statusMark('scorched')).toEqual(NEUTRAL_MARK)
+    expect(hazardMark('seared')).toEqual(NEUTRAL_MARK)
+  })
+
+  it('falls back to the neutral mark for a Hazard it has never heard of', () => {
+    expect(hazardMark('a_hazard_authored_after_this_file')).toEqual(NEUTRAL_MARK)
   })
 })
 
