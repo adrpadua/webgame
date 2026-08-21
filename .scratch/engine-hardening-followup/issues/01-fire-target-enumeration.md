@@ -26,4 +26,4 @@ Red proven before green: with the test files applied to the pre-fix sources, exa
 
 ## Evidence
 
-(gate results stamped below on completion)
+Isolated gate green end to end on `04006a8`: log:ids clean, 626 tests passed across 38 files (the 8 new contract tests and the slot-glow test included), lint, build, and browser smoke clean, mutation audit **116/116 caught, 0 survived, 0 stale**, EXIT:0. Red-before-green recorded above: 6 targeted failures against the pre-fix sources, all on the families the fix decides, none on the unchanged three.
