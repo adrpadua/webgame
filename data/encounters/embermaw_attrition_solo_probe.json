@@ -1,7 +1,7 @@
 {
   "id": "embermaw_attrition_solo_probe",
   "title": "Embermaw: The Brand, No Healer",
-  "rules_text": "An evaluation Encounter: the Brand trial with Maren's seat removed, so the no-healer-clear measurement has its control arm. Same Boss, same programs, same seed \u2014 the only delta is that nobody can strike a Sear from the record. Never shipped to players; it exists to be measured against the two-seat trial (D-082).",
+  "rules_text": "An evaluation Encounter: the Brand trial with Maren's seat removed, so the no-healer-clear measurement has its control arm. Same Boss, same programs, same seed — the only delta is that nobody can strike a Sear from the record. Never shipped to players; it exists to be measured against the two-seat trial (D-082).",
   "party": [
     {
       "hero": "elian",
@@ -28,15 +28,15 @@
     },
     {
       "card": "iron_guard",
-      "copies": 8
-    },
-    {
-      "card": "sweeping_blow",
-      "copies": 2
+      "copies": 6
     },
     {
       "card": "fortify",
-      "copies": 2
+      "copies": 3
+    },
+    {
+      "card": "unyielding_step",
+      "copies": 3
     },
     {
       "card": "drive_back",

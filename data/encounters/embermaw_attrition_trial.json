@@ -2,14 +2,40 @@
   "id": "embermaw_attrition_trial",
   "title": "Embermaw: The Brand",
   "player_facing": true,
-  "rules_text": "Embermaw builds a debt: every Sear it lays on the front line stays there, and every later blow collects on it. Maren Tallis keeps the count \u2014 strike the entries, cover the next name, and turn surplus care into the damage that ends it.",
+  "rules_text": "Embermaw builds a debt: every Sear it lays on the front line stays there, and every later blow collects on it. Maren Tallis keeps the count — strike the entries, cover the next name, and turn surplus care into the damage that ends it.",
   "party": [
     {
       "hero": "elian",
       "start": {
         "q": 0,
         "r": 0
-      }
+      },
+      "deck": [
+        {
+          "card": "steady_strike",
+          "copies": 4
+        },
+        {
+          "card": "iron_guard",
+          "copies": 6
+        },
+        {
+          "card": "fortify",
+          "copies": 3
+        },
+        {
+          "card": "unyielding_step",
+          "copies": 3
+        },
+        {
+          "card": "drive_back",
+          "copies": 2
+        },
+        {
+          "card": "quench",
+          "copies": 2
+        }
+      ]
     },
     {
       "hero": "maren",
@@ -20,15 +46,15 @@
       "deck": [
         {
           "card": "field_dressing",
-          "copies": 3
+          "copies": 2
         },
         {
           "card": "braced_recovery",
-          "copies": 3
+          "copies": 2
         },
         {
           "card": "full_certification",
-          "copies": 1
+          "copies": 2
         },
         {
           "card": "triage_line",
@@ -40,7 +66,7 @@
         },
         {
           "card": "strike_the_entry",
-          "copies": 2
+          "copies": 3
         },
         {
           "card": "ledger_review",
@@ -70,15 +96,15 @@
     },
     {
       "card": "iron_guard",
-      "copies": 8
-    },
-    {
-      "card": "sweeping_blow",
-      "copies": 2
+      "copies": 6
     },
     {
       "card": "fortify",
-      "copies": 2
+      "copies": 3
+    },
+    {
+      "card": "unyielding_step",
+      "copies": 3
     },
     {
       "card": "drive_back",

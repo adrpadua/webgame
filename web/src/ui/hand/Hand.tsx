@@ -7,6 +7,7 @@ import { handCanAct } from '../actionBar/slots'
 import { handFace, movePrepped, payingKeywords, shownKeywords, type HandFace } from './handFace'
 import { CARD_EFFECT_TONE, cardEffect } from '../common/icons'
 import { keywordIcon, StaminaIcon } from '../common/keywordIcons'
+import { HAND_DEAL_LEAD_MS, HAND_DEAL_STEP_MS, useConsoleDeal } from '../party/controlSwap'
 import { cardDetail } from '../common/holdDetails'
 import { useHold } from '../common/HoldPopover'
 import { FOCUS_RING_CLASS, GATED_CLASS, SPOTLIGHT_CLASS, windowToneClass } from '../common/theme'
@@ -229,6 +230,13 @@ export function Hand() {
   // The whole Hand is that answer, so the row takes over as the prompt.
   const offering = useWorkbench((store) => store.pendingMove !== null || store.pendingRevive !== null)
   const pilotId = useWorkbench(selectPilotId)
+  // The rest of the console's half of a control swap (D-099): the arriving
+  // Hero's cards deal in behind the Action Bar's Slots, so the handover runs
+  // as one cascade down the console rather than as two rows blinking. Bound to
+  // the row rather than to the card on purpose — a Compact Card cannot tell a
+  // handover from its own arrival, and an effect on the card would re-deal the
+  // Hand on every refill.
+  const row = useConsoleDeal<HTMLDivElement>(pilotId, '[data-testid="hand-card"]', HAND_DEAL_LEAD_MS, HAND_DEAL_STEP_MS)
   const hero = state.heroes[pilotId]
   if (!hero) {
     return null
@@ -267,6 +275,7 @@ export function Hand() {
   // and playing out the Hand must not make the board grow mid-Encounter.
   return (
     <div
+      ref={row}
       // px-2/gap-1 rather than px-3/gap-1.5: at a five-card refill the row's
       // own chrome was costing 16px of card width, and the widest card name
       // in the catalogue needs every one of them to sit on one line.

@@ -7,9 +7,10 @@ import { DIMINISHED_ACTIONS } from './downed'
 import type { EncounterState } from './types'
 
 export interface FireTargeting {
-  mode: 'none' | 'piece' | 'hex' | 'ally'
+  mode: 'none' | 'piece' | 'hex' | 'ally' | 'board_slot'
   legalTargetIds: string[]
   legalHexes: Axial[]
+  legalSlotIndexes: number[]
   previewHexes: Axial[]
 }
 
@@ -23,7 +24,7 @@ export function fireTargeting(
   const slot = state.heroes[heroId]?.actionBar[slotIndex]
   const card = slot?.topCard ? catalog.cards[slot.topCard.cardId] : undefined
   if (!card) {
-    return { mode: 'none', legalTargetIds: [], legalHexes: [], previewHexes: [] }
+    return { mode: 'none', legalTargetIds: [], legalHexes: [], legalSlotIndexes: [], previewHexes: [] }
   }
   // Hex mode belongs to every hex-targeting card, not only Bursts: since
   // D-048 a card may put a Counter on the ground, and D-086's first consumer
@@ -41,8 +42,21 @@ export function fireTargeting(
       mode: 'hex',
       legalTargetIds: [],
       legalHexes,
+      legalSlotIndexes: [],
       previewHexes: hoveredIsLegal ? hexesWithinRadius(state.board.hexes, hoveredHex, card.burst_radius) : [],
     }
+  }
+  // A `board_slot` card attaches to a prepared Slot (D-035, reachable since
+  // D-048), so its legal set is Slot indexes, not pieces or ground. The mode
+  // existed in the schema and in legality before it existed here — the P0 of
+  // the engine-hardening follow-up: a family `legality()` accepts and this
+  // function does not name falls to 'none', offers an untargeted fire, and is
+  // refused — a card that loads and nothing can play.
+  if (card.target_type === 'board_slot') {
+    const legalSlotIndexes = (state.heroes[heroId]?.actionBar ?? [])
+      .map((_slot, targetSlotIndex) => targetSlotIndex)
+      .filter((targetSlotIndex) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetSlotIndex }).legal)
+    return { mode: 'board_slot', legalTargetIds: [], legalHexes: [], legalSlotIndexes, previewHexes: [] }
   }
   // An `ally` card targets a living party member (ADR 0035); the legal set
   // comes from the same legality predicate every mode asks, so range and the
@@ -51,15 +65,39 @@ export function fireTargeting(
     const legalTargetIds = Object.keys(state.board.entities)
       .sort()
       .filter((targetId) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }).legal)
-    return { mode: 'ally', legalTargetIds, legalHexes: [], previewHexes: [] }
+    return { mode: 'ally', legalTargetIds, legalHexes: [], legalSlotIndexes: [], previewHexes: [] }
   }
   if (card.damage > 0 || card.push_tiles > 0 || card.pull_tiles > 0 || cardNeedsPieceTarget(card)) {
     const legalTargetIds = Object.keys(state.board.entities)
       .sort()
       .filter((targetId) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }).legal)
-    return { mode: 'piece', legalTargetIds, legalHexes: [], previewHexes: [] }
+    return { mode: 'piece', legalTargetIds, legalHexes: [], legalSlotIndexes: [], previewHexes: [] }
   }
-  return { mode: 'none', legalTargetIds: [], legalHexes: [], previewHexes: [] }
+  return { mode: 'none', legalTargetIds: [], legalHexes: [], legalSlotIndexes: [], previewHexes: [] }
+}
+
+// The fire_slot command for every target a mode admits. The switch is
+// exhaustive on purpose — the P0 defect was exactly a mode ('ally') that
+// existed above but fell through a two-way ternary here into the untargeted
+// branch, where legality refused every fire it offered. The `never` default
+// makes the compiler demand an enumeration decision for any future family
+// before it can ship half-supported.
+function fireCommands(targeting: FireTargeting, heroId: string, slotIndex: number): PlayerCommandInput[] {
+  switch (targeting.mode) {
+    case 'hex':
+      return targeting.legalHexes.map((targetHex) => ({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetHex }))
+    case 'piece':
+    case 'ally':
+      return targeting.legalTargetIds.map((targetId) => ({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }))
+    case 'board_slot':
+      return targeting.legalSlotIndexes.map((targetSlotIndex) => ({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetSlotIndex }))
+    case 'none':
+      return [{ kind: 'fire_slot', sourceId: heroId, slotIndex }]
+    default: {
+      const undecided: never = targeting.mode
+      throw new Error(`fire targeting mode ${String(undecided)} has no enumeration decision`)
+    }
+  }
 }
 
 // The command kinds this enumeration considers. Guarded against
@@ -133,13 +171,7 @@ export function legalActions(catalog: ContentCatalog, state: EncounterState, her
       }
     }
     const targeting = fireTargeting(catalog, state, heroId, slotIndex)
-    const fireActions: PlayerCommandInput[] =
-      targeting.mode === 'hex'
-        ? targeting.legalHexes.map((targetHex) => ({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetHex }))
-        : targeting.mode === 'piece'
-          ? targeting.legalTargetIds.map((targetId) => ({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }))
-          : [{ kind: 'fire_slot', sourceId: heroId, slotIndex }]
-    for (const fireAction of fireActions) {
+    for (const fireAction of fireCommands(targeting, heroId, slotIndex)) {
       if (legality(catalog, state, fireAction).legal) {
         actions.push(fireAction)
       }

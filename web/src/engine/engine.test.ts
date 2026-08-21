@@ -182,17 +182,19 @@ describe('content catalog', () => {
     // twenty says nothing about which twenty, and this deck has now been
     // restated three times — `10x/10x`, proposal 04's `8/6/2/2/2`, the
     // `46d2a61` list, now D-064's migration (`Shield Slam` out to the
-    // Signature, `Iron Guard` to 8) — with prose in three documents claiming
-    // to be current each time. Changing it here is the reminder to change
-    // `elian-voss-design.md` and the decision log with it.
+    // Signature, `Iron Guard` to 8), now D-104's (`Iron Guard` back to 6 and
+    // `Unyielding Step` in as a second Slow identity) — with prose in three
+    // documents claiming to be current each time. Changing it here is the
+    // reminder to change `elian-voss-design.md` and the decision log with it.
     expect(
       Object.fromEntries(catalog.encounters.embermaw_prototype.player_deck.map((entry) => [entry.card, entry.copies])),
     ).toEqual({
       steady_strike: 4,
-      iron_guard: 8,
+      iron_guard: 6,
       quench: 2,
       sweeping_blow: 2,
       fortify: 2,
+      unyielding_step: 2,
       drive_back: 2,
     })
     expect(catalog.encounters.embermaw_prototype.player_deck.reduce((total, entry) => total + entry.copies, 0)).toBe(20)
@@ -5102,9 +5104,12 @@ describe('damage and Resolution Facts', () => {
     const bossHealthBefore = boss(state).health
     const fired = resolve(catalog, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 2 })
     state = fired.state
-    // 3 base + 2 per Charge = 7 — and exactly 7: the rider lands after the
+    // 2 base + 3 per Charge = 8 — and exactly 8: the rider lands after the
     // Riposte's own damage, so its own hit never benefits from Sundered.
-    expect(boss(state).health).toBe(bossHealthBefore - 7)
+    // D-101 moved the value off the base and onto the Charge for this reason:
+    // at the old `3 + 2` a full bank paid 7 where two single-Charge fires paid
+    // 10, so the bank the card is built around was the worse line.
+    expect(boss(state).health).toBe(bossHealthBefore - 8)
     expect(state.counters[combatantRef(state.bossId)]?.[0]).toMatchObject({ id: 'sundered', count: 1 })
     expect(hero(state).actionBar[2].earnedCharges).toBe(0)
     // A follow-up hit lands through the wound: +1 from Sundered's Reader.

@@ -14,6 +14,7 @@ import {
   type SlotStateName,
   type SlotTone,
 } from './slots'
+import { SLOT_DEAL_LEAD_MS, SLOT_DEAL_STEP_MS, useConsoleDeal } from '../party/controlSwap'
 import { keywordIcon } from '../common/keywordIcons'
 import { slotDetail } from '../common/holdDetails'
 import { useHold, type HoldDetail } from '../common/HoldPopover'
@@ -99,6 +100,12 @@ const SLOT_SPAN: Record<number, string> = { 8: 'col-span-8', 4: 'col-span-4', 2:
 export function ActionBar() {
   const state = useWorkbench(selectState)
   const pilotId = useWorkbench(selectPilotId)
+  // The console's half of a control swap (D-099): when the pilot changes, the
+  // Slots are re-dealt left to right — they hold a different Hero's Top Cards
+  // now, and unlike the frames there is nothing for them to travel from. The
+  // selector is what keeps the rails out of it: Undo and the forward rail
+  // belong to the session, not to whoever is piloting.
+  const row = useConsoleDeal<HTMLDivElement>(pilotId, '[data-testid^="slot-"]', SLOT_DEAL_LEAD_MS, SLOT_DEAL_STEP_MS)
   const hero = state.heroes[pilotId]
   if (!hero) {
     return null
@@ -111,7 +118,7 @@ export function ActionBar() {
   const units = replaceable.length > 0 ? Math.floor(8 / replaceable.length) : 8
   const span = SLOT_SPAN[units] ?? 'col-span-4'
   return (
-    <div className="grid grid-cols-12 gap-1.5 border-t border-steel-800 bg-steel-950/80 px-2 py-2" data-testid="action-bar">
+    <div ref={row} className="grid grid-cols-12 gap-1.5 border-t border-steel-800 bg-steel-950/80 px-2 py-2" data-testid="action-bar">
       <UndoControl />
       {replaceable.map(({ slotIndex }) => (
         <Slot key={slotIndex} slotIndex={slotIndex} span={span} />

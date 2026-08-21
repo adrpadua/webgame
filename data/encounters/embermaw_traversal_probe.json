@@ -28,7 +28,7 @@
     },
     {
       "card": "iron_guard",
-      "copies": 8
+      "copies": 6
     },
     {
       "card": "sweeping_blow",
@@ -36,6 +36,10 @@
     },
     {
       "card": "fortify",
+      "copies": 2
+    },
+    {
+      "card": "unyielding_step",
       "copies": 2
     },
     {

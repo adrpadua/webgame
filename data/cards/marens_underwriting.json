@@ -1,7 +1,7 @@
 {
   "id": "marens_underwriting",
   "title": "Underwriting",
-  "rules_text": "Standing: converted overflow lands on the Boss — this Slot gains one Charge. Activation: spend all Charges to certify one ally; their next incoming blow converts into healing. Spent 2? Maren underwrites her own record too.",
+  "rules_text": "Standing: strike a false entry off a Hero's record, or land converted overflow on the Boss — this Slot gains one Charge. Activation: spend all Charges to certify one ally; their next incoming blow converts into healing. Spent 2? Maren underwrites her own record too.",
   "speed": "quick",
   "fixed": true,
   "resource_title": "Certifications",
@@ -16,6 +16,10 @@
     "counter_amount": 1
   },
   "standing": [
+    {
+      "when": "counter_spent",
+      "grants_charge": 1
+    },
     {
       "when": "host_deals_damage",
       "gates": ["effect_landed"],

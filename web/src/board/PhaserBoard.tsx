@@ -54,10 +54,13 @@ function buildSnapshot(
           targetingSlotIndex,
           hoveredHexKey === null ? undefined : parseHexKey(hoveredHexKey),
         )
+  // Piece and ally targets both stand on hexes, so both light their squares;
+  // a board_slot target is a Slot on the Action Bar, so the board has nothing
+  // to light for it.
   const targetableHexKeys =
     targeting?.mode === 'hex'
       ? targeting.legalHexes.map(hexKey)
-      : targeting?.mode === 'piece'
+      : targeting?.mode === 'piece' || targeting?.mode === 'ally'
         ? targeting.legalTargetIds
             .map((targetId) => state.board.entities[targetId])
             .filter((entity) => entity !== undefined)
