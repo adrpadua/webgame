@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { advancePhase, buildCatalog, createEncounterState, type ContentCatalog, type EncounterState } from '@/engine'
 import { catalog, selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { heroActed, heroCanAct, nextNudge, unactedHeroIds } from './unacted'
 
@@ -124,5 +125,101 @@ describe('who still owes this window an action', () => {
     const downed = structuredClone(state())
     downed.heroes.maren.status = 'downed'
     expect(heroCanAct(catalog, downed, 'maren')).toBe(false)
+  })
+})
+
+// The walk order, at the seat count that can tell two rules apart.
+//
+// Every authored Encounter seats at most two, and at two seats a scan from
+// seat 0 and a walk forward from the pilot produce the same sequence — which
+// is how the scan shipped. A three-seat playtest separated them: from seat 0,
+// a scan offered seat 1, then seat 0 back (the pilot had moved, and seat 0 was
+// still first in authored order), and only then seat 2. The player was handed
+// a character they had just left before one they had never seen.
+//
+// Hand-built because no authored Encounter seats three, the same reason
+// `partyFrames.test.ts` builds its own two-seat fixture rather than leaning on
+// content that is tuned for other reasons.
+
+const WALK_KEYWORDS = [
+  { id: 'tank', title: 'Tank', kind: 'role' },
+  { id: 'tank_hit', title: 'Tank Hit', kind: 'damage_type' },
+  { id: 'raid_hit', title: 'Raid Hit', kind: 'damage_type' },
+  { id: 'overflow', title: 'Overflow', kind: 'trait' },
+]
+
+function seatedCatalog(seats: string[]): ContentCatalog {
+  return buildCatalog({
+    cards: [{ id: 'strike', title: 'Strike', speed: 'quick', range_tiles: 9, boss_damage: 1, max_charge: 2, tags: ['tank'] }],
+    heroes: seats.map((id) => ({ id, title: id.toUpperCase(), max_health: 20 })),
+    keywords: WALK_KEYWORDS,
+    counters: [],
+    bosses: [{ id: 'walk_boss', title: 'Walk Boss', max_health: 200 }],
+    chargeModifiers: [],
+    hazards: [],
+    minions: [],
+    programs: [{ id: 'walk_program', title: 'Walk Program', instant_beats: [], incoming_beats: [] }],
+    encounters: [
+      {
+        id: 'walk_party',
+        title: 'Walk Party',
+        party: seats.map((id, index) => ({ hero: id, start: { q: index - 1, r: 1 }, deck: [{ card: 'strike', copies: 8 }] })),
+        boss: 'walk_boss',
+        round_limit: 8,
+        board_radius: 3,
+        boss_start: { q: 0, r: -3 },
+        slot_count: 2,
+        hand_refill_target: 4,
+        player_deck: [{ card: 'strike', copies: 8 }],
+        boss_programs: ['walk_program'],
+        random_seed: 3,
+      },
+    ],
+  })
+}
+
+function quickWindow(catalogUnderTest: ContentCatalog): EncounterState {
+  let state = createEncounterState(catalogUnderTest, 'walk_party', 3)
+  while (state.phase !== 'quick') {
+    state = advancePhase(catalogUnderTest, state).state
+  }
+  return state
+}
+
+// Press the rail until it becomes Next, recording who it handed over to. No
+// seat acts, so the only thing that ends the cycle is the per-window offer cap.
+function pressUntilNext(catalogUnderTest: ContentCatalog, state: EncounterState): string[] {
+  const position = { entries: [{ label: '', step: null, state, facts: [] }], index: 0 }
+  const offered: string[] = []
+  let pilot = state.primaryHeroId
+  for (let press = 0; press < 10; press += 1) {
+    const target = nextNudge(catalogUnderTest, position, pilot, offered)
+    if (target === null) {
+      break
+    }
+    offered.push(target)
+    pilot = target
+  }
+  return offered
+}
+
+describe('the walk order at three seats', () => {
+  it('goes forward through the roster from the pilot, and returns to the starting seat last', () => {
+    const seated = seatedCatalog(['alpha', 'bravo', 'charlie'])
+    // Not ['bravo', 'alpha', 'charlie'] — that is the bounce, and it is what a
+    // scan from seat 0 produces once the pilot has moved to seat 1.
+    expect(pressUntilNext(seated, quickWindow(seated))).toEqual(['bravo', 'charlie', 'alpha'])
+  })
+
+  it('costs one press per seat, and the window can always be closed', () => {
+    const seated = seatedCatalog(['alpha', 'bravo', 'charlie', 'delta'])
+    // Four seats, nobody acting: four handovers and then Next. The cap is what
+    // makes that a number rather than a loop.
+    expect(pressUntilNext(seated, quickWindow(seated))).toEqual(['bravo', 'charlie', 'delta', 'alpha'])
+  })
+
+  it('is the same sequence at two seats, which is why the bounce shipped', () => {
+    const seated = seatedCatalog(['alpha', 'bravo'])
+    expect(pressUntilNext(seated, quickWindow(seated))).toEqual(['bravo', 'alpha'])
   })
 })
