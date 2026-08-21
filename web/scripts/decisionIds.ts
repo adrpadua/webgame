@@ -133,7 +133,11 @@ if (parsed.length !== datedRowCount(working)) {
 }
 
 const ids = (log: string): string[] => parseDecisionRows(log).map((row) => row.id)
-const plan = planDecisionIds({ log: working, baseIds: ids(baseLog), upstreamIds: ids(upstreamLog) })
+// `upstreamLog` and not just its ids: after a merge brings a colliding row in,
+// this branch's log holds two rows with one id and only the text tells them
+// apart. Without it the row that landed upstream is the one that moves, taking
+// every citation of a merged decision with it.
+const plan = planDecisionIds({ log: working, baseIds: ids(baseLog), upstreamIds: ids(upstreamLog), upstreamLog })
 
 if (plan.reassignments.length === 0) {
   const strays = strayPlaceholderFiles()
