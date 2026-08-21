@@ -1,15 +1,15 @@
 {
   "id": "brand_trial_two_marks",
   "title": "The Brand: two marks on one Tank (seed 7)",
-  "version": 1,
-  "description": "The Round 2 Slow Window of the Brand trial, where the guardian carries the Boss's Sear and his own banked Armor at once — the two-condition tray the HUD's per-mark reading needs, which no other shipped line reaches. Generated from authored content only; regenerate if the trial's opening hand or program order is retuned.",
+  "version": 2,
+  "description": "The Brand trial's Slow Window where the guardian carries the Boss's Sear and his own banked Armor at once — the two-condition tray the HUD's per-mark reading needs, which no other shipped line reaches. Recorded from authored content only; regenerate when the trial's opening hand or program order is retuned, which `statusEntries.test.ts` is what tells you.",
   "encounter": "embermaw_attrition_trial",
   "seed": 7,
   "steps": [
     {
       "action": {
         "kind": "load_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0,
         "cardInstanceId": "fortify_16"
       }
@@ -23,7 +23,7 @@
     {
       "action": {
         "kind": "charge_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0,
         "cardInstanceId": "fortify_15"
       }
@@ -46,7 +46,7 @@
     {
       "action": {
         "kind": "charge_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0,
         "cardInstanceId": "iron_guard_8"
       }
@@ -60,7 +60,7 @@
     {
       "action": {
         "kind": "fire_slot",
-        "sourceId": "guardian",
+        "sourceId": "elian",
         "slotIndex": 0
       }
     }
