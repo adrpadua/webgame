@@ -1,5 +1,15 @@
 import type { StateCreator } from 'zustand'
-import { fireTargeting, getEntityIdAt, hexKey, isLegalMove, legality, type Axial, type EncounterActionInput } from '@/engine'
+import {
+  fireTargeting,
+  getCounters,
+  getEntityIdAt,
+  hexCounterRef,
+  hexKey,
+  isLegalMove,
+  legality,
+  type Axial,
+  type EncounterActionInput,
+} from '@/engine'
 import { catalog } from './catalog'
 import { selectPilotId, selectState } from './selectors'
 import type { WorkbenchStore } from './workbench'
@@ -43,6 +53,13 @@ export interface InteractionSlice {
   // lands on an empty hex. Session transitions close it; ordinary play
   // (submits, advances) leaves it up as a live gauge.
   inspectedEntityId: string | null
+  // The hex whose Tile Panel is open. Ground is the other thing a tile can be
+  // carrying (D-048), and it is not the piece standing on it: a tap reads
+  // both, so this is tracked beside `inspectedEntityId` rather than inside
+  // it. Only ground that has something to say opens one — a tap on plain
+  // hexes closes whatever was open, which is what makes the bare tap a
+  // reliable dismiss.
+  inspectedHexKey: string | null
   // Bumped when the player taps the primary Hero's tile: the Hero Frame is
   // the Hero's readout (D-065), so the tap pulses the frame instead of
   // opening a Stat Panel. A counter rather than a flag, so every tap replays
@@ -71,6 +88,7 @@ export interface InteractionSlice {
   confirmReplacement: () => void
   cancelReplacement: () => void
   dismissInspect: () => void
+  dismissTile: () => void
   setDraggingCard: (cardInstanceId: string | null) => void
   setHoveredHex: (key: string | null) => void
   selectCard: (cardInstanceId: string) => void
@@ -101,6 +119,7 @@ export const INITIAL_INTERACTION = {
   ...CLEARED_INTERACTION,
   controlledHeroId: null,
   inspectedEntityId: null,
+  inspectedHexKey: null,
   heroFramePulse: 0,
   heroRoutePreview: false,
   showCoordinates: false,
@@ -170,18 +189,31 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
       get().cardDroppedOnHex(selectedCardId, coords)
       return
     }
-    // A bare tap inspects: a tile holding an Enemy opens that piece's Stat
-    // Panel, an empty hex closes it. Occupancy is the board's question
-    // (ADR 0017), so the engine answers it. The Hero's readout is the
-    // persistent Hero Frame (D-065): tapping the Hero pulses the frame —
-    // the tap points at the chrome that answers it — and closes any open
-    // Enemy panel rather than opening one.
+    // A bare tap inspects, and a tile has two things to inspect: the piece
+    // standing on it and the ground under that piece. Occupancy is the
+    // board's question (ADR 0017), so the engine answers it.
+    //
+    // The piece opens a Stat Panel; the ground opens a Tile Panel whenever it
+    // is carrying anything, which is why the Hero branch below reads it too —
+    // whether the Hero is standing in fire is exactly the question a tap on
+    // the Hero's own tile asks. Plain ground opens nothing and closes both,
+    // which keeps the bare tap the dismiss it already was.
+    //
+    // The Hero's readout is the persistent Hero Frame (D-065): tapping the
+    // Hero pulses the frame — the tap points at the chrome that answers it —
+    // and closes any open Enemy panel rather than opening one.
     const tappedId = getEntityIdAt(state.board, coords)
+    // Is this ground carrying anything? Asked of the board rather than of the
+    // panel that draws it — the store must not reach into the HUD — and the
+    // panel stays the authority on what it can show: it renders nothing for a
+    // hex whose last Hazard has since expired under an open panel.
+    const marked = (state.board.hazards[hexKey(coords)] ?? []).length > 0 || getCounters(state, hexCounterRef(coords)).length > 0
+    const ground = marked ? hexKey(coords) : null
     if (tappedId !== '' && state.heroes[tappedId] !== undefined) {
-      set({ inspectedEntityId: null, heroFramePulse: get().heroFramePulse + 1 })
+      set({ inspectedEntityId: null, inspectedHexKey: ground, heroFramePulse: get().heroFramePulse + 1 })
       return
     }
-    set({ inspectedEntityId: tappedId === '' ? null : tappedId })
+    set({ inspectedEntityId: tappedId === '' ? null : tappedId, inspectedHexKey: ground })
   },
 
   // Dragging a hand card to an adjacent legal hex discards it for 1 Stamina
@@ -336,6 +368,8 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
 
   cancelTargeting: () => set({ targetingSlotIndex: null }),
   dismissInspect: () => set({ inspectedEntityId: null }),
+
+  dismissTile: () => set({ inspectedHexKey: null }),
   setDraggingCard: (cardInstanceId) =>
     set({ draggingCardId: cardInstanceId, ...(cardInstanceId !== null ? { selectedCardId: null } : { hoveredHexKey: null }) }),
   // Pointer motion reports every frame it moves and dragover repeats on the

@@ -104,6 +104,7 @@ export const createSessionSlice: StateCreator<WorkbenchStore, [], [], SessionSli
         activeScenarioId: null,
         sessionStartedAt: new Date().toISOString(),
         inspectedEntityId: null,
+        inspectedHexKey: null,
         ...CLEARED_INTERACTION,
       })
     },
@@ -157,6 +158,7 @@ export const createSessionSlice: StateCreator<WorkbenchStore, [], [], SessionSli
         activeScenarioId: scenarioId,
         sessionStartedAt: new Date().toISOString(),
         inspectedEntityId: null,
+        inspectedHexKey: null,
         ...CLEARED_INTERACTION,
       })
     },
@@ -164,7 +166,7 @@ export const createSessionSlice: StateCreator<WorkbenchStore, [], [], SessionSli
     timeTravelTo: (index) => {
       const { entries } = get()
       const clamped = Math.max(0, Math.min(index, entries.length - 1))
-      set({ index: clamped, inspectedEntityId: null, ...CLEARED_INTERACTION })
+      set({ index: clamped, inspectedEntityId: null, inspectedHexKey: null, ...CLEARED_INTERACTION })
     },
 
     // Undo rides the same seam time travel does: move the index back and the
