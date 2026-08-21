@@ -150,7 +150,7 @@ export function primaryHasThreat(catalog: ContentCatalog, state: EncounterState)
   return threatHeroId(catalog, state) === state.primaryHeroId
 }
 
-// What one tap on an ally frame does (D-107). Three things can want the same press, so
+// What one tap on an ally frame does (D-108). Three things can want the same press, so
 // the order they are asked in is the rule, written here rather than inside a
 // click handler where it would be three ifs nobody can test.
 //

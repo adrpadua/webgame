@@ -48,7 +48,7 @@ import { GAUGE_FILL_CLASS, GAUGE_LABEL_CLASS, FOCUS_RING_CLASS, NUDGE_RING_CLASS
 // `prefers-reduced-motion` player — who gets no animation at all — still sees
 // both which seats are waiting and which one is next.
 
-// The tuck (D-107, party-frame direction 1A's tab): the column narrows to 66pt and
+// The tuck (D-108, party-frame direction 1A's tab): the column narrows to 66pt and
 // keeps only what it can say without words — the Role glyph, the health and
 // Armor bar, the downed track, and the accent. What it drops is everything the
 // accent is already saying at that width (the Threat mark) or that needs room

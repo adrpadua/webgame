@@ -39,7 +39,7 @@ Single-player control arrived after the mockups and completes the frame's gestur
 
 The pattern is BG3's portrait click on Spirit Island's structure, per the [party-switching research note](research/2026-08-21-single-player-party-switching-bg3-spirit-island.md): switching drops in-flight gestures and keeps commitments, and the cursor survives undo because the window — not the character — is the commit boundary.
 
-### The tuck (D-107)
+### The tuck (D-108)
 
 The mockup drew a **tab above the column** and the first implementation pass dropped it — not deferred with a reason, simply gone, and absent from this document's own "not wired yet" list as well as from the code. This restores it.
 

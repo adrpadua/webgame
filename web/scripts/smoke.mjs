@@ -88,6 +88,56 @@ try {
     `every sprite sheet slices into ${frames} frames across 6 facings (${mismatched.join(' | ') || `${specs.length} sheets checked`})`,
   )
 
+  // The herald must not be dealt onto a floater that is still rising.
+  //
+  // Since D-098 the Beat Card is dealt at the board's top edge, and it covers
+  // real hexes there — the top row and the crown of the Boss sprite are behind
+  // it while it is up. Nothing goes wrong today, and the reason is timing
+  // rather than geometry: a paced Boss Row arms the next card at
+  // EFFECT_SETTLE_MS after a moment fires (playout.ts), by which point the
+  // moment's own floaters have expired. A Beat's title floats over the Boss,
+  // and the Boss stands under the herald.
+  //
+  // That margin is 40ms and neither side knows it is load-bearing. The card
+  // was placed by a zone table that cannot see the canvas, and the durations
+  // were chosen for how a blow reads. Either could move for its own good
+  // reasons and silently start printing the Boss's card over the Boss's last
+  // beat — a defect that only exists for the frames it lasts, so no unit test
+  // is positioned to catch it and nobody would reproduce it on demand.
+  //
+  // Timing is what has to be measured, so it is measured here rather than in
+  // the browser: with the card up there is nothing live to see, and a check
+  // that samples one instant after `waitForSelector` would pass whether the
+  // margin held or not.
+  const boardSceneSource = readFileSync(new URL('../src/board/BoardScene.ts', import.meta.url), 'utf8')
+  const effectsSource = readFileSync(new URL('../src/board/effects.ts', import.meta.url), 'utf8')
+  const settleMs = Number(/export const EFFECT_SETTLE_MS = (\d+)/.exec(effectsSource)?.[1])
+  const durationTable = /const EFFECT_DURATION[^{]*\{([^}]*)\}/.exec(boardSceneSource)?.[1] ?? ''
+  const durations = Object.fromEntries([...durationTable.matchAll(/(\w+): ([\w]+),/g)].map(([, kind, value]) => [kind, Number(value)]))
+  // Which kinds put text on the board, and which only draw. Every kind is
+  // listed on purpose: a new one fails this until someone says which it is,
+  // and that is the moment to ask whether it can land under the card.
+  const FLOATER_KINDS = ['cast', 'hit', 'block']
+  const SILENT_KINDS = ['strike', 'move', 'spawn', 'defeat', 'boss_defeat', 'blast', 'scorch', 'cool', 'turn']
+  assert(Number.isFinite(settleMs), `the settle the herald arms behind is a number (${settleMs}ms)`)
+  const unclassified = Object.keys(durations).filter((kind) => !FLOATER_KINDS.includes(kind) && !SILENT_KINDS.includes(kind))
+  const missing = [...FLOATER_KINDS, ...SILENT_KINDS].filter((kind) => !(kind in durations))
+  assert(
+    unclassified.length === 0 && missing.length === 0,
+    `every board effect is classified as floating text or silent (${[...unclassified.map((k) => `${k} is unclassified`), ...missing.map((k) => `${k} is no longer an effect`)].join(' | ') || `${Object.keys(durations).length} kinds`})`,
+  )
+  // A floater kind held as a named constant would read as NaN here and pass
+  // every comparison below, so it is a failure rather than a skip.
+  const overhang = FLOATER_KINDS.flatMap((kind) => {
+    const ms = durations[kind]
+    if (!Number.isFinite(ms)) return [`${kind} is not a literal duration this check can read`]
+    return ms < settleMs ? [] : [`${kind} floats ${ms}ms, and the herald arms at ${settleMs}ms`]
+  })
+  assert(
+    overhang.length === 0,
+    `every floating label is gone before the next Beat Card is dealt over it (${overhang.join(' | ') || `${FLOATER_KINDS.join(', ')} under ${settleMs}ms`})`,
+  )
+
   // Let Playwright resolve the browser it installed (`npx playwright install
   // chromium`). PLAYWRIGHT_CHROMIUM_PATH overrides it for images that ship
   // their own build at a fixed path.
