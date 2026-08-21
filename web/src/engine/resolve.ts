@@ -46,6 +46,28 @@ export function resolve(catalog: ContentCatalog, state: EncounterState, action: 
 
 // Depth-first resolution matching the reference apply(): resolve the action,
 // record it, then resolve everything it generated, then check resolution.
+//
+// Terminal-state evaluation is a rule, not an accident of this recursion
+// (engine-hardening P5, D-096):
+//
+// 1. Terminal state is evaluated at consequence-tree node boundaries, in
+//    post-order — after a node's whole subtree — and never mid-node. No
+//    single action's own resolution is interrupted by the Encounter ending.
+// 2. A fired card is one atomic authored batch: its complete consequence
+//    tree resolves before ANY terminal evaluation, so a lethal hit is
+//    recorded and the card's later consequences — the draw, the Counter
+//    rider, the status payout — still land instead of being suppressed by
+//    the victory they caused. This is the one authored exception, carried by
+//    `deferTerminalCheck` below.
+// 3. Everything else — a Boss Beat's batch, a traversal's ground damage, a
+//    detonation's blast — evaluates per node: the moment a consequence ends
+//    the Encounter, every remaining action in the tree or script is refused
+//    by `legality` with "The Encounter has already ended", recorded as a
+//    refused fact rather than silently skipped. The fact stream shows what
+//    the ending cut off.
+// 4. Ties inside one evaluation go to victory: `checkResolution` asks about
+//    the Boss before the Party, so a tree that puts both at zero is a win
+//    (D-096). The kill counts even when nobody is standing to see it.
 export function applyAction(
   catalog: ContentCatalog,
   draft: EncounterState,
@@ -83,6 +105,8 @@ export function applyAction(
   }
 }
 
+// The one terminal evaluation. Order is the simultaneity rule (D-096):
+// the Boss's fall is asked first, so mutual zero resolves as victory.
 export function checkResolution(draft: EncounterState): void {
   if (!draft.active) {
     return
