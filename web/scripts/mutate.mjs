@@ -678,7 +678,7 @@ const MUTATIONS = [
   },
   {
     name: 'a Healer converts surplus spent on herself',
-    guards: 'D-098: overflow converts only on another Hero, so self-targeting is not a free damage button',
+    guards: 'D-103: overflow converts only on another Hero, so self-targeting is not a free damage button',
     file: 'engine/resolve.ts',
     from: "      if (card.tags.includes(OVERFLOW) && effects.healing > 0 && recipient.id !== hero.id) {",
     to: '      if (card.tags.includes(OVERFLOW) && effects.healing > 0) {',

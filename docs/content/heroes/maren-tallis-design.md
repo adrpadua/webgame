@@ -32,7 +32,7 @@ Aether-ceramic braces, restorative glyphs, and stabilizing vessels (see the lore
 
 - Heals are *procedures*: braced, dosed, countersigned.
 - Cleansing is *striking a false entry*: the Boss wrote something on a Hero's record, and Maren removes it.
-- Overflow conversion is *the count turned outward*: care beyond what a body can hold is discharged at the thing causing the casualties. It is care spent on somebody else — a registrar does not certify her own entry to make the number move (D-098).
+- Overflow conversion is *the count turned outward*: care beyond what a body can hold is discharged at the thing causing the casualties. It is care spent on somebody else — a registrar does not certify her own entry to make the number move (D-103).
 - The Signature is *underwriting*: the Registry certifies a rescue claim before the blow lands, and what pays for the certification is the record work — a struck entry or a discharged surplus.
 
 ## Design Language
@@ -60,7 +60,7 @@ Aether-ceramic braces, restorative glyphs, and stabilizing vessels (see the lore
 | Role / Archetype | Healer / Restorative | D-080 |
 | Damage cards | None. All Boss damage is converted overflow or the Signature. | Healer Principle 3 |
 | Overflow conversion | 1:1 into Boss damage, capped at the card's printed healing | Q21 |
-| Overflow recipient | Another Hero, never Maren herself. Firing an `ally` card on yourself stays legal; it simply converts nothing. | D-098 |
+| Overflow recipient | Another Hero, never Maren herself. Firing an `ally` card on yourself stays legal; it simply converts nothing. | D-103 |
 | Conversion carrier | The `overflow` Keyword (trait) on the card, read by one engine rule — never a global rule, never per-card text | Q14 |
 | Cleansing | Existing `spend` verb on `target_type: "ally"` cards — no new verb | Q11 |
 | Signature earn | Two standing clauses: `counter_spent` (+1 Charge when a `spend` Reader actually removes a Counter) and `host_deals_damage` gated `effect_landed` (+1 Charge on converted overflow) | Q9 / D-102 |
@@ -85,7 +85,7 @@ Card authoring is the next step after this document and follows [../../rules/pla
 
 ## Engine/Content Requests
 
-1. **The `overflow` rule** — the one new engine mechanic: healing routed to an ally at or above `maxHealth`, on a card carrying the Keyword, deals the surplus (capped at printed healing) as Boss damage and stamps `effect_landed`. Since D-098 the ally must be *another* Hero: the surplus has to be genuinely surplus to someone. Everything else she does is expressible today.
+1. **The `overflow` rule** — the one new engine mechanic: healing routed to an ally at or above `maxHealth`, on a card carrying the Keyword, deals the surplus (capped at printed healing) as Boss damage and stamps `effect_landed`. Since D-103 the ally must be *another* Hero: the surplus has to be genuinely surplus to someone. Everything else she does is expressible today.
 2. **Verify `spend` on an ally target** — Q11's risk: `on: "target"` predates ally targeting. A test must prove it reads the chosen ally, not the caster, with a mutation entry if it does not.
 3. **The Signature cover effect** — a pre-emptive per-Hero conversion of the next incoming blow. Closest existing shape is the Counter system; whether it is a Counter or a new Hero flag is an engineering choice, not a design one.
 4. **The second seat** — `embermaw_attrition_trial` adds `maren` to its `party` when she is authored, which is the moment the D-082 gate tests flip from proving the problem to proving the answer.

@@ -245,7 +245,7 @@ function resolveOne(
       // damage action so the Restorative's `host_deals_damage` earn reads it
       // the same way it reads any blow.
       let overflowConverted = 0
-      // The conversion is care spent on *someone else* (D-098). Overflow on
+      // The conversion is care spent on *someone else* (D-103). Overflow on
       // the firing Hero was the Restorative's strongest and least thoughtful
       // line: at full Health she could aim Surplus of Care at herself for the
       // card's whole printed value in Boss damage, with no ally to read, no

@@ -153,7 +153,7 @@ The approved live/default Elian Voss starter-deck specification contains these j
 
 The approved live/default twenty-card Shield Wall list is exactly `6x Iron Guard`, `4x Steady Strike`, `2x Sweeping Blow`, `2x Fortify`, `2x Unyielding Step`, `2x Drive Back`, and `2x Quench`. Intercept remains outside this first executable list until its rule exists in `EncounterEngine`.
 
-> **Correction (2026-08-21).** The sentence above had been stale through three shipped changes — it still named `2x Shield Slam`, retired into the Signature by D-064, and it never picked up D-058's `Quench` promotion or D-099's shape pass. `data/encounters/embermaw_prototype.json` is the source of truth and `engine.test.ts` names the list card-by-card; this line is commentary on that assertion. The jobs table above it describes *jobs*, not copies, and `Shield Slam`'s row is kept as the historical statement of a job that now lives on *Riposte*.
+> **Correction (2026-08-21).** The sentence above had been stale through three shipped changes — it still named `2x Shield Slam`, retired into the Signature by D-064, and it never picked up D-058's `Quench` promotion or D-104's shape pass. `data/encounters/embermaw_prototype.json` is the source of truth and `engine.test.ts` names the list card-by-card; this line is commentary on that assertion. The jobs table above it describes *jobs*, not copies, and `Shield Slam`'s row is kept as the historical statement of a job that now lives on *Riposte*.
 
 | Repositioning | Drive Back | Quick | Push a piece two hexes away. Moves the Boss rather than the Hero, so the Guarded Front is never abandoned to reposition — and shoving costs adjacency, which `Within Reach` prices. |
 

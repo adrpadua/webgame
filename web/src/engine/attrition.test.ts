@@ -214,10 +214,10 @@ describe("Maren's loop (D-080)", () => {
     expect(signature?.earnedCharges).toBe(1)
   })
 
-  it('converts nothing when the surplus is spent on Maren herself (D-098)', () => {
+  it('converts nothing when the surplus is spent on Maren herself (D-103)', () => {
     const state = start()
     const bossBefore = state.board.entities[state.bossId].health
-    // Maren untouched, so every point of the heal is surplus. Before D-098
+    // Maren untouched, so every point of the heal is surplus. Before D-103
     // this was her strongest line and her least thoughtful one: the card's
     // whole printed value in Boss damage plus a Charge, off a target that
     // needed nothing and a Beat she never had to read.

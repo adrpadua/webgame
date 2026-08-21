@@ -8,7 +8,7 @@ This is the approved live/default Elian Voss deck specification, matching the ru
 
 > **Correction (2026-08-21).** It drifted a third time, in the same direction and for the same reason: D-058 promoted `Quench` into the live list by trading two `Steady Strike` for it, and this file was not touched. It has claimed `Steady Strike` ×6 and no `Quench` ever since. Three drifts on one file is a process finding, not three clerical ones — a prose list beside a JSON list will keep losing, and this one only ever gets corrected when somebody reads both. The engine test that names the deck card-by-card (`engine.test.ts`, "the live Shield Wall list, named rather than counted") is the guard that actually holds; treat this section as commentary on that assertion rather than as a second source.
 
-> **Revised (2026-08-21).** The deck-shape pass (D-099) landed with it: `Iron Guard` 8 → 6, and `Unyielding Step` ×2 in as a second Slow identity. Two reasons, both measured off the list rather than off play. `Iron Guard` at 8 was 40% of a twenty-card deck at `hand_refill_target: 4` — about 1.6 copies in every opening hand — which is a Slot decision the deck answers for the player. And with only `Fortify` ×2 Slow, one of the round's two player windows was served by 10% of the list, in a round order (`loadout → instant → quick → incoming → slow`) where the Slow Window is the one that resolves *after* the Incoming Row and is therefore where reactive commitment belongs.
+> **Revised (2026-08-21).** The deck-shape pass (D-104) landed with it: `Iron Guard` 8 → 6, and `Unyielding Step` ×2 in as a second Slow identity. Two reasons, both measured off the list rather than off play. `Iron Guard` at 8 was 40% of a twenty-card deck at `hand_refill_target: 4` — about 1.6 copies in every opening hand — which is a Slot decision the deck answers for the player. And with only `Fortify` ×2 Slow, one of the round's two player windows was served by 10% of the list, in a round order (`loadout → instant → quick → incoming → slow`) where the Slow Window is the one that resolves *after* the Incoming Row and is therefore where reactive commitment belongs.
 
 Role:
 
@@ -55,7 +55,7 @@ The deck is a six-identity Shield Wall kit, fighting beside Elian's Signature, b
 - `Steady Strike`: quick baseline Boss pressure. It deals `2` damage to the Boss, plus `1` damage for each charged card.
 - `Sweeping Blow`: quick adjacent-Minion answer.
 - `Fortify`: Slow Armor commitment for a future threat. Its `6` Armor lands at the next Round start — after the wipe — making it the one card that can pre-block the next Round's Instant Row (D-019).
-- `Unyielding Step`: the second Slow identity (D-099). `2` Armor and `2` Boss damage, committed in the window that resolves after the Incoming Row — the Slow plan for a Round already survived, where `Fortify` is the Slow plan for the Round coming.
+- `Unyielding Step`: the second Slow identity (D-104). `2` Armor and `2` Boss damage, committed in the window that resolves after the Incoming Row — the Slow plan for a Round already survived, where `Fortify` is the Slow plan for the Round coming.
 - `Drive Back`: quick displacement — push a selected piece 2 hexes directly away from you, answering telegraphed ground by moving the Enemy instead of spending the Hero's own position.
 - `Quench`: quick Counter read (D-052, promoted by D-058). `2` Boss damage plus `1` per `Heat` Embermaw carries, then `2` of that Heat drawn off — the card that answers a bank rather than a blow.
 
@@ -72,7 +72,7 @@ Two notes on that activation, both about where the value sits rather than how mu
 
 - This is the approved first-pass live/default class kit, not a final balance claim.
 - The prior `10x Steady Strike` / `10x Iron Guard` list is historical baseline evidence only.
-- The Brand trial (`embermaw_attrition_trial`) fields a **different** Elian list, authored on its seat rather than shared through `player_deck`: `Sweeping Blow` ×2 out, `Fortify` and `Unyielding Step` to ×3 each. That fight runs `embermaw_hunt` + `embermaw_branding`, neither of which spawns a Minion, and a piece-damage card with no Minion on the board has no legal target at all — two cards of the twenty were unplayable there by construction (D-099).
+- The Brand trial (`embermaw_attrition_trial`) fields a **different** Elian list, authored on its seat rather than shared through `player_deck`: `Sweeping Blow` ×2 out, `Fortify` and `Unyielding Step` to ×3 each. That fight runs `embermaw_hunt` + `embermaw_branding`, neither of which spawns a Minion, and a piece-damage card with no Minion on the board has no legal target at all — two cards of the twenty were unplayable there by construction (D-104).
 - Any play-feel or balance follow-up is evaluated separately; this default migration does not guarantee draws or change encounter pacing.
 
 ## Source Resources

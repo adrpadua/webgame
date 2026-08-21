@@ -182,7 +182,7 @@ describe('content catalog', () => {
     // twenty says nothing about which twenty, and this deck has now been
     // restated three times — `10x/10x`, proposal 04's `8/6/2/2/2`, the
     // `46d2a61` list, now D-064's migration (`Shield Slam` out to the
-    // Signature, `Iron Guard` to 8), now D-099's (`Iron Guard` back to 6 and
+    // Signature, `Iron Guard` to 8), now D-104's (`Iron Guard` back to 6 and
     // `Unyielding Step` in as a second Slow identity) — with prose in three
     // documents claiming to be current each time. Changing it here is the
     // reminder to change `elian-voss-design.md` and the decision log with it.

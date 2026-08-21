@@ -1,6 +1,6 @@
 # Maren and Elian: Deck Review, 2026-08-21
 
-Status: review completed and its findings adopted as D-098 through D-102. This document is the reasoning; the decision log is the record and `data/` is the truth. Where the two disagree, `data/` wins and this file is stale.
+Status: review completed and its findings adopted as D-100 through D-104. This document is the reasoning; the decision log is the record and `data/` is the truth. Where the two disagree, `data/` wins and this file is stale.
 
 A read of both shipped decks as lists — copy counts, window distribution, what each card can legally do in the Encounter its Hero is actually seated in — rather than as play. Nothing here needed a playtest to see, which is the point: these are defects a list review catches before a cohort spends seeds on them. The things a list review *cannot* answer are named at the bottom, unresolved.
 
@@ -33,7 +33,7 @@ Overflow converts only when the recipient is within the card's printed healing o
 
 The fix is a second standing clause on a new Grant event, `counter_spent`, raised where a `spend` Reader actually removes a Counter. Cleansing now charges her Signature. It runs the right way — Sear accrues, so the later the fight goes the more there is to strike — and it is the sentence her character document already printed: *cleansing is striking a false entry*.
 
-### 2. And the escape hatch was worse than the problem (D-098)
+### 2. And the escape hatch was worse than the problem (D-103)
 
 `ally` legally includes self. For the overflow carrier that made self-targeting the *best* use of the card rather than the worse one the schema's own comment predicts: Maren at full Health, aiming `Surplus of Care` at herself, for the card's whole printed value in Boss damage plus a Charge, with no ally to read and no Beat to name. The highest-value and lowest-thought play in her deck, and the exact inverse of *every strong Maren play names a future event*.
 
@@ -45,7 +45,7 @@ Not one of her eight identities carried a `charge_modifier` or read Charge in an
 
 Her two repeatable Slow heals now read the Charge Stack. The scaling is deliberately kept off `Surplus of Care`: the overflow cap is the *printed* healing, so scaling the conversion carrier would have raised the heal without raising the conversion — a card that gets better in a way its own rules text cannot explain.
 
-### 4. Elian's list answered his own Slot decisions (D-099)
+### 4. Elian's list answered his own Slot decisions (D-104)
 
 Three list-level defects:
 
@@ -85,7 +85,7 @@ Named rather than quietly left out, because the rubric is explicit that automati
 
 ## Related
 
-- [../design-decision-log.md](../design-decision-log.md) — D-098 through D-102
+- [../design-decision-log.md](../design-decision-log.md) — D-100 through D-104
 - [elian-voss-starter.md](elian-voss-starter.md) — the live Elian list
 - [../heroes/maren-tallis-design.md](../heroes/maren-tallis-design.md) — Maren's contracts and deck plan
 - [../encounters/embermaw-brand-attrition-gate.md](../encounters/embermaw-brand-attrition-gate.md) — the re-measured composition gate
