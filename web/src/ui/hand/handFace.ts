@@ -40,21 +40,21 @@ export interface MoveGesture {
 // board reads to light its legal destinations, narrowed to the one hex the
 // pointer is actually over: the board says where you may go, and this says
 // you are asking to go there.
-export function movePrepped(state: EncounterState, gesture: MoveGesture): boolean {
+export function movePrepped(state: EncounterState, heroId: string, gesture: MoveGesture): boolean {
   if (!state.active || state.phase !== 'quick' || gesture.hoveredHexKey === null) {
     return false
   }
   if (gesture.draggingCardId === null && gesture.selectedCardId === null && !gesture.heroRoutePreview) {
     return false
   }
-  const hero = state.board.entities[state.primaryHeroId]
+  const hero = state.board.entities[heroId]
   if (!hero) {
     return false
   }
   const destination = parseHexKey(gesture.hoveredHexKey)
   // Distance is asked separately: isLegalMove permits a zero-length move, so
   // the Hero's own tile would otherwise read as a destination.
-  return hexDistance(hero.coords, destination) === 1 && isLegalMove(state.board, state.primaryHeroId, destination)
+  return hexDistance(hero.coords, destination) === 1 && isLegalMove(state.board, heroId, destination)
 }
 
 export function handFace(state: EncounterState, prepped: boolean): HandFace {
@@ -90,9 +90,9 @@ export function shownKeywords(catalog: ContentCatalog, tags: string[]): string[]
 // the Hand. The Action Bar draws the same wants on the Slot itself, from the
 // same two predicates, so a gold Keyword in hand always has a Slot showing
 // the mark it answers.
-export function payingKeywords(catalog: ContentCatalog, state: EncounterState): Set<string> {
+export function payingKeywords(catalog: ContentCatalog, state: EncounterState, heroId: string): Set<string> {
   const paying = new Set<string>()
-  const hero = state.heroes[state.primaryHeroId]
+  const hero = state.heroes[heroId]
   if (!hero) {
     return paying
   }

@@ -29,8 +29,8 @@ export interface SignatureControl {
 // The primary Hero's Signature, or null when the Encounter fields none — the
 // teaching slice runs a two-Slot bar and its Hero Frame simply has no
 // Signature section (D-065).
-export function signatureControl(catalog: WorkbenchCatalog, state: EncounterState): SignatureControl | null {
-  const hero = state.heroes[state.primaryHeroId]
+export function signatureControl(catalog: WorkbenchCatalog, state: EncounterState, heroId: string = state.primaryHeroId): SignatureControl | null {
+  const hero = state.heroes[heroId]
   if (!hero) {
     return null
   }

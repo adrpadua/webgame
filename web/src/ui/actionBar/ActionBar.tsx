@@ -1,6 +1,6 @@
 import { useCatalog } from '@/content/CatalogContext'
 import { cardWindowSpeed, type Card } from '@/engine'
-import { selectState, useWorkbench } from '@/store/workbench'
+import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { AdvanceControl } from './AdvanceControl'
 import { UndoControl } from './UndoControl'
 import { blocksTarget } from '../onboarding/firstTurnScript'
@@ -98,7 +98,8 @@ const SLOT_SPAN: Record<number, string> = { 8: 'col-span-8', 4: 'col-span-4', 2:
 
 export function ActionBar() {
   const state = useWorkbench(selectState)
-  const hero = state.heroes[state.primaryHeroId]
+  const pilotId = useWorkbench(selectPilotId)
+  const hero = state.heroes[pilotId]
   if (!hero) {
     return null
   }
@@ -224,6 +225,7 @@ function SlotSubtitle({ reading, heroId }: { reading: SlotReading; heroId: strin
 
 function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
   const state = useWorkbench(selectState)
+  const pilotId = useWorkbench(selectPilotId)
   const catalog = useCatalog()
   const fireSlot = useWorkbench((store) => store.fireSlot)
   const cardDroppedOnSlot = useWorkbench((store) => store.cardDroppedOnSlot)
@@ -231,8 +233,8 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
   const draggingCardId = useWorkbench((store) => store.draggingCardId)
   const step = useFirstTurnStep()
 
-  const slot = state.heroes[state.primaryHeroId].actionBar[slotIndex]
-  const reading = readSlot(catalog, state, slot, slotIndex, selectedCardId ?? draggingCardId)
+  const slot = state.heroes[pilotId].actionBar[slotIndex]
+  const reading = readSlot(catalog, state, pilotId, slot, slotIndex, selectedCardId ?? draggingCardId)
   const { card, stateName, canFire, outOfWindow, incoming, tone } = reading
   const hold = useHold(card ? slotDetail(card, slot, slotIndex, state.phase) : EMPTY_SLOT_DETAIL)
 
@@ -295,7 +297,7 @@ function Slot({ slotIndex, span }: { slotIndex: number; span: string }) {
             {card.title}
           </span>
           <ChargeTumblers card={card} reading={reading} />
-          <SlotSubtitle reading={reading} heroId={state.primaryHeroId} />
+          <SlotSubtitle reading={reading} heroId={pilotId} />
         </>
       ) : (
         <div className="flex h-full items-center justify-center text-2xl leading-none font-light text-steel-700" aria-hidden="true">

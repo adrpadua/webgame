@@ -1,6 +1,7 @@
 {
   "id": "embermaw_prototype",
   "title": "Embermaw: Ashen Trial",
+  "player_facing": true,
   "rules_text": "Defeat Embermaw before the Encounter Clock expires while managing Scorched hexes and Whelp spawns.",
   "party": [
     {

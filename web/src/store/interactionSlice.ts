@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand'
 import { fireTargeting, getEntityIdAt, hexKey, isLegalMove, legality, type Axial, type EncounterActionInput } from '@/engine'
 import { catalog } from './catalog'
-import { selectState } from './selectors'
+import { selectPilotId, selectState } from './selectors'
 import type { WorkbenchStore } from './workbench'
 
 // In-flight gesture state: everything the player has begun but not yet
@@ -11,6 +11,16 @@ import type { WorkbenchStore } from './workbench'
 // slice only decides which gesture the player is in the middle of.
 
 export interface InteractionSlice {
+  // The control cursor: which party Hero the consoles operate (BG3's portrait
+  // switch, arrived at through the party-switching research note). `null`
+  // means seat 0 — the engine's `primaryHeroId`, which never moves. Read
+  // through `selectPilotId`, never directly, so a cursor naming a Hero the
+  // session no longer fields falls back instead of stranding control.
+  //
+  // Deliberately NOT in CLEARED_INTERACTION: the window, not the character,
+  // is the commit boundary (Spirit Island's model), so undo and time travel
+  // keep the cursor where the player left it. A fresh store starts at seat 0.
+  controlledHeroId: string | null
   targetingSlotIndex: number | null
   draggingCardId: string | null
   // Tap path (accessibility contract): a selected Compact Card acts on the
@@ -53,6 +63,7 @@ export interface InteractionSlice {
   heroDraggedToHex: (coords: Axial) => void
   payForMove: (cardInstanceId: string) => void
   cancelMove: () => void
+  switchControl: (heroId: string) => void
   reviveTapped: (targetId: string) => void
   payForRevive: (cardInstanceId: string) => void
   cancelRevive: () => void
@@ -88,6 +99,7 @@ export const CLEARED_INTERACTION = {
 // an open Stat Panel and a session transition does not.
 export const INITIAL_INTERACTION = {
   ...CLEARED_INTERACTION,
+  controlledHeroId: null,
   inspectedEntityId: null,
   heroFramePulse: 0,
   heroRoutePreview: false,
@@ -101,11 +113,11 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
   // Card payloads need a Piece or a hex.
   fireSlot: (slotIndex) => {
     const state = selectState(get())
-    if (fireTargeting(catalog, state, state.primaryHeroId, slotIndex).mode !== 'none') {
+    if (fireTargeting(catalog, state, selectPilotId(get()), slotIndex).mode !== 'none') {
       set({ targetingSlotIndex: slotIndex, lastRejection: null })
       return
     }
-    get().submit({ kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex })
+    get().submit({ kind: 'fire_slot', sourceId: selectPilotId(get()), slotIndex })
   },
 
   hexClicked: (coords) => {
@@ -119,11 +131,11 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
       return
     }
     if (targetingSlotIndex !== null) {
-      const targeting = fireTargeting(catalog, state, state.primaryHeroId, targetingSlotIndex)
+      const targeting = fireTargeting(catalog, state, selectPilotId(get()), targetingSlotIndex)
       if (targeting.mode === 'hex') {
         const action: EncounterActionInput = {
           kind: 'fire_slot',
-          sourceId: state.primaryHeroId,
+          sourceId: selectPilotId(get()),
           slotIndex: targetingSlotIndex,
           targetHex: coords,
         }
@@ -139,7 +151,7 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
       const targetId = getEntityIdAt(state.board, coords)
       const action: EncounterActionInput = {
         kind: 'fire_slot',
-        sourceId: state.primaryHeroId,
+        sourceId: selectPilotId(get()),
         slotIndex: targetingSlotIndex,
         ...(targetId === '' ? {} : { targetId }),
       }
@@ -175,24 +187,23 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
   // Dragging a hand card to an adjacent legal hex discards it for 1 Stamina
   // and moves the Hero.
   cardDroppedOnHex: (cardInstanceId, coords) => {
-    const state = selectState(get())
     // A dropped card is no longer in flight. The browser skips dragend
     // when the dragged element unmounts under it, so the drop itself is
     // what ends the gesture — otherwise the HUD keeps offering to place a
     // card that has already landed.
     set({ selectedCardId: null, draggingCardId: null, hoveredHexKey: null })
-    get().submit({ kind: 'move_hero', sourceId: state.primaryHeroId, destination: coords, cardInstanceId })
+    get().submit({ kind: 'move_hero', sourceId: selectPilotId(get()), destination: coords, cardInstanceId })
   },
 
   // Dragging onto an empty Slot prepares; onto an occupied Slot it replaces
   // during Loadout and charges during a player window.
   cardDroppedOnSlot: (cardInstanceId, slotIndex) => {
     const state = selectState(get())
-    const hero = state.heroes[state.primaryHeroId]
+    const hero = state.heroes[selectPilotId(get())]
     const slot = hero.actionBar[slotIndex]
     set({ selectedCardId: null, draggingCardId: null, hoveredHexKey: null })
     if (slot.topCard !== null && state.phase !== 'loadout') {
-      get().submit({ kind: 'charge_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId })
+      get().submit({ kind: 'charge_slot', sourceId: selectPilotId(get()), slotIndex, cardInstanceId })
       return
     }
     if (slot.topCard !== null) {
@@ -200,14 +211,14 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
         // The Slot began this Loadout empty: re-loading just swaps the
         // tentative card back to hand. Nothing kept is destroyed, so no
         // confirmation stands in the way.
-        get().submit({ kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId })
+        get().submit({ kind: 'load_slot', sourceId: selectPilotId(get()), slotIndex, cardInstanceId })
         return
       }
       // Replacing a kept bundle discards all of it — confirm first.
       set({ pendingReplacement: { cardInstanceId, slotIndex }, lastRejection: null })
       return
     }
-    get().submit({ kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex, cardInstanceId })
+    get().submit({ kind: 'load_slot', sourceId: selectPilotId(get()), slotIndex, cardInstanceId })
   },
 
   // Dragging the Hero itself onto a legal hex. The gesture is the whole
@@ -232,11 +243,11 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
       set({ lastRejection: 'The Hero moves only during the Quick Window.' })
       return
     }
-    if (!isLegalMove(state.board, state.primaryHeroId, coords)) {
+    if (!isLegalMove(state.board, selectPilotId(get()), coords)) {
       set({ lastRejection: 'That hex is not a legal move destination.' })
       return
     }
-    if (state.heroes[state.primaryHeroId].hand.length === 0) {
+    if (state.heroes[selectPilotId(get())].hand.length === 0) {
       set({ lastRejection: 'Moving costs a card, and the Hand is empty.' })
       return
     }
@@ -256,13 +267,35 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
 
   cancelMove: () => set({ pendingMove: null }),
 
+  // Switching drops every in-flight gesture and keeps every commitment:
+  // loaded Slots and Charges are engine state and stay, but a parked move
+  // payment, an armed targeting, or a pending rescue belonged to the hands
+  // that parked them — nothing dangles across a switch (the Spirit Island
+  // rule the research note settled on).
+  switchControl: (heroId) => {
+    const state = selectState(get())
+    if (!state.partyHeroIds.includes(heroId) || state.heroes[heroId] === undefined) {
+      return
+    }
+    set({
+      controlledHeroId: heroId,
+      targetingSlotIndex: null,
+      selectedCardId: null,
+      draggingCardId: null,
+      pendingReplacement: null,
+      pendingMove: null,
+      pendingRevive: null,
+      lastRejection: null,
+    })
+  },
+
   // Tapping a Downed ally's frame is the whole aiming gesture: the frame is
   // the button (party-frame direction 1A), so there is no hex to pick and no
   // drag. The card that pays comes second, through the same offering the
   // move payment uses, so the Hand teaches one payment idiom.
   reviveTapped: (targetId) => {
     const state = selectState(get())
-    if (state.heroes[state.primaryHeroId].hand.length === 0) {
+    if (state.heroes[selectPilotId(get())].hand.length === 0) {
       set({ lastRejection: 'Reviving costs a card, and the Hand is empty.' })
       return
     }
@@ -274,11 +307,10 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
     if (pendingRevive === null) {
       return
     }
-    const state = selectState(get())
     set({ pendingRevive: null })
     get().submit({
       kind: 'revive_ally',
-      sourceId: state.primaryHeroId,
+      sourceId: selectPilotId(get()),
       targetId: pendingRevive.targetId,
       cardInstanceId,
     })
@@ -291,11 +323,10 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
     if (pendingReplacement === null) {
       return
     }
-    const state = selectState(get())
     set({ pendingReplacement: null })
     get().submit({
       kind: 'load_slot',
-      sourceId: state.primaryHeroId,
+      sourceId: selectPilotId(get()),
       slotIndex: pendingReplacement.slotIndex,
       cardInstanceId: pendingReplacement.cardInstanceId,
     })

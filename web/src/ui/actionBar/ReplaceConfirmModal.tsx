@@ -1,5 +1,5 @@
 import { useCatalog } from '@/content/CatalogContext'
-import { selectState, useWorkbench } from '@/store/workbench'
+import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { Modal } from '../common/Modal'
 import { FOCUS_RING_CLASS } from '../common/theme'
 
@@ -12,11 +12,12 @@ export function ReplaceConfirmModal() {
   const cancelReplacement = useWorkbench((store) => store.cancelReplacement)
   const state = useWorkbench(selectState)
   const catalog = useCatalog()
+  const pilotId = useWorkbench(selectPilotId)
 
   if (pendingReplacement === null) {
     return null
   }
-  const hero = state.heroes[state.primaryHeroId]
+  const hero = state.heroes[pilotId]
   const slot = hero.actionBar[pendingReplacement.slotIndex]
   const oldCard = slot.topCard ? catalog.cards[slot.topCard.cardId] : null
   const newInstance = hero.hand.find((card) => card.instanceId === pendingReplacement.cardInstanceId)

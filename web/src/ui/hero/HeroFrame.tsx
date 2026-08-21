@@ -1,7 +1,7 @@
 import { useCatalog } from '@/content/CatalogContext'
 import { type HeroState } from '@/engine'
 import { usePlayout } from '@/store/playout'
-import { selectState, useWorkbench } from '@/store/workbench'
+import { selectPilotId, selectState, useWorkbench } from '@/store/workbench'
 import { signatureControl, type SignatureControl as SignatureControlState } from './heroFrame'
 import { useDamageFlash } from '../common/useDamageFlash'
 import { HeartIcon, HeroEmblem, ShieldIcon } from '../common/icons'
@@ -132,11 +132,12 @@ function SignatureButton() {
   const state = useWorkbench(selectState)
   const catalog = useCatalog()
   const fireSlot = useWorkbench((store) => store.fireSlot)
-  const control = signatureControl(catalog, state)
+  const pilotId = useWorkbench(selectPilotId)
+  const control = signatureControl(catalog, state, pilotId)
   const hold = useHold(
     control === null
       ? null
-      : slotDetail(control.card, state.heroes[state.primaryHeroId].actionBar[control.slotIndex], control.slotIndex, state.phase),
+      : slotDetail(control.card, state.heroes[pilotId].actionBar[control.slotIndex], control.slotIndex, state.phase),
   )
   if (control === null || control.face !== 'ready') {
     return null
@@ -174,7 +175,7 @@ function SignatureButton() {
 export function HeroFrame() {
   const state = useWorkbench(selectState)
   const catalog = useCatalog()
-  const heroId = state.primaryHeroId
+  const heroId = useWorkbench(selectPilotId)
   const hero = state.heroes[heroId]
   const override = usePlayout((store) => store.overrides[heroId])
   const pulse = useWorkbench((store) => store.heroFramePulse)
@@ -182,7 +183,7 @@ export function HeroFrame() {
   // A hit must be visible even while the player's eyes are on the board: the
   // number flashes per beat, when the blow's playout moment arrives.
   const { flashing, flashKey } = useDamageFlash(shownHealth)
-  const signature = hero === undefined ? null : signatureControl(catalog, state)
+  const signature = hero === undefined ? null : signatureControl(catalog, state, heroId)
   const resourceStat = signature === null ? [] : [{ label: signature.resourceTitle, value: `${signature.charges} / ${signature.cap}` }]
   // One hold for the whole frame: the numbers are all printed on it, so what
   // a hold still owes the player is the sentences behind them.

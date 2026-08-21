@@ -1,5 +1,6 @@
 import { useCatalog } from '@/content/CatalogContext'
 import { selectState, useWorkbench } from '@/store/workbench'
+import { EncounterPicker } from './EncounterPicker'
 import { EscalationGauge } from './EscalationGauge'
 import { encounterTerms, phaseDetail } from '../common/holdDetails'
 import { useHold } from '../common/HoldPopover'
@@ -143,6 +144,7 @@ export function PhaseControl() {
         >
           R{state.round}
         </button>
+        <EncounterPicker />
       </div>
       <EscalationGauge state={state} enrageText={state.enrageText} />
     </div>

@@ -1,6 +1,7 @@
 {
   "id": "embermaw_attrition_trial",
   "title": "Embermaw: The Brand",
+  "player_facing": true,
   "rules_text": "Embermaw builds a debt: every Sear it lays on the front line stays there, and every later blow collects on it. Maren Tallis keeps the count \u2014 strike the entries, cover the next name, and turn surplus care into the damage that ends it.",
   "party": [
     {
