@@ -37,7 +37,7 @@ The core palette is already locked in [art-prompts/_style-preamble.md](art-promp
 | Aether ceramic | `#E4E8EE` | Read-out surfaces and health fill |
 | Runeglass | `#62D2E6` | Seams, focus, telegraphs, Quick timing |
 | Living gold | `#C8A344` | Controls, charge tumblers, armor plate edges, Slow timing |
-| Signal cloth | Per role; Shield Wall is `#2F5680` | Role channel on a console, phase banners, warning trim |
+| Signal cloth | One step per Role — Tank `#2F5680`, Damage `#4F7BA6`, Healer `#7EA3C6` | Role channel on a console, phase banners, warning trim |
 | Ember | `#D9482F` | Damage taken, danger, irreversible action |
 | Ember coral | `#E0703B` | The Boss wherever it appears: its token, health, rows, beats, emblem — and damage *dealt* to it |
 
@@ -45,7 +45,13 @@ Colour reads as role and material, never as decoration. If a new colour is neede
 
 Two entries need their scope stated, because both look like contradictions otherwise.
 
-**Signal cloth is a material, not a value.** The bible treats it as a saturated per-Hero role accent, so it cannot have one fixed hex. `#2F5680` is Shield Wall's, and every future role picks its own within the material. It is the one row in this table that is allowed to grow.
+**Signal cloth is a material, not a value.** The bible treats it as a saturated role accent, so it cannot have one fixed hex — it is the one row in this table that is allowed to grow. What it grows by is a **Role**, not a Hero and not an Archetype. There are three, from the Role Contract: Tank `cloth-500`, Damage `cloth-400`, Healer `cloth-300`.
+
+An earlier revision of this line called it a *per-Hero* accent and attributed `#2F5680` to Shield Wall. The hex was right and the label was not, twice over. Shield Wall is an Archetype *within* the Tank Role, so it inherits Tank's step rather than owning one; and per-Hero cannot survive a party column, which is what settled it — two Heroes of the same Role in two different blues asserts they differ in something, and they do not. Two Damage seats therefore share `cloth-400` on purpose. The channel names Roles, and a Hero is read through the one its whole deck agrees on.
+
+Role is also the *quietest* thing this channel says, and it yields: living gold takes the accent for a frame the player can operate, ember for a downed body, ember coral for the Boss's attention. Cloth is what shows when nothing is happening to that Hero, which is most of the time.
+
+> **Open defect — the Tank step fails on its own ground.** These three steps are assigned by Role, but the section below assigns steps by *ground contrast*, and on the party frames the two rules disagree. All three ally frames sit on a dark face (`steel-950`), where `cloth-500` scores **2.39:1** and misses 1.4.11 — the same failure the table below already records for a dark well. Damage (4.07:1) and Healer (6.86:1) clear it. It is stated here rather than quietly corrected because the fix is a design choice, not a transcription: either the Role steps shift to the light end of the ramp on dark grounds (Tank to `cloth-400`, and Damage and Healer move up to keep three distinguishable steps), or the Role glyph stops carrying Role in cloth on that surface. Nothing in the shipped ramp is wrong; the assignment is what has not been reconciled with the rule below it.
 
 **Ember and ember coral are one family in two jobs.** The preamble allows a single warm accent, and this does not spend two: ember is the interface's warning, ember coral is Embermaw's own body. They never appear in the same element, and a second boss brings its own material rather than a third warm.
 
