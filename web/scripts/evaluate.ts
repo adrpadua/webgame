@@ -24,7 +24,7 @@ import {
   fireTargeting,
   hexDistance,
   readCounterEvent,
-  readSignatureEvent,
+  readSubscriberMatches,
   hexKey,
   isLegalMove,
   neighbors,
@@ -516,9 +516,10 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
   }
 
   // Metric extraction from the recorded facts. The Signature replaces the
-  // Riposte Ready Counter (D-064): grants and overcap waste ride the
-  // signature_event on damage facts, fires are the fire_slot facts that
-  // spent Charges, and the full-bank rider is the Sundered placement.
+  // Riposte Ready Counter (D-064): grants and overcap waste are the grant
+  // entries of `subscriber_matches` on the raising action (D-087), fires are
+  // the fire_slot facts that spent Charges, and the full-bank rider is the
+  // Sundered placement.
   let signatureGranted = 0
   let signatureWasted = 0
   let signatureFiredFull = 0
@@ -531,13 +532,16 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
       rejected += 1
       continue
     }
-    const rf = fact.resolutionFact as Record<string, unknown> | undefined
-    const signatureEvent = readSignatureEvent(rf)
-    if (signatureEvent?.event === 'charge_granted') {
-      signatureGranted += 1
-    }
-    if (signatureEvent?.event === 'wasted') {
-      signatureWasted += 1
+    for (const match of readSubscriberMatches(fact.detail)) {
+      if (match.kind !== 'grant') {
+        continue
+      }
+      if (match.outcome === 'charge_granted') {
+        signatureGranted += 1
+      }
+      if (match.outcome === 'wasted') {
+        signatureWasted += 1
+      }
     }
     if (fact.kind === 'fire_slot' && typeof fact.detail.spentSignatureCharges === 'number') {
       if (fact.detail.spentSignatureCharges >= signatureCap) {
@@ -546,6 +550,7 @@ function simulate(seed: number, knobs: PolicyKnobs): RunMetrics {
         signatureFiredEarly += 1
       }
     }
+    const rf = fact.resolutionFact as Record<string, unknown> | undefined
     const counterEvent = readCounterEvent(rf)
     if (counterEvent?.counterId === 'sundered' && counterEvent.event === 'placed') {
       sunderedPlaced += 1

@@ -5,6 +5,7 @@ import {
   buildCatalog,
   combatantRef,
   createEncounterState,
+  readSubscriberMatches,
   resolve,
   type EncounterState,
   type ResolvedActionFact,
@@ -77,8 +78,9 @@ describe('subscriber ordering on the Elian + Maren duo (ADR 0041)', () => {
       // The damage_resolved raise fires second, the same seat order: Elian's
       // Riposte reads the blow he took (and refuses — health was lost), then
       // Maren's Underwriting reads the blow she landed and banks the earn.
-      { event: 'damage_resolved', host: 'guardian', kind: 'grant', id: 'elian_riposte', when: 'host_takes_damage', outcome: 'not_granted' },
-      { event: 'damage_resolved', host: 'maren', kind: 'grant', id: 'marens_underwriting', when: 'host_deals_damage', outcome: 'charge_granted' },
+      // D-087: the grant entry carries why and the stack after — the read-back the old singular signature_event could not give the dealing side.
+      { event: 'damage_resolved', host: 'guardian', kind: 'grant', id: 'elian_riposte', when: 'host_takes_damage', outcome: 'not_granted', reason: 'health_lost', charges: 0 },
+      { event: 'damage_resolved', host: 'maren', kind: 'grant', id: 'marens_underwriting', when: 'host_deals_damage', outcome: 'charge_granted', reason: 'standing_clause', charges: 1 },
     ])
     // The recorded deltas are the ones that moved the number: 2 requested + 3.
     expect(fact.resolutionFact).toMatchObject({ requested: 5, health_loss: 5 })
@@ -211,7 +213,7 @@ describe("the registry row's declared hears order", () => {
     const after = resolve(fixture, state, { kind: 'fire_slot', sourceId: 'warden', slotIndex: 0 })
     expect(after.facts[0].succeeded).toBe(true)
     expect(after.facts[0].detail.subscriber_matches).toEqual([
-      { event: 'slot_fired', host: 'warden', kind: 'grant', id: 'probe_signature', when: 'slot_fired', outcome: 'charge_granted' },
+      { event: 'slot_fired', host: 'warden', kind: 'grant', id: 'probe_signature', when: 'slot_fired', outcome: 'charge_granted', reason: 'standing_clause', charges: 1 },
       { event: 'slot_fired', host: 'warden', kind: 'reader', id: 'echo', when: 'slot_fired', delta: 1 },
       { event: 'slot_fired', host: 'warden', kind: 'reader', id: 'echo', when: 'slot_fired', delta: 2 },
     ])
@@ -223,7 +225,31 @@ describe("the registry row's declared hears order", () => {
     expect(after.facts[0].succeeded).toBe(true)
     expect(after.facts[0].detail.subscriber_matches).toEqual([
       { event: 'round_start', host: 'warden', kind: 'reader', id: 'stockpile', when: 'round_start', delta: 2 },
-      { event: 'round_start', host: 'warden', kind: 'grant', id: 'probe_signature', when: 'round_start', outcome: 'charge_granted' },
+      { event: 'round_start', host: 'warden', kind: 'grant', id: 'probe_signature', when: 'round_start', outcome: 'charge_granted', reason: 'standing_clause', charges: 1 },
     ])
+  })
+})
+
+describe('the paired reader (D-087)', () => {
+  it('reads Grant outcomes back off the record through readSubscriberMatches, and answers nothing with nothing', () => {
+    // The reader is the one consumer-facing path — the sweep's sigGrant/
+    // sigWaste columns and the board's earn floats both read through it — so
+    // this asserts the read-back the old singular signature_event could not
+    // give: a dealing-side earn (Maren's) with its reason and its stack.
+    const state = createEncounterState(loadCatalog(), 'embermaw_attrition_trial')
+    const maren = state.partyHeroIds.find((id) => id !== state.primaryHeroId)!
+    const result = resolve(loadCatalog(), state, {
+      kind: 'damage',
+      sourceId: maren,
+      targetId: state.bossId,
+      amount: 2,
+      reasonText: 'Strike the Entry',
+    })
+    const grants = readSubscriberMatches(result.facts[0].detail).filter((match) => match.kind === 'grant')
+    expect(grants).toEqual([
+      expect.objectContaining({ host: maren, when: 'host_deals_damage', outcome: 'charge_granted', reason: 'standing_clause', charges: 1 }),
+    ])
+    expect(readSubscriberMatches(undefined)).toEqual([])
+    expect(readSubscriberMatches({})).toEqual([])
   })
 })

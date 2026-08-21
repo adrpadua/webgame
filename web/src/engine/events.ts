@@ -160,6 +160,20 @@ export interface SubscriberMatch {
   when: AuthoredWhen
   delta?: number
   outcome?: string
+  // Grant entries only (D-087): why — the gate that refused,
+  // `standing_clause`, or `at_max` — and the stack after the event.
+  reason?: string
+  charges?: number
+}
+
+// The paired reader for the raise record (D-087), the counterpart of
+// `readCounterEvent`: every consumer of "which subscribers answered this
+// action, and what came of it" reads through here, so the key breaks in
+// exactly one place. This is the canonical Grant-outcome surface — the old
+// singular `signature_event` retired with D-087 because a raise is plural.
+export function readSubscriberMatches(detail: Record<string, unknown> | undefined): SubscriberMatch[] {
+  const raw = detail?.subscriber_matches
+  return Array.isArray(raw) ? (raw as SubscriberMatch[]) : []
 }
 
 // Host order within a raise: Party seat order for Hero hosts, then board
@@ -230,7 +244,7 @@ export function raiseDamageResolved(
         : { ...resolutionFact, effect_landed: (resolutionFact.health_loss as number) > 0 }
     const counterpartId = host === action.targetId ? action.sourceId : action.targetId
     for (const outcome of evaluateGrantsFor(catalog, draft, host, when, { counterpartId, eventKeywords, resolutionFact: record })) {
-      matches.push({ event: 'damage_resolved', host, kind: 'grant', id: outcome.cardId, when, outcome: outcome.outcome })
+      matches.push({ event: 'damage_resolved', host, kind: 'grant', id: outcome.cardId, when, outcome: outcome.outcome, reason: outcome.reason, charges: outcome.charges })
     }
   }
   return matches
@@ -251,7 +265,7 @@ export function raiseSlotFired(
 ): SlotFiredRaise {
   const matches: SubscriberMatch[] = []
   for (const outcome of evaluateGrantsFor(catalog, draft, heroId, 'slot_fired', { resolutionFact })) {
-    matches.push({ event: 'slot_fired', host: heroId, kind: 'grant', id: outcome.cardId, when: 'slot_fired', outcome: outcome.outcome })
+    matches.push({ event: 'slot_fired', host: heroId, kind: 'grant', id: outcome.cardId, when: 'slot_fired', outcome: outcome.outcome, reason: outcome.reason, charges: outcome.charges })
   }
   const generated: EncounterActionInput[] = []
   let bonus = 0
@@ -279,7 +293,7 @@ export function raiseRoundStart(catalog: ContentCatalog, draft: EncounterState):
     }
     hero.armor += Math.max(armor, 0)
     for (const outcome of evaluateGrantsFor(catalog, draft, heroId, 'round_start')) {
-      matches.push({ event: 'round_start', host: heroId, kind: 'grant', id: outcome.cardId, when: 'round_start', outcome: outcome.outcome })
+      matches.push({ event: 'round_start', host: heroId, kind: 'grant', id: outcome.cardId, when: 'round_start', outcome: outcome.outcome, reason: outcome.reason, charges: outcome.charges })
     }
   }
   return matches

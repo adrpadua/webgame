@@ -75,6 +75,24 @@ describe('board effects', () => {
     const waste = third.effects.find((effect) => effect.label === 'Riposte wasted')
     expect(waste).toMatchObject({ kind: 'cast', entityId: heroId, tone: 'hazard' })
   })
+  it('floats a dealing-side earn at the Hero who landed the blow, not the target (D-087)', () => {
+    // Maren's Underwriting earns on host_deals_damage: she strikes the Boss,
+    // and the earn belongs on her hex. Under the old singular signature_event
+    // this earn never reached the record at all, so the board was silent.
+    const state = createEncounterState(catalog, 'embermaw_attrition_trial')
+    const maren = state.partyHeroIds.find((id) => id !== state.primaryHeroId)!
+    const { effects } = apply(state, {
+      kind: 'damage',
+      sourceId: maren,
+      targetId: state.bossId,
+      amount: 2,
+      reasonText: 'Strike the Entry',
+    })
+    const earn = effects.find((effect) => effect.label?.startsWith('+1 '))
+    expect(earn).toMatchObject({ kind: 'cast', entityId: maren, tone: 'guard' })
+    expect(earn?.at).toEqual(state.board.entities[maren].coords)
+  })
+
 
   it('plays no lunge for a claw that reached nothing', () => {
     // Board Feedback is derived from Resolution Facts so the board can never

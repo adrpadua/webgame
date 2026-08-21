@@ -1,4 +1,4 @@
-import { hexDistance, parseHexKey, type Axial, type ContentCatalog, type EncounterState, type ResolvedActionFact } from '@/engine'
+import { hexDistance, parseHexKey, readSubscriberMatches, type Axial, type ContentCatalog, type EncounterState, type ResolvedActionFact } from '@/engine'
 import { BOSS_DEFEAT_MS } from './defeat'
 
 // Resolution Facts are the only thing the board animates from. Every beat of
@@ -200,18 +200,27 @@ export function deriveBoardEffects(
           add({ kind: 'defeat', entityId: targetId, at, tone: 'hero' })
         }
         // The Signature's earn moment (D-064, D-065): the standing clause
-        // grants during Boss resolution, and the cause lives on the board —
-        // so the board says so where the block happened, while the Hero
-        // Frame's pip ignites. A wasted earn — a qualifying block at the
-        // full bank — floats too, in a lost tone: overcap is the banking
-        // decision's one price and a silent waste is unlearnable.
-        {
-          const signature = fact.resolutionFact?.signature_event as Record<string, unknown> | undefined
-          const signatureCard = typeof signature?.card_id === 'string' ? catalog.cards[signature.card_id] : undefined
-          if (signature?.event === 'charge_granted' && signatureCard) {
-            add({ kind: 'cast', entityId: targetId, at, label: `+1 ${signatureCard.title}`, tone: 'guard' })
-          } else if (signature?.event === 'wasted' && signatureCard) {
-            add({ kind: 'cast', entityId: targetId, at, label: `${signatureCard.title} wasted`, tone: 'hazard' })
+        // grants during resolution, and the cause lives on the board — so the
+        // board says so, while the Hero Frame's pip ignites. A wasted earn —
+        // a qualifying trigger at the full bank — floats too, in a lost tone:
+        // overcap is the banking decision's one price and a silent waste is
+        // unlearnable. Read off `subscriber_matches` (D-087), and anchored at
+        // the earning host rather than the blow's target, because since the
+        // registry a dealing-side Grant earns at the *source* of the damage —
+        // Maren's earn floats at Maren, not at the Boss she struck.
+        for (const match of readSubscriberMatches(fact.detail)) {
+          if (match.kind !== 'grant') {
+            continue
+          }
+          const signatureCard = catalog.cards[match.id]
+          const hostAt = coordsOf(after, match.host) ?? coordsOf(before, match.host)
+          if (!signatureCard || !hostAt) {
+            continue
+          }
+          if (match.outcome === 'charge_granted') {
+            add({ kind: 'cast', entityId: match.host, at: hostAt, label: `+1 ${signatureCard.title}`, tone: 'guard' })
+          } else if (match.outcome === 'wasted') {
+            add({ kind: 'cast', entityId: match.host, at: hostAt, label: `${signatureCard.title} wasted`, tone: 'hazard' })
           }
         }
         // The Boss is the one piece a killing blow leaves standing:

@@ -44,12 +44,13 @@ export {
 export { buildProgramSequence, currentProgram, selectBeatTarget } from './timeline'
 export { keywordTitle, heroRole, TANK } from './keywords'
 export { combatantRef, counterCount, readCounterEvent, counterCountByKeyword, getCounters, hexCounterRef, slotRef, type CounterRef } from './counters'
-export { readSignatureEvent, slotChargeCount } from './signature'
+export { slotChargeCount } from './signature'
 export {
   EVENT_REGISTRY,
   evaluatedGrantWhens,
   hostOrder,
   readableReaderPairs,
+  readSubscriberMatches,
   type EventRow,
   type EventSubscription,
   type SubscriberMatch,
