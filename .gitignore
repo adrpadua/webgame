@@ -27,3 +27,7 @@ web/smoke-portrait.png
 
 # Board effect films (scripts/film.mjs rewrites the shot it is filming)
 web/film/
+
+# The mutation audit's lock (scripts/mutate.mjs); it holds the running pid so a
+# second audit refuses to start rather than corrupting the first one's restore
+web/.mutate.lock

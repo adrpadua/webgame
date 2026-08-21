@@ -27,6 +27,10 @@ export interface DecisionRow {
   lineIndex: number
   // The row's id as authored — a real id, or `DECISION_PLACEHOLDER`.
   id: string
+  // The whole line, verbatim. It is what tells a row this branch invented
+  // apart from the same-numbered row it merged in from upstream: those two
+  // are indistinguishable by id, and only one of them may move.
+  text: string
 }
 
 // Rows look like `| <date> | D-0NN | <status> | ...`, or the same with `D-NEW`.
@@ -41,7 +45,7 @@ export function parseDecisionRows(log: string): DecisionRow[] {
   log.split('\n').forEach((line, lineIndex) => {
     const id = ROW.exec(line)?.[1]
     if (id !== undefined) {
-      rows.push({ lineIndex, id })
+      rows.push({ lineIndex, id, text: line })
     }
   })
   return rows
@@ -86,11 +90,33 @@ export interface DecisionIdPlan {
  * editing — the same pre-existing row, which is not a collision and must not
  * be renumbered: doing so would break every citation of a decision that has
  * been merged for weeks.
+ *
+ * `upstreamLog` closes the hole the merge base cannot: the moment *after* the
+ * merge that brought the colliding row in. Then this branch's log holds two
+ * rows with one id — the one it invented and the one it just merged — and the
+ * merge base predates both, so by id alone they are the same case and the
+ * first one in the file loses. That is how a landed decision got renumbered
+ * across the files that cite it. A row whose whole line is byte-identical to
+ * upstream's row of that id *is* upstream's row, so it never moves and the
+ * other holder is the one that does. Omit `upstreamLog` and that protection
+ * is simply absent; nothing else changes.
  */
-export function planDecisionIds(input: { log: string; baseIds: string[]; upstreamIds: string[] }): DecisionIdPlan {
+export function planDecisionIds(input: {
+  log: string
+  baseIds: string[]
+  upstreamIds: string[]
+  upstreamLog?: string
+}): DecisionIdPlan {
   const rows = parseDecisionRows(input.log)
   const base = new Set(input.baseIds)
   const upstream = new Set(input.upstreamIds)
+  // Only rows whose id upstream still holds are worth comparing by text, and
+  // an id upstream uses twice is upstream's own problem to fix, not a row this
+  // branch may claim to be — so a repeated id maps to no comparable text.
+  const upstreamText = new Map<string, string | null>()
+  for (const row of parseDecisionRows(input.upstreamLog ?? '')) {
+    upstreamText.set(row.id, upstreamText.has(row.id) ? null : row.text)
+  }
 
   // Count from everything anybody has used, including this branch's own rows,
   // so a reassignment never lands on a number a later row in this same file
@@ -115,8 +141,13 @@ export function planDecisionIds(input: { log: string; baseIds: string[]; upstrea
   // citation means.
   const seenLocally = new Set<string>()
   for (const row of rows) {
+    // Upstream's own row, merged in. It keeps its number whatever else in this
+    // file wants it, which is why this is asked before either collision test.
+    if (row.id !== DECISION_PLACEHOLDER && upstreamText.get(row.id) === row.text) {
+      seenLocally.add(row.id)
+      continue
+    }
     const duplicate = row.id !== DECISION_PLACEHOLDER && seenLocally.has(row.id)
-    seenLocally.add(row.id)
     const reason: Reassignment['reason'] | null =
       row.id === DECISION_PLACEHOLDER
         ? 'placeholder'
@@ -126,9 +157,14 @@ export function planDecisionIds(input: { log: string; baseIds: string[]; upstrea
             ? 'taken_upstream'
             : null
     if (reason === null) {
+      // Recorded under the id it keeps. Recording it before the reassignment
+      // was decided is what made a row that had just moved out of the way go
+      // on blocking the number it no longer holds.
+      seenLocally.add(row.id)
       continue
     }
     const to = claim()
+    seenLocally.add(to)
     reassignments.push({ from: row.id, to, lineIndex: row.lineIndex, reason })
     // Anchored to the ID column rather than replaced globally: a decision's
     // body routinely cites other decisions, and rewriting those would point

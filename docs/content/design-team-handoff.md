@@ -67,6 +67,17 @@ browser check, the Vitest suite, lint, the build, the browser smoke suite and
 the mutation audit, cheapest first. It also runs automatically on push once
 `npm run hooks:install` has been run in this clone.
 
+**Let the gate finish, and do not edit while it runs.** The last stage rewrites
+source files in place: the mutation audit puts one defect into one file, runs
+the suite, and takes it out again, 126 times. A second audit started alongside
+the first will read an already-mutated file, take that defect for the original,
+and restore *it* — so the tree ends up carrying a defect that reads as authored
+code. Since D-106 the audit refuses to start while another holds
+`web/.mutate.lock`, restores its file on `SIGINT`, `SIGTERM` and `SIGHUP`, and
+checks every anchor before it begins, so a mutation an earlier run left behind
+is named and refused rather than committed. Those are backstops, not
+permission: the audit still wants a quiet tree.
+
 `smoke.mjs` drives a real browser through the scripted first turn, an ordinary
 round, Scenario replay, time travel, headless record verification, and a 390x844
 portrait guard. On an image that ships its own Chromium, point it at the binary

@@ -127,4 +127,67 @@ describe('decision id planning', () => {
     const text = log(row('D-001'), row('D-002'))
     expect(planDecisionIds({ log: text, baseIds, upstreamIds }).log).toBe(text)
   })
+
+  // The state the merge base cannot describe: this branch invented D-003, then
+  // merged the upstream branch that had invented D-003 too. Now one log holds
+  // both rows, the merge base predates each of them, and by id alone they are
+  // the same case. Upstream's row has landed and is cited from the files that
+  // merged with it, so it is the one that must not move — whichever order the
+  // conflict resolution happened to leave them in.
+  describe('after the merge that brought the collision in', () => {
+    const upstreamLog = log(row('D-001'), row('D-002'), row('D-003', 'theirs'))
+
+    it('moves this branch\'s row when upstream\'s came first', () => {
+      const plan = planDecisionIds({
+        log: log(row('D-001'), row('D-002'), row('D-003', 'theirs'), row('D-003', 'mine')),
+        baseIds,
+        upstreamIds,
+        upstreamLog,
+      })
+      expect(plan.reassignments).toEqual([{ from: 'D-003', to: 'D-004', lineIndex: 7, reason: 'duplicate_locally' }])
+      expect(plan.log).toContain('| D-003 | Adopted | theirs |')
+      expect(plan.log).toContain('| D-004 | Adopted | mine |')
+    })
+
+    it("moves this branch's row when it came first, and leaves upstream's number alone", () => {
+      // The failing order. Before the text check the first row won by position,
+      // so upstream's landed row took the new number and every file citing it
+      // was rewritten to match.
+      const plan = planDecisionIds({
+        log: log(row('D-001'), row('D-002'), row('D-003', 'mine'), row('D-003', 'theirs')),
+        baseIds,
+        upstreamIds,
+        upstreamLog,
+      })
+      expect(plan.reassignments).toEqual([{ from: 'D-003', to: 'D-004', lineIndex: 6, reason: 'taken_upstream' }])
+      expect(plan.log).toContain('| D-004 | Adopted | mine |')
+      expect(plan.log).toContain('| D-003 | Adopted | theirs |')
+    })
+
+    it('still moves a lone invented row that upstream has since taken', () => {
+      // No merge yet, so there is one row and nothing to tell apart. This is
+      // the collision the tool exists to catch, and the text check must not
+      // swallow it.
+      const plan = planDecisionIds({
+        log: log(row('D-001'), row('D-002'), row('D-003', 'mine')),
+        baseIds,
+        upstreamIds,
+        upstreamLog,
+      })
+      expect(plan.reassignments).toEqual([{ from: 'D-003', to: 'D-004', lineIndex: 6, reason: 'taken_upstream' }])
+    })
+
+    it('refuses to treat a row as upstream\'s when upstream holds that id twice', () => {
+      // A log upstream should never have. If it does, no row here can claim to
+      // be "the" upstream row, so the ordinary collision rules apply rather
+      // than an arbitrary match against the first of two.
+      const plan = planDecisionIds({
+        log: log(row('D-001'), row('D-002'), row('D-003', 'theirs')),
+        baseIds,
+        upstreamIds,
+        upstreamLog: log(row('D-003', 'theirs'), row('D-003', 'theirs')),
+      })
+      expect(plan.reassignments).toEqual([{ from: 'D-003', to: 'D-004', lineIndex: 6, reason: 'taken_upstream' }])
+    })
+  })
 })
