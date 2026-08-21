@@ -20,4 +20,4 @@ Building the detonation fixture surfaced an asymmetry the D-096 comment glossed:
 
 ## Evidence
 
-(gate results stamped below on completion)
+Isolated gate green end to end on `1322f13`: log:ids clean, 629 tests passed across 39 files (the three new terminal tests included), lint, build, and browser smoke clean, mutation audit **116/116 caught, 0 survived, 0 stale**, EXIT:0. Typecheck confirms `checkResolution` has no remaining public consumer.
