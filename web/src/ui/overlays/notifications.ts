@@ -11,10 +11,10 @@
 //
 // The lane is the fix, in two parts.
 //
-// **Zones** divide the board's overlay into three bands that cannot overlap,
-// because they are flex children of one column rather than three independent
+// **Zones** divide the board's overlay into four bands that cannot overlap,
+// because they are flex children of one column rather than four independent
 // offsets. Nothing is placed at a percentage any more; a zone is wherever the
-// two zones beside it are not.
+// zones beside it are not.
 //
 // **Stack rules** decide what happens inside a zone. Membership and order come
 // from the table below rather than from the order `App` happens to mount them
@@ -31,8 +31,23 @@
 //     bottom-anchored column only shifts the members *above* the one that
 //     appeared. A toast at rank `1` would shove the whole dock upward for
 //     three and a half seconds; at the far end it displaces nothing.
+//
+// The Beat Card is the one surface those two rules could not place, and the
+// `herald` zone is where it went (D-098). It is a control, so the first rule
+// wanted it docked — but the bottom of the play surface is the crowded end:
+// the Hero Frame is the dock's floor and the ally column stands in the same
+// lane, so a card carrying four rows of a Beat's rules text reached the player
+// with its last rows behind an ally frame, and the one thing a printed Beat
+// owes is that all of it can be read. It is also the one control the surface
+// already duplicates — the Action Bar's forward rail turns to Continue for
+// exactly this press — so moving the card to the board's top edge moves the
+// *reading* away from the thumb while leaving the *press* where it already is.
+//
+// It is its own zone rather than a second guidance member because the two
+// carry opposite contracts: guidance is teaching the player may ignore, and a
+// Beat Card is the Boss acting, which they may not.
 
-export const NOTIFICATION_ZONES = ['guidance', 'stage', 'dock'] as const
+export const NOTIFICATION_ZONES = ['herald', 'guidance', 'stage', 'dock'] as const
 export type NotificationZone = (typeof NOTIFICATION_ZONES)[number]
 
 export type NotificationId =
@@ -61,9 +76,15 @@ export interface NotificationRule {
 // with two owners is how the overlap came back last time: all of them have to
 // yield to a prompt rather than sit under one.
 export const NOTIFICATION_RULES: Record<NotificationId, NotificationRule> = {
-  // Guidance, anchored to the board's top edge: teaching the player may
-  // ignore. The scripted turn outranks ambient coaching, and while it runs the
-  // coach mark does not render at all — one voice teaches at a time.
+  // Herald, the board's top edge: the Boss's own card, dealt where the whole
+  // of it can be read. One member, and the top of the column, so a Beat lands
+  // in the same place every press — a card that shifted because a tip appeared
+  // or was dismissed would move under the finger pressing it.
+  'beat-card': { zone: 'herald', rank: 1 },
+
+  // Guidance, under the herald: teaching the player may ignore. The scripted
+  // turn outranks ambient coaching, and while it runs the coach mark does not
+  // render at all — one voice teaches at a time.
   'first-turn': { zone: 'guidance', rank: 1 },
   'coach-tip': { zone: 'guidance', rank: 2 },
 
@@ -74,40 +95,41 @@ export const NOTIFICATION_RULES: Record<NotificationId, NotificationRule> = {
   'phase-banner': { zone: 'stage', rank: 2 },
 
   // Dock, anchored to the board's bottom edge — which is the Action Bar's top
-  // edge. Everything that asks for a tap on the controls below it.
-  'beat-card': { zone: 'dock', rank: 1 },
-  targeting: { zone: 'dock', rank: 2 },
-  'move-payment': { zone: 'dock', rank: 3 },
+  // edge. Everything that asks for a tap on the controls below it, and short
+  // enough to be read in the strip the Hero Frame and the ally column leave.
+  targeting: { zone: 'dock', rank: 1 },
+  'move-payment': { zone: 'dock', rank: 2 },
   // The demand a Round is still carrying. It is not pressed and it is not
   // transient — it arrives when its row resolves and stays until the Round
   // ends — so it sits above the prompts and below the readouts: fight
   // information the player acts on, rather than a control or a reference.
-  'standing-demand': { zone: 'dock', rank: 4 },
-  rejection: { zone: 'dock', rank: 5 },
-  'stat-panel': { zone: 'dock', rank: 6 },
+  'standing-demand': { zone: 'dock', rank: 3 },
+  rejection: { zone: 'dock', rank: 4 },
+  'stat-panel': { zone: 'dock', rank: 5 },
   // Ground reads outside the piece standing on it. One tap can open both —
   // an Enemy on burning floor is two subjects — and of everything in the lane
   // the ground is the least urgent, so it is the first to yield when the dock
   // fills and it never pushes the piece's gauge away from the controls.
-  'tile-panel': { zone: 'dock', rank: 7 },
+  'tile-panel': { zone: 'dock', rank: 6 },
 }
 
 // How many members of a zone may speak at once. Past the cap the far-from-the
 // anchor ranks yield, so the thing the player is about to touch is the last to
 // go. The dock's cap is a guard rather than a routine event: the realistic
 // crowd is one prompt, a standing demand, a toast, and the panel. Four,
-// because the Boss row that shows a Beat Card is exactly when the Stat Panel
-// is a live readout of what that Beat is doing — a cap that hid it there
-// would take the gauge away at the only moment it is being watched.
+// because a Boss row is exactly when the Stat Panel is a live readout of what
+// the Beat on screen is doing — a cap that hid it there would take the gauge
+// away at the only moment it is being watched.
 export const ZONE_CAPACITY: Record<NotificationZone, number> = {
+  herald: 1,
   guidance: 1,
   stage: 1,
   dock: 4,
 }
 
-// The CSS `order` a member carries inside its zone. The guidance zone runs top
-// down and the dock runs bottom up (`flex-col-reverse`), so one number reads
-// as "distance from my anchor" in both.
+// The CSS `order` a member carries inside its zone. The herald and guidance
+// zones run top down and the dock runs bottom up (`flex-col-reverse`), so one
+// number reads as "distance from my anchor" in all of them.
 export function stackOrder(id: NotificationId): number {
   return NOTIFICATION_RULES[id].rank
 }

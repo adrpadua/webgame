@@ -86,13 +86,30 @@ export function unactedHeroIds(catalog: ContentCatalog, position: TimelinePositi
 // That is the deliberate departure from Total War, which nags until every unit
 // has actually moved. Here a Hero can be legally able to act and have nothing
 // worth doing — cards in hand, no Slot in reach — and a rail that refused to
-// become Next until they acted would trap the window. The frame keeps
-// breathing after the offer; only the rail lets go.
+// become Next until they acted would trap the window. The frame keeps nudging
+// after the offer; only the rail lets go.
+//
+// The order is a round-robin from the pilot's own seat, not a scan from seat 0,
+// and at three seats that is the difference between a walk and a bounce. Seat 0
+// piloting, seats 1 and 2 waiting: a scan offers seat 1, then — because the
+// pilot is seat 1 now and seat 0 is still unacted and still first in authored
+// order — offers seat 0 back, and only then seat 2. The player is handed a
+// character they just left before the one they have never seen. Walking forward
+// from wherever the cursor is visits each seat once, in roster order, and comes
+// back to the starting seat last. Two seats cannot tell the two rules apart,
+// which is why this shipped: the bounce and the walk are the same sequence
+// there, and the three-seat trace is what separated them.
 export function nextNudge(
   catalog: ContentCatalog,
   position: TimelinePosition,
   pilotId: string,
   offered: readonly string[],
 ): string | null {
-  return unactedHeroIds(catalog, position).find((heroId) => heroId !== pilotId && !offered.includes(heroId)) ?? null
+  const seats = selectState(position).partyHeroIds
+  const unacted = unactedHeroIds(catalog, position)
+  const pivot = seats.indexOf(pilotId)
+  // Every seat but the pilot's, in roster order starting after it. Slicing the
+  // pilot out is what excludes them, so there is no second rule to keep in step.
+  const walk = pivot < 0 ? seats : [...seats.slice(pivot + 1), ...seats.slice(0, pivot)]
+  return walk.find((heroId) => !offered.includes(heroId) && unacted.includes(heroId)) ?? null
 }

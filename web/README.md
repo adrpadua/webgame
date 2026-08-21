@@ -159,7 +159,7 @@ Encounter instead.
     face a card wears for the current gesture.
   - `hero/` — the Hero Frame and its Signature control (D-065).
   - `overlays/` — everything that floats over the board, and
-    `notifications.ts`, the table that ranks them into the three zones.
+    `notifications.ts`, the table that ranks them into the four zones.
   - `onboarding/` — the How to Play guide (auto-opens on first visit,
     reopens from the `?` button), state-driven `CoachMark` prompts, and the
     state-derived `firstTurnScript.ts` with its `FirstTurnCue` bar.
