@@ -142,17 +142,26 @@ can answer** (ADR 0037):
 | `host_takes_damage` | The Hero is hit | `health_loss_zero`, `guarded_front` |
 | `host_deals_damage` | The Hero lands a blow | `effect_landed` |
 | `slot_fired` | The Hero fires a Slot | `effect_landed` |
+| `counter_spent` | The Hero's `spend` verb takes a Counter off | none |
 | `round_start` | The Round begins | none |
 
 `effect_landed` asks whether the event actually did something — a blow that
-cost health, or a fire that produced damage, Armor, healing, banked Armor, or
-a Counter. Gate a `slot_fired` or `host_deals_damage` earn on it unless you
-have a reason not to: without it the earn is farmable by firing an empty Slot
-at nothing, which makes it a formality rather than a reward for correct play.
+cost health, or a fire that produced damage, Armor, healing, banked Armor, a
+Counter, or a Counter spent off a host. Gate a `slot_fired` or
+`host_deals_damage` earn on it unless you have a reason not to: without it the
+earn is farmable by firing an empty Slot at nothing, which makes it a
+formality rather than a reward for correct play.
+
+`counter_spent` takes no gates because it does not need one: it is raised only
+where a `spend` Reader actually removed at least one Counter, so a spend that
+found nothing raises nothing and there is no empty fire to farm. It is raised
+once per such Reader, which makes it the earn to reach for when a Hero's job
+is removing something the Boss put there — Maren's Underwriting charges off
+striking a Sear off a record (D-102).
 
 A gate paired with an event it cannot answer is refused at load, and so is an
-`event_keyword` on `slot_fired` or `round_start`, because those events carry
-no damage Keywords to narrow by:
+`event_keyword` on `slot_fired`, `counter_spent`, or `round_start`, because
+those events carry no damage Keywords to narrow by:
 
 ```
 Card probe_sig gates a round_start standing clause on health_loss_zero,

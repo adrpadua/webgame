@@ -205,9 +205,10 @@ closed set the engine switches on:
 - **Target families.** `none`, `hex` (Burst center), `board_slot`, `piece` (an Enemy), `ally` (a living party member in range, who receives the card's Armor, healing, and Counter instead of the firing Hero — ADR 0035).
 - **Charge Modifier effects.** `armor`, `healing`, `boss_damage`,
   `target_damage`.
-- **Signature earn events.** All four: `host_takes_damage`,
-  `host_deals_damage`, `slot_fired`, `round_start` (ADR 0037). A Hero may earn
-  by being hit, by landing a blow, by firing a Slot, or on a clock. An earn is
+- **Signature earn events.** All five: `host_takes_damage`,
+  `host_deals_damage`, `slot_fired`, `counter_spent` (D-102), `round_start`
+  (ADR 0037). A Hero may earn by being hit, by landing a blow, by firing a
+  Slot, by taking a Counter off a host, or on a clock. An earn is
   a **reaction** to a resolved event — `host_takes_damage` here reads the blow
   after it lands, which is what lets its gates ask about the outcome. The
   pre-mitigation modifier moment, `host_damage_incoming`, is Reader-only

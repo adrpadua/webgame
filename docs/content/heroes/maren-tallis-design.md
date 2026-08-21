@@ -32,8 +32,8 @@ Aether-ceramic braces, restorative glyphs, and stabilizing vessels (see the lore
 
 - Heals are *procedures*: braced, dosed, countersigned.
 - Cleansing is *striking a false entry*: the Boss wrote something on a Hero's record, and Maren removes it.
-- Overflow conversion is *the count turned outward*: care beyond what a body can hold is discharged at the thing causing the casualties.
-- The Signature is *underwriting*: the Registry certifies a rescue claim before the blow lands.
+- Overflow conversion is *the count turned outward*: care beyond what a body can hold is discharged at the thing causing the casualties. It is care spent on somebody else — a registrar does not certify her own entry to make the number move (D-098).
+- The Signature is *underwriting*: the Registry certifies a rescue claim before the blow lands, and what pays for the certification is the record work — a struck entry or a discharged surplus.
 
 ## Design Language
 
@@ -48,7 +48,9 @@ Aether-ceramic braces, restorative glyphs, and stabilizing vessels (see the lore
 1. **Read** the Timeline: who does the Incoming Row name, and who carries a Sear?
 2. **Cover** — heal the wounded, or deliberately overheal the Hero about to be hit, converting the surplus into Boss damage (the `overflow` Keyword, D-080).
 3. **Clear** — spend a cleansing card to remove a Boss-placed mark before it prices another blow.
-4. **Bank** — converted overflow charges the Signature (`host_deals_damage` + `effect_landed`); at the right moment, spend all Charges to underwrite one ally, turning their next incoming blow into healing. At full bank, a second ally is underwritten.
+4. **Bank** — striking a mark off a record charges the Signature (`counter_spent`), and so does converted overflow (`host_deals_damage` + `effect_landed`); at the right moment, spend all Charges to underwrite one ally, turning their next incoming blow into healing. At full bank, a second ally is underwritten.
+
+> **Revised (2026-08-21, D-102).** The cleansing earn was added because the overflow earn alone gave her an engine that ran backwards. Overflow only converts when the recipient is inside the card's printed healing of full — `Surplus of Care` needs an ally missing less than 3 — so her damage *and* her Signature both depended on the Party being healthy. In an encounter whose entire premise is a debt that accumulates, that meant the engine ran in Round 1 and was off by Round 5: she was a damage dealer while nobody needed her and a Signature that never charged once they did. Cleansing runs the other way. Sear accrues, so the later the fight goes the more there is to strike, and step 3 now pays for step 4 instead of competing with it.
 
 ## Settled Rules
 
@@ -58,28 +60,32 @@ Aether-ceramic braces, restorative glyphs, and stabilizing vessels (see the lore
 | Role / Archetype | Healer / Restorative | D-080 |
 | Damage cards | None. All Boss damage is converted overflow or the Signature. | Healer Principle 3 |
 | Overflow conversion | 1:1 into Boss damage, capped at the card's printed healing | Q21 |
+| Overflow recipient | Another Hero, never Maren herself. Firing an `ally` card on yourself stays legal; it simply converts nothing. | D-098 |
 | Conversion carrier | The `overflow` Keyword (trait) on the card, read by one engine rule — never a global rule, never per-card text | Q14 |
 | Cleansing | Existing `spend` verb on `target_type: "ally"` cards — no new verb | Q11 |
-| Signature earn | `host_deals_damage`, gated `effect_landed`, +1 Charge | Q9 |
+| Signature earn | Two standing clauses: `counter_spent` (+1 Charge when a `spend` Reader actually removes a Counter) and `host_deals_damage` gated `effect_landed` (+1 Charge on converted overflow) | Q9 / D-102 |
 | Signature bank | `max_charge: 2`; spend all; `full_charge` extends the cover to a second ally | Q23 |
 | Signature effect | Pre-emptive: the covered ally's next incoming blow converts to healing | Q20 |
-| Deck skeleton | 20 cards; the paper White Mage's size, Fast/Slow mix, and range conventions; its five damage cards replaced by three overflow carriers and two cleansing cards | Q5 / Q19 |
+| Deck skeleton | 20 cards; the paper White Mage's size, Fast/Slow mix, and range conventions; its five damage cards replaced by three overflow carriers and three cleansing cards | Q5 / Q19 / D-100 |
+| Charge payoffs | Her two repeatable Slow heals read the Charge Stack (`each_charge_healing`, +1 healing per charged card) | D-100 |
 
 ## Deck Plan (families, not cards)
 
 | Family | Count | Notes |
 | --- | --- | --- |
-| Single-target heals | 7 | 3 light/Quick, 3 medium/Slow, 1 heavy/Slow — the paper skeleton |
+| Single-target heals | 6 | 2 light/Quick, 2 medium/Slow, 2 heavy/Slow |
 | Area heals | 3 | Self-centred radius-1 burst, per the paper Radial pattern |
 | Overflow carriers | 3 | Heals carrying the `overflow` Keyword — her damage game |
-| Cleansing | 2 | `spend` the Boss-placed mark on a chosen ally; the paper Dispel is the first |
+| Cleansing | 3 | `spend` the Boss-placed mark on a chosen ally; the paper Dispel is the first |
 | Utility | 5 | Draw, ally repositioning, movement, and the rescue support family |
+
+> **Revised (2026-08-21, D-100).** The skeleton moved one card from the light heal to the cleanse family and one from the medium heal to the heavy one: `Field Dressing` 3 → 2, `Braced Recovery` 3 → 2, `Strike the Entry` 2 → 3, `Full Certification` 1 → 2. Twenty cards either way. Two reasons. `Strike the Entry` is the named answer to the Brand trial's headline mechanic — both of `embermaw_branding`'s Beats tag `cleanse`, Sear is permanent and caps at 2, and the program reapplies on a loop — and it was the *rarest* card in the deck that answers it, which is the "nothing, bad draw" failure attribution the [evaluation rubric](../deck-evaluation-rubric.md) names as a red signal. And `Full Certification` at a single copy in a twenty-card deck across an eight-Round fight was a coin flip on whether her emergency heal was in the game at all; a 1-of is flavour, not a plan.
 
 Card authoring is the next step after this document and follows [../../rules/player-card-authoring.md](../../rules/player-card-authoring.md).
 
 ## Engine/Content Requests
 
-1. **The `overflow` rule** — the one new engine mechanic: healing routed to an ally at or above `maxHealth`, on a card carrying the Keyword, deals the surplus (capped at printed healing) as Boss damage and stamps `effect_landed`. Everything else she does is expressible today.
+1. **The `overflow` rule** — the one new engine mechanic: healing routed to an ally at or above `maxHealth`, on a card carrying the Keyword, deals the surplus (capped at printed healing) as Boss damage and stamps `effect_landed`. Since D-098 the ally must be *another* Hero: the surplus has to be genuinely surplus to someone. Everything else she does is expressible today.
 2. **Verify `spend` on an ally target** — Q11's risk: `on: "target"` predates ally targeting. A test must prove it reads the chosen ally, not the caster, with a mutation entry if it does not.
 3. **The Signature cover effect** — a pre-emptive per-Hero conversion of the next incoming blow. Closest existing shape is the Counter system; whether it is a Counter or a new Hero flag is an engineering choice, not a design one.
 4. **The second seat** — `embermaw_attrition_trial` adds `maren` to its `party` when she is authored, which is the moment the D-082 gate tests flip from proving the problem to proving the answer.

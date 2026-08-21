@@ -26,7 +26,7 @@ import {
   hexCounterRef,
   type CounterRef,
 } from './counters'
-import { raiseDamageIncoming, raiseDamageResolved, raiseHexEntered, raiseRoundStart, raiseSlotFired, type SubscriberMatch } from './events'
+import { raiseCounterSpent, raiseDamageIncoming, raiseDamageResolved, raiseHexEntered, raiseRoundStart, raiseSlotFired, type SubscriberMatch } from './events'
 import { canBeDowned, goDowned, incapacitateHero, livingHeroIds, reviveHero } from './downed'
 import { cardChargeCap } from './content/catalog'
 import { OVERFLOW, RAID_HIT, TANK_HIT } from './keywords'
@@ -245,7 +245,15 @@ function resolveOne(
       // damage action so the Restorative's `host_deals_damage` earn reads it
       // the same way it reads any blow.
       let overflowConverted = 0
-      if (card.tags.includes(OVERFLOW) && effects.healing > 0) {
+      // The conversion is care spent on *someone else* (D-098). Overflow on
+      // the firing Hero was the Restorative's strongest and least thoughtful
+      // line: at full Health she could aim Surplus of Care at herself for the
+      // card's whole printed value in Boss damage, with no ally to read, no
+      // Beat to name, and no reason ever to do anything else with it. Firing
+      // an `ally` card on yourself stays legal — the schema's rule, and what
+      // keeps a solo Party able to play its own deck — it simply converts
+      // nothing, so the surplus has to be genuinely surplus to someone.
+      if (card.tags.includes(OVERFLOW) && effects.healing > 0 && recipient.id !== hero.id) {
         const absorbed = recipient.health - healthBeforeHealing
         overflowConverted = Math.min(effects.healing - absorbed, card.healing)
         if (overflowConverted > 0) {
@@ -403,10 +411,20 @@ function resolveOne(
           reasonText: 'signature_full_bank',
         })
       }
+      // A mark came off (D-102), raised before the Slot's own raise because
+      // the spends are what the fire did, not what firing it was: both
+      // timings in one pass, cost entries first.
+      const spentAll = [...spentEarly, ...spentLate]
+      if (spentAll.length > 0) {
+        recordSubscriberMatches(fact.detail, raiseCounterSpent(catalog, draft, action.sourceId, spentAll))
+      }
       // The Slot fired: one raise, heard by the Grant first and the Reader
       // second (the registry row's order, ADR 0041). `effect_landed` is what
       // stops a tempo earn being farmed by firing an empty Slot at nothing
-      // (ADR 0037).
+      // (ADR 0037). A `spend` counts: a Card whose whole effect is striking a
+      // mark off an ally landed one, and reading it as having landed nothing
+      // was the gap D-102 found while authoring the first Card that does only
+      // that.
       const slotRaise = raiseSlotFired(catalog, draft, action.sourceId, {
         ...(fact.resolutionFact ?? {}),
         effect_landed:

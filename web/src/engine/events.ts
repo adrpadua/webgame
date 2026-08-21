@@ -119,6 +119,19 @@ export const EVENT_REGISTRY: Record<string, EventRow> = {
     payload: ['entity_id', 'coords'],
     hears: [reader('host_entered', ['target_damage'], false)],
   },
+  // A mark came off (D-102). The moment a Card's `spend` Reader actually
+  // removes Counters — the third verb finally raising something, where
+  // `gate` and `scale` only ever read. Raised once per Reader that removed
+  // at least one Counter, so a Card whose spend found nothing raises nothing:
+  // the "it actually did something" question is answered by the raise
+  // existing at all, which is why the row offers no gates. That is also what
+  // makes it unfarmable — striking an entry the Boss never wrote is not a
+  // fire the rules have to price.
+  counter_spent: {
+    moment: 'in the fire_slot resolution, once both spend timings have run: cost entries in authored Reader order, then resolution entries',
+    payload: ['counter_id', 'host', 'amount', 'timing'],
+    hears: [grant('counter_spent', [], false)],
+  },
   // The Round boundary. The Reader pays out banked Armor before the Grant
   // evaluates, so a Grant reads the Round as it has settled, never mid-wipe.
   round_start: {
@@ -297,6 +310,38 @@ export function raiseSlotFired(
     generated.push({ kind: 'damage', sourceId: heroId, targetId: draft.bossId, amount: bonus, reasonText: 'counter_reader' })
   }
   return { generated, matches }
+}
+
+// The counter-spent raise (D-102): one raise per `spend` Reader that removed
+// Counters, in the order the spends resolved. The host is the firing Hero
+// rather than whoever held the mark — the Grant is a reward for the play, and
+// Maren striking a Sear off Elian is Maren's earn. The entries are the same
+// records the fact stream already carries as `spentCounters`, so the raise
+// and the log cannot disagree about what came off.
+export function raiseCounterSpent(
+  catalog: ContentCatalog,
+  draft: EncounterState,
+  heroId: string,
+  spent: readonly Record<string, unknown>[],
+): SubscriberMatch[] {
+  const matches: SubscriberMatch[] = []
+  for (const entry of spent) {
+    for (const outcome of evaluateGrantsFor(catalog, draft, heroId, 'counter_spent', {
+      resolutionFact: entry,
+    })) {
+      matches.push({
+        event: 'counter_spent',
+        host: heroId,
+        kind: 'grant',
+        id: outcome.cardId,
+        when: 'counter_spent',
+        outcome: outcome.outcome,
+        reason: outcome.reason,
+        charges: outcome.charges,
+      })
+    }
+  }
+  return matches
 }
 
 // The Round-boundary raise, host by host in seat order: wipe, pay out banked

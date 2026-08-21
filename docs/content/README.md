@@ -36,6 +36,7 @@ Current starter docs:
 - [../artifacts/encounter-records.md](../artifacts/encounter-records.md)
 
 - [decks/elian-voss-starter.md](decks/elian-voss-starter.md)
+- [decks/maren-and-elian-deck-review.md](decks/maren-and-elian-deck-review.md)
 - [heroes/elian-voss-design.md](heroes/elian-voss-design.md)
 - [heroes/healer-archetype-statements.md](heroes/healer-archetype-statements.md)
 - [heroes/maren-tallis-design.md](heroes/maren-tallis-design.md)

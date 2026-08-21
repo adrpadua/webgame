@@ -151,7 +151,9 @@ The approved live/default Elian Voss starter-deck specification contains these j
 | Defensive payoff | Shield Slam | Quick | Consume a correctly earned Riposte Ready for `+2` Boss damage, or use it as stable progress when no opening exists. |
 | Emergency party save | Intercept | Quick | Redirect one next damage event from a chosen ally. Requires engineering support. |
 
-The approved live/default twenty-card Shield Wall list is exactly `6x Steady Strike`, `6x Iron Guard`, `2x Sweeping Blow`, `2x Fortify`, `2x Shield Slam`, and `2x Drive Back`. Intercept remains outside this first executable list until its rule exists in `EncounterEngine`.
+The approved live/default twenty-card Shield Wall list is exactly `6x Iron Guard`, `4x Steady Strike`, `2x Sweeping Blow`, `2x Fortify`, `2x Unyielding Step`, `2x Drive Back`, and `2x Quench`. Intercept remains outside this first executable list until its rule exists in `EncounterEngine`.
+
+> **Correction (2026-08-21).** The sentence above had been stale through three shipped changes — it still named `2x Shield Slam`, retired into the Signature by D-064, and it never picked up D-058's `Quench` promotion or D-099's shape pass. `data/encounters/embermaw_prototype.json` is the source of truth and `engine.test.ts` names the list card-by-card; this line is commentary on that assertion. The jobs table above it describes *jobs*, not copies, and `Shield Slam`'s row is kept as the historical statement of a job that now lives on *Riposte*.
 
 | Repositioning | Drive Back | Quick | Push a piece two hexes away. Moves the Boss rather than the Hero, so the Guarded Front is never abandoned to reposition — and shoving costs adjacency, which `Within Reach` prices. |
 

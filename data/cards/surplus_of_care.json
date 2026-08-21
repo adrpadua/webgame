@@ -1,7 +1,7 @@
 {
   "id": "surplus_of_care",
   "title": "Surplus of Care",
-  "rules_text": "Heal an ally within 3 for 3. Overflow: healing beyond what they can hold lands on the Boss instead, up to 3.",
+  "rules_text": "Heal an ally within 3 for 3. Overflow: healing beyond what they can hold lands on the Boss instead, up to 3. Maren's own record is not an ally she can spend surplus on.",
   "speed": "quick",
   "target_type": "ally",
   "range_tiles": 3,
