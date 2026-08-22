@@ -18,4 +18,4 @@ The survey's two deeper findings stay open as future work, deliberately outside 
 
 Typecheck, lint, and the full suite (665/665, 50 files) green before the gate.
 
-(gate results stamped below on completion)
+Full isolated gate green end to end: casing guard silent, log:ids clean, 665 tests across 50 files, lint, build, **SMOKE PASSED** with replay fingerprint match, and the decisive check — the mutation audit re-proving **130/130 caught, 0 survived, 0 stale** through the reorganized suite, with kills observed landing from the new seam files (`beats.test.ts`, `movement.test.ts`) during the run. Inner EXIT:0.
