@@ -644,7 +644,7 @@ export const scenarioActionSchema = z.discriminatedUnion('kind', [
     slotIndex: z.number().int().min(0),
     targetId: z.string().optional(),
     targetHex: axialSchema.optional(),
-    targetSlotIndex: z.number().int().min(0).optional(),
+    targetSlot: z.object({ heroId: z.string(), slotIndex: z.number().int().min(0) }).optional(),
   }),
   z.object({ kind: z.literal('move_hero'), sourceId: z.string(), destination: axialSchema, cardInstanceId: z.string() }),
   z.object({ kind: z.literal('discard_for_stamina'), sourceId: z.string(), cardInstanceId: z.string() }),

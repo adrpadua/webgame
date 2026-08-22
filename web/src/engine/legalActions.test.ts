@@ -57,7 +57,11 @@ const fixture = buildCatalog({
     { id: 'rider', title: 'Rider', speed: 'quick', target_type: 'board_slot', tags: ['tank'] },
     { id: 'fuel', title: 'Fuel', speed: 'quick', boss_damage: 1, range_tiles: 3, tags: ['tank'] },
   ],
-  heroes: [{ id: 'warden', title: 'Warden', max_health: 20 }],
+  heroes: [
+    { id: 'warden', title: 'Warden', max_health: 20 },
+    { id: 'aria', title: 'Aria', max_health: 20 },
+    { id: 'zeke', title: 'Zeke', max_health: 20 },
+  ],
   keywords: [
     { id: 'tank', title: 'Tank', kind: 'role' },
     { id: 'overflow', title: 'Overflow', kind: 'trait' },
@@ -88,6 +92,26 @@ const fixture = buildCatalog({
         { card: 'cover', copies: 1 },
         { card: 'rider', copies: 1 },
         { card: 'fuel', copies: 4 },
+      ],
+      boss_programs: ['probe_program'],
+      random_seed: 7,
+    },
+    {
+      id: 'probe_pair',
+      title: 'Probe Pair',
+      party: [
+        { hero: 'aria', start: { q: 0, r: 0 } },
+        { hero: 'zeke', start: { q: 0, r: -2 } },
+      ],
+      boss: 'probe_boss',
+      round_limit: 6,
+      board_radius: 2,
+      boss_start: { q: 1, r: 0 },
+      slot_count: 2,
+      hand_refill_target: 4,
+      player_deck: [
+        { card: 'rider', copies: 2 },
+        { card: 'fuel', copies: 6 },
       ],
       boss_programs: ['probe_program'],
       random_seed: 7,
@@ -134,7 +158,12 @@ function candidates(family: Card['target_type'], state: EncounterState, heroId: 
         .map(parseHexKey)
         .map((targetHex) => ({ ...base, targetHex }))
     case 'board_slot':
-      return [-1, 0, 1, 2].map((targetSlotIndex) => ({ ...base, targetSlotIndex }))
+      return [
+        { ...base, targetSlot: { heroId, slotIndex: 0 } },
+        { ...base, targetSlot: { heroId, slotIndex: 1 } },
+        { ...base, targetSlot: { heroId, slotIndex: 2 } },
+        { ...base, targetSlot: { heroId: 'nobody', slotIndex: 0 } },
+      ]
   }
 }
 
@@ -158,11 +187,35 @@ describe('the target-family contract matrix', () => {
     state.heroes[heroId].actionBar[1].topCard = null
     const targeting = fireTargeting(fixture, state, heroId, 0)
     // Slot 0 still holds the rider itself; the emptied Slot 1 is gone.
-    expect(targeting.legalSlotIndexes).toEqual([0])
+    expect(targeting.legalSlots).toEqual([{ heroId, slotIndex: 0 }])
     const enumerated = legalActions(fixture, state, heroId).filter(
       (action) => action.kind === 'fire_slot' && action.slotIndex === 0,
     )
-    expect(enumerated).toEqual([{ kind: 'fire_slot', sourceId: heroId, slotIndex: 0, targetSlotIndex: 0 }])
+    expect(enumerated).toEqual([{ kind: 'fire_slot', sourceId: heroId, slotIndex: 0, targetSlot: { heroId, slotIndex: 0 } }])
+  })
+
+  it("board_slot: an ally's prepared Slot is addressable from anywhere — support is adjacency-free (D-009)", () => {
+    // Aria and Zeke start two hexes apart, and the rider authors no range:
+    // the Slot identity carries the owner (the shape decision), while the
+    // ruling that support needs no footwork stands untouched.
+    const state = createEncounterState(fixture, 'probe_pair')
+    const aria = state.heroes.aria
+    const pool = aria.deck.concat(aria.hand)
+    const top = pool.find((card) => card.cardId === 'rider')!
+    const charge = aria.hand.find((card) => card.instanceId !== top.instanceId)!
+    aria.actionBar[0] = { topCard: top, charges: [charge], activatedWindow: null, placedThisLoadout: false, fixed: false, earnedCharges: 0 }
+    const zekeCard = state.heroes.zeke.hand[0]
+    state.heroes.zeke.actionBar[1] = { topCard: zekeCard, charges: [], activatedWindow: null, placedThisLoadout: false, fixed: false, earnedCharges: 0 }
+    state.phase = 'quick'
+
+    const targeting = fireTargeting(fixture, state, 'aria', 0)
+    // Aria's own rider Slot and Zeke's prepared Slot 1, in party-then-bar order.
+    expect(targeting.legalSlots).toEqual([
+      { heroId: 'aria', slotIndex: 0 },
+      { heroId: 'zeke', slotIndex: 1 },
+    ])
+    expect(legality(fixture, state, { kind: 'fire_slot', sourceId: 'aria', slotIndex: 0, targetSlot: { heroId: 'zeke', slotIndex: 1 } }).legal).toBe(true)
+    expect(legality(fixture, state, { kind: 'fire_slot', sourceId: 'aria', slotIndex: 0, targetSlot: { heroId: 'zeke', slotIndex: 0 } }).legal).toBe(false)
   })
 })
 

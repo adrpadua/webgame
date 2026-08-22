@@ -2957,7 +2957,7 @@ describe('Counter hosts — ground and prepared cards (D-048)', () => {
     hero(state).hand = [card('s1', 'iron_guard')]
     state = resolve(variant, state, { kind: 'load_slot', sourceId: state.primaryHeroId, slotIndex: 1, cardInstanceId: 's1' }).state
 
-    const bound = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetSlotIndex: 1 })
+    const bound = resolve(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetSlot: { heroId: state.primaryHeroId, slotIndex: 1 } })
     expect(bound.facts[0].succeeded).toBe(true)
     expect(bound.state.counters[slotRef(state.primaryHeroId, 1)][0]).toMatchObject({ id: 'oath', count: 1 })
 
@@ -2980,7 +2980,7 @@ describe('Counter hosts — ground and prepared cards (D-048)', () => {
     const state = armed(variant, 'bind', 0)
     // Slot 1 is the empty one: slot 2 is the Signature now, and a Signature
     // Slot always holds its printed Top Card (D-064).
-    const verdict = legality(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetSlotIndex: 1 })
+    const verdict = legality(variant, state, { kind: 'fire_slot', sourceId: state.primaryHeroId, slotIndex: 0, targetSlot: { heroId: state.primaryHeroId, slotIndex: 1 } })
     expect(verdict.legal).toBe(false)
     expect(verdict.reason).toContain('prepared Slot')
   })
