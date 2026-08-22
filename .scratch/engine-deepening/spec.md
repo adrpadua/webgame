@@ -1,6 +1,6 @@
 # Engine Deepening
 
-Status: active
+Status: closed — all six candidates delivered (issues 01–06); the facing and geometry board slices remain recorded in issue 04
 
 ## Source
 
@@ -11,7 +11,7 @@ An `/improve-codebase-architecture` review of `web/src/engine` (2026-08-21, main
 3. **State each content concept once** (Worth exploring) — delivered, issue 05, this session: seven concept modules, `schemas.ts` as the compatibility facade, `buildCatalog` down to composition.
 4. **Let the board own the board** (Worth exploring) — first slice delivered (removePiece, issue 04, this session); facing and geometry slices remain. 107 direct `.board.*` accesses; no `removeEntity`; the host-liveness invariant implemented three times. First slice: `removeEntity`.
 5. **One owner for the Beat kind vocabulary** (Worth exploring) — delivered, issue 03, this session. Included a live hazard worth taking alone: `escalation.ts` types Beat kinds as bare strings, so a renamed kind silently stops charging demands.
-6. **Split engine.test.ts along its seams** (Worth exploring) — open. 5,532 lines, 97 hand-built state mutations vs 10 `runScenario` uses, three engine exports that exist only for tests.
+6. **Split engine.test.ts along its seams** (Worth exploring) — delivered, issue 06, this session: twelve seam files plus testkit.ts, 665 tests preserved exactly. Recorded follow-ups: 5,532 lines, 97 hand-built state mutations vs 10 `runScenario` uses, three engine exports that exist only for tests.
 
 ## Ground rules
 
