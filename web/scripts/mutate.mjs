@@ -946,6 +946,27 @@ const MUTATIONS = [
     from: "  if (hero.actionBar[action.slotIndex].fixed) {\n    return illegal('The Signature Slot never takes a prepared card.')\n  }",
     to: '',
   },
+  {
+    name: 'selector lexicographic tie-break reversed',
+    guards: 'D-111: every selector ordering ends in the same lexicographic id tie-break',
+    file: 'engine/selectors.ts',
+    from: 'const idCompare = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0)',
+    to: 'const idCompare = (left: string, right: string): number => (left < right ? 1 : left > right ? -1 : 0)',
+  },
+  {
+    name: 'selector living filter inverted',
+    guards: 'D-111: `is: living` keeps living Heroes, never their inverse',
+    file: 'engine/selectors.ts',
+    from: "        return hero !== undefined ? hero.status === 'living' : (state.board.entities[id]?.health ?? 0) > 0",
+    to: "        return hero !== undefined ? hero.status !== 'living' : (state.board.entities[id]?.health ?? 0) > 0",
+  },
+  {
+    name: 'selector range boundary made exclusive',
+    guards: 'D-111: `within: N` is boundary-inclusive — distance N is in range',
+    file: 'engine/selectors.ts',
+    from: '    return at !== undefined && from !== undefined && hexDistance(at, from) <= filter.within',
+    to: '    return at !== undefined && from !== undefined && hexDistance(at, from) < filter.within',
+  },
 ]
 
 const filter = process.argv[2] ?? ''
