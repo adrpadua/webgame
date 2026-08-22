@@ -39,7 +39,7 @@ Only once all three pass does the ability get its flavour name. Keep the working
 
 **A title may never promise more than its rules text delivers.** A name that oversells is the same defect as a comment explaining code that should have been rewritten — it makes the reader stop looking at the part that is actually wrong.
 
-Maren's shipped list was authored before this rule and fails the second test in `data/`. `Field Dressing`, `Surplus of Care` and `Braced Recovery` all name out to `heal an ally within 3`; the first two share the Quick window as well, differing only by `2` versus `3` and a rider. Read by title they are three tools. Read by working name they are one, printed three times — and the flavour is the only thing that hid it.
+Run the second test over Maren's shipped list and it raises a question the titles do not. `Field Dressing`, `Surplus of Care` and `Braced Recovery` all reduce to the stem `heal an ally within 3`; `Field Dressing` and `Surplus of Care` share the Quick window too, separated by `2` versus `3` and one rider. That is not automatically a defect — a Healer should be able to heal, the Slow window is a real cost difference, and Surplus of Care's overflow is a distinct job. The point is that the test **forces someone to say which difference is load-bearing**, where three distinct-sounding titles let the question go unasked. A working name that collides is a conversation the design owes, not a verdict against the card.
 
 This rule is forward-looking. Shipped `id`s do not change — the Card Contract above makes them stable on purpose, and renaming them costs every citation while buying nothing. The working name belongs in the design doc, not retrofitted into data.
 
