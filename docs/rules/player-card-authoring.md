@@ -9,7 +9,7 @@ Every player card has these authored fields:
 | Field | Rule |
 | --- | --- |
 | `id` | Stable, lowercase identifier. It never changes because a display name changes. |
-| `title` | Short action name, ideally one to three words. It describes what the hero does, not the current encounter. |
+| `title` | Short action name, ideally one to three words. It describes what the hero does, not the current encounter, and it is chosen only after the ability has passed the working-name test in [Name It For What It Does](#name-it-for-what-it-does). |
 | `rules_text` | Complete, encounter-neutral mechanical text. It is the canonical card rules text. |
 | `speed` | `quick` for basics, setup, movement-adjacent effects, and low-commitment responses; `slow` for larger commitments and signature effects. |
 | `max_charge` | The Top Card's Charge Value: the maximum number of tucked cards it can hold. The engine default is `2`; the foundation cards `Steady Strike` and `Iron Guard` use `3`. |
@@ -24,6 +24,24 @@ Every player card has these authored fields:
 | `charge_modifiers` | Explicit Charge Modifier Resources; never imply a bonus that is absent from data. |
 
 ## Rules Text
+
+### Name It For What It Does
+
+A `title` is an identifier, and the rules for choosing one are the rules for naming a function (D-110). `Redoubt` and `Toll` pass review the same way `doWork()` and `handleData()` pass review: they sound like something, and that sound is what stops anyone asking whether the thing underneath has one job.
+
+So draft every ability under a **working name** — one verb phrase stating its whole effect, with no theme in it. `Keep your leftover Armor`. `Deal damage equal to what you blocked`. `Heal everyone nearby`. The working name is a test, and it fails three ways:
+
+- **It needs an `and` or an `or`.** The ability does more than one thing. Split it, or cut the tier that introduced the second verb.
+- **Another ability in the same kit produces the same working name.** One of them is redundant. A different target or a bigger number is not a different ability.
+- **The plain sentence reads flat.** Then the ability is flat, and the flavour name was carrying it.
+
+Only once all three pass does the ability get its flavour name. Keep the working name beside it in the Hero's design doc: it is that ability's docstring, and it is what the next reviewer checks the mechanic against.
+
+**A title may never promise more than its rules text delivers.** A name that oversells is the same defect as a comment explaining code that should have been rewritten — it makes the reader stop looking at the part that is actually wrong.
+
+Run the second test over Maren's shipped list and it raises a question the titles do not. `Field Dressing`, `Surplus of Care` and `Braced Recovery` all reduce to the stem `heal an ally within 3`; `Field Dressing` and `Surplus of Care` share the Quick window too, separated by `2` versus `3` and one rider. That is not automatically a defect — a Healer should be able to heal, the Slow window is a real cost difference, and Surplus of Care's overflow is a distinct job. The point is that the test **forces someone to say which difference is load-bearing**, where three distinct-sounding titles let the question go unasked. A working name that collides is a conversation the design owes, not a verdict against the card.
+
+This rule is forward-looking. Shipped `id`s do not change — the Card Contract above makes them stable on purpose, and renaming them costs every citation while buying nothing. The working name belongs in the design doc, not retrofitted into data.
 
 ### Use Generic Targets
 
@@ -140,6 +158,8 @@ The deck tests the choice between firing a reusable Top Card immediately and sav
 
 ## Authoring Checklist
 
+- [ ] The ability was drafted under a working name stating its whole effect in one verb phrase; that name needs no `and` or `or`, and no other ability in the kit produces the same one.
+- [ ] The title promises no more than the rules text delivers, and the working name is recorded beside it in the Hero's design doc.
 - [ ] The card text contains no Boss name, Minion family, arena coordinate, or encounter-only instruction.
 - [ ] The first sentence explains the uncharged effect.
 - [ ] The charge sentence states its exact per-card benefit.
