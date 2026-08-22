@@ -18,4 +18,4 @@ Per the review's incremental framing: facing ownership (three movement paths, th
 
 Behavior-preserving: end state of every removal identical (`clearCounters` checks-then-deletes where the raw pair deleted blindly — same result); zero test edits; 660/660 green with typecheck and lint clean before the gate.
 
-(gate results stamped below on completion)
+Full isolated gate green end to end: casing guard silent, log:ids clean, 660 tests, lint, build, **SMOKE PASSED** with replay fingerprint match, mutation audit **130/130 caught, 0 survived, 0 stale** — the re-pointed detonation anchor killing through the `removePiece` call — inner EXIT:0.
