@@ -13,7 +13,7 @@ Status: delivered (this session)
 
 Typecheck (`parsed.data` assigns to `PlayerCommandInput` with no cast — the schema's inferred type matches the union structurally), lint, and the full suite (664/664) green before the gate; zero existing-test edits.
 
-(gate results stamped below on completion)
+Full isolated gate green end to end: casing guard silent, log:ids clean, 664 tests, lint, build, **SMOKE PASSED** with replay fingerprint match (the Workbench's boundary-routed submit exercised live by the smoke's whole scripted turn), mutation audit **130/130 caught, 0 survived, 0 stale**, inner EXIT:0.
 
 ## Scope
 
