@@ -39,6 +39,7 @@ Status labels: `Now` means content/design work can begin after its stated proof;
 - Raid-run rewards, branching nodes, and deck evolution after a single encounter has a proven card curve.
 - Per-card art and final VFX after interaction and pattern readability pass mobile tests.
 - Archive/Echo (D-030): a bounded per-Boss option held until a second Boss exists whose identity is memory. Embermaw does not take it.
+- The resource system and static ability bar ([exploratory proposal](design-proposals/resource-system-and-static-bar.md)): a candidate answer to the diagnosis that every card is worth exactly `+1` as Charge, so the deck is fuel rather than a toolbox. **Nothing in it is adopted**, no decision row claims it and no `data/` file expresses it; the proposal records its own known defects and the six falsifiable things that would have to hold before it could be. The diagnosis is worth keeping even if the answer is discarded.
 
 ## Probe Policy
 
