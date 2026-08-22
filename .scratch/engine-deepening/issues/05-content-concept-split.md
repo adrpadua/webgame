@@ -19,4 +19,4 @@ Each concept is now one module under `content/`, holding its schema, its cross-f
 
 Behavior-preserving by construction: every pass body, schema, and comment moved verbatim (scripted slicing, not retyping); pass order preserved exactly; zero test-file edits — the facade held every existing import path, proven by the suite passing untouched. All **10 mutation anchors** re-pointed from `catalog.ts` to their concept modules, each verified to match exactly once. Typecheck, lint, 665/665 before the gate.
 
-(gate results stamped below on completion)
+Full isolated gate green end to end: casing guard silent, log:ids clean, 665 tests, lint, build, **SMOKE PASSED** with replay fingerprint match, mutation audit **130/130 caught, 0 survived, 0 stale** — all ten re-pointed anchors killing through their concept modules — inner EXIT:0.
