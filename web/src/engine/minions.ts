@@ -1,5 +1,6 @@
 import { traversalRoute } from './board'
 import { hexDistance, hexesWithinRadius, type Axial } from './hex'
+import { selectEntities } from './selectors'
 import type { ContentCatalog } from './content/catalog'
 import type { EncounterState } from './types'
 
@@ -52,13 +53,12 @@ export function minionIntent(catalog: ContentCatalog, state: EncounterState, min
   if (damage <= 0) {
     return null
   }
-  const heroIds = Object.keys(state.heroes)
-    .filter((id) => state.board.entities[id])
-    .sort(
-      (a, b) =>
-        hexDistance(minion.coords, state.board.entities[a].coords) - hexDistance(minion.coords, state.board.entities[b].coords) ||
-        a.localeCompare(b),
-    )
+  // The selector vocabulary's first converged consumer (D-111): identical
+  // semantics to the hand-rolled sort it replaces — same candidate set (the
+  // seated Party's on-board bodies), same nearest-first order, and the same
+  // tie-break for every shipped id, since lexicographic code-unit order and
+  // localeCompare agree on ASCII.
+  const heroIds = selectEntities(state, { subject: 'party', from: minion.coords, where: [{ is: 'on_board' }], order: 'nearest' })
   if (heroIds.length === 0) {
     return null
   }

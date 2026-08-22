@@ -9,6 +9,7 @@ export { createEncounterState } from './setup'
 // callers import it from './resolve' directly.
 export { resolve } from './resolve'
 export { resolvePlayerCommand, type PlayerCommandSubmission } from './submit'
+export { selectEntities, selectHexes, type EntityQuery, type EntityFilter, type EntityOrder, type EntitySubject, type HexQuery, type HexFilter } from './selectors'
 export { advancePhase } from './advancePhase'
 export { escalationActionsForRoundEnd } from './escalation'
 export { legality } from './legality'
