@@ -1,4 +1,4 @@
-import { clearCounters, combatantRef } from './counters'
+import { removePiece } from './board'
 import type { EncounterState, HeroState } from './types'
 
 // The zero-health lifecycle (ADR 0036). A Hero at `0` health is not out of
@@ -107,8 +107,7 @@ export function incapacitateHero(state: EncounterState, heroId: string): void {
     slot.earnedCharges = 0
     slot.activatedWindow = null
   }
-  delete state.board.entities[heroId]
-  clearCounters(state, combatantRef(heroId))
+  removePiece(state, heroId)
 }
 
 // Which Downed Heroes have run out of window as of this Round. Read at the

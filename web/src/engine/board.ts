@@ -1,6 +1,7 @@
 import { axialAdd, axialScale, containsHex, hexDistance, hexKey, hexesInRadius, type Axial, type HexKey } from './hex'
 import { axialDeltaFor, VALID_FACINGS } from './facing'
-import type { BoardState, EntityKind, HazardInstance, Team } from './types'
+import { clearCounters, combatantRef } from './counters'
+import type { BoardState, EncounterState, EntityKind, HazardInstance, Team } from './types'
 
 export function createBoard(radius: number): BoardState {
   return {
@@ -466,4 +467,18 @@ export function firstEmptyHexes(candidates: Axial[], empty: Record<HexKey, true>
     }
   }
   return result
+}
+
+// The one way a piece leaves the board mid-Encounter. Removal and the
+// Counter drop are a single move — Counters fall when the body leaves
+// (D-045) — stated here once. It used to be an entity-delete/counter-drop
+// pair repeated at every site that consumed a piece (a detonation, a Minion
+// Defeat, an incapacitation), which is how one invariant ends up implemented
+// three times eagerly with the round-upkeep sweep as a fourth, lazy copy for
+// the hosts no eager path sees. Takes the whole EncounterState, unlike the
+// BoardState functions above, because the invariant spans both stores — that
+// is the point of it.
+export function removePiece(state: EncounterState, entityId: string): void {
+  delete state.board.entities[entityId]
+  clearCounters(state, combatantRef(entityId))
 }

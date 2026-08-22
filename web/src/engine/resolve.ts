@@ -1,4 +1,4 @@
-import { addEntity, addHazard, advanceBoardRound, damageEntity, facingAlong, facingToward, getHazards, isGuardedFront, isOccupied, isOnBoard, isTraversable, moveEntity } from './board'
+import { addEntity, addHazard, advanceBoardRound, damageEntity, facingAlong, facingToward, getHazards, isGuardedFront, isOccupied, isOnBoard, isTraversable, moveEntity, removePiece } from './board'
 import { axialAdd, axialSubtract, type Axial } from './hex'
 import { axialDeltaFor, directionForAxialDelta, FACING_NW } from './facing'
 import type { ContentCatalog } from './content/catalog'
@@ -292,8 +292,7 @@ function resolveOne(
       // killed it. This is deliberately NOT a Minion Defeat — no damage action
       // removed it, so nothing records `target_removed` and no Hero is
       // credited with a kill they did not make.
-      delete draft.board.entities[action.sourceId]
-      delete draft.counters[combatantRef(action.sourceId)]
+      removePiece(draft, action.sourceId)
       succeed(fact)
       for (const heroId of detonation.heroIds) {
         generated.push({
@@ -753,8 +752,7 @@ function applyDamage(
   // Minion Defeat is part of damage resolution: the Minion leaves the board
   // before the damage action completes, and the fact records target_removed.
   if (target?.kind === 'minion' && dealt > 0 && dealt === healthBefore) {
-    delete draft.board.entities[targetId]
-    delete draft.counters[combatantRef(targetId)]
+    removePiece(draft, targetId)
     resolutionFact.target_removed = true
   }
   return resolutionFact
