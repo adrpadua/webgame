@@ -2,7 +2,7 @@ import { neighbors } from './board'
 import { legality } from './legality'
 import { hexesWithinRadius, parseHexKey, type Axial } from './hex'
 import { cardNeedsPieceTarget, type ContentCatalog } from './content/catalog'
-import type { PlayerCommandInput } from './actions'
+import type { PlayerCommandInput, SlotTarget } from './actions'
 import { DIMINISHED_ACTIONS } from './downed'
 import type { EncounterState } from './types'
 
@@ -10,7 +10,7 @@ export interface FireTargeting {
   mode: 'none' | 'piece' | 'hex' | 'ally' | 'board_slot'
   legalTargetIds: string[]
   legalHexes: Axial[]
-  legalSlotIndexes: number[]
+  legalSlots: SlotTarget[]
   previewHexes: Axial[]
 }
 
@@ -24,7 +24,7 @@ export function fireTargeting(
   const slot = state.heroes[heroId]?.actionBar[slotIndex]
   const card = slot?.topCard ? catalog.cards[slot.topCard.cardId] : undefined
   if (!card) {
-    return { mode: 'none', legalTargetIds: [], legalHexes: [], legalSlotIndexes: [], previewHexes: [] }
+    return { mode: 'none', legalTargetIds: [], legalHexes: [], legalSlots: [], previewHexes: [] }
   }
   // Hex mode belongs to every hex-targeting card, not only Bursts: since
   // D-048 a card may put a Counter on the ground, and D-086's first consumer
@@ -42,7 +42,7 @@ export function fireTargeting(
       mode: 'hex',
       legalTargetIds: [],
       legalHexes,
-      legalSlotIndexes: [],
+      legalSlots: [],
       previewHexes: hoveredIsLegal ? hexesWithinRadius(state.board.hexes, hoveredHex, card.burst_radius) : [],
     }
   }
@@ -53,10 +53,12 @@ export function fireTargeting(
   // function does not name falls to 'none', offers an untargeted fire, and is
   // refused — a card that loads and nothing can play.
   if (card.target_type === 'board_slot') {
-    const legalSlotIndexes = (state.heroes[heroId]?.actionBar ?? [])
-      .map((_slot, targetSlotIndex) => targetSlotIndex)
-      .filter((targetSlotIndex) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetSlotIndex }).legal)
-    return { mode: 'board_slot', legalTargetIds: [], legalHexes: [], legalSlotIndexes, previewHexes: [] }
+    const legalSlots = state.partyHeroIds.flatMap((ownerId) =>
+      (state.heroes[ownerId]?.actionBar ?? [])
+        .map((_slot, ownedIndex) => ({ heroId: ownerId, slotIndex: ownedIndex }))
+        .filter((targetSlot) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetSlot }).legal),
+    )
+    return { mode: 'board_slot', legalTargetIds: [], legalHexes: [], legalSlots, previewHexes: [] }
   }
   // An `ally` card targets a living party member (ADR 0035); the legal set
   // comes from the same legality predicate every mode asks, so range and the
@@ -65,15 +67,15 @@ export function fireTargeting(
     const legalTargetIds = Object.keys(state.board.entities)
       .sort()
       .filter((targetId) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }).legal)
-    return { mode: 'ally', legalTargetIds, legalHexes: [], legalSlotIndexes: [], previewHexes: [] }
+    return { mode: 'ally', legalTargetIds, legalHexes: [], legalSlots: [], previewHexes: [] }
   }
   if (card.damage > 0 || card.push_tiles > 0 || card.pull_tiles > 0 || cardNeedsPieceTarget(card)) {
     const legalTargetIds = Object.keys(state.board.entities)
       .sort()
       .filter((targetId) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }).legal)
-    return { mode: 'piece', legalTargetIds, legalHexes: [], legalSlotIndexes: [], previewHexes: [] }
+    return { mode: 'piece', legalTargetIds, legalHexes: [], legalSlots: [], previewHexes: [] }
   }
-  return { mode: 'none', legalTargetIds: [], legalHexes: [], legalSlotIndexes: [], previewHexes: [] }
+  return { mode: 'none', legalTargetIds: [], legalHexes: [], legalSlots: [], previewHexes: [] }
 }
 
 // The fire_slot command for every target a mode admits. The switch is
@@ -90,7 +92,7 @@ function fireCommands(targeting: FireTargeting, heroId: string, slotIndex: numbe
     case 'ally':
       return targeting.legalTargetIds.map((targetId) => ({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }))
     case 'board_slot':
-      return targeting.legalSlotIndexes.map((targetSlotIndex) => ({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetSlotIndex }))
+      return targeting.legalSlots.map((targetSlot) => ({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetSlot }))
     case 'none':
       return [{ kind: 'fire_slot', sourceId: heroId, slotIndex }]
     default: {

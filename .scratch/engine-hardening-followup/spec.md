@@ -1,6 +1,6 @@
 # Engine Hardening Follow-up
 
-Status: active
+Status: closed — every item delivered (issues 01–06; the resumable-resolution deferral keeps its recorded trigger)
 
 ## Source and routing
 
@@ -22,7 +22,7 @@ Status: active
 3. **Issue 05 — review 2's P0, build-portability rename + casing guard** (this session): the four colliding pairs renamed, `check-module-casing.mjs` wired into `verify:local`.
 4. **Issue 03 — P1, the payment-enumeration contract** (delivered, this session, D-107): complete enumeration adopted — every payment alternative offered, the representative `hand[0]` convention retired, revisitable at the resumable-resolution seam. No grouping helper: nothing outside the engine reads `legalActions`.
 5. **Issue 04 — P2, the runtime trust boundary** (delivered, this session): a runtime-validated player-command entry point sharing the Scenario schema authority; raw system-action resolution stays on the internal seam.
-6. **Issue 06 — review 2's P2, the board_slot command shape** (open): one Slot identity across every surface, decided before the family's first card ships.
+6. **Issue 06 — review 2's P2, the board_slot command shape** (delivered, this session, D-109): `targetSlot: { heroId, slotIndex }` across every surface; ally Slots addressable per D-035 with D-009's adjacency-free support preserved.
 
 The reviewer's deferred item (resumable resolution) keeps its existing trigger, recorded in the parent handoff's issue 04. Review 1's documentation-cleanup item (the parent spec's stale status lines) was folded into issue 01's delivery.
 

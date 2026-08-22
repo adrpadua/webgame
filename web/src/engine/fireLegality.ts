@@ -89,12 +89,17 @@ export function fireSlotLegality(
     targetVerdict = { ...legal(), targetRange }
   }
   // A Slot-targeting card needs a Slot holding a prepared card (D-035,
-  // reachable since D-048). Counters ride the Top Card, so an empty Slot
-  // has nothing to carry them.
+  // reachable since D-048), named by its owner and index (D-109): the Party
+  // model made "an ally's prepared Top Card" addressable, so the command
+  // carries the owner rather than assuming the firing Hero. Counters ride
+  // the Top Card, so an empty Slot has nothing to carry them. Deliberately
+  // no range and no owner-status rule: support was chosen adjacency-free
+  // (D-009), and an ally's prepared Slot is not a place on the board — the
+  // catalog's reach validation states the same half of that ruling.
   if (card.target_type === 'board_slot') {
-    const slotIndex = action.targetSlotIndex
-    const targetSlot = slotIndex === undefined ? undefined : state.heroes[action.sourceId]?.actionBar[slotIndex]
-    if (!targetSlot || targetSlot.topCard === null) {
+    const named = action.targetSlot
+    const attachSlot = named === undefined ? undefined : state.heroes[named.heroId]?.actionBar[named.slotIndex]
+    if (!named || !attachSlot || attachSlot.topCard === null) {
       return illegal('The Top Card needs a prepared Slot to attach to.')
     }
   }
