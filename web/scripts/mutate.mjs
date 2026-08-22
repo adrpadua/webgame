@@ -182,14 +182,14 @@ const MUTATIONS = [
   {
     name: 'content may ask a distance question without answering it',
     guards: 'ADR 0020: a ranged Beat authors its reach',
-    file: 'engine/content/catalog.ts',
+    file: 'engine/content/program.ts',
     from: 'if (reachReasons.length > 0 && beat.range_tiles < 1) {',
     to: 'if (false && reachReasons.length > 0 && beat.range_tiles < 1) {',
   },
   {
     name: 'priced Beats of one kind may ask different questions',
     guards: 'ADR 0027: the Round-end step prices one demand per kind, so a second question is a silent drop',
-    file: 'engine/content/catalog.ts',
+    file: 'engine/content/encounter.ts',
     from: '        if (asked.size > 1) {',
     to: '        if (false && asked.size > 1) {',
   },
@@ -224,7 +224,7 @@ const MUTATIONS = [
   {
     name: 'a Beat kind that asks no distance question may quietly gain a reach',
     guards: 'ADR 0020: a reach nothing reads is a number an author can set and watch do nothing',
-    file: 'engine/content/catalog.ts',
+    file: 'engine/content/program.ts',
     from: 'if (reachReasons.length === 0 && beat.range_tiles > 0) {',
     to: 'if (false && reachReasons.length === 0 && beat.range_tiles > 0) {',
   },
@@ -245,14 +245,14 @@ const MUTATIONS = [
   {
     name: 'a card may reach past its Hero without authoring how far',
     guards: 'D-073: a card that touches anything past its own Hero authors a reach',
-    file: 'engine/content/catalog.ts',
+    file: 'engine/content/card.ts',
     from: 'if (reaching.length > 0 && card.range_tiles < 1) {',
     to: 'if (false && reaching.length > 0 && card.range_tiles < 1) {',
   },
   {
     name: 'a card that touches nobody may quietly carry a reach',
     guards: 'D-073: a reach nothing reads is a number an author can set and watch do nothing',
-    file: 'engine/content/catalog.ts',
+    file: 'engine/content/card.ts',
     from: 'if (reaching.length === 0 && card.range_tiles > 0) {',
     to: 'if (false && reaching.length === 0 && card.range_tiles > 0) {',
   },
@@ -308,14 +308,14 @@ const MUTATIONS = [
   {
     name: 'a Beat may carry a movement clause without saying how close to get',
     guards: 'D-079: a Standoff is what tells a movement clause when to stop',
-    file: 'engine/content/catalog.ts',
+    file: 'engine/content/program.ts',
     from: 'if (beatMoves(beat) && beat.standoff_tiles < 1) {',
     to: 'if (false && beatMoves(beat) && beat.standoff_tiles < 1) {',
   },
   {
     name: 'a Beat that stands still may still author a Standoff',
     guards: 'D-079: a number nothing reads is a number an author can set and watch do nothing',
-    file: 'engine/content/catalog.ts',
+    file: 'engine/content/program.ts',
     from: 'if (!beatMoves(beat) && beat.standoff_tiles > 0) {',
     to: 'if (false && !beatMoves(beat) && beat.standoff_tiles > 0) {',
   },
@@ -336,7 +336,7 @@ const MUTATIONS = [
   {
     name: 'a Minion may stand off further out than it can bite',
     guards: 'D-079: a Minion creeps until it can bite, so a Standoff outside the bite never attacks',
-    file: 'engine/content/catalog.ts',
+    file: 'engine/content/minionDef.ts',
     from: 'if (minionMoves(minion) && minion.standoff_tiles > minion.range_tiles) {',
     to: 'if (false && minionMoves(minion) && minion.standoff_tiles > minion.range_tiles) {',
   },
@@ -385,7 +385,7 @@ const MUTATIONS = [
   {
     name: 'a Minion may bite without saying how far',
     guards: 'D-072: a Minion that bites authors its reach',
-    file: 'engine/content/catalog.ts',
+    file: 'engine/content/minionDef.ts',
     from: 'if (minion.attack_damage > 0 && minion.range_tiles < 1) {',
     to: 'if (false && minion.attack_damage > 0 && minion.range_tiles < 1) {',
   },
@@ -406,7 +406,7 @@ const MUTATIONS = [
   {
     name: 'a movement clause may be authored on a telegraphed Incoming Beat',
     guards: 'D-075: a telegraph the player invalidates by playing correctly is ADR 0031 all over again',
-    file: 'engine/content/catalog.ts',
+    file: 'engine/content/program.ts',
     from: '      if (beatMoves(beat)) {\n        throw new Error(',
     to: '      if (false && beatMoves(beat)) {\n        throw new Error(',
   },

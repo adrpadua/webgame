@@ -87,3 +87,24 @@ export function heroRole(catalog: ContentCatalog, encounterId: string, heroId?: 
 export function keywordTitle(catalog: ContentCatalog, id: string): string {
   return catalog.keywords[id]?.title ?? id
 }
+
+// One check for every join into the Keyword namespace. The id has to exist,
+// and it has to name the right sort of thing — a reference that resolves to a
+// Keyword of the wrong kind is a category error, not a working reference.
+export function requireKeyword(
+  // Structural on purpose: only the discriminator is read, so this module
+  // never has to import a content schema to police joins into its namespace.
+  catalog: { keywords: Record<string, { kind: KeywordKind }> },
+  id: string,
+  kinds: KeywordKind[],
+  owner: string,
+  field: string,
+): void {
+  const keyword = catalog.keywords[id]
+  if (!keyword) {
+    throw new Error(`${owner} references unknown keyword ${id} in ${field}`)
+  }
+  if (!kinds.includes(keyword.kind)) {
+    throw new Error(`${owner} names ${id} in ${field}, but that Keyword is ${keyword.kind} and ${field} takes ${kinds.join(' or ')}`)
+  }
+}
