@@ -119,7 +119,7 @@ export function counterCount(state: EncounterState, ref: CounterRef, counterId: 
 }
 
 // Every Counter on a combatant carrying a given Keyword, summed. This is the
-// Charge Modifier's match-by-keyword (`cardResolver.ts`) lifted off the Charge
+// Charge Modifier's match-by-keyword (`firedCard.ts`) lifted off the Charge
 // Stack: one card can read "every fire Counter" without naming them all, which
 // is what lets a Counter be added later without editing the cards that care.
 export function counterCountByKeyword(
@@ -387,7 +387,7 @@ export function counterHostRef(
     return action.targetHex === undefined ? null : hexCounterRef(action.targetHex)
   }
   if (host === 'slot') {
-    return action.targetSlotIndex === undefined ? null : slotRef(action.sourceId, action.targetSlotIndex)
+    return action.targetSlot === undefined ? null : slotRef(action.targetSlot.heroId, action.targetSlot.slotIndex)
   }
   // `piece` and `ally` both name a chosen combatant, so the Counter lands on
   // whoever was chosen. That is what makes a ward placeable on the party
@@ -413,7 +413,7 @@ export function readerSubject(
     return action.targetHex === undefined ? null : hexCounterRef(action.targetHex)
   }
   if (targetType === 'board_slot') {
-    return action.targetSlotIndex === undefined ? null : slotRef(action.sourceId, action.targetSlotIndex)
+    return action.targetSlot === undefined ? null : slotRef(action.targetSlot.heroId, action.targetSlot.slotIndex)
   }
   return action.targetId ? combatantRef(action.targetId) : null
 }

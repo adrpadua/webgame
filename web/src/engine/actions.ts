@@ -30,14 +30,23 @@ export const PLAYER_COMMAND_KINDS = [
 
 export type PlayerCommandKind = (typeof PLAYER_COMMAND_KINDS)[number]
 
+// A Slot named by its owner and index — how a `board_slot` card says which
+// prepared Top Card it attaches to (D-109). One structural value rather than
+// two optional fields, so half an identity cannot be authored; the counters
+// module's `slotRef` is the same pair collapsed into a host key.
+export interface SlotTarget {
+  heroId: string
+  slotIndex: number
+}
+
 export type PlayerCommandInput =
   | { kind: 'load_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
   | { kind: 'charge_slot'; sourceId: string; slotIndex: number; cardInstanceId: string }
-  // `targetSlotIndex` is the Slot a `board_slot` card chose — D-035's ally
-  // attachment, reachable since D-048. Solo, that is one of the firing Hero's
-  // own Slots; the field is the Slot rather than the card instance because a
-  // re-loaded Slot is a different prepared card and drops what rode the old one.
-  | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string; targetHex?: Axial; targetSlotIndex?: number }
+  // `targetSlot` is the Slot a `board_slot` card chose, named by owner and
+  // index — D-035's ally attachment, reachable across the Party since D-109.
+  // The field is the Slot rather than the card instance because a re-loaded
+  // Slot is a different prepared card and drops what rode the old one.
+  | { kind: 'fire_slot'; sourceId: string; slotIndex: number; targetId?: string; targetHex?: Axial; targetSlot?: SlotTarget }
   | { kind: 'move_hero'; sourceId: string; destination: Axial; cardInstanceId: string }
   | { kind: 'discard_for_stamina'; sourceId: string; cardInstanceId: string }
   // The rescue (ADR 0036): a living Hero adjacent to a Downed ally discards

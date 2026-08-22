@@ -72,6 +72,15 @@ export interface InteractionSlice {
   // opening a Stat Panel. A counter rather than a flag, so every tap replays
   // the pulse.
   heroFramePulse: number
+  // The party column is tucked: 66pt of Role glyph, health bar and accent
+  // instead of 138pt of named readouts (party-frame direction 1A's tuck tab).
+  //
+  // Deliberately NOT in CLEARED_INTERACTION, and for the same reason
+  // `controlledHeroId` is not: it is the player saying how much of the board
+  // they want back, not a gesture they are in the middle of. A phase advance
+  // that silently re-opened the column would undo that choice several times a
+  // Round, which is how a preference becomes a fight.
+  partyTucked: boolean
   heroRoutePreview: boolean
   // The hex the pointer is currently over, or null when it is off the board.
   // Presentation only: the board already paints where the Hero may step, and
@@ -101,6 +110,7 @@ export interface InteractionSlice {
   setHoveredHex: (key: string | null) => void
   selectCard: (cardInstanceId: string) => void
   setHeroRoutePreview: (previewing: boolean) => void
+  togglePartyTuck: () => void
   toggleCoordinates: () => void
   clearRejection: () => void
 }
@@ -131,6 +141,7 @@ export const INITIAL_INTERACTION = {
   inspectedHexKey: null,
   heroFramePulse: 0,
   heroRoutePreview: false,
+  partyTucked: false,
   showCoordinates: false,
 } as const
 
@@ -408,6 +419,8 @@ export const createInteractionSlice: StateCreator<WorkbenchStore, [], [], Intera
       lastRejection: null,
     })),
   setHeroRoutePreview: (previewing) => set({ heroRoutePreview: previewing }),
+  togglePartyTuck: () => set((store) => ({ partyTucked: !store.partyTucked })),
+
   toggleCoordinates: () => set((store) => ({ showCoordinates: !store.showCoordinates })),
   clearRejection: () => set({ lastRejection: null }),
 })

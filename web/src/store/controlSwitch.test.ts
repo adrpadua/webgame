@@ -80,4 +80,26 @@ describe('the control cursor', () => {
     store().loadScenario('embermaw_solo_ceiling')
     expect(selectPilotId(store())).toBe('elian')
   })
+
+  // The tuck is the same kind of state as the cursor: something the player
+  // set about their own view, not a gesture they are partway through. It is
+  // kept out of CLEARED_INTERACTION for that reason, and this is the guard —
+  // a phase advance runs that clear several times a Round, and a column that
+  // re-opened itself each time would be arguing with the player.
+  it('keeps the party tucked across windows and undo, and toggles back', () => {
+    expect(store().partyTucked).toBe(false)
+    store().togglePartyTuck()
+    expect(store().partyTucked).toBe(true)
+
+    store().advance()
+    expect(store().partyTucked).toBe(true)
+
+    const card = state().heroes.elian.hand[0]
+    store().cardDroppedOnSlot(card.instanceId, 0)
+    store().undo()
+    expect(store().partyTucked).toBe(true)
+
+    store().togglePartyTuck()
+    expect(store().partyTucked).toBe(false)
+  })
 })

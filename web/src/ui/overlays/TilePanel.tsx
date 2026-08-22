@@ -3,7 +3,7 @@ import { getEntityIdAt, parseHexKey } from '@/engine'
 import { selectState, useWorkbench } from '@/store/workbench'
 import { HexIcon } from '../common/icons'
 import { GroundStatusIcons } from '../common/StatusIcons'
-import { groundEntries } from '../common/statusIcons'
+import { groundEntries } from '../common/statusIconEntries'
 import { Notify } from './NotificationLayer'
 import { FOCUS_RING_CLASS } from '../common/theme'
 

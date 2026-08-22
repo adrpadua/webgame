@@ -35,7 +35,7 @@ export function slotCanFire(catalog: WorkbenchCatalog, state: EncounterState, he
     case 'hex':
       return targeting.legalHexes.length > 0
     case 'board_slot':
-      return targeting.legalSlotIndexes.length > 0
+      return targeting.legalSlots.length > 0
     case 'none':
       return legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex }).legal
     default: {

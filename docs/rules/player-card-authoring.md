@@ -39,7 +39,7 @@ Only once all three pass does the ability get its flavour name. Keep the working
 
 **A title may never promise more than its rules text delivers.** A name that oversells is the same defect as a comment explaining code that should have been rewritten — it makes the reader stop looking at the part that is actually wrong.
 
-Both live kits were drafted before this rule and both hid a defect from it. `Intercede` carried two unrelated verbs across its tiers — grant an ally Armor, then redirect a blow onto yourself — which the single flavour name made invisible; a tier ladder must be *more of one thing*. `Mend` and `Triage Line` both name out to `heal an ally` at two sizes, so what reads as four abilities is three.
+Maren's shipped list was authored before this rule and fails the second test in `data/`. `Field Dressing`, `Surplus of Care` and `Braced Recovery` all name out to `heal an ally within 3`; the first two share the Quick window as well, differing only by `2` versus `3` and a rider. Read by title they are three tools. Read by working name they are one, printed three times — and the flavour is the only thing that hid it.
 
 This rule is forward-looking. Shipped `id`s do not change — the Card Contract above makes them stable on purpose, and renaming them costs every citation while buying nothing. The working name belongs in the design doc, not retrofitted into data.
 

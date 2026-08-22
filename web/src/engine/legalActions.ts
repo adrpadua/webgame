@@ -2,7 +2,7 @@ import { neighbors } from './board'
 import { legality } from './legality'
 import { hexesWithinRadius, parseHexKey, type Axial } from './hex'
 import { cardNeedsPieceTarget, type ContentCatalog } from './content/catalog'
-import type { PlayerCommandInput } from './actions'
+import type { PlayerCommandInput, SlotTarget } from './actions'
 import { DIMINISHED_ACTIONS } from './downed'
 import type { EncounterState } from './types'
 
@@ -10,7 +10,7 @@ export interface FireTargeting {
   mode: 'none' | 'piece' | 'hex' | 'ally' | 'board_slot'
   legalTargetIds: string[]
   legalHexes: Axial[]
-  legalSlotIndexes: number[]
+  legalSlots: SlotTarget[]
   previewHexes: Axial[]
 }
 
@@ -24,7 +24,7 @@ export function fireTargeting(
   const slot = state.heroes[heroId]?.actionBar[slotIndex]
   const card = slot?.topCard ? catalog.cards[slot.topCard.cardId] : undefined
   if (!card) {
-    return { mode: 'none', legalTargetIds: [], legalHexes: [], legalSlotIndexes: [], previewHexes: [] }
+    return { mode: 'none', legalTargetIds: [], legalHexes: [], legalSlots: [], previewHexes: [] }
   }
   // Hex mode belongs to every hex-targeting card, not only Bursts: since
   // D-048 a card may put a Counter on the ground, and D-086's first consumer
@@ -42,7 +42,7 @@ export function fireTargeting(
       mode: 'hex',
       legalTargetIds: [],
       legalHexes,
-      legalSlotIndexes: [],
+      legalSlots: [],
       previewHexes: hoveredIsLegal ? hexesWithinRadius(state.board.hexes, hoveredHex, card.burst_radius) : [],
     }
   }
@@ -53,10 +53,12 @@ export function fireTargeting(
   // function does not name falls to 'none', offers an untargeted fire, and is
   // refused — a card that loads and nothing can play.
   if (card.target_type === 'board_slot') {
-    const legalSlotIndexes = (state.heroes[heroId]?.actionBar ?? [])
-      .map((_slot, targetSlotIndex) => targetSlotIndex)
-      .filter((targetSlotIndex) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetSlotIndex }).legal)
-    return { mode: 'board_slot', legalTargetIds: [], legalHexes: [], legalSlotIndexes, previewHexes: [] }
+    const legalSlots = state.partyHeroIds.flatMap((ownerId) =>
+      (state.heroes[ownerId]?.actionBar ?? [])
+        .map((_slot, ownedIndex) => ({ heroId: ownerId, slotIndex: ownedIndex }))
+        .filter((targetSlot) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetSlot }).legal),
+    )
+    return { mode: 'board_slot', legalTargetIds: [], legalHexes: [], legalSlots, previewHexes: [] }
   }
   // An `ally` card targets a living party member (ADR 0035); the legal set
   // comes from the same legality predicate every mode asks, so range and the
@@ -65,15 +67,15 @@ export function fireTargeting(
     const legalTargetIds = Object.keys(state.board.entities)
       .sort()
       .filter((targetId) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }).legal)
-    return { mode: 'ally', legalTargetIds, legalHexes: [], legalSlotIndexes: [], previewHexes: [] }
+    return { mode: 'ally', legalTargetIds, legalHexes: [], legalSlots: [], previewHexes: [] }
   }
   if (card.damage > 0 || card.push_tiles > 0 || card.pull_tiles > 0 || cardNeedsPieceTarget(card)) {
     const legalTargetIds = Object.keys(state.board.entities)
       .sort()
       .filter((targetId) => legality(catalog, state, { kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }).legal)
-    return { mode: 'piece', legalTargetIds, legalHexes: [], legalSlotIndexes: [], previewHexes: [] }
+    return { mode: 'piece', legalTargetIds, legalHexes: [], legalSlots: [], previewHexes: [] }
   }
-  return { mode: 'none', legalTargetIds: [], legalHexes: [], legalSlotIndexes: [], previewHexes: [] }
+  return { mode: 'none', legalTargetIds: [], legalHexes: [], legalSlots: [], previewHexes: [] }
 }
 
 // The fire_slot command for every target a mode admits. The switch is
@@ -90,7 +92,7 @@ function fireCommands(targeting: FireTargeting, heroId: string, slotIndex: numbe
     case 'ally':
       return targeting.legalTargetIds.map((targetId) => ({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetId }))
     case 'board_slot':
-      return targeting.legalSlotIndexes.map((targetSlotIndex) => ({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetSlotIndex }))
+      return targeting.legalSlots.map((targetSlot) => ({ kind: 'fire_slot', sourceId: heroId, slotIndex, targetSlot }))
     case 'none':
       return [{ kind: 'fire_slot', sourceId: heroId, slotIndex }]
     default: {
@@ -117,10 +119,19 @@ export const ENUMERATED_COMMAND_KINDS = [
 ] as const
 
 // Enumerates every currently legal player command for a Hero, by asking the
-// same legality predicate that gates resolution. Card-consuming enumerations
-// follow the movement convention: one representative action with `hand[0]`
-// rather than the hand-sized cross-product, because the *choice of fuel* is
-// presentation's question and "is this command available" is this API's.
+// same legality predicate that gates resolution. This is the complete
+// concrete action space, payments included: a card-consuming command is
+// offered once per hand card that could pay it, because discarding card A
+// and discarding card B leave different hands and are therefore different
+// moves to the consumers this API exists for — AI, search, hints, and
+// simulation (D-107). It used to offer one representative action with
+// `hand[0]` on the theory that fuel choice is presentation's question, which
+// quietly contradicted the completeness claim above (engine-hardening
+// follow-up P1).
+// If a UI consumer ever wants one compact affordance per command, that
+// grouping is a projection built above this API — no such consumer exists
+// today — and the whole contract is revisitable when the resumable-resolution
+// seam arrives, whose incremental questions would subsume payment choice.
 export function legalActions(catalog: ContentCatalog, state: EncounterState, heroId: string): PlayerCommandInput[] {
   const actions: PlayerCommandInput[] = []
   if (!state.active) {
@@ -143,18 +154,20 @@ export function legalActions(catalog: ContentCatalog, state: EncounterState, her
     }
   }
   // The rescue (ADR 0036): adjacency and the card cost are legality's to
-  // refuse; this offers each Downed ally with the representative hand card.
-  if (hero.hand.length > 0) {
-    for (const allyId of state.partyHeroIds) {
-      if (allyId === heroId || state.heroes[allyId]?.status !== 'downed') {
-        continue
-      }
-      const reviveAction: PlayerCommandInput = { kind: 'revive_ally', sourceId: heroId, targetId: allyId, cardInstanceId: hero.hand[0].instanceId }
+  // refuse; this offers each Downed ally once per hand card that could pay.
+  for (const allyId of state.partyHeroIds) {
+    if (allyId === heroId || state.heroes[allyId]?.status !== 'downed') {
+      continue
+    }
+    for (const card of hero.hand) {
+      const reviveAction: PlayerCommandInput = { kind: 'revive_ally', sourceId: heroId, targetId: allyId, cardInstanceId: card.instanceId }
       if (legality(catalog, state, reviveAction).legal) {
         actions.push(reviveAction)
       }
     }
-    const discardAction: PlayerCommandInput = { kind: 'discard_for_stamina', sourceId: heroId, cardInstanceId: hero.hand[0].instanceId }
+  }
+  for (const card of hero.hand) {
+    const discardAction: PlayerCommandInput = { kind: 'discard_for_stamina', sourceId: heroId, cardInstanceId: card.instanceId }
     if (legality(catalog, state, discardAction).legal) {
       actions.push(discardAction)
     }
@@ -178,16 +191,18 @@ export function legalActions(catalog: ContentCatalog, state: EncounterState, her
     }
   })
   const entity = state.board.entities[heroId]
-  if (hero.hand.length > 0 && entity) {
+  if (entity) {
     for (const destination of neighbors(state.board.hexes, entity.coords)) {
-      const moveAction: PlayerCommandInput = {
-        kind: 'move_hero',
-        sourceId: heroId,
-        destination,
-        cardInstanceId: hero.hand[0].instanceId,
-      }
-      if (legality(catalog, state, moveAction).legal) {
-        actions.push(moveAction)
+      for (const card of hero.hand) {
+        const moveAction: PlayerCommandInput = {
+          kind: 'move_hero',
+          sourceId: heroId,
+          destination,
+          cardInstanceId: card.instanceId,
+        }
+        if (legality(catalog, state, moveAction).legal) {
+          actions.push(moveAction)
+        }
       }
     }
   }

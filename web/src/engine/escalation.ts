@@ -1,9 +1,11 @@
 import type { ContentCatalog } from './content/catalog'
 import type { EncounterActionInput } from './actions'
 import { ENCOUNTER_SOURCE } from './actions'
+import { BEAT_REGISTRY } from './beats'
 import { combatantRef, counterCount } from './counters'
 import { hexDistance } from './hex'
 import { livingHeroIds } from './downed'
+import type { BossBeat } from './content/schemas'
 import type { EncounterState } from './types'
 
 // Escalation is the encounter's only clock (ADR 0027): one fixed 0–5 scale on
@@ -64,7 +66,13 @@ interface DemandTerms {
 // generalised rather than special-cased. Each entry pairs a Beat kind with the
 // question its demand asks, and the price is always authored on the Beat.
 const DEMANDS: {
-  kind: string
+  // Typed against the Beat-kind vocabulary, never a loose string: this table
+  // matches by `beat.kind === kind`, so a stale entry after a kind rename
+  // would not fail — the demand would simply never stand again and the party
+  // would never be charged. The annotation makes the rename a compile error,
+  // and the load guard below keeps this table and the Beat registry's demand
+  // column agreeing both ways.
+  kind: BossBeat['kind']
   reason: string
   // Where the price is read from, and the two cases are genuinely different.
   // `pool`: the demand's standing outlives the Beat that created it — a Minion
@@ -145,6 +153,23 @@ const DEMANDS: {
   },
 ]
 
+// Completeness, both ways, at module load — the registry discipline (ADR
+// 0041). Every Beat kind whose registry row declares a demand has its
+// standing question here, at the declared scope; and no entry here asks a
+// question the registry does not declare. Guarded rather than remembered,
+// because a demand-carrying kind this table forgot would never charge and
+// nothing else would notice.
+for (const entry of DEMANDS) {
+  if (BEAT_REGISTRY[entry.kind].demand !== entry.scope) {
+    throw new Error(`DEMANDS prices '${entry.kind}' from the ${entry.scope}, but the Beat registry declares ${String(BEAT_REGISTRY[entry.kind].demand)}`)
+  }
+}
+for (const [kind, row] of Object.entries(BEAT_REGISTRY)) {
+  if (row.demand !== null && !DEMANDS.some((entry) => entry.kind === kind)) {
+    throw new Error(`The Beat registry declares a demand for '${kind}', but DEMANDS has no standing question for it`)
+  }
+}
+
 // The authored terms of one demand: what it costs to leave standing, which Beat
 // set that cost, and everything that Beat says about the question being asked.
 // All of it comes off the same Beat, so the question a demand asks and the
@@ -156,7 +181,7 @@ const DEMANDS: {
 // Pricing the cap also gives the demand its grace for free — a Counter placed
 // in the Incoming Row has no player window before this step, so charging the
 // first stack would be an upkeep tax rather than a decision.
-function demandTerms(catalog: ContentCatalog, state: EncounterState, kind: string, scope: 'pool' | 'program'): DemandTerms {
+function demandTerms(catalog: ContentCatalog, state: EncounterState, kind: BossBeat['kind'], scope: 'pool' | 'program'): DemandTerms {
   const terms: DemandTerms = { amount: 0, beatId: '', rangeTiles: 0, counterId: '', counterTarget: 'self', threshold: 0 }
   const programIds = scope === 'pool' ? state.programIds : state.currentProgramId === null ? [] : [state.currentProgramId]
   for (const programId of programIds) {

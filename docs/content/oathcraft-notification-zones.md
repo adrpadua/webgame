@@ -12,6 +12,8 @@ They collided. `Boss Instant` printed across the playout's `Continue` bar; `Pick
 
 The zones ended collisions *between notifications*. They did not end collisions between a notification and persistent chrome that claims the same lane without claiming a rank — see the ally column under [Stack Rules](#stack-rules), which is what moved the Beat Card to the `herald`.
 
+They do not reach the board either. The `herald` sits over live hexes — the top row and the crown of the Boss sprite are behind the Beat Card while it is up — and the board draws its own floating text there: a Beat's title rises over the Boss, and the Boss stands under the herald. Nothing collides today, and the reason is timing rather than geometry. A paced Boss Row arms the next card at `EFFECT_SETTLE_MS` after a moment fires, and every floater has expired by then; the margin is 40ms. See [Board Feedback and the Herald](#board-feedback-and-the-herald).
+
 ## Zones
 
 Four zones divide the board's overlay. They are flex children of one column, so **two zones cannot overlap** — that is a property of the layout engine, not a property of the numbers, and it does not need re-checking every time a bar grows a row. The whole column floats: a zone filling or emptying never resizes the board mid-Encounter, which is the overlay contract the interface direction asks for.
@@ -50,6 +52,21 @@ Two rules set the ranks:
 
 **The ally column is a third owner of that lane, and it is not in the table at all.** The party frames are persistent chrome anchored above the Hero Frame (party-frame direction 1A), so they claim the dock's left edge without claiming a rank, and the zone geometry cannot see them. That is how the Beat Card came to be covered. Until the frames are modelled here, a dock member has to be short enough to read in the strip beside them — and the smoke suite measures the Beat Card against the column directly rather than against the zone table, in the two-seat encounter where the column is up.
 
+## Board Feedback and the Herald
+
+The zone table describes an HTML column over a WebGL canvas, and the canvas is the one owner of the lane it can never see. Board Feedback puts floating text on the board — a Beat's title over the Boss, a card's title over the Hero who fired it, damage numbers over whatever was hit — and the `herald` is dealt across the hexes those rise through.
+
+The two are kept apart by time, not by space:
+
+- A paced Boss Row fires one moment, then arms the next Beat Card `EFFECT_SETTLE_MS` (560ms) later, in `playout.ts`.
+- A floater lives for its effect's `EFFECT_DURATION` and fades to nothing at the end of it. The longest that carries a label is the `cast` at 520ms — a Beat's own title.
+
+So the title is gone 40ms before the card that would cover it. Neither number was chosen for this: the settle is about what a gauge may reclaim, and the durations are about how a blow reads. Either could move for its own good reasons and start printing the Boss's card over the Boss's last beat — a defect that exists only for the frames it lasts, which is exactly the kind nobody reproduces on demand.
+
+The smoke suite holds the two against each other in source, before it opens a browser, the same way it holds the board's palette fallbacks against their tokens. It also requires every `BoardEffectKind` to be declared as floating text or silent, so a new effect fails the suite until someone has said which it is — that being the moment to ask whether it can land under the card. A browser check could not do this job: with the card up there is nothing live to see, so sampling one instant would pass whether the margin held or not.
+
+Widening the herald, slowing a floater, or shortening the settle are all the same review question, and it is a timing question.
+
 ## What This Does Not Decide
 
 - **Modals.** The guide, the replace confirmation, and the hold popover are not notifications — they take the whole surface, block it, and leave when answered. They sit above the layer and are outside this contract.
@@ -63,3 +80,4 @@ Two rules set the ranks:
 - Is a new dock member short enough to be read beside the ally column, or does it belong in the `herald`?
 - Does anything transient sit at a rank that would shove a stable member when it arrives?
 - Do the smoke suite's zone assertions still run in a state where three or more members are live, **and in a party Encounter**? A layout guard that only ever measures one bar, in the one Encounter with no ally column, is measuring nothing.
+- Does a change to the `herald`, to `EFFECT_SETTLE_MS`, or to any effect duration still leave every floating label gone before the next Beat Card is dealt over it? See [Board Feedback and the Herald](#board-feedback-and-the-herald).

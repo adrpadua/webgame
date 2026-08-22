@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { advancePhase, buildCatalog, createEncounterState, type ContentCatalog, type EncounterState } from '@/engine'
 import { catalog, selectPilotId, selectState, useWorkbench } from '@/store/workbench'
-import { partyFrames } from './partyFrames'
+import { partyFrames } from './partyFrameModel'
 import { heroActed, heroCanAct, nextNudge, unactedHeroIds } from './unacted'
 
 // The unacted nudge (Total War's "a unit has not moved", on a Party rather

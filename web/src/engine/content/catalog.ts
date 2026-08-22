@@ -1,3 +1,4 @@
+import { beatMoves, beatReachReasons } from '../beats'
 import {
   bossProgramSchema,
   cardSchema,
@@ -11,7 +12,6 @@ import {
   minionSchema,
   scenarioSchema,
   counterSchema,
-  type BossBeat,
   type BossProgram,
   type Card,
   type ChargeModifier,
@@ -30,47 +30,11 @@ import { ENGINE_COUNTERS } from '../counters'
 import { evaluatedGrantWhens, grantSubscription, readableReaderPairs, readerSubscription, whenCarriesKeywords } from '../events'
 import { hexDistance } from '../hex'
 
-// The Beat kinds that always ask a distance question, and therefore must always
-// author one. Kept here rather than beside the resolver because it is a rule
-// about content being complete, not about how a Beat resolves.
-//
-// Typed against the Beat-kind enum rather than left as loose strings. This file
-// is the one that renamed every Beat kind once already, and a stale entry here
-// would not fail — it would simply stop matching, and the validation below
-// would go quiet on the rule it exists to enforce. The annotation turns that
-// into a compile error at the moment of the rename.
-const RANGED_BEAT_KINDS = new Set<BossBeat['kind']>(['forward_cone', 'demand_proximity', 'targeted_hit'])
-
-// Why *this* Beat needs a reach, named rather than counted so the authoring
-// error can say which clause asked for one — the same shape `cardReachingEffects`
-// takes on the card side (D-073).
-//
-// The list is longer than `RANGED_BEAT_KINDS` because one of the two reasons is
-// a field rather than a kind: a `place_counter` reaches only when it is aimed at
-// a Hero, which a kind list could not express.
-//
-// A movement clause used to be a third reason, on the grounds that the mover has
-// to know how close is close enough. It is not a reach — it is a Standoff, and
-// since D-079 it has its own field. The tell was `advance_toward_player`, whose
-// only effect is the move: it reaches nothing whatsoever and this function
-// demanded a reach off it anyway.
-function beatReachReasons(beat: BossBeat): string[] {
-  const reasons: string[] = []
-  if (RANGED_BEAT_KINDS.has(beat.kind)) {
-    reasons.push(`a ${beat.kind}`)
-  }
-  if (beat.kind === 'place_counter' && beat.counter_target === 'hero') {
-    reasons.push('marking a Hero')
-  }
-  return reasons
-}
-
-// A Beat carries a movement clause when it has an allowance to spend, or when
-// it teleports — which spends nothing and is therefore the one movement a
-// distance of zero does not rule out.
-function beatMoves(beat: BossBeat): boolean {
-  return beat.move_tiles > 0 || beat.traversal === 'teleport' || beat.kind === 'advance_toward_player'
-}
+// The Beat-kind facts these rules read — which kinds reach and must author a
+// distance, which move without an allowance — come off the one registry
+// (`engine/beats.ts`), so a renamed or added kind is a compile error there
+// rather than a validation that quietly goes quiet here. This file is the one
+// that renamed every Beat kind once already.
 
 // The same question for a Minion, which has no kind to fall back on: its creep
 // runs on the allowance alone, or on a teleport that spends none.

@@ -88,6 +88,56 @@ try {
     `every sprite sheet slices into ${frames} frames across 6 facings (${mismatched.join(' | ') || `${specs.length} sheets checked`})`,
   )
 
+  // The herald must not be dealt onto a floater that is still rising.
+  //
+  // Since D-098 the Beat Card is dealt at the board's top edge, and it covers
+  // real hexes there — the top row and the crown of the Boss sprite are behind
+  // it while it is up. Nothing goes wrong today, and the reason is timing
+  // rather than geometry: a paced Boss Row arms the next card at
+  // EFFECT_SETTLE_MS after a moment fires (playout.ts), by which point the
+  // moment's own floaters have expired. A Beat's title floats over the Boss,
+  // and the Boss stands under the herald.
+  //
+  // That margin is 40ms and neither side knows it is load-bearing. The card
+  // was placed by a zone table that cannot see the canvas, and the durations
+  // were chosen for how a blow reads. Either could move for its own good
+  // reasons and silently start printing the Boss's card over the Boss's last
+  // beat — a defect that only exists for the frames it lasts, so no unit test
+  // is positioned to catch it and nobody would reproduce it on demand.
+  //
+  // Timing is what has to be measured, so it is measured here rather than in
+  // the browser: with the card up there is nothing live to see, and a check
+  // that samples one instant after `waitForSelector` would pass whether the
+  // margin held or not.
+  const boardSceneSource = readFileSync(new URL('../src/board/BoardScene.ts', import.meta.url), 'utf8')
+  const effectsSource = readFileSync(new URL('../src/board/effects.ts', import.meta.url), 'utf8')
+  const settleMs = Number(/export const EFFECT_SETTLE_MS = (\d+)/.exec(effectsSource)?.[1])
+  const durationTable = /const EFFECT_DURATION[^{]*\{([^}]*)\}/.exec(boardSceneSource)?.[1] ?? ''
+  const durations = Object.fromEntries([...durationTable.matchAll(/(\w+): ([\w]+),/g)].map(([, kind, value]) => [kind, Number(value)]))
+  // Which kinds put text on the board, and which only draw. Every kind is
+  // listed on purpose: a new one fails this until someone says which it is,
+  // and that is the moment to ask whether it can land under the card.
+  const FLOATER_KINDS = ['cast', 'hit', 'block']
+  const SILENT_KINDS = ['strike', 'move', 'spawn', 'defeat', 'boss_defeat', 'blast', 'scorch', 'cool', 'turn']
+  assert(Number.isFinite(settleMs), `the settle the herald arms behind is a number (${settleMs}ms)`)
+  const unclassified = Object.keys(durations).filter((kind) => !FLOATER_KINDS.includes(kind) && !SILENT_KINDS.includes(kind))
+  const missing = [...FLOATER_KINDS, ...SILENT_KINDS].filter((kind) => !(kind in durations))
+  assert(
+    unclassified.length === 0 && missing.length === 0,
+    `every board effect is classified as floating text or silent (${[...unclassified.map((k) => `${k} is unclassified`), ...missing.map((k) => `${k} is no longer an effect`)].join(' | ') || `${Object.keys(durations).length} kinds`})`,
+  )
+  // A floater kind held as a named constant would read as NaN here and pass
+  // every comparison below, so it is a failure rather than a skip.
+  const overhang = FLOATER_KINDS.flatMap((kind) => {
+    const ms = durations[kind]
+    if (!Number.isFinite(ms)) return [`${kind} is not a literal duration this check can read`]
+    return ms < settleMs ? [] : [`${kind} floats ${ms}ms, and the herald arms at ${settleMs}ms`]
+  })
+  assert(
+    overhang.length === 0,
+    `every floating label is gone before the next Beat Card is dealt over it (${overhang.join(' | ') || `${FLOATER_KINDS.join(', ')} under ${settleMs}ms`})`,
+  )
+
   // Let Playwright resolve the browser it installed (`npx playwright install
   // chromium`). PLAYWRIGHT_CHROMIUM_PATH overrides it for images that ship
   // their own build at a fixed path.
@@ -634,8 +684,25 @@ try {
   // party column is the one that actually collided and is why this is a
   // separate check: `notificationLayout` compares notifications with each
   // other and with the bands, and the ally frames are neither.
+  // Measured until it settles: the herald and the phase word both slide in,
+  // and a bounding box sampled mid-flight overlaps chrome it will have
+  // cleared a frame later — which failed two clean gates in a row on trees
+  // whose fact streams were byte-identical. The contract is steady-state
+  // readability, so a transient overlap is retried for up to two and a half
+  // seconds; a genuine covering persists and fails with the same message.
   const assertBeatCardReadable = async (view, label) => {
-    const covered = await view.evaluate(() => {
+    let covered = []
+    for (let attempt = 0; attempt < 25; attempt += 1) {
+      covered = await measureBeatCardCoverage(view)
+      if (covered.length === 0) {
+        break
+      }
+      await view.waitForTimeout(100)
+    }
+    assert(covered.length === 0, `every row of the Beat Card is readable ${label} (${covered.join(', ')})`)
+  }
+  const measureBeatCardCoverage = async (view) => {
+    return await view.evaluate(() => {
       const card = document.querySelector('[data-testid="playout-continue"]')
       if (card === null) {
         return ['no Beat Card is up']
@@ -656,7 +723,6 @@ try {
         })
         .map((node) => node.dataset.testid)
     })
-    assert(covered.length === 0, `every row of the Beat Card is readable ${label} (${covered.join(', ')})`)
   }
   // The card the scripted turn is pointing at is the only live card in Hand.
   const scriptedCard = () => page.locator('[data-testid="hand-card"][data-scripted="true"]')
@@ -1883,6 +1949,100 @@ try {
     `playing a card leaves the console still — only a handover deals it (${afterPlay.hand.dealing} cards, ${afterPlay.slots.dealing} Slots moving)`,
   )
   await refill.close()
+
+  // The tuck (party-frame direction 1A's tab). Three things only a browser can
+  // answer: that the column and its plates actually resize, that the tucked
+  // frame stops drawing the words it is not wide enough for while its label
+  // keeps saying them, and — the rule this was built to — that a press on a
+  // tucked frame opens the column instead of taking control of that Hero.
+  const tuck = await swapPage()
+  const readColumn = (page) =>
+    page.evaluate(() => {
+      const box = (selector) => {
+        const element = document.querySelector(selector)
+        if (element === null) {
+          return { w: 0, h: 0, text: '', label: '' }
+        }
+        const rect = element.getBoundingClientRect()
+        return {
+          w: Math.round(rect.width),
+          h: Math.round(rect.height),
+          text: (element.textContent ?? '').trim(),
+          label: element.getAttribute('aria-label') ?? '',
+        }
+      }
+      const tab = document.querySelector('[data-testid="party-tuck"]')
+      const extension = tab?.querySelector('span[aria-hidden="true"]')?.getBoundingClientRect()
+      return {
+        column: box('[data-testid="party-frames"]'),
+        tab: box('[data-testid="party-tuck"]'),
+        frame: box('[data-testid="ally-frame"]'),
+        expanded: tab?.getAttribute('aria-expanded') ?? '',
+        hit: extension ? Math.round(extension.height) : 0,
+        pips: document.querySelectorAll('[data-testid="ally-unacted"]').length,
+        pilot: document.querySelector('[data-testid="hero-frame"]')?.dataset.heroId ?? '',
+      }
+    })
+
+  const open = await readColumn(tuck)
+  assert(
+    open.column.w === 138 && open.tab.w === 72 && open.tab.text === 'Party' && open.expanded === 'true',
+    `the column opens at 138pt behind a labelled tab (${open.column.w}pt column, ${open.tab.w}pt tab "${open.tab.text}")`,
+  )
+  assert(open.hit === 44, `the 20px tab carries a 44px hit box, which is the 40/44 rule's own escape (${open.hit}px)`)
+
+  await tuck.locator('[data-testid="party-tuck"]').click()
+  await tuck.waitForTimeout(400)
+  const tucked = await readColumn(tuck)
+  assert(
+    tucked.column.w === 66 && tucked.tab.w === 30 && tucked.tab.text === '' && tucked.expanded === 'false',
+    `the tab tucks the column to 66pt and takes its own label with it (${tucked.column.w}pt column, ${tucked.tab.w}pt tab)`,
+  )
+  assert(
+    tucked.frame.w === 66 && tucked.frame.text === '',
+    `a tucked frame draws no words at all — no name, no health number (${tucked.frame.w}pt, "${tucked.frame.text}")`,
+  )
+  assert(
+    tucked.frame.label === open.frame.label.replace('Tap to take control.', 'Tap to show the party column.'),
+    `the label never tucks: same Hero, same health, same window owed, only the press changed\n    ${tucked.frame.label}`,
+  )
+  assert(
+    tucked.pips === open.pips && open.pips > 0,
+    `the unacted pip survives the tuck — the accent carries no such channel, so dropping it would delete the state (${tucked.pips} of ${open.pips})`,
+  )
+  assert(
+    tucked.frame.h === 40 && open.frame.h >= 40,
+    `every frame holds the 40pt floor tucked and open (${tucked.frame.h} tucked, ${open.frame.h} open)`,
+  )
+
+  // The rule. A tucked frame has hidden `REVIVE · 1 CARD` along with everything
+  // else, so its press may not spend a card — and by the same argument may not
+  // hand the console over either. It gives the words back and nothing else.
+  await tuck.locator('[data-testid="ally-frame"]').first().click()
+  await tuck.waitForTimeout(400)
+  const reopened = await readColumn(tuck)
+  assert(
+    reopened.column.w === 138 && reopened.expanded === 'true',
+    `a press on a tucked frame opens the column (${reopened.column.w}pt)`,
+  )
+  assert(
+    reopened.pilot === open.pilot,
+    `...and takes control of nobody: the tuck swallows the press whole (pilot still ${reopened.pilot})`,
+  )
+  await shot(tuck, 'party-tuck')
+  await tuck.close()
+
+  // Reduced motion reaches this one for free, because the tuck is a CSS
+  // transition rather than a Web Animations flight: index.css's freeze block
+  // covers it, and a tuck that lands instantly is still a tuck.
+  const stillTuck = await swapPage({ reducedMotion: 'reduce' })
+  await stillTuck.locator('[data-testid="party-tuck"]').click()
+  const cutTuck = await readColumn(stillTuck)
+  assert(
+    cutTuck.column.w === 66 && cutTuck.frame.w === 66,
+    `reduced motion tucks the column with no travel at all (${cutTuck.column.w}pt, read with no wait)`,
+  )
+  await stillTuck.close()
 
   // The Slot row's worst case, measured on purpose rather than hoped for.
   // The scripted turn above prepares Steady Strike — two Charges, no want mark
