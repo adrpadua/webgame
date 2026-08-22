@@ -15,4 +15,4 @@ Behavior-preserving: types, a table, and verbatim predicate moves; `DEMANDS` ent
 
 ## Evidence
 
-(gate results stamped below on completion)
+Full isolated gate green end to end: casing guard silent, log:ids clean, 660 tests, lint, build, **SMOKE PASSED** with replay fingerprint match (the settle-fixed readability check holding), mutation audit **130/130 caught, 0 survived, 0 stale** — the three DEMANDS-entry anchors and the scope-flip mutant all killing through the unchanged entry texts and the new load guard — inner EXIT:0. Survey correction recorded: `RANGED_BEAT_KINDS` was already typed by an earlier change; the escalation table was the live half of the hazard.
