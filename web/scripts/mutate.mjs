@@ -106,7 +106,7 @@ const MUTATIONS = [
     name: 'a detonating Minion stays on the board',
     guards: 'D-063: a Minion is consumed by its own blast',
     file: 'engine/resolve.ts',
-    from: "      delete draft.board.entities[action.sourceId]\n      delete draft.counters[combatantRef(action.sourceId)]\n      succeed(fact)",
+    from: "      removePiece(draft, action.sourceId)\n      succeed(fact)",
     to: '      succeed(fact)',
   },
   {
