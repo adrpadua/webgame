@@ -13,7 +13,7 @@ Status: delivered (this session, D-109)
 
 665/665 green with typecheck clean before the gate; `log:ids` assigned D-109 and carried the citations.
 
-(gate results stamped below on completion)
+Full isolated gate green end to end: casing guard silent, log:ids clean (D-109 assigned, citations carried), 665 tests, lint, build, **SMOKE PASSED** with replay fingerprint match, mutation audit **130/130 caught, 0 survived, 0 stale**, inner EXIT:0.
 
 ## Scope
 
