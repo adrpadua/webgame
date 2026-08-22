@@ -27,4 +27,6 @@ Full local gate; new mutation-audit entries for the vocabulary's load-bearing ru
 
 ## Evidence
 
-Typecheck clean (after binding the switch discriminant so the `never` guards survive narrowing); `selectors.test.ts` 11/11; full suite 676/676 across 51 files; lint clean; `log:ids --fix` assigned D-111 and carried the citation into `mutate.mjs`, `minions.ts`, `selectors.ts`. Full isolated gate: pending (queued behind this commit).
+Typecheck clean (after binding the switch discriminant so the `never` guards survive narrowing); `selectors.test.ts` 11/11; full suite 676/676 across 51 files; lint clean; `log:ids --fix` assigned D-111 and carried the citation into `mutate.mjs`, `minions.ts`, `selectors.ts`.
+
+Full isolated gate green end to end on the delivery commit: casing guard silent, log:ids clean, 676 tests across 51 files, lint, build, **SMOKE PASSED** with replay fingerprint match (`60f041e5…`), and the mutation audit at **133/133 caught, 0 survived, 0 stale** — the three new selector entries killed by the acceptance battery. Inner EXIT:0 (read from the gate log's own exit line, never the wrapper's).
