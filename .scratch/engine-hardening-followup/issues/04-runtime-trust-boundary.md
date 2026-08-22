@@ -1,6 +1,19 @@
 # 04 — The runtime trust boundary (P2)
 
-Status: open — pre-multiplayer; required before any client-controlled payload reaches the engine
+Status: delivered (this session)
+
+## Delivered
+
+- **`resolvePlayerCommand(catalog, state, payload: unknown)`** in `engine/submit.ts` — the one runtime-validated player-command entry point. It parses through `scenarioActionSchema` itself (the declared vocabulary, already guarded two ways against `PLAYER_COMMAND_KINDS` at module load), so the live boundary and the replay seam share one schema authority by construction and can never drift. Returns `{accepted: true, action, result}` with the parsed (unknown-keys-stripped) command, or `{accepted: false, reason}`.
+- **The division of labour, stated in the module header**: the boundary refuses *malformed* input with no fact — the action never existed; a well-formed but *illegal* command is admitted and refused by `legality()` with a recorded fact, exactly as from a trusted caller. Raw `resolve()` stays the internal, trusted seam; `submitSystemAction` stays the documented off-replay Workbench debug injection.
+- **The seam has a real adapter from day one**: the Workbench's `submit` now routes through `resolvePlayerCommand`, so the live submit path continuously exercises the exact validation a future untrusted client will meet (one adapter is a hypothetical seam; this makes it the actual path). A typed UI action failing the parse is a Workbench bug and surfaces on the rejection channel.
+- **Tests** (`commandSpace.test.ts`, four new): every system-action kind refused kind by kind, via a mapped type over `SystemActionInput['kind']` — a new system kind cannot compile without an explicit boundary row; malformed player payloads (null, primitives, missing/wrong-typed fields, unknown kinds) refused; the well-formed-but-illegal split pinned (accepted, refused on the record); an accepted command resolves identically to the trusted seam with forged keys stripped.
+
+## Evidence
+
+Typecheck (`parsed.data` assigns to `PlayerCommandInput` with no cast — the schema's inferred type matches the union structurally), lint, and the full suite (664/664) green before the gate; zero existing-test edits.
+
+Full isolated gate green end to end: casing guard silent, log:ids clean, 664 tests, lint, build, **SMOKE PASSED** with replay fingerprint match (the Workbench's boundary-routed submit exercised live by the smoke's whole scripted turn), mutation audit **130/130 caught, 0 survived, 0 stale**, inner EXIT:0.
 
 ## Scope
 
