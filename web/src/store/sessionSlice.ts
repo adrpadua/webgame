@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand'
 import { DEFAULT_ENCOUNTER_ID, FIRST_TURN_ENCOUNTER_ID } from '@/content'
-import { advancePhase, createEncounterState, resolve, runScenario, type EncounterState, type PlayerCommandInput,
+import { advancePhase, createEncounterState, resolve, resolvePlayerCommand, runScenario, type EncounterState, type PlayerCommandInput,
   type SystemActionInput, type ResolvedActionFact, type ScenarioStep } from '@/engine'
 import { catalog } from './catalog'
 import { buildRecordExport, buildScenarioExport } from './exports'
@@ -79,9 +79,19 @@ export const createSessionSlice: StateCreator<WorkbenchStore, [], [], SessionSli
 
     submit: (action) => {
       const state = selectState(get())
-      const result = resolve(catalog, state, action)
+      // Player commands cross the runtime trust boundary, the same parse the
+      // Scenario seam uses (engine-hardening issue 04) — so the live submit
+      // path exercises the exact validation a future untrusted client will
+      // meet. A typed Workbench action failing it is a Workbench bug; it
+      // surfaces on the rejection channel rather than vanishing.
+      const submission = resolvePlayerCommand(catalog, state, action)
+      if (!submission.accepted) {
+        set({ lastRejection: submission.reason })
+        return
+      }
+      const { result } = submission
       const submitted = result.facts[0]
-      pushEntry(submitted?.title ?? action.kind, { action } as ScenarioStep, result.state, result.facts)
+      pushEntry(submitted?.title ?? submission.action.kind, { action: submission.action } as ScenarioStep, result.state, result.facts)
       set({ lastRejection: submitted && !submitted.succeeded ? submitted.reason : null })
     },
 

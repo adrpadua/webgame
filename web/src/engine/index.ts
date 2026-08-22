@@ -8,6 +8,7 @@ export { createEncounterState } from './setup'
 // `advancePhase()` instead (engine-hardening follow-up P4). Internal engine
 // callers import it from './resolve' directly.
 export { resolve } from './resolve'
+export { resolvePlayerCommand, type PlayerCommandSubmission } from './submit'
 export { advancePhase } from './advancePhase'
 export { escalationActionsForRoundEnd } from './escalation'
 export { legality } from './legality'
